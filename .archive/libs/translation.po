@@ -1,9 +1,0 @@
-"Language: sk\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"POT Version: 2.0"
-        
-
-msgctxt "STRINGS.PEARL.LOGS.DAY"
-msgid "Deň %d - %s (%s °C)"
-msgstr "TEST\\n"

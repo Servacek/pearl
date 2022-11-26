@@ -1,4 +1,0 @@
-
-
-Total time spent in profiled functions:     0ms
-END
