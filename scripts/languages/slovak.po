@@ -1,0 +1,563 @@
+msgid ""
+msgstr ""
+"Language: sk\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT Version: 2.0"
+
+
+#. STRINGS.PEARL.LOGS.CONNECTION_CLOSE
+msgctxt "STRINGS.PEARL.LOGS.CONNECTION_CLOSE"
+msgid "Connection for %s was closed -> %s"
+msgstr "Pripojenie od %s bolo prerušené -> %s"
+
+#. STRINGS.PEARL.ACTIONS.TURNON
+msgctxt "STRINGS.PEARL.ACTIONS.TURNON"
+msgid "%s turned on %s!"
+msgstr "%s spustil/a %s!"
+
+msgctxt "STRINGS.PEARL.SEASON_UNKNOWN"
+msgid "Unknown Season"
+msgstr "Neznáma Sezóna"
+
+msgctxt "STRINGS.PEARL.ACTIONS.BURNTUP"
+msgid "%s burnt up!"
+msgstr "Zhorel/a %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.ANNOUNCEMENT"
+msgid "Announcement"
+msgstr "Oznam"
+
+msgctxt "STRINGS.PEARL.ACTIONS.TURNOFF"
+msgid "%s turned off %s!"
+msgstr "%s odstavil/a %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.RESTART"
+msgid "Rastarting the server..."
+msgstr "Reštartovanie servera..."
+
+msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC"
+msgid "{doer} took {count}x {item}!"
+msgstr "{doer} vzal/a {count}x {item}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM"
+msgid "{doer} took {items} from {target}!"
+msgstr "{doer} vzal/a {items} z {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.EAT"
+msgid "%s ate %s!"
+msgstr "%s zjedol/la %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.ROLLBACK"
+msgid "Rolling server %d snapshots back!"
+msgstr "Server bude vrátený o %d záznam/y/ov späť."
+
+msgctxt "STRINGS.PEARL.LOGS.START"
+msgid "Starting the server..."
+msgstr "Spúšťanie servera..."
+
+msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
+msgid "%s was unexpectedly disconnected from shard %s."
+msgstr "%s bol/a neočakávane odpojený/á od shardu %s."
+
+msgctxt "STRINGS.PEARL.LOGS.CONSOLE_CMD"
+msgid "`%s executed remote command:`\n```lua\n%s```"
+msgstr "`%s použil/a príkaz v konzole:`\n```lua\n%s```"
+
+msgctxt "STRINGS.PEARL.LOGS.WARNED"
+msgid "%s was warned for griefing!"
+msgstr "%s bol/a varovaný/á za griefing!"
+
+msgctxt "STRINGS.PEARL.LOGS.DISCONNECT"
+msgid "%s was disconnected from shard %s."
+msgstr "%s bol/a odpojený/á od shardu %s."
+
+msgctxt "STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN"
+msgid "%s entered the constant as %s"
+msgstr "%s vstúpil/a do konštanty ako %s"
+
+msgctxt "STRINGS.PEARL.ACTIONS.FEED"
+msgid "%s feed %s with %s!"
+msgstr "%s nakŕmil/a %s s %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_START"
+msgid "Updating the server to version %s..."
+msgstr "Aktualizovanie servera na verziu %s..."
+
+msgctxt "STRINGS.PEARL.ACTIONS.HAMMER"
+msgid "%s destroyed %s!"
+msgstr "%s rozbil/a %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.SAY"
+msgid "**%s**: %s"
+msgstr "**%s**: %s"
+
+msgctxt "STRINGS.PEARL.LOGS.AUTH"
+msgid "%s authenticated as %s"
+msgstr "%s autentifikované ako %s"
+
+msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_TITLE"
+msgid "%s %s's Inventory"
+msgstr "%s Inventár hráča %s"
+
+msgctxt "STRINGS.PEARL.LOGS.MIGRATING"
+msgid "%s migruje do %s."
+msgstr "%s migruje do %s."
+
+msgctxt "STRINGS.PEARL.LOGS.OWNER"
+msgid "%s Owner: %s"
+msgstr "%s Majiteľ: %s"
+
+msgctxt "STRINGS.PEARL.LOGS.SAY_WHISPER"
+msgid "[W] **%s**: *%s*"
+msgstr "[W] **%s**: *%s*"
+
+msgctxt "STRINGS.PEARL.LOGS.DAY"
+msgid "Day %d - %s (%s °C)"
+msgstr "Deň %d - %s (%s °C)"
+
+msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH"
+msgid "Fires were extinguished!"
+msgstr "Ohne boli uhasené!"
+
+msgctxt "STRINGS.PEARL.LOGS.START_VOTE_ANONYMOUS"
+msgid "%s started."
+msgstr "Bolo spustené %s."
+
+msgctxt "STRINGS.PEARL.LOGS.CAVES_STATE_UPDATE"
+msgid "Secondary shard Caves has been %s."
+msgstr "Sekundárny shard Caves bol %s."
+
+msgctxt "STRINGS.PEARL.LOGS.AND"
+msgid "and"
+msgstr "a"
+
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.GRIEFER_WARNINGS.BAN"
+msgid "There we go again..."
+msgstr "There we go again..."
+
+msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST_DIS"
+msgid "Server's version is outdated, new players aren't able to connect."
+msgstr "Verzia servera je zastaralá, nový hráči sa nebudú môcť pripojiť."
+
+msgctxt "STRINGS.PEARL.LOGS.RESET_COUNTDOWN_STOP"
+msgid "World reset countdown has stopped."
+msgstr "Odpočet pre automatické regenerovanie sveta bol zrušený."
+
+msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON_NEAR"
+msgid "{doer} used {item} on {target} near {near}!"
+msgstr "{doer} použil/a {item} na {target} pri {near}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON"
+msgid "{doer} used {item} on {target}!"
+msgstr "{doer} použil/a {item} na {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.CAST.NEAR"
+msgid "{doer} used {item} near {near}!"
+msgstr "{doer} použil/a {item} pri {near}!"
+
+msgctxt "STRINGS.PEARL.LOGS.SKIN_RECEIVED"
+msgid "%s received %s!"
+msgstr "%s získal/a %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
+msgid "`%dx` `%s` `(\"%s\")`"
+msgstr "`%dx` `%s` `(\"%s\")`"
+
+msgctxt "STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START"
+msgid "World reset countdown has started!"
+msgstr "Odpočet pre automatické regenerovanie sveta bol spustený."
+
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.GENERIC"
+msgid "{doer} killed {target}!"
+msgstr "{doer} zabil/a {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.FOLLOWER"
+msgid "{doer} killed {target}! Owner: {owner}"
+msgstr "{doer} zabil/a {target}! Majiteľ: {owner}"
+
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.MONITORED"
+msgid "{doer} killed {target}! Remaining: {remaining}"
+msgstr "{doer} zabil/a {target}! Ostáva: {remaining}"
+
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.NEAR"
+msgid "{doer} killed {target} near {near}!"
+msgstr "{doer} zabil/a {target} pri {near}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.BOSS"
+msgstr "{doer} porazil/a {target}!"
+
+msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH_NEAR"
+msgid "Fire near %s were extinguished!"
+msgstr "Ohne v blízkosti hráča %s boli uhasené!"
+
+msgctxt "STRINGS.PEARL.UI.UI.MODS_BLOCKED_TITLE"
+msgid "Mods Blocked"
+msgstr "Mods Blocked"
+
+msgctxt "STRINGS.PEARL.UI.UI.MODS_BLOCKED_BODY"
+msgid "Some of your mods couldn't be loaded because the server doesn't allow them."
+msgstr "Some of your mods couldn't be loaded because the server doesn't allow them."
+
+msgctxt "STRINGS.PEARL.UI.UI.TIP_TOGGLE_CHAT"
+msgid "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!"
+msgstr "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!"
+
+msgctxt "STRINGS.PEARL.LOGS.SIM_UNPAUSED"
+msgid "Simulation was unpaused."
+msgstr "Simulácia bola obnovená."
+
+msgctxt "STRINGS.PEARL.SERVER_PAUSE"
+msgid "Server was paused."
+msgstr "Server bol pozastavený."
+
+msgctxt "STRINGS.PEARL.LOGS.STOP_VOTE"
+msgid "The vote was stopped."
+msgstr "Hlasovanie bolo zrušené."
+
+msgctxt "STRINGS.PEARL.LOGS.GAME_LOADED"
+msgid "Shard %s was loaded."
+msgstr "Načítavanie shardu %s dokočené."
+
+msgctxt "STRINGS.PEARL.LOGS.SERVER_UNPAUSE"
+msgid "Server was unpaused."
+msgstr "Pozastavenie servera bolo zrušené."
+
+msgctxt "STRINGS.PEARL.LOGS.USER_ACTIVE"
+msgid "%s came back!"
+msgstr "%s je späť!"
+
+msgctxt "STRINGS.PEARL.LOGS.TAG"
+msgid "[%s]"
+msgstr "[%s]"
+
+msgctxt "STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED"
+msgid "%s was kicked for inactivity."
+msgstr "%s bol/a vyhodený/á pre neaktivitu."
+
+msgctxt "STRINGS.PEARL.LOGS.SERVER_STARTED"
+msgid "Server successfully started on version %s!"
+msgstr "Server bol úspešne spustený na verzii %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.USER_INACTIVE"
+msgid "%s went away..."
+msgstr "%s je preč."
+
+msgctxt "STRINGS.PEARL.LOGS.START_VOTE"
+msgid "%s started %s."
+msgstr "%s spustil %s."
+
+msgctxt "STRINGS.PEARL.ACTIONS.BUILD.GENERIC"
+msgid "{doer} built {target}!"
+msgstr "{doer} postavil/a {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.BUILD.NEAR"
+msgid "{doer} built {target} near {near}!"
+msgstr "{doer} postavil/a {target} pri {near}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.DEPLOY.GENERIC"
+msgid "{doer} placed {item}!"
+msgstr "{doer} položil/a {item}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.DEPLOY.NEAR"
+msgid "{doer} placed {item} near {near}!"
+msgstr "{doer} položil/a {item} v blízkosti {near}!"
+
+msgctxt "STRINGS.PEARL.LOGS.SERVER_PAUSE_BY"
+msgid "Server was paused by %s."
+msgstr "%s pozastavil/a server."
+
+msgctxt "STRINGS.PEARL.LOGS.SERVER_AUTOPAUSE"
+msgid "Server was autopaused."
+msgstr "Server bol automaticky pozastavený."
+
+msgctxt "STRINGS.PEARL.LOGS.RESET"
+msgid "Regenerating the world on %s."
+msgstr "Regenerovanie sveta pre shard %s..."
+
+msgctxt "STRINGS.PEARL.LOGS.SHUTDOWN"
+msgid "Shutting down %s..."
+msgstr "Vypínanie shardu %s..."
+
+msgctxt "STRINGS.PEARL.LOGS.STATUS_CODE_REPORT"
+msgid "STATUS_CODE -> %d:\n%s"
+msgstr "STATUS_CODE -> %d:\n%s"
+
+msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_SECOND"
+msgid "Server will be automatically updated in 15 seconds. All your current progress will remain untouched. Don't forget to update your game as well :)"
+msgstr "Ostáva 15 sekúnd do automatickej aktualizácie servera. Progres aktuálneho sveta bude zachovaný. Nezbudnite si aktualizovať aj vašu hru :)"
+
+msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST"
+msgid "Server's version is outdated, new players aren't able to connect. It will be automatically updated in %s seconds."
+msgstr "Verzia servera je zastaralá, nový hráči sa nebudú môcť pripojiť. Server bude automaticky aktualizovaný o %s minút."
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_LATE.winter"
+msgid "Late"
+msgstr "Neskorá"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_LATE.autumn"
+msgid "Late"
+msgstr "Neskorá"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_LATE.spring"
+msgid "Late"
+msgstr "Neskorá"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_LATE.summer"
+msgid "Late"
+msgstr "Neskoré"
+
+msgctxt "STRINGS.PEARL.SHARD_STATE.CONNECTED"
+msgid "connected"
+msgstr "pripojený"
+
+msgctxt "STRINGS.PEARL.SHARD_STATE.DISCONNECTED"
+msgid "disconnected"
+msgstr "odpojený"
+
+msgctxt "STRINGS.PEARL.LOGS.SIM_PAUSED"
+msgid "Simulation was paused."
+msgstr "Simulácia bola pozastavená."
+
+msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_REASON"
+msgid "%s was disconnected from shard %s. %s"
+msgstr "%s bol/a odpojený/á od shardu %s. %s"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.winter"
+msgid "Early"
+msgstr "Skorá"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.autumn"
+msgid "Early"
+msgstr "Skorá"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.spring"
+msgid "Early"
+msgstr "Skorá"
+
+msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.summer"
+msgid "Early"
+msgstr "Skoré"
+
+msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_EMPTY"
+msgid "*Loading failed or the inventory is empty.*"
+msgstr "*Inventár nebolo možné načítať alebo je prázdny...*"
+
+msgctxt "STRINGS.PEARL.ACTIONS.IGNITE.GENERIC"
+msgid "{doer} lit {target}!"
+msgstr "{doer} zapálil/a {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.IGNITE.NEAR"
+msgid "{doer} lit {target} near {near}!"
+msgstr "{doer} zapálil/a {target} pri {near}!"
+
+################################
+## Game Strings
+################################
+
+
+#. STRINGS.UI.NOTIFICATION.BANNEDFROMGAME
+msgctxt "STRINGS.UI.NOTIFICATION.BANNEDFROMGAME"
+msgid "%s was banned from the game."
+msgstr "Prístup na server bol zakázany pre %s."
+
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTEFAILEDFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEFAILEDFMT"
+msgid "The %s has failed."
+msgstr "%s bolo neúspešné."
+
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
+msgid "vote"
+msgstr "Hlasovanie"
+
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT"
+msgid "The %s has passed."
+msgstr "%s prešlo."
+
+#. STRINGS.UI.NOTIFICATION.DICEROLLED
+msgctxt "STRINGS.UI.NOTIFICATION.DICEROLLED"
+msgid "%s rolls %s (1-%i)"
+msgstr "%s hodil %s (1-%i)"
+
+#. STRINGS.UI.NOTIFICATION.JOINEDGAME
+msgctxt "STRINGS.UI.NOTIFICATION.JOINEDGAME"
+msgid "%s has joined the game."
+msgstr "%s sa pripojil/a do hry."
+
+#. STRINGS.UI.NOTIFICATION.KICKEDFROMGAME
+msgctxt "STRINGS.UI.NOTIFICATION.KICKEDFROMGAME"
+msgid "%s was kicked from the game."
+msgstr "%s vyhodený/á z hry."
+
+#. STRINGS.UI.NOTIFICATION.LEFTGAME
+msgctxt "STRINGS.UI.NOTIFICATION.LEFTGAME"
+msgid "%s has left the game."
+msgstr "%s opustil/a hru."
+
+#. STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT
+msgctxt "STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT"
+msgid "%s got a new skin: "
+msgstr "%s získal nový skin: "
+
+#. STRINGS.UI.HUD.REZ_ANNOUNCEMENT
+msgctxt "STRINGS.UI.HUD.REZ_ANNOUNCEMENT"
+msgid "was resurrected by"
+msgstr "bol/a oživený/á cez"
+
+#. STRINGS.UI.HUD.RETROFITTING_ANNOUNCEMENT_NOW
+msgctxt "STRINGS.UI.HUD.RETROFITTING_ANNOUNCEMENT_NOW"
+msgid "World is reloading to complete retrofitting."
+msgstr "Server sa reštartuje pre dokončenie generácie sveta."
+
+#. STRINGS.UI.HUD.RETROFITTING_ANNOUNCEMENT
+msgctxt "STRINGS.UI.HUD.RETROFITTING_ANNOUNCEMENT"
+msgid "World will reload in {time} seconds to complete retrofitting."
+msgstr "Server bude za {time} sekundy reštartovaný pre dokončenie generácie sveta."
+
+#. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_DEFAULT
+msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_DEFAULT"
+msgid "lost all of their humanity and is gone forever."
+msgstr "prišli o všetku svoju ľudskosť a sú stratený naveky."
+
+#. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_FEMALE
+msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_FEMALE"
+msgid "lost all of her humanity and is gone forever."
+msgstr "prišla o všetku svoju ľudskosť a je stratená naveky."
+
+#. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_MALE
+msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_MALE"
+msgid "lost all of his humanity and is gone forever."
+msgstr "prišiel o všetku svoju ľudskosť a je stratený naveky."
+
+#. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_ROBOT
+msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_ROBOT"
+msgid "lost all of their humanity and is gone forever."
+msgstr "prišli o všetku svoju ľudskosť a sú stratený naveky."
+
+#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_1
+msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_1"
+msgid "was killed by"
+msgstr "bol/a zabitý/á"
+
+#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_DEFAULT
+msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_DEFAULT"
+msgid ". They became a spooky ghost!"
+msgstr ". Stal sa z nich desivý duch!"
+
+#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_FEMALE
+msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_FEMALE"
+msgid ". She became a spooky ghost!"
+msgstr ". Stal sa z nej desivý duch!"
+
+#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE
+msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE"
+msgid ". He became a spooky ghost!"
+msgstr ". Stal sa z neho desivý duch!"
+
+#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_ROBOT
+msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_ROBOT"
+msgid ". They became a spooky ghost!"
+msgstr ". Stal sa z neho desivý duch!"
+
+#. STRINGS.UI.BUILTINCOMMANDS.KICK.VOTENAMEFMT
+msgctxt "STRINGS.UI.BUILTINCOMMANDS.KICK.VOTENAMEFMT"
+msgid "vote to kick %s"
+msgstr "Hlasovanie za vyhodenie %s"
+
+#. STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTENAMEFMT
+msgctxt "STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTENAMEFMT"
+msgid "vote to rollback the server"
+msgstr "Hlasovanie za vrátenie servera späť"
+
+#. STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTEPASSEDFMT
+msgctxt "STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTEPASSEDFMT"
+msgid "Rolling server back in 5 seconds..."
+msgstr "Server bude vrátený späť o 5 sekúnd..."
+
+#. STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTENAMEFMT
+msgctxt "STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTENAMEFMT"
+msgid "vote to regenerate the world"
+msgstr "Hlasovanie za regenerovanie sveta"
+
+#. STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTEPASSEDFMT
+msgctxt "STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTEPASSEDFMT"
+msgid "Regenerating world in 5 seconds..."
+msgstr "Svet bude regenerovaný o 5 sekúnd..."
+
+#. STRINGS.UI.NETWORKDISCONNECT.BODY.SERVER_MODS_WORKSHOP_VERSION_MISMATCH
+msgctxt "STRINGS.UI.NETWORKDISCONNECT.BODY.SERVER_MODS_WORKSHOP_VERSION_MISMATCH"
+msgid "The server is running mods with an old version. The server owner must update the mods for new players to join."
+msgstr "Mody ktoré server používa sú zastaralé. Aby sa nový hráči mohli pripojiť, musí správca server mody aktualizovať."
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.AUTUMN
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.AUTUMN"
+msgid "Autumn"
+msgstr "Jeseň"
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SPRING
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SPRING"
+msgid "Spring"
+msgstr "Jar"
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SUMMER
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SUMMER"
+msgid "Summer"
+msgstr "Leto"
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.WINTER
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.WINTER"
+msgid "Winter"
+msgstr "Zima"
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.DAY"
+msgid "Day"
+msgstr "Deň"
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.PHASES.DUSK
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.DUSK"
+msgid "Dusk"
+msgstr "Podvečer"
+
+#. STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT
+msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT"
+msgid "Night"
+msgstr "Noc"
+
+msgctxt "STRINGS.NAMES.NIL"
+msgstr "Temnota"
+
+msgctxt "STRINGS.NAMES.DARKNESS"
+msgstr "Temnota"
+
+msgctxt "STRINGS.NAMES.HUNGER"
+msgstr "Hladovanie"
+
+msgctxt "STRINGS.NAMES.COLD"
+msgstr "Mrznutie"
+
+msgctxt "STRINGS.NAMES.HOT"
+msgstr "Prehrievanie"
+
+msgctxt "STRINGS.NAMES.OLDAGER_COMPONENT"
+msgstr "plynutie času"
+
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE"
+msgstr "Server Spustený"
+
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLATFORM"
+msgstr "Platforma"
+
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.GAME_V"
+msgstr "Verzia Hry"
+
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.MOD_V"
+msgstr "Verzia Modu"
+
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.SEED"
+msgstr "Seed Sveta"
+
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLAYSTYLE"
+msgstr "Herný Režim"

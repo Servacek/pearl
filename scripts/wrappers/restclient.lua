@@ -1,0 +1,294 @@
+--[[
+    Manages the REST client's request queue so requests are not sent directly.
+
+    Functions:
+        - GET(url, callbackfn, timeout, ...)
+        - POST(url, callbackfn, encoded_data, timeout, ...)
+
+    - NOTES:
+        - Each shard has it's own Requester so they are not synced.
+          Therefore it's recommended to, if possible, send all requests
+          from Master to prevent exceeding any rate limits.
+
+        - The discord REST API rate limit is 16 requests/second.
+--]]
+
+local Queue = require("models/queue")
+local Request = require("models/request")
+
+local PEARL = PEARL
+local Class = Class
+local TheSim = TheSim
+
+--------------------------------
+-- [[ Constants ]]
+--------------------------------
+
+local DEFAULT_QUEUE_SIZE_LIMIT = 10
+-- This is here in case something fails and the request frequency
+-- isn't set according to the configurations.
+local DEFAULT_REQUEST_FREQUNCY = 2
+-- Determines the number of requests which can be force-sent from the queue
+-- when the requester is shutting down.
+local MAX_QUEUE_FORCE_COUNT = 3
+
+--------------------------------
+-- [[ Private Functions ]]
+--------------------------------
+
+local _SendRequest, _ProcessQueue, _FinishCooldown
+
+_SendRequest = function(self, request, force)
+    if not request or (self._cooldown and not force) then
+        return
+    end
+
+    self:SetIsOnCooldown(true)
+    TheSim:QueryServer(request.url, function(...)
+        request:OnCompleted(...)
+
+        -- Wait a few seconds before executing next request
+        self:StartCooldown()
+    end, request.method, request.data, request.timeout)
+
+    self._rcount = self._rcount + 1
+end
+
+_ProcessQueue = function(self)
+    if not self._queue then
+        return
+    end
+
+    _SendRequest(self, self._queue:Take())
+end
+
+_FinishCooldown = function(self)
+    self:SetIsOnCooldown(false)
+
+    _ProcessQueue(self)
+end
+
+--------------------------------
+-- [[ Class Declaration ]]
+--------------------------------
+
+--- @class RestClient singleton
+local RestClient = Class(function(self)
+    self._frequency = DEFAULT_REQUEST_FREQUNCY
+
+    -- Lazy load the queue
+    --- @type Queue?
+    self._queue = nil
+    self._request_cache = {}
+    --- @type Task?
+    self._task = nil
+
+    -- Used for debugging
+    self._rcount = 0
+
+    -- internal state
+    self._cooldown = false
+    self._shutting_down = false
+    --self._ready = false
+
+    -- [[ Events ]]
+    PEARL.EventProcessor:AddEventHandler("quit", function()
+        self:OnShutdown()
+    end)
+end)
+
+--------------------------------
+-- [[ Static Variables ]]
+--------------------------------
+
+-- More can be added later
+RestClient.METHODS = {
+    POST    = "POST",
+    GET     = "GET",
+}
+
+--------------------------------
+-- [[ Setters ]]
+--------------------------------
+
+function RestClient:SetIsOnCooldown(cooldown)
+    self._cooldown = cooldown
+
+    return self
+end
+
+function RestClient:SetRequestFrequency(frequency)
+    self._frequency = frequency
+
+    return self
+end
+
+function RestClient:CacheRequest(request)
+    self._request_cache[request.url] = request
+
+    return self
+end
+
+--------------------------------
+-- [[ Getters ]]
+--------------------------------
+
+function RestClient:IsQueueDisabled()
+    return self._frequency <= 0
+end
+
+function RestClient:IsOnCooldown()
+    return self._cooldown
+end
+
+function RestClient:IsShuttingDown()
+    return self._shutting_down
+end
+
+-- function RestClient:IsReady()
+--     return self._ready
+-- end
+
+function RestClient:GetCached(url)
+    return self._request_cache[url]
+end
+
+-- Used for debuggin puproses
+function RestClient:GetSentRequestsCount()
+    return self._rcount
+end
+
+--------------------------------
+-- [[ Public Methods ]]
+--------------------------------
+
+function RestClient:StartCooldown()
+    if self:IsShuttingDown() then
+        return
+    end
+
+    if self._task and self._task.limit and self._task.limit > 0 then
+        PEARL.warn("<Requester.StartCooldown> Overriding an unfinished task!")
+
+        self._task:Cancel()
+    end
+
+    --PEARL.debug("Cooling down...")
+    self._task = PEARL.Scheduler:ExecuteInTime(
+        self._frequency, _FinishCooldown, nil, self
+    )
+end
+
+function RestClient:ProcessRequest(request)
+    -- If we are not waiting for anything or the queue is disabled
+    -- then send the request immediately
+    if not self:IsOnCooldown() or self:IsQueueDisabled() or self:IsShuttingDown() then
+        return _SendRequest(self, request)
+    end
+
+    -- Lazy load the queue if needed
+    if not self._queue then
+        self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
+    end
+
+    --PEARL.debug("Adding request to the queue...")
+    self._queue:Push(request)
+end
+
+function RestClient:ForceSend(request)
+    PEARL.debug("Forcing a request!")
+    _SendRequest(self, request, true)
+end
+
+function RestClient:Request(url, method)
+    local cached = self:GetCached(url)
+    if cached ~= nil and cached.method == method then
+        --PEARL.debug(method.." (cached)", url)
+        return cached
+    end
+
+    --PEARL.debug(method, url)
+    local request = Request(url, method)
+
+    if not self:IsShuttingDown() then
+        PEARL.debug("Caching request...")
+        self:CacheRequest(request)
+    end
+
+    return request
+end
+
+function RestClient:RetryRequestAfter(request, seconds)
+    PEARL.info("RestClient", "Retrying request in", seconds, "seconds...")
+
+    return PEARL.Scheduler:ExecuteInTime(seconds, function()
+        RestClient:ProcessRequest(request)
+    end)
+end
+
+function RestClient:GET(url, callbackfn, timeout, ...)
+    return self:Request(url, RestClient.METHODS.GET)
+        :SetCallbackFn(callbackfn, ...)
+        :SetTimeout(timeout)
+end
+
+function RestClient:POST(url, callbackfn, encoded_data, timeout, ...)
+    return self:Request(url, RestClient.METHODS.POST)
+        :SetCallbackFn(callbackfn, ...)
+        :SetTimeout(timeout)
+        :SetData(encoded_data)
+end
+
+--------------------------------
+-- [[ Callbacks ]]
+--------------------------------
+
+function RestClient:OnShutdown()
+    PEARL.info("Requester", "Shutting down...")
+    self._shutting_down = true
+
+    if self._task then
+        self._task:Cancel()
+        self._task = nil
+    end
+
+    if not self._queue or self._queue:IsEmpty() then
+        -- We are done here.
+        return
+    end
+
+    if self._queue and not self._queue:IsEmpty() then
+        PEARL.info("Processing queued requests...")
+
+        local forced_count = 0
+        for request in self._queue:Iter() do
+            if request and not request:CanSkipOnDeadline() then
+                self:ForceSend(request)
+
+                forced_count = forced_count + 1
+            end
+
+            if forced_count >= MAX_QUEUE_FORCE_COUNT then
+                PEARL.info("Force-sent requests limit reached! Skipping the remaining requests...")
+                break
+            end
+        end
+
+        self._queue:Clear()
+    end
+end
+
+-- function RestClient:OnReady()
+--     self._ready = true
+
+--     _ProcessQueue(self)
+-- end
+
+--------------------------------
+
+return RestClient
+
+-- What was the point of this?
+-- AddGamePostInit(function()
+--     PEARL.RestClient:OnReady()
+-- end)

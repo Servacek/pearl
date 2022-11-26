@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Atlas>
+    <Texture filename="announcements.tex"/>
+    <Elements>
+        <Element name="faketheeth.tex" u1="0" u2="0.192157" v1="0.606299" v2="1"/>
+        <!-- <Element name="fire.tex" u1="0.00001" u2="0.14902" v1="0.212598" v2="0.598425"/> -->
+        <Element name="fire.tex" u1="0.904541015625" u2="0.923583984375" v1="0.947509765625" v2="0.966552734375" />
+        <Element name="hambat.tex" u1="0.196078" u2="0.388235" v1="0.629921" v2="1"/>
+        <Element name="hammer.tex" u1="0.152941" u2="0.345098" v1="0.212598" v2="0.598425"/>
+        <Element name="torch.tex" u1="0.34902" u2="0.443137" v1="0.015748" v2="0.244094" variant="" />
+        <Element name="trophy.tex" u1="0.34902" u2="0.541176" v1="0.251969" v2="0.622047"/>
+    </Elements>
+</Atlas>
+
