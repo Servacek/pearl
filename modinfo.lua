@@ -53,7 +53,7 @@ configuration_options = {
         default={},
     },
 
-    { -- regenerate, rollback, kick...
+    {
         name="MOD_BLACKLIST",
         default={},
     },
@@ -64,10 +64,10 @@ configuration_options = {
     },
 
     -- Anti-Grief
-    {
-        name="FIRE_PROTECTION",
-        default=true,
-    },
+    -- {
+    --     name="FIRE_PROTECTION",
+    --     default=true,
+    -- },
 
     {
         name="LOG_SUSPICIOUS_INVENTORIES",
@@ -76,6 +76,11 @@ configuration_options = {
 
     {
         name="PROFANITY_FILTER",
+        default=true,
+    },
+
+    {
+        name="CONSOLE_COMMANDS",
         default=true,
     },
 
@@ -89,9 +94,17 @@ configuration_options = {
         default=true,
     },
 
-    {
-        name="KICK_AFK_PLAYERS",
-        default=true,
+    { -- Time in seconds represeting the inactive time after which a player is considered AFK
+      -- Settings this to 0 or lower will disable afk state (so no announcement).
+        name="AFK_TIME",
+        default=1 * 60,
+    },
+
+    { -- Total AFK time in seconds after which the player
+      -- will by disconnected from the server.
+      -- Setting this to 0 or lower will prevent kicking AFK players.
+        name = "AFK_TIME_KICK",
+        default = 5 * 60,
     },
 
     { -- This is an experimental feature.
@@ -100,9 +113,14 @@ configuration_options = {
     },
 
     -- Determines the amount of attempts to burn the base by a player until kick
+    -- {
+    --     name="MAX_FIRE_ATTEMPTS",
+    --     default=3,
+    -- },
+
     {
-        name="MAX_FIRE_ATTEMPTS",
-        default=3,
+        name = "TRUST_AGE",
+        default = 24,
     },
 
     {
@@ -112,6 +130,11 @@ configuration_options = {
 
     {
         name="ALLOWLIST",
+        default=false,
+    },
+
+    {
+        name="INTRO_SCREEN",
         default=false,
     },
 
@@ -159,13 +182,14 @@ configuration_options = {
         default=5,
     },
 
-    --- @deprecated
     -- {
-    --     name="USE_WALL_SCHEDULER",
+    --     name="OPTIMIZED_SCHEDULER",
     --     default=true,
     -- },
 
     ----------
+
+    --- @TODO: Separate the announcement settings from other things somehow
 
     {
         name="IGNITE",

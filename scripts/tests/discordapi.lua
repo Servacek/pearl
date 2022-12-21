@@ -46,32 +46,32 @@ end
 
 function tests.msg_buffer_test()
     for i = 1, 10 do
-        PEARL.Logger:LogString("Test číslo "..i, "ikonka")
+        PEARL.DiscordLogger:LogString("Test číslo "..i, "ikonka")
     end
 end
 
 function tests.msg_embed_test()
-    PEARL.Logger:LogString("Správa", "ikonka")
+    PEARL.DiscordLogger:LogString("Správa", "ikonka")
     for i = 1, Message.EMBED_COUNT_LIMIT do
-        PEARL.Logger:LogEmbed(
+        PEARL.DiscordLogger:LogEmbed(
             Embed():SetDescription("Embed #"..i)
         )
     end
 end
 
 function tests.ret_val_test()
-    PEARL.Logger:LogString("<@481731484982444052>", "ikonka")
+    PEARL.DiscordLogger:LogString("<@481731484982444052>", "ikonka")
         --:AllowMentionsForType(Message.MENTION_TYPES.USERS)
         :AddEmbed(Embed():SetDescription("The Testing Embed"))
 end
 
 function tests.content_limit_test()
-    PEARL.Logger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT + 1))
+    PEARL.DiscordLogger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT + 1))
 end
 
 function tests.content_limit_test_multiple()
-    PEARL.Logger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT / 2))
-    PEARL.Logger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT / 2))
+    PEARL.DiscordLogger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT / 2))
+    PEARL.DiscordLogger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT / 2))
 end
 
 function tests.rate_limit_test()

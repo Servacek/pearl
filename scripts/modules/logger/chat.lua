@@ -17,7 +17,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
         return
     end
 
-    PEARL.Logger:LogStringRaw(
+    PEARL.DiscordLogger:LogStringRaw(
         STRINGS.PEARL.LOGS.SAY_COMMAND:format(tostring(UserToName(userid)), cmd),
         PEARL.ICONS.PLAYER_STATE.CMD_SEND
     )
@@ -29,7 +29,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Announcement", function(message, colo
         return
     end
 
-    PEARL.Logger:LogString(
+    PEARL.DiscordLogger:LogString(
         message, PEARL.ICONS.ANNOUNCEMENTS[announce_type]
             or PEARL.ICONS.ANNOUNCEMENTS['default']
             or MARKDOWN.codeline(STRINGS.PEARL.LOGS.TAG:format(
@@ -45,7 +45,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
         return
     end
 
-    PEARL.Logger:LogEmbed(Embed()
+    PEARL.DiscordLogger:LogEmbed(Embed()
         :SetDescription(MARKDOWN.escape(GetSkinDescription(skin_name)))
         :SetColor(PEARL.RGBToDecimal(PEARL.PercentToRGB(
             GetColorForItem(skin_name)
@@ -87,7 +87,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         MARKDOWN.escape(message:emojify())
     )
 
-    PEARL.Logger:LogStringRaw(message, icon)
+    PEARL.DiscordLogger:LogStringRaw(message, icon)
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
@@ -95,7 +95,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
         return
     end
 
-    PEARL.Logger:LogStringRaw(STRINGS.PEARL.LOGS.SAY:format(
+    PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.SAY:format(
         "[Server]", message
     ), PEARL.ICONS.PLAYER_PREFABS["server"])
 end)

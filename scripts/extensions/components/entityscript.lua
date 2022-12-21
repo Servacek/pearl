@@ -7,7 +7,8 @@ local table, tostring = table, tostring
 -- [[ Class Declaration ]]
 -----------------------------------
 
-require("entityscript")
+--require("entityscript")
+--- @class EntityScript
 local EntityScript = EntityScript
 
 -----------------------------------
@@ -44,19 +45,19 @@ function EntityScript:IsResourcePlant()
         and self:HasOneOfTags(PEARL.CONSTS.RESOURCE_PLANT_TAGS)
 end
 
-function EntityScript:IsMonitored()
-    return self:IsValid()
-        and self.prefab
-        and PEARL.MOBS.MONITOR_POPULATION[self.prefab]
-end
-
 function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, checkfn)
     local x, y, z = self.Transform:GetWorldPosition()
-    if not (x and y and z) then return {} end
+    if not (x and y and z) then
+        return {}
+    end
 
     local radius = self.components.propagator and self.components.propagator.propagaterange
         or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
-    PEARL.debug("RADIUS", radius)
+
+    if TheWorld and TheWorld.state and TheWorld.state.isspring then
+        radius = radius * TUNING.SPRING_FIRE_RANGE_MOD
+    end
+
     local entities = TheSim:FindEntities(
         x, y, z, radius, musttags, canttags, mustoneoftags
     ) or {}
@@ -71,4 +72,16 @@ function EntityScript:SafeListenForEvent(event, fn, source)
     self:ListenForEvent(event, function(...)
         PEARL.SafeRun(fn, ...)
     end, source)
+end
+
+function EntityScript:GetFancyName()
+    local stacksize = PEARL.GetStackSize(self)
+
+    if stacksize and stacksize > 1 then
+        return STRINGS.PEARL.LOGS.ITEM:format(
+            stacksize, self:GetBasicDisplayName()
+        )
+    end
+
+    return self:GetBasicDisplayName()
 end

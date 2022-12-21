@@ -15,7 +15,7 @@ STRINGS.PEARL = {
         TURNON                  = "%s turned on %s!",
 
         TAKE_ITEM = {
-            GENERIC     = "{doer} took {count}x {item}!",
+            GENERIC     = "{doer} took {item}!",
             FROM        = "{doer} took {items} from {target}!",
         },
 
@@ -53,7 +53,7 @@ STRINGS.PEARL = {
         --PLAYER_COUNT            = "%s Total players: %d/%d", -- Not needed currently
         OWNER                   = "%s Owner: %s",
         ITEM                    = "%dx %s",
-        AND                     = "and",
+        AND                     = "%s and %s",
         TAG                     = "[%s]",
         ANNOUNCEMENT            = "Announcement",
 
@@ -116,6 +116,11 @@ STRINGS.PEARL = {
 
         EXTINGUISH              = "Fires were extinguished!",
         EXTINGUISH_NEAR         = "Fire near %s were extinguished!",
+        EXTINGUISH_ALL          = "%s extinguished fires near all players!",
+
+        REPAIR                  = "Burnt structures were restored!",
+        REPAIR_NEAR             = "Burnt structures near %s were restored!",
+        REPAIR_ALL              = "%s restored burnt structures near all players!",
 
         -- Anti AFK system
         USER_ACTIVE             = "%s came back!",
@@ -213,7 +218,14 @@ STRINGS.PEARL = {
                 ON_FAILURE = "Nebolo možné uložiť zmeny...",
                 ON_NOTFOUND = "Zadané ID nieje na zozname."
             },
-        }
+        },
+
+        DISCORD_BUTTON_HOVER = "View Discord",
+
+        INTRO_POPUP_BUTTON_CONTINUE = "Continue",
+        AGREEMENT_SCREEN_BUTTON_FINISH = "Finish",
+        AGREEMENT_SCREEN_BUTTON_AGREE = "I agree",
+        AGREEMENT_SCREEN_BUTTON_DISAGREE = "I disagree",
     },
 
     GRIEFER_WARNINGS        = {

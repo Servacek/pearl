@@ -30,6 +30,11 @@ end
 
 --- @class Logger
 local Logger = Class(function(self)
+    self._disabled = not PEARL.CONFIG.DISCORD.ENABLED
+    if self._disabled then
+        return
+    end
+
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.LHOOK.ID, PEARL.CONFIG.DISCORD.LHOOK.TOKEN)
 
     self._buffered_message = Message()
@@ -48,8 +53,6 @@ end)
 -------------------------------------
 
 function Logger:_LogBufferedMessage()
-    PEARL.info("_LogBufferedMessage")
-
     self:_StopBufferTimeout()
 
     local success, json_data = self._buffered_message:ToJson()
@@ -64,8 +67,6 @@ function Logger:_LogBufferedMessage()
 end
 
 function Logger:_StartBufferTimeout()
-    PEARL.info("_StartBufferTimeout")
-
     if not self._buffer_timeout_task then
         PEARL.debug("Wrap timeout has started!")
 
@@ -95,12 +96,20 @@ function Logger:SetBufferTimeout(buffer_timeout)
     self._buffer_timeout = buffer_timeout
 end
 
+function Logger:SetIsDisabled(disabled)
+    self._disabled = disabled
+end
+
 -------------------------------------
 -- [[ Getters ]]
 -------------------------------------
-
+-- Warning: This can be nil!
 function Logger:GetBufferedMessage()
     return self._buffered_message
+end
+
+function Logger:IsDisabled()
+    return self._disabled
 end
 
 -------------------------------------
@@ -108,9 +117,13 @@ end
 -------------------------------------
 
 --- @param embed Embed The embed to be logged.
---- @param force boolean If the buffering proccess should be skipped.
+--- @param force boolean? If the buffering proccess should be skipped.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.
 function Logger:LogEmbed(embed, force)
+    if self:IsDisabled() then
+        return
+    end
+
     -- Returns nil if adding the embed has failed
     if not self._buffered_message:AddEmbed(embed) then
         self:_LogBufferedMessage()
@@ -127,9 +140,13 @@ function Logger:LogEmbed(embed, force)
 end
 
 --- @param logline LogLine The embed to be logged.
---- @param force boolean If the buffering proccess should be skipped.
+--- @param force boolean? If the buffering proccess should be skipped.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.
 function Logger:LogLine(logline, force)
+    if self:IsDisabled() then
+        return
+    end
+
     if not self._buffered_message:AddLogLine(logline) then
         self:_LogBufferedMessage()
 
@@ -145,9 +162,13 @@ function Logger:LogLine(logline, force)
 end
 
 --- @param str string The string to be logged.
---- @param icon string The icon of the logline to be logged.
+--- @param icon string? The icon of the logline to be logged.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.
 function Logger:LogStringRaw(str, icon, ...)
+    if self:IsDisabled() then
+        return
+    end
+
     local logline = LogLine(str)
     if icon then
         logline:SetHeader(nil, icon)

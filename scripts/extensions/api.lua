@@ -7,6 +7,8 @@ local mod_post_inits = {}
 local file_post_loads = {}
 local client_pre_loads = {}
 
+local UpValueHacker = require("utils/upvaluehacker")
+
 ----------------------------------
 -- Function Pre/Post call adders
 ----------------------------------
@@ -33,15 +35,21 @@ function PEARL.AddFunctionPostCall(name, postcb, tbl, noraw)
         postfn = postcb
     else
         postfn = function(...)
-            return postcb({_func(...)}, ...)
+            local result = {_func(...)}
+            --return postcb({_func(...)}, ...)
+            postcb(...)
+
+            return unpack(result)
         end
     end
 
 
-    if noraw then
-        tbl[name] = postfn
-    else
-        rawset(tbl, name, postfn)
+    if postfn ~= _func then
+        if noraw then
+            tbl[name] = postfn
+        else
+            rawset(tbl, name, postfn)
+        end
     end
 end
 
@@ -77,10 +85,12 @@ function PEARL.AddFunctionPreCall(name, precb, tbl, noraw)
         end
     end
 
-    if noraw then
-        tbl[name] = replfn
-    else
-        rawset(tbl, name, replfn)
+    if _func ~= replfn then
+        if noraw then
+            tbl[name] = replfn
+        else
+            rawset(tbl, name, replfn)
+        end
     end
 
     return _func
@@ -97,6 +107,16 @@ function PEARL.AddGlobalFunctionPreCall(name, precb)
     -- Use _G instead of GLOBAL so this can override even mod specific globals
     return PEARL.AddFunctionPreCall(name, precb, _G)
 end
+
+-- function PEARL.AddUpValueFunctionPreCall(name, precb, filename)
+--     local env = loadfile(filename)
+--     if not env then
+--         PEARL.error("Failed to load the file!")
+--     end
+
+--     local target_fn = UpValueHacker.GetUpvalue(env, name)
+--     PEARL.AddFunctionPreCall()
+-- end
 
 function PEARL.AddClassFunctionPreCall(name, precb, class)
     class = type(class) == "string" and require(class) or class
@@ -139,7 +159,7 @@ function PEARL.AddFilePreLoad(filename, fn)
 end
 
 function PEARL.AddWorldPostInit(fn, ...)
-    return AddPrefabPostInit("world", fn, ...)
+    return PEARL.AddPrefabPostInit("world", fn, ...)
 end
 
 ----------------------------------
@@ -151,7 +171,7 @@ end
 function PEARL.OverrideGlobal(name, value)
     if PEARL.CONFIG.DEBUG_MODE then
         local old_v = rawget(_G, name)
-        PEARL.warn("Overriding global "..name.." ("..tostring(old_v)..") with "..tostring(value))
+        PEARL.debug("Overriding global "..name.." ("..tostring(old_v)..") with "..tostring(value))
     end
 
     return rawset(_G, name, value)
@@ -253,5 +273,5 @@ function PEARL.Announce(message, type, entity, ...)
         return TheNet:Announce(message, entity, nil, type, ...)
     end
 
-    PEARL.Logger:LogString(message, PEARL.ICONS.ANNOUNCEMENTS[type])
+    PEARL.DiscordLogger:LogString(message, PEARL.ICONS.ANNOUNCEMENTS[type])
 end

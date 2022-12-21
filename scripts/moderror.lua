@@ -5,11 +5,11 @@ require("stacktrace")
 local PEARL = PEARL
 
 PEARL.AddGlobalFunctionPreCall("moderror", function(mod, err, ...)
-    pcall(PEARL.Reporter.ReportModError, PEARL.Reporter, err)
+    pcall(PEARL.DiscordReporter.ReportModError, PEARL.DiscordReporter, err)
     PEARL.EventProcessor:HandleEvent("quit")
 end)
 
 PEARL.AddClassFunctionPreCall("RemoveBadMod", function(self, modname, reason)
-    pcall(PEARL.Reporter.ReportModError, PEARL.Reporter, reason)
+    pcall(PEARL.DiscordReporter.ReportModError, PEARL.DiscordReporter, reason)
     PEARL.EventProcessor:HandleEvent("quit")
 end, ModManager)

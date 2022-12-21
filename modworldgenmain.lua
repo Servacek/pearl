@@ -6,8 +6,14 @@ if GLOBAL.rawget(GLOBAL, "TheNet") or GLOBAL.rawget(GLOBAL, "TheSim") then
     return
 end
 
--- local Layouts = require("map/layouts").Layouts
--- local StaticLayout = require("map/static_layout")
+----------------------------------
+-- Contants
+----------------------------------
+
+-- local LOCATION_TYPE = {
+--     FOREST = "forest",
+--     CAVES  = "cave",
+-- }
 
 local wg_overrides
 local gen_params = GLOBAL.json.decode(GLOBAL.GEN_PARAMETERS)
@@ -15,19 +21,9 @@ if gen_params then
     wg_overrides = gen_params.level_data and gen_params.level_data.overrides or nil
 end
 
-
 ----------------------------------
 -- Required Setpieces
 ----------------------------------
-
--- Layouts["tenticle_reeds"] = StaticLayout.Get("map/static_layouts/tenticle_reeds")
-
--- local reed_trap_tasks = {
---     "Squeltch",
---     "Lots-o-Spiders",
---     "Lots-o-Tentacles",
---     "Merms ahoy",
--- }
 
 local function RequireTaskInTaskSet(taskset, task_name)
     if type(taskset) ~= "table" then
@@ -37,22 +33,22 @@ local function RequireTaskInTaskSet(taskset, task_name)
     end
 
     if not table.contains(taskset.optionaltasks, task_name) then
-        return print("[PEARL] Warning:", task_name, " doesn't exist or is already required in takset", taskset.name)
+        return print("[PEARL] [WorldGen] Warning:", task_name, " doesn't exist or is already required in takset", taskset.name)
     end
 
-    print("[PEARL] Forcing task", task_name, "for taskset", taskset.name)
+    print("[PEARL] [WorldGen] Forcing task", task_name, "for taskset", taskset.name)
     table.insert(taskset.tasks, task_name)
 end
 
--- local function ForceSetPiece(name, count, tasks)
+--- @deprecated This can be set directly via leveldataoverrides.lua
+-- local function AddRequiredSetpiece(name)
 -- 	AddLevelPreInitAny(function(level)
--- 		if level.location ~= GLOBAL.DEFAULT_LOCATION then return end
+--         if not level.required_setpieces or table.contains(level.required_setpieces, name) then
+--             return
+--         end
 
--- 		if not level.required_setpieces then
--- 			level.required_setpieces = {}
--- 		end
-
--- 		level.required_setpieces[name] = { count = count, tasks = tasks }
+--         print("[PEARL] [WorldGen] Setting setpiece", name, "as required!")
+--         table.insert(level.required_setpieces, name)
 -- 	end)
 -- end
 
@@ -70,16 +66,6 @@ if wg_overrides then
         end
     end)
 end
-
--- AddTaskSetPreInitAny(function(taskset)
--- print("[PEARL] Initialized task -> ", taskset.name)
--- end)
-
--- Most likely not needed since this can be configured in leveldataoverrides.lua
--- if GetModConfigData("FORCE_REEDTRAP") then
---     -- Force Reed Trap
---     ForceSetPiece("tenticle_reeds", 3, reed_trap_tasks)
--- end
 
 ----------------------------------
 -- Seed

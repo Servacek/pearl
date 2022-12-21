@@ -500,7 +500,7 @@ local function OnPlayerDespawn(inst, player)
             CancelSummoning(inst)
         end
 
-        if inst.components.time:TimeExists("summon_delay") or (
+        if inst.components.timer:TimeExists("summon_delay") or (
             inst.is_on and not inst.eyeofterror
         ) then
             TurnOff(inst)

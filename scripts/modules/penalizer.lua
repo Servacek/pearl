@@ -25,7 +25,7 @@ function Penalizer:SendWarning(doer)
     if doer.components.griefer then
         doer.components.griefer:DoWarning()
 
-        PEARL.Logger:LogString(
+        PEARL.DiscordLogger:LogString(
             STRINGS.PEARL.LOGS.WARNED:format(doer:GetDisplayName())
         )
     end
@@ -57,7 +57,7 @@ function Penalizer:AddEventHandler(event, source, data, handlerfn)
 
         -- Log the response of the handler
         if response then
-            PEARL.Logger:LogString(response, data.icon)
+            PEARL.DiscordLogger:LogString(response, data.icon)
 
             if not silent and not data.silent and penalty then
                 PEARL.Announce(response, data.icon)
@@ -108,7 +108,7 @@ function Penalizer:HandleAction(act, id, data, handlerfn, ...)
 
     -- Log the response of the handler
     if response then
-        PEARL.Logger:LogString(response, data.icon)
+        PEARL.DiscordLogger:LogString(response, data.icon)
 
         print(PEARL.CONFIG.ANNS[id], id, silent, penalty)
         if not silent and PEARL.CONFIG.ANNS[id] and penalty then

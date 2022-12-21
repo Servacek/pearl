@@ -19,7 +19,7 @@ local function CheckPlayersInventory(world, player)
         PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
         local inventory, prefab, name = PEARL.GetInventoryTabelFor(player.userid, player)
         local embed = PEARL.InventoryToEmbed(inventory, prefab, player.name or name, player.userid)
-        PEARL.Logger:LogEmbed(embed)
+        PEARL.DiscordLogger:LogEmbed(embed)
     end
 end
 
@@ -28,7 +28,7 @@ end
 -------------------------------
 
 PEARL.AddWorldPostInit(function(inst)
-    if not inst then
+    if not (inst and PEARL.CONFIG.DISCORD.ENABLED) then
         return
     end
 

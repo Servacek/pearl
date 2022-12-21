@@ -10,7 +10,8 @@ local PEARL = PEARL
 local KnownModIndex, ModManager = KnownModIndex, ModManager
 local IsWorkshopMod = IsWorkshopMod
 
-local PopupDialogScreen = require("screens/popupdialog")
+-- Use the redux version instead of the default on since this is newer
+local PopupDialogScreen = require("screens/redux/popupdialog")
 
 --------------------------------------
 -- [[ Constants ]]

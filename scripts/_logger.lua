@@ -46,7 +46,7 @@ function Logger.OnTurnOffEmergencyStruct(doer, target)
         return PEARL.Announce(message, nil, doer.entity)
     end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 function Logger.OnIgniteEntity(doer, target, neighbors)
@@ -72,7 +72,7 @@ function Logger.OnIgniteEntity(doer, target, neighbors)
         or table.check(neighbors, structcheckfn)
     ) then PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE, doer.entity) end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 function Logger.OnFireExtinguished(doer)
@@ -110,7 +110,7 @@ function Logger.OnHammerStruct(doer, target)
         PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.DESTROY)
     end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 function Logger.OnBuild(doer, inst)
@@ -139,7 +139,7 @@ function Logger.OnBuild(doer, inst)
         PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURNTUP)
     end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 -- TODO
@@ -212,7 +212,7 @@ function Logger.OnActionCastSpell(doer, target, invobject, pos)
         end
     end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 -- TODO
@@ -229,7 +229,7 @@ function Logger.OnActionFeed(doer, target, invobject)
             PEARL.Announce(message, icon)
         end
 
-        PEARL.Logger:LogString(message, icon)
+        PEARL.DiscordLogger:LogString(message, icon)
     end
 end
 
@@ -238,7 +238,7 @@ function Logger.OnActivated(doer, target)
         return
     end
 
-    PEARL.Logger:LogString(STRINGS.PEARL.ACTIONS.TURNON:format(
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.ACTIONS.TURNON:format(
         doer:GetDisplayName(), target:GetDisplayName()
     ), PEARL.ICONS.ANNOUNCEMENTS["default"])
 end
@@ -266,7 +266,7 @@ function Logger.OnStructureBurntUp(target)
             PEARL.Announce(message, icon)
         end
 
-        PEARL.Logger:LogString(message, icon)
+        PEARL.DiscordLogger:LogString(message, icon)
     end
 end
 
@@ -282,7 +282,7 @@ function Logger.OnRareFoodAten(eater, food)
         PEARL.Announce(message, icon)
     end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 function Logger.OnDangerAtPortal(doer, target)
@@ -297,7 +297,7 @@ function Logger.OnDangerAtPortal(doer, target)
         PEARL.Announce(message, icon)
     end
 
-    PEARL.Logger:LogString(message, icon)
+    PEARL.DiscordLogger:LogString(message, icon)
 end
 
 function Logger.OnEntityDeath(data)
@@ -333,7 +333,7 @@ function Logger.OnEntityDeath(data)
                 PEARL.Announce(message, icon)
             end
 
-            PEARL.Logger:LogString(message, icon)
+            PEARL.DiscordLogger:LogString(message, icon)
         end
 
     -- NOT RESPAWNABLE MOB
@@ -350,7 +350,7 @@ function Logger.OnEntityDeath(data)
             PEARL.Announce(message, icon)
         end
 
-        PEARL.Logger:LogString(message, icon)
+        PEARL.DiscordLogger:LogString(message, icon)
 
     -- BOSS, this should be announced even if the afflicter isn't a player
     elseif inst:HasTag("epic") then
@@ -363,7 +363,7 @@ function Logger.OnEntityDeath(data)
             PEARL.Announce(message, icon)
         end
 
-        PEARL.Logger:LogString(message, icon)
+        PEARL.DiscordLogger:LogString(message, icon)
 
     -- COMPANION
     elseif PEARL.PREFABS.MOBS.COMPANIONS[inst.prefab] and afflicter:HasTag("player") then
@@ -376,7 +376,7 @@ function Logger.OnEntityDeath(data)
             PEARL.Announce(message, icon)
         end
 
-        PEARL.Logger:LogString(message, icon)
+        PEARL.DiscordLogger:LogString(message, icon)
 
     -- FOLLOWER
     elseif inst.components and inst.components.follower and afflicter:HasTag("player") then
@@ -391,7 +391,7 @@ function Logger.OnEntityDeath(data)
                 PEARL.Announce(message, icon)
             end
 
-            PEARL.Logger:LogString(message, icon)
+            PEARL.DiscordLogger:LogString(message, icon)
         end
     end
 end
@@ -453,4 +453,4 @@ end
 
 ----------------------------
 
-PEARL.Logger = Logger
+PEARL.DiscordLogger = Logger

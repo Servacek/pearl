@@ -42,7 +42,7 @@ local function onlight(doer, target)
     end
 
     local near = target:GetPropagableEntities(
-        nil, PEARL.CONSTS.ENT_CANTHAVE_TAGS, PEARL.CONSTS.ENT_ONEOF_TAGS
+        PEARL.CONSTS.ENT_MUST_HAVE_TAGS, PEARL.CONSTS.ENT_CANTHAVE_TAGS, PEARL.CONSTS.ENT_ONEOF_TAGS
     )
     doer:PushEvent("sub_onstartedfire", {target = target, near = near})
 end

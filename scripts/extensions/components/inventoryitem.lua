@@ -2,6 +2,7 @@
 local PEARL = PEARL
 local AllRecipes = AllRecipes
 
+--- @class InventoryItem
 local InventoryItem = require("components/inventoryitem")
 
 --------------------------------
@@ -31,11 +32,36 @@ function InventoryItem:GetRarityPercent()
 end
 
 function InventoryItem:IsRare()
-    return self:GetRarityPercent() > 0
+    if self:GetRarityPercent() > 0 then
+        return true
+    end
+
+    if self.inst.components.container then
+        if self.inst.components.container:FindItem(function(item)
+            item.components.inventoryitem:IsRare()
+        end) then
+            return true
+        end
+    end
+
+    return false
 end
 
+--- @TODO add container support
 function InventoryItem:IsVeryRare()
-    return self:GetRarityPercent() >= 1
+    if self:GetRarityPercent() >= 1 then
+        return true
+    end
+
+    if self.inst.components.container then
+        if self.inst.components.container:FindItem(function(item)
+            item.components.inventoryitem:IsVeryRare()
+        end) then
+            return true
+        end
+    end
+
+    return false
 end
 
 function InventoryItem:GetStackSize()
@@ -121,35 +147,59 @@ function InventoryItem:GetDisplayNameWithCount()
     return STRINGS.PEARL.LOGS.ITEM:format(self:GetStackSize(), self.inst:GetDisplayName())
 end
 
+-------- Owner History
+
+function InventoryItem:GetLastPlayerOwner()
+    return self._last_player_owner
+end
+
+function InventoryItem:IsLastOwner(owner)
+    return self._last_owner == owner
+end
+
+function InventoryItem:IsLastPlayerOwner(owner)
+    return self._last_player_owner == owner
+end
+
+function InventoryItem:SetLastPlayerOwner(owner)
+    self._last_player_owner = owner
+end
+
+function InventoryItem:SetLastOwner(owner)
+    --- @deprecated
+    -- This is also a possible solution but it doesn't handle many edge cases
+    --holder:PushEvent("became_holder", self.inst)
+
+    self._holder = owner
+end
+
+function InventoryItem:IsLastContainer(container)
+    return self._last_container
+end
+
+function InventoryItem:SetLastContainer(container)
+    self._last_container = container
+end
+
 --------------------------------
--- [[ Function Post Inits ]]
+-- [[ Function Pre Inits ]]
 --------------------------------
 
--- PEARL.AddClassFunctionPreCall("OnPutInInventory", function(self, new_owner)
---     PEARL.debug(string.format("OnPutInInventory[%s]<HolderOld: %s | HolderNew: %s>",
---         inst.prefab, tostring(self.prev_owner), tostring(new_owner)
---     ))
+-- PEARL.AddClassFunctionPreCall("SetOwner", function(self, owner)
+--     -- PEARL.debug(string.format("SetOwner[%s]<Owner: %s>",
+--     --     self.inst.prefab, tostring(owner)
+--     -- ))
+
+--     self:SetHolder(owner)
 -- end, InventoryItem)
+
 
 PEARL.AddClassFunctionPreCall("ClearOwner", function(self)
-    -- Make sure we only store players as previous owners.
-    if not self.owner then
-        return
+    -- PEARL.debug(string.format("ClearOwner[%s]", self.inst.prefab))
+
+    if self.owner and self.owner:HasTag("player") then
+        self:SetLastPlayerOwner(self.owner)
     end
 
-    if self.owner:HasTag("player") then
-        self.pholder = self.owner
-    else
-        self.pcontainer = self.owner
-    end
+    self:SetLastOwner(self.owner)
 end, InventoryItem)
-
---------------------------------
--- [[ Function Post Calls ]]
--------------------------------
-
--- PEARL.AddClassFunctionPreCall("OnPutInInventory", function(self)
---     PEARL.debug(string.format("OnPutInInventory[%s]<Holder: %s>",
---         self.inst.prefab, tostring(self.owner)
---     ))
--- end, InventoryItem)

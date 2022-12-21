@@ -5,18 +5,30 @@ local PEARL = PEARL
 
 PEARL.info("Loading Mod FE...")
 
+PEARL.ModTableSafeAppend("CONSTS", {
+    AGREEMENT_FILE_PATH = PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/AGREEMENT"
+})
+
 ----------------------------------
 -- Config
 ----------------------------------
 
 PEARL.info("Loading Configuration...")
 PEARL.ModTableSafeAppend("CONFIG", {
-    DISCORD_INVITE      = PEARL.GetConfigData("DISCORD_INVITE"),
-    MOD_BLACKLIST       = PEARL.GetConfigData("MOD_BLACKLIST"),
-    KICK_AFK_PLAYERS    = PEARL.GetConfigData("KICK_AFK_PLAYERS"),
-    CZSK_ONLY           = PEARL.GetConfigData("CZSK_ONLY"),
-    DEBUG_MODE          = PEARL.GetConfigData("DEBUG_MODE"),
+    DISCORD_INVITE           = PEARL.GetConfigData("DISCORD_INVITE"),
+    MOD_BLACKLIST            = PEARL.GetConfigData("MOD_BLACKLIST"),
+    AFK_TIME                 = PEARL.GetConfigData("AFK_TIME"),
+    AFK_TIME_KICK            = PEARL.GetConfigData("AFK_TIME_KICK"),
+    CZSK_ONLY                = PEARL.GetConfigData("CZSK_ONLY"),
+    DEBUG_MODE               = PEARL.GetConfigData("DEBUG_MODE"),
+    LANGUAGE                 = PEARL.GetConfigData("LANGUAGE"),
+
+    WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
+    AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
 })
+
+print("WP", PEARL.CONFIG.WELCOME_POPUP_CONTENT)
+print("AS", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT)
 
 PEARL.ModTableSafeAppend("CONTROLS", {
     TOGGLE_CHAT = KEY_F1 -- 282
@@ -73,15 +85,13 @@ AddLoadingTip(
 )
 
 ----------------------------------
--- Widgets
+-- UI Extensions
 ----------------------------------
 
 PEARL.info("Loading user interface extensions...")
 modimport(PEARL.SOURCE_DIR_NAME.."/extensions/ui/consolescreen")
 modimport(PEARL.SOURCE_DIR_NAME.."/extensions/ui/chatqueue")
-
-PEARL.info("Loading widgets...")
-modimport(PEARL.SOURCE_DIR_NAME.."/widgets/discordbutton")
+modimport(PEARL.SOURCE_DIR_NAME.."/extensions/ui/playerstatusscreen")
 
 ----------------------------------
 -- Client Network
@@ -107,10 +117,10 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     --     "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {})
     -- )
     ModuleManager.AddModule(
-        "afk", PEARL.CONFIG.KICK_AFK_PLAYERS
+        "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
     ModuleManager.AddModule(
-        "agreement", true
+        "agreement", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil and PEARL.CONFIG.WELCOME_POPUP_CONTENT ~= nil
     )
 end
 

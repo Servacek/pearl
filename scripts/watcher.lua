@@ -16,7 +16,7 @@ local TheNet = TheNet
 
 local onburntup
 onburntup = function(target)
-    PEARL.Logger.OnStructureBurntUp(target)
+    PEARL.DiscordLogger.OnStructureBurntUp(target)
 
     target:RemoveEventCallback("burntup", onburntup)
 end
@@ -27,7 +27,7 @@ local function onactivated(target, data)
         return
     end
 
-    PEARL.Logger.OnActivated(data.doer, target)
+    PEARL.DiscordLogger.OnActivated(data.doer, target)
 end
 
 local function onbuildstructure(doer, data)
@@ -43,7 +43,7 @@ local function onbuildstructure(doer, data)
     )
     if #entities > 0 then
         if PEARL.CONFIG.ANNS.IGNITE then
-            PEARL.Logger.OnBuildStructure(doer, data.item, entities)
+            PEARL.DiscordLogger.OnBuildStructure(doer, data.item, entities)
         end
 
         if PEARL.CONFIG.GRIEF_PROTECTION then

@@ -68,7 +68,7 @@ VerifyRootUserid = function(userid, rootid)
     -- we want to ban their alt accounts as well
     -- Note: "ms_clientauthenticationcomplete" is not called for banned players.
     if rootid ~= userid and PEARL.TheBlackList:IsBlacklisted(rootid) then
-        PEARL.Logger.OnAltClientWithBannedRoot(userid, rootid)
+        PEARL.DiscordLogger.OnAltClientWithBannedRoot(userid, rootid)
 
         PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
         TheNet:Ban(userid)

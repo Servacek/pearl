@@ -11,7 +11,7 @@ local WHITELIST_PATH = "../../whitelist.txt"
 --------------------------------------
 -- [[ Initialization ]]
 --------------------------------------
---- @class AllowList
+--- @class Whitelist
 local WhiteList = {}
 
 --------------------------------------

@@ -97,7 +97,7 @@ end
 --- @TODO: The length of the content should
 function LogLine:SetContent(content)
     if type(content) == "string" and #content > 0 then
-        self._content = content:take(MAX_CONTENT_LENGTH)
+        self._content = content:ltake(MAX_CONTENT_LENGTH)
     end
 
     return self

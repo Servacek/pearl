@@ -31,7 +31,7 @@ end
 
 -- Lhook print
 function _G.LPrint(...)
-    PEARL.Logger:LogString(...)
+    PEARL.DiscordLogger:LogString(...)
 end
 
 --------------------------------
@@ -66,7 +66,7 @@ function PEARL.TESTS.GameEmoteTest()
     end
 
     print(string.len(result))
-    return PEARL.Logger:LogString(result)
+    return PEARL.DiscordLogger:LogString(result)
 end
 
 function PEARL.TESTS.DefaultCharactersTest()
@@ -79,7 +79,7 @@ function PEARL.TESTS.DefaultCharactersTest()
         return PEARL.error("No results!")
     end
 
-    return PEARL.Logger:LogString(result)
+    return PEARL.DiscordLogger:LogString(result)
 end
 
 function PEARL.TESTS.AnnouncementIconTest()
@@ -92,7 +92,7 @@ function PEARL.TESTS.AnnouncementIconTest()
         return PEARL.error("No results!")
     end
 
-    return PEARL.Logger:LogString(result)
+    return PEARL.DiscordLogger:LogString(result)
 end
 
 --------------------------------
@@ -316,18 +316,12 @@ end
 -- [[ Server Tags ]]
 --------------------------------
 
--- Lhook print
-function _G.LPrint(...)
-    PEARL.Logger:LogString(...)
-end
-
-
 function _G.PrintModTags()
     table.foreach(KnownModIndex:GetEnabledModTags(), print)
 end
 
 function _G.DLog(message, ...)
-    PEARL.Logger:LogString(message, ...)
+    PEARL.DiscordLogger:LogString(message, ...)
 end
 
 function _G.RawRequest(cb, ...)
@@ -335,7 +329,7 @@ function _G.RawRequest(cb, ...)
         PEARL.info("Request Executed!", result)
     end
 
-    TheSim:QueryServer(PEARL.Logger._webhook.url, cb, ...)
+    TheSim:QueryServer(PEARL.DiscordLogger._webhook.url, cb, ...)
 end
 
 function _G.RawLog(message, cb)
@@ -425,9 +419,9 @@ end
 function _G.ProfileFn(name, fn, ...)
     collectgarbage("collect")
 	PEARL.Profiler:start()
-    --for i=1, 10000 do
+    -- for i=1, 10^6 do
     fn(...)
-    --end
+    -- end
 	PEARL.Profiler:stop()
 
     local outfile = io.open(

@@ -37,8 +37,8 @@ msgid "Rastarting the server..."
 msgstr "Reštartovanie servera..."
 
 msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC"
-msgid "{doer} took {count}x {item}!"
-msgstr "{doer} vzal/a {count}x {item}!"
+msgid "{doer} took {item}!"
+msgstr "{doer} vzal/a {item}!"
 
 msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM"
 msgid "{doer} took {items} from {target}!"
@@ -189,7 +189,19 @@ msgstr "{doer} porazil/a {target}!"
 
 msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH_NEAR"
 msgid "Fire near %s were extinguished!"
-msgstr "Ohne v blízkosti hráča %s boli uhasené!"
+msgstr "Ohne pri %s boli uhasené!"
+
+msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH_ALL"
+msgstr "%s uhasil/a ohne v pri všetkých hráčoch."
+
+msgctxt "STRINGS.PEARL.LOGS.REPAIR"
+msgstr "Zhorené štruktúry boli obnovené!"
+
+msgctxt "STRINGS.PEARL.LOGS.REPAIR_NEAR"
+msgstr "Zhorene štruktúry pri %s boli obnovené!"
+
+msgctxt "STRINGS.PEARL.LOGS.REPAIR_ALL"
+msgstr "%s obnovil zhorené štruktúri pri všetkých hráčoch!"
 
 msgctxt "STRINGS.PEARL.UI.UI.MODS_BLOCKED_TITLE"
 msgid "Mods Blocked"
@@ -561,3 +573,15 @@ msgstr "Seed Sveta"
 
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLAYSTYLE"
 msgstr "Herný Režim"
+
+msgctxt "STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE"
+msgstr "Pokračovať"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_FINISH"
+msgstr "Dokončiť"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_AGREE"
+msgstr "Súhlasím"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DISAGREE"
+msgstr "Nesúhlasím"

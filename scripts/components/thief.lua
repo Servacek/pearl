@@ -1,216 +1,315 @@
+--[[
+Detects movements with rare items caused by a player. This is an internal component.
+It doesn't provide basically any useful function to the outside. It uses event's
+for broadcasting information. Used only by the logger.
+
+-- NEEDS SOME DEBUG AND TESTING
+
+KNOWN BUGS:
+- When the taken item is being split in the inventory to smaller stacks,
+    the announced stacksize is not correct.
+- No previous owner is being saved so it is annouced every time someone takes the item
+- Picking up an container containing some rare items is not being taken as a theft.
+- Sometimes a weird announcement happens when opening a chest full of items.
+- Items that are not stackable will be displayed multiple times in the theft announcement.
+--]]
 
 local PEARL = PEARL
 
-----------------------------------------------
--- [[ Private Functions - Event Handlers ]]
-----------------------------------------------
+--------------------------------------------------------------------------
+--[[ Class Initialization - Thief ]]
+--------------------------------------------------------------------------
+
+--- @class Thief
+return Class(function(self, inst)
+self._inst = inst
+
+-- self._container = nil
+self._ac_items_cache = {}
+
+--------------------------------------------------------------------------
+--[[ Private Atrributes and Methods ]]
+--------------------------------------------------------------------------
+
+local AddLoot, ClearLoot, WasItemLooted, SetActiveContainer, ClearActiveContainerCache, CacheActiveContainerItems, ClearActiveContainer, IsLooting, GetStolenItems
+
+-- local function ongavetoactivecontainer(self, act_cont, item)
+--     PEARL.debug("<ongavetoactivecontainer>", item, item.components.inventoryitem._holder)
+--     if not (item and item.components.inventoryitem and item.components.inventoryitem:WasHeldBy(self._inst)) then
+--         return
+--     end
+
+--     self:RemoveLoot(item.prefab, PEARL.GetStackSize(item))
+-- end
+
+-- local function ontookfromactivecontainer(act_cont, item)
+--     PEARL.debug("<ontookfromactivecontainer>", item, item.components.inventoryitem.owner)
+--     if not (item and item.components.inventoryitem
+--         and item.components.inventoryitem:IsHeldBy(self._inst)
+--         and item.components.inventoryitem:IsVeryRare()
+--         ) then
+--         return
+--     end
+
+--     AddLoot(item)
+-- end
+
+-- local function oncontaineritemlose(container, data)
+--     if not (data and data.prev_item) or data.prev_item.components.inventoryitem:IsLastOwner(self._inst) then
+--         return
+--     end
+
+--     -- Execute this in the next frame so the owner is correctly
+--     -- assigned to the taken item.
+--     PEARL.Scheduler:ExecuteInTime(0, ontookfromactivecontainer, nil, container, data.prev_item)
+-- end
+
+local function oncontaineritemlose(container, data)
+    if not (container and data and data.prev_item) then
+        return
+    end
+
+    PEARL.debug("<oncontaineritemlose>", data.prev_item)
+    data.prev_item.components.inventoryitem:SetLastContainer(container)
+end
+
+local function oncontaineritemget(container, data)
+    if not (container and data and data.item) then
+        return
+    end
+
+    PEARL.debug("<oncontaineritemget>", data.item)
+    data.item.components.inventoryitem:SetLastContainer(container)
+end
 
 local function onclosecontainer(doer, container)
-    PEARL.debug("<onclosecontainer>", container, "LOOT:")
+    if not (container) then --and IsLooting()) then
+        return
+    end
 
-    PEARL.debug(DataDumper(doer.components.thief:GetLoot()))
-    if doer.components.thief:HasLoot() then
+    PEARL.debug("<onclosecontainer>", container)
+
+    local stolen_items = GetStolenItems(container)
+    if not IsTableEmpty(stolen_items) then
         doer:PushEvent("finishedlooting", {
-            loot = doer.components.thief:GetLoot(),
+            loot = stolen_items,
             container = container,
         })
     end
 
-    doer.components.thief:ClearActiveContainer()
-    doer.components.thief:ClearLoot()
+    --ClearActiveContainerCache()
+
+    container:RemoveEventCallback("itemget", oncontaineritemget)
+    container:RemoveEventCallback("itemlose", oncontaineritemlose)
+
+    -- ClearActiveContainer()
+    -- ClearLoot()
 end
 
 local function onopencontainer(doer, container)
+    if not (doer and container and not container:IsInLimbo()) then
+        return
+    end
+
+    -- We do not care about an empty container, there is nothing to steal from.
+    -- if container.components.container and container.components.container:IsEmpty() then
+    --     return
+    -- end
+
+    -- if container.components.inventoryitem and container.components.inventoryitem:WasHeldBy(doer) then
+    --     return
+    -- end
+
+    -- Make sure we start with an clean cache
+    --ClearActiveContainerCache()
+
     PEARL.debug("<onopencontainer>", container)
+    -- Cache all items in the newly opened container
 
-    doer.components.thief:SetActiveContainer(container)
+    container:ListenForEvent("itemget", oncontaineritemget)
+    container:ListenForEvent("itemlose", oncontaineritemlose)
+    --CacheActiveContainerItems(container)
+    -- SetActiveContainer(container)
 end
 
-local function onputitemonstack(doer, data)
-    if not data then
+local function onpickupitem(doer, data)
+    local item = data.item
+    if not (doer and item) then
         return
     end
 
-    local src_item = data.src_item
-    local dst_item = data.dst_item
-    print(src_item, dst_item)
-    if not (src_item and dst_item) then
+    local inv_item = item.components.inventoryitem
+    if (inv_item:IsLastPlayerOwner(doer) or not inv_item:IsVeryRare()) then
         return
     end
 
-    PEARL.debug("<onputitemonstack>", src_item, dst_item)
-
-    local self = doer.components.thief
-    return self:OnRareItemStolen(data.src_item)
+    -- PEARL.debug(string.format("<onpickupitem[item: %s, owner: %s, holder_prev: %s, holder_new: %s]>", item.prefab,
+    --     tostring(inv_item.owner), tostring(inv_item.holder), tostring(doer)))
+    self._inst:PushEvent("tookrareitem", item)
 end
 
-local function removeitemfromstack(doer, data)
-    if not data then
-        return
-    end
-end
-
---- @TODO Ignore loaded items
---- Pushed only when a new item is added to the inventory.
---- Doesn't work for updating the stack size of an item.
-local function onitemget(doer, data)
-    PEARL.debug(string.format("GIVE ITEM[%s] (NEW OWNER: %s PREV OWNER: %s PREV CONTAINER: %s)",
-        tostring(data.item), tostring(doer), tostring(data.item.components.inventoryitem.owner), tostring(data.item.prevcontainer)
-    ))
-    if not (doer and data and data.item) then
-        return
-    end
-
-    local self = doer.components.thief
-    local inv_item = data.item.components.inventoryitem
-
-    if (inv_item.pholder == doer
-        or not inv_item:IsVeryRare()
-        -- Only count stuff in the inventory
-        --or doer.components.inventory.activeitem == data.item
-    ) then
-        return
-    end
-
-    PEARL.debug("<onitemget[item:", data.item, "]>")
-    self:OnRareItemStolen(data.item)
-end
-
---- Called when we lose the whole stack of the item.
-local function onitemlose(doer, data)
-    if not (doer and data and data.prev_item) then
-        return
-    end
-
-    local inv_item = data.prev_item.components.inventoryitem
-    if (inv_item.owner == inv_item.pholder) then
-        return
-    end
-
-    PEARL.debug("<onitemlose>", data.prev_item, inv_item.owner, inv_item.pholder)
-    doer.components.thief:RemoveLoot(data.prev_item)
+local function onplayerdespawned(player)
+    --onclosecontainer()
 end
 
 --------------------------------
 
-local function RegisterListeners(inst)
+local function RegisterListeners()
+    if not self._inst then
+        return
+    end
+
     PEARL.info("Registering listeners for", inst)
 
-    -- Use mod specific event's for these since the default ones do not handle all cases
-    inst:ListenForEvent("pearl_closecontainer", onclosecontainer)
-    inst:ListenForEvent("pearl_opencontainer", onopencontainer)
-    inst:ListenForEvent("itemget", onitemget)
-    inst:ListenForEvent("itemlose", onitemlose)
-    inst:ListenForEvent("put_item_on_stack", onputitemonstack)
+    --> Do not use itemget and itemlose events for this since they are used by the Frontend
+    self._inst:ListenForEvent("onpickupitem", onpickupitem)
+
+    self._inst:ListenForEvent("openedcontainer", onopencontainer)
+    --> Use "closecontainer" instead of the built-in "closecontainer" event because
+    --> that is for some reason called only when closing a container by clicking on it.
+    self._inst:ListenForEvent("closedcontainer", onclosecontainer)
+
+    --- @TODO: Debug if this is needed
+    self._inst:ListenForEvent("player_despawn", onplayerdespawned)
 end
 
---------------------------------
--- [[ Class Declaration ]]
---------------------------------
+-------------- Setup ------------------
 
-local Thief = Class(function(self, inst)
-
-    self.inst = inst
-
-    self.container = nil
-    self.loot = {}
-
-    inst:ListenForEvent("playerloaded", RegisterListeners)
-end)
+--- @TODO Load after the player is activated (Should not be needed anymore)
+RegisterListeners()
 
 --------------------------------
 -- [[ Setters ]]
 --------------------------------
 
-function Thief:SetActiveContainer(container)
-    self.container = container
+-- SetActiveContainer = function(container)
+--     self._container = container
+
+--     if not self._container then
+--         return
+--     end
+
+--     -- self._container:ListenForEvent("itemget", self._oncontaineritemget)
+--     self._container:ListenForEvent("itemlose", oncontaineritemlose)
+-- end
+
+-- ClearActiveContainer = function()
+--     if self._container then
+--         -- self._container:RemoveEventCallback("itemget", self._oncontaineritemget)
+--         self._container:RemoveEventCallback("itemlose", oncontaineritemlose)
+--         -- self._container:ListenForEvent("itemlosefromstack", self._oncontaineritemlose)
+--         -- self._container:ListenForEvent("itemaddtostack", self._oncontaineritemget)
+--     end
+
+--     self._container = nil
+-- end
+
+-- WasItemLooted = function(item)
+--     for i = 1, #self._loot do
+--         if self._loot[i].GUID == item.GUID then
+--             return true
+--         end
+--     end
+
+--     return false
+-- end
+
+-- AddLoot = function(item)
+--     if not WasItemLooted(item) then
+--         PEARL.debug("<AddLoot[item:", item.prefab, "]>")
+
+--         self._loot[#self._loot + 1] = item
+--     end
+-- end
+
+GetStolenItems = function(container)
+    local stolen_items = {}
+
+    -- self._inst.components.inventory:ForEachItem(function(item)
+    --     if item.components.inventoryitem:WasStolen() then
+    --         stolen_items[#stolen_items + 1] = item
+    --     end
+    -- end)
+
+    -- Items can be invalid here
+    -- Create some algorithm that can detect changes in the stacksizes of items.
+    container.components.container:ForEachItem(function(item)
+
+        for _, cached_item in ipairs(self._ac_items_cache) do
+            if cached_item.components.inventoryitem and cached_item.components.inventoryitem:IsHeldBy(self._inst) then
+            -- Make sure we still own the item
+                stolen_items[#stolen_items + 1] = cached_item
+            end
+        end
+    end)
+
+    return stolen_items
 end
 
-function Thief:ClearActiveContainer()
-    self.container = nil
-end
-
-function Thief:AddLoot(item, count)
-    PEARL.debug("<AddLoot[item:", item, "count:", count, "]>")
-
-    self.loot[item.prefab] = (self.loot[item.prefab] or 0) + (count or 1)
-end
-
-function Thief:GetLoot()
-    return self.loot
-end
-
-function Thief:HasLoot()
-    return not IsTableEmpty(self.loot)
-end
-
-function Thief:RemoveLoot(item, count)
-    PEARL.debug("<RemoveLoot[item:", item, "count:", count, "]>")
-    if not self.loot[item.prefab] then
+CacheActiveContainerItems = function(container)
+    if not container.components.container then
         return
     end
 
-    self.loot[item.prefab] = self.loot[item.prefab] - (count or 1)
-    if self.loot[item.prefab] <= 0 then
-        self.loot[item.prefab] = nil
+    container.components.container:ForEachItem(function(item)
+        if item.components.inventoryitem:IsVeryRare() then
+            print("CACHING CONTAINER ITEM -> ", item)
+            self._ac_items_cache[#self._ac_items_cache + 1] = item
+        end
+    end)
+end
+
+-- function Thief:RemoveLoot(prefab, amount)
+--     PEARL.debug("<RemoveLootPrefab[item:", prefab, "]>")
+
+--     if not self._loot[prefab] or not amount or amount == self._loot[prefab] then
+--         self._loot[prefab] = nil
+--         return
+--     end
+
+--     self._loot[prefab] = self._loot[prefab] - amount
+-- end
+
+ClearActiveContainerCache = function()
+    for i, item in ipairs(self._ac_items_cache) do
+        print("CLEARING", item, "FROM CACHE!")
+        self._ac_items_cache[i] = nil
     end
 end
 
-function Thief:ClearLoot()
-    for prefab, _ in pairs(self.loot) do
-        self.loot[prefab] = nil
-    end
-end
+-- ClearLoot = function()
+--     for prefab, _ in pairs(self._loot) do
+--         self._loot[prefab] = nil
+--     end
+-- end
 
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
 
-function Thief:IsActiveContainer(container)
-    return container ~= nil and self.container == container
-end
+-- IsActiveContainer = function(container)
+--     return container ~= nil and self._container == container
+-- end
 
--- function Thief:HasActiveContainer()
---     return self.container ~= nil
+-- IsLooting = function()
+--     return self._container ~= nil
 -- end
 
 --------------------------------
 -- [[ Handlers ]]
 --------------------------------
 
-function Thief:OnRareItemStolen(item, stack)
-    -- Should always be a table
-    local inv_item = item.components.inventoryitem
-    if not inv_item:IsVeryRare(item) or inv_item.pholder == self.inst then
-        return
-    end
-
-    stack = stack or (item.components.stackable and item.components.stackable:StackSize())
-    PEARL.debug("<OnRareItemStolen[item:", item, "stack:", stack, "pcontainer:", inv_item.pcontainer, "]>")
-    if inv_item and self:IsActiveContainer(inv_item.pcontainer) and stack > 0 then
-        return self:AddLoot(item, stack)
-    end
-
-    self.inst:PushEvent("tookrareitem", {item = item, stacksize = stack})
-end
-
-function Thief:OnRareItemReturned(item, stack)
-    stack = stack or (item.components.stackable and item.components.stackable:StackSize())
-
-    PEARL.debug("<OnRareItemReturned[item:", item, "stack:", stack, "]>")
-
-    self:RemoveLoot(item, stack)
-end
-
-function Thief:OnRemoveFromEntity()
-    self.inst:RemoveEventCallback("pearl_closecontainer", onclosecontainer)
-    self.inst:RemoveEventCallback("pearl_opencontainer", onopencontainer)
-    self.inst:RemoveEventCallback("itemget", onitemget)
-    self.inst:RemoveEventCallback("itemlose", onitemlose)
-    self.inst:RemoveEventCallback("put_item_on_stack", onputitemonstack)
+function self:OnRemoveFromEntity()
+    self._inst:RemoveEventCallback("closedcontainer", onclosecontainer)
+    self._inst:RemoveEventCallback("openedcontainer", onopencontainer)
+    self._inst:RemoveEventCallback("onpickupitem", onpickupitem)
 
     self:ClearLoot()
     self:ClearActiveContainer()
 end
 
-return Thief
+--------------------------------------------------------------------------
+--[[ End ]]
+--------------------------------------------------------------------------
+
+end)

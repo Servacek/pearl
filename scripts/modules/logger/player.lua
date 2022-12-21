@@ -14,21 +14,21 @@ local function OnCommandExecuted(doer, fnstr)
     end
 
     if #fnstr > MAX_COMMAND_LENGTH then
-        fnstr = fnstr:take(MAX_COMMAND_LENGTH).."..."
+        fnstr = fnstr:ltake(MAX_COMMAND_LENGTH).."..."
     end
 
-    PEARL.Logger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
+    PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
         doer:GetDisplayName(), fnstr
     ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
 end
 
-local function OnTakeRareItem(doer, data)
-    if not (doer and data and data.item) then
+local function OnTakeRareItem(doer, item)
+    if not (doer and item) then
         return
     end
 
     PEARL.Announce(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, {
-        doer = doer:GetDisplayName(), count = (data.stacksize or 1), item = data.item:GetDisplayName()
+        doer = doer:GetDisplayName(), item = item:GetFancyName()
     }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
 end
 
@@ -37,7 +37,7 @@ local function OnFinishedLooting(doer, data)
         return
     end
 
-    local loot_string = PEARL.FormatSortedPrefabs(data.loot)
+    local loot_string = PEARL.BuildFancyStringForEntities(data.loot)
     PEARL.Announce(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM, {
         doer = doer:GetDisplayName(), items = loot_string, target = data.container:GetDisplayName()
     }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
@@ -52,10 +52,12 @@ AddPlayerPostInit(function(player)
         return
     end
 
-    player:ListenForEvent("ms_commandexecuted", OnCommandExecuted)
-
     -- @TODO
-    -- player:AddComponent("thief")
-    -- player:ListenForEvent("tookrareitem", OnTakeRareItem)
-    -- player:ListenForEvent("finishedlooting", OnFinishedLooting)
+    player:AddComponent("thief")
+    player:ListenForEvent("tookrareitem", OnTakeRareItem)
+    player:ListenForEvent("finishedlooting", OnFinishedLooting)
+
+    if PEARL.CONFIG.DISCORD.ENABLED then
+        player:ListenForEvent("ms_commandexecuted", OnCommandExecuted)
+    end
 end)

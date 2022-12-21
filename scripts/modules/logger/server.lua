@@ -12,7 +12,7 @@ local Embed = require("libraries/discordapi/models/embed")
 -------------------------------
 
 local function OnShutdown()
-    PEARL.Logger:LogStringHighlighted(STRINGS.PEARL.LOGS.SHUTDOWN:format(
+    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.SHUTDOWN:format(
         MARKDOWN.codeline(PEARL.GetShardName())
     ), PEARL.ICONS.SERVER_STATE.STOP)
 end
@@ -26,7 +26,7 @@ local function OnShardStateUpdate(world, state)
         return
     end
 
-    PEARL.Logger:LogString(STRINGS.PEARL.LOGS.CAVES_STATE_UPDATE:format(
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CAVES_STATE_UPDATE:format(
         state == REMOTESHARDSTATE.READY and STRINGS.PEARL.SHARD_STATE.CONNECTED or STRINGS.PEARL.SHARD_STATE.DISCONNECTED
     ))
 end
@@ -47,12 +47,12 @@ local function OnPauseDirty(world, data)
     end
 
     if not paused and data.pause then
-        PEARL.Logger:LogString(
+        PEARL.DiscordLogger:LogString(
             data.source and STRINGS.PEARL.LOGS.SERVER_PAUSE_BY:format(data.source)
             or STRINGS.PEARL.SERVER_PAUSE, PEARL.ICONS.SERVER_STATE.PAUSE
         )
     elseif paused and not data.pause then
-        PEARL.Logger:LogString(STRINGS.PEARL.LOGS.SERVER_UNPAUSE)
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SERVER_UNPAUSE)
     end
 
     paused = data.pause
@@ -71,7 +71,7 @@ local function OnFirstLaunch()
         return
     end
 
-    PEARL.Logger:LogEmbed(Embed()
+    PEARL.DiscordLogger:LogEmbed(Embed()
         :SetTitle(STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE)
         :SetColor(Embed.COLORS.GREEN)
         :SetThumbnail(STRINGS.PEARL.LOGS.STARTUP_EMBED_THUMBNAIL_URL)
@@ -85,7 +85,7 @@ local function OnFirstLaunch()
 end
 
 local function OnModBackendPostInit()
-    PEARL.Logger:LogStringHighlighted("Systém Inicializovaný. Načítavanie servera...", nil, true)
+    PEARL.DiscordLogger:LogStringHighlighted("Systém Inicializovaný. Načítavanie servera...", nil, true)
 end
 
 -- local function OnError(error_msg, silent)
@@ -104,7 +104,7 @@ end
 -------------------------------
 
 PEARL.AddGamePostInit(function()
-    if not TheWorld then
+    if not (TheWorld and PEARL.CONFIG.DISCORD.ENABLED) then
         return
     end
 

@@ -10,7 +10,8 @@ local TheNet, TheInput = TheNet, TheInput
 -- Declaration
 ----------------------------------
 
-PEARL.ServerNetwork = {}
+--- @class ServerNetwork
+local ServerNetwork = {}
 
 ----------------------------------
 -- Public Functions
@@ -19,7 +20,7 @@ PEARL.ServerNetwork = {}
 -- Called from server-side user command handlers.
 -- Sends a RPC to the client with the given userid.
 -- Note: This works only if the player is connected to the local shard.
-function PEARL.ServerNetwork:SendCommandResponse(userid, message, ...)
+function ServerNetwork:SendCommandResponse(userid, message, ...)
     if not (message and userid) then
         return
     end
@@ -27,7 +28,7 @@ function PEARL.ServerNetwork:SendCommandResponse(userid, message, ...)
     return PEARL.SendRPCToClient(PEARL.RPCS.SendDirectMessage, userid, message, ...)
 end
 
-function PEARL.ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
+function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
     PEARL.SendRPCToClient(PEARL.RPCS.Disconnect, userid, reason, ...)
@@ -108,3 +109,9 @@ PEARL.OverrideGlobal("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     end
     TheInput.overridepos = nil
 end)
+
+----------------------------------
+-- Return
+----------------------------------
+
+return ServerNetwork

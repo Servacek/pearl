@@ -1,27 +1,37 @@
 --[[
-    NOTES:
-        RESOLVED
-        - It looks like os.clock() is causing some trouble
-        on long running servers using 32bit binaries.
+    Special scheduler for scheduling tasks when the server is paused
 
-        Maybe this problem could be resolved by replacing it with os.time().
+    This works basically the same as the default sheduler except that
+    it executes the tasks even when TheSim is paused.
+
+    TODOS:
+        - Try to replace the task with a simpler table and recycle it.
+        - Other performance improvements.
 ]]
 
 
---local APP_ARCHITECTURE = APP_ARCHITECTURE
 local PEARL = PEARL
 local GetTimeRealSeconds = GetTimeRealSeconds
 local table, string = table, string
--- Support for long running 32 bit servers
---local walltime = APP_ARCHITECTURE == "x64" and os.clock or os.time
+local toarrayornil = toarrayornil
+local unpack = unpack
 
+------------------------------------------
+-- [[ Contants ]]
+------------------------------------------
+
+local WALL_TICKS = 1 / 60
+
+------------------------------------------
+-- [[ Private Functions ]]
+------------------------------------------
 
 local function calc_time_for_task(period, curtime)
     return (curtime or GetTimeRealSeconds()) + period
 end
 
-----------------------------------------------
-
+------------------------------------------
+--- @TODO Try to replace the task with a simpler table and recycle it.
 --- @class Task
 local Task = Class(function(self, time, fn, limit, id, exec_time, ...)
     self.time = time
@@ -29,17 +39,22 @@ local Task = Class(function(self, time, fn, limit, id, exec_time, ...)
     self.limit = limit
     self.id = id
     self.exec_time = exec_time
-    --- @TODO: This saves just the first argument (enough for now
-    -- but can potentially cause problems in the future)
-    self.args = ...
+    self.args = toarrayornil(...)
 
     self.finished = false
 end)
 
 function Task:Run()
-    if self.finished or not self.fn then return end
+    if self.finished or not self.fn then
+        return
+    end
 
-    self.fn(self.args)
+    if self.args then
+        self.fn(unpack(self.args))
+    else
+        self.fn()
+    end
+
     if self.limit then
         self.limit = self.limit - 1
     end
@@ -69,29 +84,32 @@ end
 
 ---------------------------------------------------------------
 
--- Special scheduler for scheduling tasks when the server is paused
---
--- This works basically the same as the default sheduler except that
--- it executes the tasks even when TheSim is paused.
---
--- Note: This should be a singleton.
+--------------------------------------
+-- [[ Locals ]]
+--------------------------------------
+
+local tick = 0
+local seconds = 0
+
+---@type table<Task>
+local tasks = {}
+
+--------------------------------------
+-- [[ Initialization ]]
+--------------------------------------
 
 --- @class WallScheduler
-local WallScheduler = Class(function(self)
-    self.tasks = {}
+local WallScheduler = {}
 
-    self:StartWallUpdate()
-end)
-
-function WallScheduler:CreateTask(period, processfn, limit, initialdelay, id, ...)
+function WallScheduler:_CreateTask(period, processfn, limit, initialdelay, id, ...)
     local exec_time = calc_time_for_task(initialdelay or period)
-    return Task(period, processfn, limit, id, exec_time,  ...)
+    return Task(period, processfn, limit, id, exec_time, ...)
 end
 
-function WallScheduler:AddTask(task)
+function WallScheduler:_AddTask(task)
     if task ~= nil then
-        PEARL.debug("WallScheduler", "Registering task:", tostring(task))
-        self.tasks[#self.tasks + 1] = task
+        PEARL.debug("WallScheduler", "Registering task:", task)
+        tasks[#tasks + 1] = task
     end
 
     return task
@@ -104,7 +122,7 @@ end
 --- @param ... any Additional arguments to the callback function
 --- @return Task? task The new created task
 function WallScheduler:ExecuteInTime(timefromnow, processfn, id, ...)
-    return self:AddTask(self:CreateTask(timefromnow, processfn, 1, nil, id, ...))
+    return self:_AddTask(self:_CreateTask(timefromnow, processfn, 1, nil, id, ...))
 end
 
 --- Executes the given function every n seconds until the given limit is exceeded
@@ -117,36 +135,35 @@ end
 --- @param ... any Additional arguments to the callback function
 --- @return Task? task The new created task
 function WallScheduler:ExecutePeriodic(period, processfn, limit, initialdelay, id, ...)
-    return self:AddTask(self:CreateTask(period, processfn, limit, initialdelay, id, ...))
+    return self:_AddTask(self:_CreateTask(period, processfn, limit, initialdelay, id, ...))
 end
 
 function WallScheduler:StartWallUpdate()
-    PEARL.debug("Starting WallUpdate!")
-    local _WallUpdate = rawget(_G, "WallUpdate")
-    if type(_WallUpdate) ~= "function" then
-        error("Invalid WallUpdate function!")
-    end
+    PEARL.debug("WallScheduler:StartWallUpdate()")
 
-    rawset(_G, "WallUpdate", function(...)
-        self:OnWallUpdate()
-
-        return _WallUpdate(...)
-    end)
+    -- if PEARL.OPTIMIZED_SCHEDULER then
+    --     PEARL.AddGlobalFunctionPreCall("WallUpdate", self.OnWallUpdateOptimized)
+    -- else
+    PEARL.AddGlobalFunctionPreCall("WallUpdate", self.OnWallUpdate)
+    -- end
 end
 
 --------------------------------------
 
-function WallScheduler:OnWallUpdate()
-    if #self.tasks <= 0 then
+-- Note: 1 second = 60 wall-ticks
+-- dt = time_passed - time_now
+-- dt is 0 if the server us paused
+function WallScheduler.OnWallUpdate(dt)
+    if #tasks <= 0 then
         return
     end
 
     local time = GetTimeRealSeconds()
-    for i = 1, #self.tasks do
-        local task = self.tasks[i]
+    for i = 1, #tasks do
+        local task = tasks[i]
 
         if not task or task.finished then
-            table.remove(self.tasks, i)
+            table.remove(tasks, i)
         elseif task.exec_time <= time then
             local success, result = PEARL.SafeRun(task.Run, task)
             if not success then
@@ -155,11 +172,40 @@ function WallScheduler:OnWallUpdate()
 
                 PEARL.info("WallScheduler", "Canceling and removing this task...")
                 task:Cancel()
-                table.remove(self.tasks, i)
+                table.remove(tasks, i)
             end
         end
     end
 end
+
+--- @TODO
+-- function WallScheduler.OnWallUpdateOptimized()
+--     if tick * WALL_TICKS < 1 or #tasks <= 1 then
+--         tick = tick + 1
+--         return
+--     end
+
+--     tick = 0
+--     seconds = seconds + 1
+
+--     for i = 1, #tasks do
+--         local task = tasks[i]
+
+--         if not task or task.finished then
+--             table.remove(tasks, i)
+--         elseif task.exec_time <= seconds then
+--             local success, result = pcall(task.Run, task)
+--             if not success then
+--                 PEARL.error("WallScheduler", "Failed to run task:", task)
+--                 PEARL.error("WallScheduler", "Error Traceback: ", result)
+
+--                 PEARL.info("WallScheduler", "Canceling and removing this task...")
+--                 task:Cancel()
+--                 table.remove(tasks, i)
+--             end
+--         end
+--     end
+-- end
 
 --------------------------------
 

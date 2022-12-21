@@ -5,7 +5,7 @@
 
 local PEARL = PEARL
 
-local TheNet, ThePlayer = TheNet, ThePlayer
+local TheNet = TheNet
 
 --------------------------
 -- Initialization
@@ -15,7 +15,7 @@ PEARL.RPCS = {}
 
 local CLIENT_RPCS = {
     SendDirectMessage = function(message, ...)
-        if not (ThePlayer and ChatHistory and type(message) == "string") then
+        if not (ChatHistory and type(message) == "string") then
             return
         end
 
@@ -59,7 +59,7 @@ local SERVER_USERID_RPCS = {
     AFKStateChanged = function(userid, is_afk, kicked, ...)
         local player = LookupPlayerInstByUserID(userid)
         local client = TheNet:GetClientTableForUser(userid)
-        if not player or client then
+        if not (player or client) then
             return
         end
 

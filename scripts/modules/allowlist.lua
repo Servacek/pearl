@@ -1,11 +1,11 @@
 --[[
     Alternative to whitelist.txt.
-
-    This is deprecated. Use the default one instead.
 ]]
 
 local io = io
 local PEARL = PEARL
+
+PEARL.warn("Allowlist is enabled! Only players on the list or admins will be able to join.")
 
 local ALLOWLIST_PATH = PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/allowlist.txt"
 
@@ -20,12 +20,6 @@ end)
 --------------------------------------
 -- [[ Member Functions ]]
 --------------------------------------
-
-function AllowList:SourceFileExists()
-    local file = io.open(ALLOWLIST_PATH, "r")
-
-    return file ~= nil and io.close(file)
-end
 
 function AllowList:Add(userid)
     if userid and not self.userids[userid] then
@@ -44,8 +38,9 @@ function AllowList:Contains(userid)
 end
 
 function AllowList:Load()
-    if not self:SourceFileExists() then
-        return PEARL.error("Couldn't load the whitelist:", ALLOWLIST_PATH, "was not found!")
+    if not io.exits(ALLOWLIST_PATH) then
+        PEARL.info("Allowlist file not found. Creating a new one...")
+        return self:Save()
     end
 
     -- We do not care about the order so create an key-value table
@@ -83,7 +78,7 @@ List:Load()
 
 -- This module loads when localization is enabled as well.
 if PEARL.CONFIG.ALLOWLIST then
-    PEARL.AddFunctionPreCall("JoinServerFilter", function(userid)
+    PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid)
         return List:Contains(userid)
     end)
 end

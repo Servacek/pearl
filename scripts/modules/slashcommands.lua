@@ -7,8 +7,6 @@ local TheNet = TheNet
 -- Contants
 -------------------------------------
 
--- local REPAIR_RADIUS = 24
-
 local SLASH_COMMANDS = {}
 
 local SLASH_COMMAND_DELIM = "/"
@@ -26,37 +24,6 @@ local function AddCommand(name, data, ...)
     end
 end
 
--- local function RepairStructuresNear(player)
---     local x,y,z = player.Transform:GetWorldPosition()
---     local burned_entities = TheSim:FindEntities(
---         x, y, z, REPAIR_RADIUS, {'burnt','structure'}, {'INLIMBO'}
---     )
-
---     for _,ent in ipairs(burned_entities) do
---         local orig_pos = ent:GetPosition()
---         ent:Remove()
-
---         local inst = SpawnPrefab(tostring(ent.prefab), tostring(ent.skinname), nil, player.userid)
---         if inst then
---             inst.Transform:SetPosition(orig_pos:Get())
---         end
---     end
--- end
-
--- local function UnbanPlayerCommand(player_id, caller_id)
---     if SUF.BlacklistManager.RemovePlayerByID(player_id) then
---         print("Successfuly removed player with ID", player_id, "from the list!")
-
---         ServerSendCommandResponse(caller_id, string.format(
---             STRINGS.UI.BUILTINCOMMANDS.UNBAN.ONSUCCESS, player_id
---         ))
---     else
---         print("Player was not found on the blacklist...")
-
---         ServerSendCommandResponse(caller_id, STRINGS.UI.BUILTINCOMMANDS.UNBAN.ONNOTFOUND)
---     end
--- end
-
 ------------------------------------
 -- Slash commands
 ------------------------------------
@@ -68,46 +35,47 @@ AddCommand("fire", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     usermenu = false,
-    servermenu = true,
-	menusort = 5,
+    servermenu = false,
     vote = false,
     params = {},
 
     serverfn = function(params, caller)
-        PEARL.c_fire()
+        -- if caller and caller.Transform then
+        --     PEARL.ExtinguishFiresNear(caller.Transform:GetWorldPosition())
 
-        if not caller then
-            return
-        end
+        --     return TheNet:Announce(STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(
+        --         caller:GetDisplayName()
+        --     ), caller.entity)
+        -- end
 
-        TheNet:Announce(caller:GetDisplayName().." uhasil ohne okolo hráčov!", caller.entity)
+        PEARL.ExtinguishFiresNearAll()
+
+        TheNet:Announce(STRINGS.PEARL.LOGS.EXTINGUISH_ALL:format(
+            caller and caller:GetDisplayName() or "Shenanigans"
+        ))
     end,
 })
 
--- disabled
--- AddModUserCommand("server_utils", "repair", {
---     aliases = {},
---     prettyname = nil, --default to STRINGS.UI.BUILTINCOMMANDS.REPAIR.PRETTYNAME
---     desc = nil, --default to STRINGS.UI.BUILTINCOMMANDS.REPAIR.DESC
---     permission = COMMAND_PERMISSION.ADMIN,
---     slash = true,
---     usermenu = false,
---     servermenu = true,
--- 	menusort = 6,
---     vote = false,
---     params = {},
+AddCommand("repair", {
+    aliases = {},
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    vote = false,
+    params = {},
 
---     serverfn = function(params, caller)
---         if caller ~= nil then
---             for _, v in ipairs(AllPlayers) do
---                 RepairStructuresNear(v)
---             end
+    serverfn = function(params, caller)
+        PEARL.RepairStructuresNearAll()
 
---             TheNet:Announce(caller:GetDisplayName().." opravil štruktúry okolo hráčov!")
---         end
---     end,
+        TheNet:Announce(STRINGS.PEARL.LOGS.REPAIR_ALL:format(
+            caller and caller:GetDisplayName() or "Shenanigans"
+        ))
+    end,
 
--- })
+})
 
 AddCommand("unban", {
     aliases = {},
@@ -127,14 +95,14 @@ AddCommand("unban", {
             return
         end
 
-        if PEARL.c_unban(params.player_id) then
-            print("Successfuly removed player with ID", params.player_id, "from the list!")
+        if PEARL.UnbanUserByID(params.player_id) then
+            PEARL.info("Successfuly removed player with ID", params.player_id, "from the list!")
 
             PEARL.ServerSendCommandResponse(caller.userid, string.format(
                 STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, params.player_id
             ))
         else
-            print("Player was not found on the blacklist...")
+            PEARL.info("Player was not found on the blacklist...")
 
             PEARL.ServerSendCommandResponse(
                 caller.userid, STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND
@@ -309,7 +277,7 @@ AddCommand("inv-find", {
 
             local inventory, prefab, name = PEARL.GetInventoryTabelFor(player.userid, player)
             local embed = PEARL.InventoryToEmbed(inventory, prefab, player.name or name, player.userid)
-            PEARL.Logger:LogEmbed(embed)
+            PEARL.DiscordLogger:LogEmbed(embed)
         end
     end,
 })

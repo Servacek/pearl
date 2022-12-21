@@ -14,13 +14,13 @@ local MARKDOWN = require("libraries/markdown")
 -------------------------------
 
 local function OnCyclesChanged(world, cycle)
-    if not (world and cycle and world.state) then
+    if not world then
         return
     end
 
-    PEARL.Logger:LogStringRaw(MARKDOWN.bold(MARKDOWN.codeline(
+    PEARL.DiscordLogger:LogStringRaw(MARKDOWN.bold(MARKDOWN.codeline(
         STRINGS.PEARL.LOGS.DAY:format(
-            (cycle + 1),
+            ((cycle or 0)+ 1),
             PEARL.GetSeasonFancyName(),
             math.floor((world.state.temperature or 0) / 2 + 0.5)
         ):center(30)
@@ -28,7 +28,7 @@ local function OnCyclesChanged(world, cycle)
 end
 
 local function OnPhaseChanged(world, phase)
-    if not (world and world.state and phase and phase ~= "day") then
+    if not (world and phase and phase ~= "day") then
         return
     end
 
@@ -39,11 +39,9 @@ local function OnPhaseChanged(world, phase)
     --     moonphase_icon = PEARL.ICONS.MOONPHASES.WANNING[world.state.moonphase]
     -- end
 
-    PEARL.Logger:LogString(
-        STRINGS.PEARL.LOGS.PHASE:format(
-            STRINGS.UI.SERVERLISTINGSCREEN.PHASES[string.upper(phase)]
-        )
-    )
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PHASE:format(
+        STRINGS.UI.SERVERLISTINGSCREEN.PHASES[string.upper(phase)]
+    ))
 end
 
 -------------------------------
@@ -60,7 +58,7 @@ local function OnClientAuthenticationComplete(world, data)
         return
     end
 
-    PEARL.Logger:LogStringRaw(MARKDOWN.escape_link_embeds(MARKDOWN.hlink(
+    PEARL.DiscordLogger:LogStringRaw(MARKDOWN.escape_link_embeds(MARKDOWN.hlink(
         MARKDOWN.codeline(
             STRINGS.PEARL.LOGS.AUTH:format(
                 client.name, client.userid
@@ -76,7 +74,7 @@ local function OnClientConnectionClosed(world, data)
         return
     end
 
-    PEARL.Logger:LogString(STRINGS.PEARL.LOGS.CONNECTION_CLOSE:format(
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTION_CLOSE:format(
         data.userid, data.reason or "?"
     ), PEARL.ICONS.PLAYER_STATE.FORCE_DISCONNECTED)
 end
@@ -90,12 +88,12 @@ local function OnClientDisconnected(world, data)
 
     if client ~= nil and client.name ~= nil then
         if data.expected == false then
-            return PEARL.Logger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
+            return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
                     client.name, PEARL.GetShardName()
             ))
         end
 
-        return PEARL.Logger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
+        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
                 client.name, PEARL.GetShardName()
         ))
     end
@@ -105,7 +103,7 @@ end
 local function OnClientNotWhitelisted(userid)
     if not userid then return end
 
-    PEARL.Logger:LogString(
+    PEARL.DiscordLogger:LogString(
         STRINGS.PEARL.NOT_WHITELISTED:format(userid),
         PEARL.ICONS.ANNOUNCEMENTS['kicked_from_game']
     )
@@ -115,7 +113,7 @@ end
 local function OnAltClientWithBannedRoot(userid, rootid)
     if not userid or not rootid then return end
 
-    PEARL.Logger:LogString(
+    PEARL.DiscordLogger:LogString(
         STRINGS.PEARL.BANNED_ROOT_CLIENT:format(userid, rootid),
         PEARL.ICONS.ANNOUNCEMENTS['banned_from_game']
     )
@@ -136,7 +134,7 @@ local function OnPlayerMigrating(self, data)
         return
     end
 
-    PEARL.Logger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
         data.player:GetDisplayName(), TheShard:IsMaster() and "Caves" or "Master"
     ), TheShard:IsMaster() and PEARL.ICONS.PLAYER_STATE.CAVE_ENTER or PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE)
 end
@@ -158,7 +156,7 @@ local function OnStartVote(self, data)
     local votename = votefmt:format(target and target.name or "?")
 
     -- TODO: add some custom icon
-    PEARL.Logger:LogString(
+    PEARL.DiscordLogger:LogString(
         (doer and doer.name) and STRINGS.PEARL.LOGS.START_VOTE:format(
             doer.name, votename
         ) or STRINGS.PEARL.LOGS.START_VOTE_ANONYMOUS:format(
@@ -168,7 +166,7 @@ local function OnStartVote(self, data)
 end
 
 local function OnStopVote(self)
-    PEARL.Logger:LogString(STRINGS.PEARL.LOGS.STOP_VOTE)
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.STOP_VOTE)
 end
 
 local function OnNewPlayerSpawn(self, player)
@@ -176,25 +174,25 @@ local function OnNewPlayerSpawn(self, player)
         return
     end
 
-    PEARL.Logger:LogString(STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN:format(
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN:format(
         player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab])
 end
 
 local function OnResetCountDownStart(self)
     if InGamePlay() then
-        PEARL.Logger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START)
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START)
     end
 end
 
 local function OnResetCountDownStop(self)
     if InGamePlay() then
-        PEARL.Logger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_STOP)
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_STOP)
     end
 end
 
 local function OnReset(self)
-    PEARL.Logger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESET:format(
+    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESET:format(
         MARKDOWN.codeline(PEARL.GetShardName())
     ), PEARL.ICONS.SIM_STATE.REGENERATE)
 end
@@ -211,7 +209,7 @@ local function OnRollback(self, count)
         icon = PEARL.ICONS.SERVER_STATE.RESTART
     end
 
-    PEARL.Logger:LogStringHighlighted(message, icon)
+    PEARL.DiscordLogger:LogStringHighlighted(message, icon)
 end
 
 -------------------------------
@@ -329,9 +327,11 @@ end
 -- between instance starts
 PEARL.AddGamePostInit(function()
     local world = TheWorld
-    if not world then
+    if not (world) then
         return
     end
+
+    world:ListenForEvent("entity_death", OnEntityDeath)
 
     if PEARL.CONFIG.DISCORD.ENABLED then
         if world.ismastershard then
@@ -357,10 +357,5 @@ PEARL.AddGamePostInit(function()
         world:ListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
         world:ListenForEvent("world_reset", OnReset)
         world:ListenForEvent("world_rollback", OnRollback)
-    end
-
-    if (PEARL.CONFIG.ANNS.KILLBOSS
-    or PEARL.CONFIG.ANNS.KILLFOLOWER or PEARL.CONFIG.ANNS.IGNITE) then
-        world:ListenForEvent("entity_death", OnEntityDeath)
     end
 end)

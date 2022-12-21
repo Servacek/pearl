@@ -19,6 +19,10 @@ function string:rstrip()
     return self:match("^(.*%S)%s*$")
 end
 
+function string:strip()
+    return self:match("^%s*(.-)%s*$")
+end
+
 --- Checks if string starts with the given prefix
 --- @param prefix string The prefix we are looking for
 --- @return boolean result Whether the prefix was found
@@ -47,16 +51,22 @@ function string.to_emoji(utf8_icon)
     return PEARL.EMOTES.DISCORD[utf8_icon] or utf8_icon
 end
 
-function string:take(count, init)
+function string:ltake(count, init)
     return self:sub(init or 1, count)
 end
 
+-- rtake(10)
+-- ffasffassafasfasf
 function string:rtake(count, init)
-    return self:sub(count, #self - init)
+    return self:sub(#self - count + 1, init or #self)
 end
 
 --- Converts the first letter of the given string to uppercase
 --- @return string result The formatted result string
 function string:capitalize()
     return self and (self:gsub("^%l", string.upper)) or self
+end
+
+function string:raw()
+    return self.format("%q", self)
 end

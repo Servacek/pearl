@@ -20,11 +20,11 @@ local UserCommands = require("usercommands")
 -- [[ AFK Timer ]]
 --------------------------------------
 
-local INIT_DELAY    = 30
+local INIT_DELAY = 1 * 60
 
-local AFK_TIME = 5--1 * 60
+local AFK_TIME = PEARL.CONFIG.AFK_TIME --1 * 60
 local AFK_TIME_INCREMENT = 1 -- +1 every second
-local AFK_TIME_KICK = 5 * 60
+local AFK_TIME_KICK = PEARL.CONFIG.AFK_TIME_KICK -- 5 * 60
 
 local AFK_TIME_GHOST_MULT = .5
 
@@ -47,9 +47,7 @@ local _tracking_task = nil
 local function UpdateAFKState(afk, kicked)
     _is_afk = afk
 
-    SendModRPCToServer(PEARL.GetServerRPC(PEARL.RPCS.AFKStateChanged),
-        afk, kicked
-    )
+    PEARL.SendRPCToServer(PEARL.RPCS.AFKStateChanged, afk, kicked)
 end
 
 local function OnPlayerRespawnedFromGhost()
@@ -121,6 +119,10 @@ local function CleanUp()
 end
 
 local function OnUpdate()
+    if TheNet:IsServerPaused() then
+        return
+    end
+
     -- Make sure we are not migrating or sleeping, etc...
     if not IsTrackingEnabledFor() then
         ResetAFKTime()
@@ -128,7 +130,7 @@ local function OnUpdate()
     end
 
     _afk_time_current = _afk_time_current + AFK_TIME_INCREMENT
-    if _afk_time_current >= _afk_time_to_kick then
+    if _afk_time_to_kick > 0 and _afk_time_current > _afk_time_to_kick then
         UpdateAFKState(true, true)
         PEARL.ClientNetwork:Disconnect("ID_DST_USER_INACTIVE")
 
@@ -172,7 +174,7 @@ end
 TheInput:AddKeyHandler(OnInputAny) -- Key presses and releases
 TheInput:AddTextInputHandler(OnInputAny) -- Typing inside chat for example
 TheInput:AddMouseButtonHandler(OnInputAny) -- Clicking mouse buttons
---TheInput:AddMoveHandler(OnInputAny) -- Moving the cursor
+TheInput:AddMoveHandler(OnInputAny) -- Moving the cursor
 
 --------------------------------------
 -- [[ Connection Handlers ]]

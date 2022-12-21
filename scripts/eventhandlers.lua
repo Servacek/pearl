@@ -53,7 +53,8 @@ function EventHandlers.playeronignite(doer, data, act)
         penalty = penalty * (act.base_mult or 1)
     end
 
-    local near_str = PEARL.FormatSortedPrefabs(data.near, data.target)
+    --- @TODO: Ignore target
+    local near_str = PEARL.BuildFancyStringForEntities(data.near, data.target)
     if near_str then
         str = subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
             doer = doer:GetDisplayName(),

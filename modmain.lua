@@ -55,6 +55,9 @@
 
     - With 'GetEnabledModsModInfoDetails' we can control what mods are being
       displayed to the users. It is being called from C++ side via TheNet:StartServer.
+
+    - Probably modimport should be used over the basic require since some of the module
+      names can conflict with the built-in ones.
 --]]
 
 local GLOBAL = GLOBAL
@@ -141,7 +144,7 @@ GLOBAL.PEARL = setmetatable({
     end
 })
 
---local PEARL = PEARL
+local PEARL = PEARL
 
 if TheNet:GetIsServer() and not (TheNet:IsDedicated() and not TheNet:GetServerIsClientHosted()) then
     print("Current version of "..PEARL.MOD_INFO.name.." does only support dedicated servers.")
@@ -164,36 +167,47 @@ PEARL.CONSTS = {}
 -- [[ Logging ]]
 --------------------------------
 
-modimport(PEARL.SOURCE_DIR_NAME.."/logging")
+require("logging")
 
 --------------------------------
 -- [[ Standard Libs ]]
 --------------------------------
 
 PEARL.info("Loading extensions for the standard lua libraries...")
-modimport(PEARL.SOURCE_DIR_NAME.."/extensions/standard/table")
-modimport(PEARL.SOURCE_DIR_NAME.."/extensions/standard/math")
-modimport(PEARL.SOURCE_DIR_NAME.."/extensions/standard/string")
+require("extensions/standard/table")
+require("extensions/standard/math")
+require("extensions/standard/io")
+require("extensions/standard/string")
 
 --------------------------------
--- [[ Helpers & Logging ]]
+-- [[ Helpers ]]
 --------------------------------
 
 PEARL.info("Loading helper functions...")
-modimport(PEARL.SOURCE_DIR_NAME.."/utils/helpers")
-modimport(PEARL.SOURCE_DIR_NAME.."/api")
+require("utils/helpers")
+
+--------------------------------
+-- [[ Mod API ]]
+--------------------------------
+
+PEARL.info("Loading custom mod application programming interface...")
+require("extensions/api")
+
+--------------------------------
+-- [[ Error Handler ]]
+--------------------------------
 
 --- @TODO
 -- This should be loaded after the webhooks are set up.
 PEARL.info("Loading mod error handler...")
-modimport(PEARL.SOURCE_DIR_NAME.."/moderror")
+require("moderror")
 
 --------------------------------
 -- [[ License ]]
 --------------------------------
 
 PEARL.info("Loading licence...")
-modimport(PEARL.SOURCE_DIR_NAME.."/licence")
+require("licence")
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -213,7 +227,7 @@ end
 --------------------------------
 
 PEARL.info("Loading strings...")
-modimport(PEARL.SOURCE_DIR_NAME.."/constants/strings")
+require("constants/strings")
 
 -- Load translations only after strings.lua else they will be overriden.
 local language = PEARL.SUPPORTED_LANGUAGES[PEARL.CONFIG.LANGUAGE]
@@ -229,7 +243,7 @@ end
 --------------------------------
 
 PEARL.info("Loading client <-> server rpcs...")
-modimport(PEARL.SOURCE_DIR_NAME.."/networkrpc")
+require("networkrpc")
 
 --------------------------------
 -- [[ Load ]]

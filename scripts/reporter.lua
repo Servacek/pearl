@@ -29,7 +29,7 @@ function Reporter:ReportModError(err)
     end
 
     if #err > MAX_TRACEBACK_LENGHT then
-        err = err:take(MAX_TRACEBACK_LENGHT).."..."
+        err = err:ltake(MAX_TRACEBACK_LENGHT).."..."
     end
 
     local _, json_data = Message()

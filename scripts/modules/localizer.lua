@@ -55,10 +55,18 @@ end
 --------------------------------
 
 local _timeout
+local _client_cache
+
+local function _CacheLocalizedClient(userid)
+    if not _client_cache then
+        _client_cache = {}
+    end
+
+    _client_cache[userid] = true
+end
 
 local function _OnClientModNetworkReady(userid)
-    print(LookupPlayerInstByUserID(userid))
-    if LookupPlayerInstByUserID(userid) then
+    if LookupPlayerInstByUserID(userid) or (_client_cache and _client_cache[userid] == true) then
         return
     end
 
@@ -72,7 +80,7 @@ local function _OnClientModNetworkReady(userid)
 end
 
 local function _OnClientLocalizationComplete(userid, locale)
-    PEARL.debug("Client", userid, "localized as", locale)
+    --PEARL.debug("Client", userid, "localized as", locale)
 
     if _timeout ~= nil then
         _timeout:Cancel()
@@ -80,7 +88,8 @@ local function _OnClientLocalizationComplete(userid, locale)
     end
 
     if AllowList:Contains(userid) or ALLOWED_LOCALES[locale] == true then
-        return
+        PEARL.info("Client successfully localized. Caching...")
+        return _CacheLocalizedClient(userid)
     end
 
     -- Do not allow further loading

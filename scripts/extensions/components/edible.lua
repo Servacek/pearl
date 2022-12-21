@@ -1,6 +1,5 @@
 
-local PEARL = PEARL
-
+--- @class Edible
 local Edible = require("components/edible")
 
 --------------------------------

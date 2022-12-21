@@ -1,24 +1,23 @@
+
+
 local ChatQueue = require("widgets/redux/chatqueue")
 
-----------------------------------------------
+-------------------------------
+-- [[ Function Overrides ]]
+-------------------------------
 
-local _PushMessage = ChatQueue.PushMessage
-ChatQueue.PushMessage = function(self, ...)
-    if self.toggled then
-        return
-    end
+PEARL.AddClassFunctionPreCall("PushMessage", function(self)
+    return not self.toggled
+end, ChatQueue)
 
-    return _PushMessage(self, ...)
-end
 
-local _RefreshWidgets = ChatQueue.RefreshWidgets
-ChatQueue.RefreshWidgets = function(self, ...)
-    if self.toggled then
-        return
-    end
+PEARL.AddClassFunctionPreCall("RefreshWidgets", function(self)
+    return not self.toggled
+end, ChatQueue)
 
-    return _RefreshWidgets(self, ...)
-end
+-------------------------------
+-- [[ Additional Functions ]]
+-------------------------------
 
 function ChatQueue:Clear()
     if self.chat_queue_data then

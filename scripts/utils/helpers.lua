@@ -350,17 +350,17 @@ function PEARL.IsCommandAllowed(cmd_name)
     return cmd_name and not table.contains(PEARL.CONFIG.COMMAND_BLOCKLIST, cmd_name)
 end
 
-function PEARL.IsBase(entities)
-    if not (entities and type(entities) == "table") then
-        return false
-    end
+-- function PEARL.IsBase(entities)
+--     if not (entities and type(entities) == "table") then
+--         return false
+--     end
 
-    local base_structs_count = #(table.filter(entities, function(k, v)
-        return v and v:IsBaseStructure()
-    end))
+--     local base_structs_count = #(table.filter(entities, function(k, v)
+--         return v and v:IsBaseStructure()
+--     end))
 
-    return base_structs_count > 3, base_structs_count
-end
+--     return base_structs_count > 3, base_structs_count
+-- end
 
 -- Used to determine wheter the client is connecting to the server for the first time
 -- or just migrating between the server shards.
@@ -373,18 +373,10 @@ function PEARL.IsAdminUserid(userid)
     return client and client.admin
 end
 
--- TODO
-function PEARL.IsBurnable(inst)
-    return inst ~= nil and inst.components ~= nil and inst.components.burnable ~= nil
-end
-
-function PEARL.IsSchedulerPaused()
-    return IsSimPaused() or TheNet:IsServerPaused()
-end
-
-function PEARL.InstanceOf(inst, class)
-    return getmetatable(inst) == class
-end
+--- @TODO
+-- function PEARL.IsBurnable(inst)
+--     return inst ~= nil and inst.components ~= nil and inst.components.burnable ~= nil
+-- end
 
 --------------------------------
 -- [[ Klei Data ]]
@@ -406,6 +398,21 @@ function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
 
+function PEARL.FancyTableConcat(t)
+    return #t > 1 and STRINGS.PEARL.LOGS.AND:format(
+        table.concat(t, ", ", 1, #t-1), t[#t]
+    ) or table.concat(t, ", ")
+end
+
+function PEARL.BuildFancyStringForEntities(entities)
+    local fancy_names = {}
+    for _, entity in ipairs(entities) do
+        fancy_names[#fancy_names+1] = entity:GetFancyName()
+    end
+
+    return PEARL.FancyTableConcat(fancy_names)
+end
+
 function PEARL.FormatSortedPrefabs(prefabs)
     local result = ""
     local sep = ""
@@ -417,7 +424,7 @@ function PEARL.FormatSortedPrefabs(prefabs)
             sep = ""
         end
 
-        local name = STRINGS.NAMES[string.upper(name)] or name
+        name = STRINGS.NAMES[string.upper(name)] or name
         if count and count > 1 then
             result = result..count.."x "..name..sep
         else
@@ -467,7 +474,7 @@ function PEARL.SafeRun(func, ...)
             "Catched an error while safe executing function", debug.getinfo(func, "n").name, "\n"..tostring(result)
         )
 
-        PEARL.Reporter:ReportModError(result)
+        PEARL.DiscordReporter:ReportModError(result)
     end
 
     return success, result
@@ -483,4 +490,59 @@ end
 
 function PEARL.ToISO8601(timestamp)
     return os.date("%Y-%m-%dT%XZ", timestamp)
+end
+
+function PEARL.ExtinguishFiresNearAll()
+    for _, v in ipairs(AllPlayers) do
+        if v.Transform then
+            PEARL.ExtinguishFiresNear(v.Transform:GetWorldPosition())
+        end
+    end
+
+    PEARL.info("Fires near all", AllPlayers and #AllPlayers or 0, "players were extinguished!")
+end
+
+function PEARL.RepairStructuresNear(player)
+    local x,y,z = player.Transform:GetWorldPosition()
+    local burned_entities = TheSim:FindEntities(
+        x, y, z, PEARL.CONSTS.REPAIR_RADIUS, {'burnt','structure'}, {'INLIMBO'}
+    )
+
+    for _, ent in ipairs(burned_entities) do
+        local orig_pos = ent:GetPosition()
+        ent:Remove()
+
+        local inst = SpawnPrefab(tostring(ent.prefab), tostring(ent.skinname), nil, player.userid)
+        if inst then
+            inst.Transform:SetPosition(orig_pos:Get())
+        end
+    end
+end
+
+function PEARL.RepairStructuresNearAll()
+    for _, player in ipairs(AllPlayers) do
+        PEARL.RepairStructuresNear(player)
+    end
+
+    PEARL.info("Burnt structures near all", AllPlayers and #AllPlayers or 0, "players were restored!")
+end
+
+function PEARL.UnbanUserByID(userid)
+    if PEARL.Blacklist.RemovePlayerByID(userid) then
+        return PEARL.info("Successfully removed", userid, "from the blocklist!")
+    end
+
+    return PEARL.info("Attempt to unban", userid, "failed.")
+end
+
+function PEARL.LogInventoryFor(userid)
+    if type(userid) ~= "string" then
+        return PEARL.error("Invalid userid parameter")
+    end
+
+    local inventory, prefab, name = PEARL.GetInventoryTabelFor(userid)
+    PEARL.info(DataDumper(inventory))
+
+    local embed = PEARL.InventoryToEmbed(inventory, prefab, name, userid)
+    return PEARL.DiscordLogger:LogEmbed(embed)
 end

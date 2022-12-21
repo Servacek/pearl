@@ -39,7 +39,7 @@ end
 
 local function LoadAllModules()
     for module, enabled in pairs(_modules) do
-        if enabled then
+        if enabled == true then
             LoadModule(module)
         end
     end
