@@ -1,3 +1,29 @@
+--[[
+Copyright (c) 2023 Fi7iP
+The Czechoslovakian Don't Starve Together Game Comunity
+<https://discord.gg/RHzJxut>
+
+This file is part of the 'Pearl'.
+
+The source code of this program and all its parts are shared under
+the RECEX SHARED SOURCE LICENSE (version 1.0).
+This is NOT Free and Open Source software, and the code is
+NOT redistributable without permission of the author(s).
+The source code licensed under this license is shared "as is" and does
+not come with any warranty including the implied warranty of merchandise.
+Read the RECEX SHARED SOURCE LICENSE for details.
+
+You should have received a copy of the RECEX SHARED SOURCE LICENSE
+in the form of a LICENSE file in the root of the source directory.
+If not, please refer to
+<https://raw.githubusercontent.com/Recex/Licenses/master/SharedSourceLicense/LICENSE.txt>
+
+You can contact the author(s) at
+<https://steamcommunity.com/profiles/76561198339302667/>
+--]]
+
+
+
 ---@diagnostic disable: lowercase-global
 
 name = "Pearl"
@@ -31,47 +57,14 @@ server_filter_tags = {
 }
 
 configuration_options = {
-    -- Logging
-    {
-        name="DISCORD_LOGS",
-        default=true,
-    },
 
-    -- Note: The url should contain also the protocol prefix
-    {
-        name="DISCORD_INVITE",
-        default=nil,
-    },
+    --------------------
+    -- Languages
+    --------------------
 
     {
         name="LANGUAGE",
         default="en",
-    },
-
-    { -- regenerate, rollback, kick...
-        name="COMMAND_BLOCKLIST",
-        default={},
-    },
-
-    {
-        name="MOD_BLACKLIST",
-        default={},
-    },
-
-    { -- Additional table of tags
-        name="CUSTOM_SERVER_TAGS",
-        default={},
-    },
-
-    -- Anti-Grief
-    -- {
-    --     name="FIRE_PROTECTION",
-    --     default=true,
-    -- },
-
-    {
-        name="LOG_SUSPICIOUS_INVENTORIES",
-        default=true,
     },
 
     {
@@ -79,13 +72,60 @@ configuration_options = {
         default=true,
     },
 
+    { -- regenerate, rollback, kick...
+        name="COMMAND_BLOCKLIST",
+        default={},
+    },
+
+    --------------------
+    -- Mod Blocker Module
+    --------------------
+
     {
-        name="CONSOLE_COMMANDS",
+        name="MOD_BLACKLIST",
+        default={},
+    },
+
+    --------------------
+    -- Server
+    --------------------
+
+    { -- Additional table of tags
+        name = "CUSTOM_SERVER_TAGS",
+        default = {},
+    },
+
+    {
+        name = "CUSTOM_LOADING_TIPS",
+        default = true,
+    },
+
+    {
+        name = "CUSTOM_CONTROLS",
+        default = true,
+    },
+
+    --------------------
+    -- Global Player Icons
+    --------------------
+
+    {
+        name="SHOW_PLAYER_ICONS",
         default=true,
     },
 
     {
-        name="SHOW_PLAYER_ICONS",
+        name = "TRUST_AGE",
+        default = 24,
+    },
+
+
+    --------------------
+    -- Other Modules
+    --------------------
+
+    {
+        name="LOG_SUSPICIOUS_INVENTORIES",
         default=true,
     },
 
@@ -94,10 +134,28 @@ configuration_options = {
         default=true,
     },
 
+    --------------------
+    -- Commands
+    --------------------
+
+    {
+        name="SLASH_COMMANDS",
+        default=true,
+    },
+
+    {
+        name="CONSOLE_COMMANDS",
+        default=true,
+    },
+
+    --------------------
+    -- Anti-AFK Module
+    --------------------
+
     { -- Time in seconds represeting the inactive time after which a player is considered AFK
       -- Settings this to 0 or lower will disable afk state (so no announcement).
-        name="AFK_TIME",
-        default=1 * 60,
+        name = "AFK_TIME",
+        default = 1 * 60,
     },
 
     { -- Total AFK time in seconds after which the player
@@ -107,35 +165,53 @@ configuration_options = {
         default = 5 * 60,
     },
 
+    --------------------
+    -- Localizer Module
+    --------------------
+
     { -- This is an experimental feature.
-        name="CZSK_ONLY",
-        default=false,
+        name = "CZSK_ONLY",
+        default = false,
     },
 
-    -- Determines the amount of attempts to burn the base by a player until kick
+    --------------------
+    -- Access Lists
+    --------------------
+
+    {
+        name = "WHITELIST",
+        default = false,
+    },
+
+    {
+        name = "ALLOWLIST",
+        default = false,
+    },
+
+    --------------------
+    -- Intro Screen
+    --------------------
+
+    {
+        name = "INTRO_SCREEN",
+        default = false,
+    },
+
+    --------------------
+    -- Discord Module
+    --------------------
+
+    --- @TODO: Shutdown the logs by shutting down the rhook and lhook webhooks
+    -- Logging
     -- {
-    --     name="MAX_FIRE_ATTEMPTS",
-    --     default=3,
+    --     name="DISCORD_LOGS",
+    --     default=true,
     -- },
 
+    -- Note: The url should contain also the protocol prefix
     {
-        name = "TRUST_AGE",
-        default = 24,
-    },
-
-    {
-        name="WHITELIST",
-        default=false,
-    },
-
-    {
-        name="ALLOWLIST",
-        default=false,
-    },
-
-    {
-        name="INTRO_SCREEN",
-        default=false,
+        name="DISCORD_INVITE",
+        default=nil,
     },
 
     -- Webhook Identifiers (required if DISCORD_LOGS option is enabled)
@@ -144,6 +220,7 @@ configuration_options = {
         default={
             ID = "",
             TOKEN = "",
+            ENABLED = true,
         }
     },
 
@@ -152,25 +229,27 @@ configuration_options = {
         default={
             ID = "",
             TOKEN = "",
+            ENABLED = true,
         },
     },
 
     {
-        name="DEBUG_MODE",
-        default=false,
+        name="LHOOK_BUFFER_TIMEOUT",
+        default = 4
     },
 
-    --------------------------------
+    --------------------
+    -- REST API
+    --------------------
 
     {
         name="REQUEST_FREQUENCY", -- In seconds
         default=2,
     },
 
-    {
-        name="MESSAGE_WRAPPER_PERIOD",
-        default=4
-    },
+    --------------------
+    -- Update Checker
+    --------------------
 
     {
         name="VERSION_CHECK_FREQUENCY", -- In minutes
@@ -182,12 +261,9 @@ configuration_options = {
         default=5,
     },
 
-    -- {
-    --     name="OPTIMIZED_SCHEDULER",
-    --     default=true,
-    -- },
-
-    ----------
+    --------------------
+    -- Announcements
+    --------------------
 
     --- @TODO: Separate the announcement settings from other things somehow
 
@@ -258,43 +334,26 @@ configuration_options = {
         default = {},
     },
 
-    --- @TODO
-    -- {
-    --     name = "FORCE_REEDTRAP",
-    --     default = false,
-    -- },
-
     {
         name="SEED",
         default = nil,
     },
 
     --------------------
-    -- Misc
+    -- Prefabs
     --------------------
 
     {
-        name = "BETTER_EYE",
-        default = false,
+        name = "CUSTOM_PREFABS",
+        default = {},
     },
 
-    --[[
-        This needs to be a key-value styled table,
-        where the key is the prefab name (without quotes) and the value 1 or true.
-        Like this:
+    --------------------
+    -- Debugging
+    --------------------
 
-            PREFAB_BLACKLIST = {
-                <prefab_name1> = 1,
-                <prefab_name2> = 1,
-                ...
-            }
-
-        Entities whose prefab will be on this list will not be contained in the neighbor
-        entity list for actions like ignite, etc...
-    --]]
-    -- {
-    --     name="PREFAB_BLACKLIST",
-    --     options={},
-    --     default={},
-    -- }
+    {
+        name="DEBUG_MODE",
+        default = false,
+    },
 }

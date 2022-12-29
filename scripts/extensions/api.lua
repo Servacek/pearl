@@ -4,10 +4,11 @@
 --]]
 
 local mod_post_inits = {}
-local file_post_loads = {}
+local file_pre_loads = {}
 local client_pre_loads = {}
+local game_logic_preloads = {}
 
-local UpValueHacker = require("utils/upvaluehacker")
+-- local UpValueHacker = PEARL.loadfile("utils/upvaluehacker")
 
 ----------------------------------
 -- Function Pre/Post call adders
@@ -140,6 +141,14 @@ function PEARL.AddModPostInit(fn)
     end
 end
 
+function PEARL.AddGameLogicPreLoad(fn)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddGameLogicPreLoad", fn)
+    end
+
+    table.insert(game_logic_preloads, fn)
+end
+
 function PEARL.AddModIndexPostInit(fn)
     PEARL.info("AddModIndexPostInit", fn)
 
@@ -151,11 +160,20 @@ function PEARL.AddClientPreLoad(fn, ...)
 end
 
 function PEARL.AddFilePreLoad(filename, fn)
-    if type(file_post_loads[filename]) == "function" then
+    -- If the file was already loaded
+    if package.loaded[filename] then
+        return
+    end
+
+    if type(file_pre_loads[filename]) == "function" then
         PEARL.warn("AddFilePreLoad: Overriding pre call handler for", filename)
     end
 
-    file_post_loads[filename] = fn
+    if not file_pre_loads[filename] then
+        file_pre_loads[filename] = {}
+    end
+
+    table.insert(file_pre_loads[filename], fn)
 end
 
 function PEARL.AddWorldPostInit(fn, ...)
@@ -237,6 +255,24 @@ PEARL.AddClassFunctionPreCall("Load", function(...)
 
     return result
 end, Profile)
+
+PEARL.AddGlobalFunctionPreCall("require", function(name)
+    if package.loaded[name] then
+        return
+    end
+
+    if file_pre_loads[name] then
+        for _, cb in ipairs(file_pre_loads[name]) do
+            cb()
+        end
+    end
+end)
+
+PEARL.AddFilePreLoad("gamelogic", function()
+    for _, cb in ipairs(game_logic_preloads) do
+        cb()
+    end
+end)
 
 --------------------------------
 -- [[ Frontend Stuff ]]

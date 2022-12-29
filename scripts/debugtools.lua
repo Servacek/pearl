@@ -136,7 +136,7 @@ end
 --------------------------------
 -- [[ LogLine Tests ]]
 --------------------------------
-local LogLine = require("libraries/discordapi/models/logline")
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 function PEARL.TESTS.LogLineTestBuild()
     local logline = LogLine("Temporary Content")
@@ -163,21 +163,21 @@ function PEARL.TESTS.MessageTestToTable()
 end
 
 --------------------------------
--- [[ Blacklist Tests ]]
+-- [[ BlackList Tests ]]
 --------------------------------
 
 function PEARL.TESTS.BlacklistMethodTest()
     local userid = "KU_TEST"
 
     PEARL.info("---- Init ---")
-    PEARL.Blacklist:PrintDebugInfo()
+    PEARL.BlackList:PrintDebugInfo()
     PEARL.info("---- AddPlayerByID ---")
-    PEARL.Blacklist:AddPlayerByID(userid)
-    PEARL.Blacklist:PrintDebugInfo()
-    table.foreach(PEARL.Blacklist:GetPlayerByID(userid), print)
+    PEARL.BlackList:AddPlayerByID(userid)
+    PEARL.BlackList:PrintDebugInfo()
+    table.foreach(PEARL.BlackList:GetPlayerByID(userid), print)
     PEARL.info("---- RemovePlayerById ---")
-    PEARL.Blacklist:RemovePlayerByID(userid)
-    PEARL.Blacklist:PrintDebugInfo()
+    PEARL.BlackList:RemovePlayerByID(userid)
+    PEARL.BlackList:PrintDebugInfo()
 end
 
 --------------------------------
@@ -218,7 +218,7 @@ function PEARL.TESTS.AltDentifier()
         PEARL.info("=============== END ===============")
         local current_requests_count = PEARL.RestClient:GetSentRequestsCount()
         PEARL.info("Requests Sent:", current_requests_count - init_request_count)
-    end)()
+    end)
 end
 
 --------------------------------
@@ -271,12 +271,12 @@ local function GetSuspicioness(inventory)
 end
 
 function PEARL.TESTS.SusInv()
-    local rfile, success = io.open(PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/d_inventories.txt", "r")
+    local rfile, success = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/d_inventories.txt", "r")
     if not rfile then
         return PEARL.error("Failed to open the inventories file!", success)
     end
 
-    local wfile, success = io.open(PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/d_result.txt", "w")
+    local wfile, success = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/d_result.txt", "w")
     if not wfile then
         return PEARL.error("Failed to open the result file!", success)
     end
@@ -369,7 +369,7 @@ function _G.ListFunctions(name, tbl)
         return PEARL.info("No functions found in", name)
     end
 
-    local filename = MODROOT..""..PEARL.DATA_DIR_NAME.."/"..name:lower()..".txt"
+    local filename = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..name:lower()..".txt"
     local file, error_msg = io.open(filename, "w")
     if not file or error_msg then
         return PEARL.error(error_msg)
@@ -425,7 +425,7 @@ function _G.ProfileFn(name, fn, ...)
 	PEARL.Profiler:stop()
 
     local outfile = io.open(
-        PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/"..name.."_profiled.txt", "w"
+        PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..name.."_profiled.txt", "w"
     )
 	outfile:write(PEARL.Profiler:report())
 	outfile:close()
@@ -485,7 +485,7 @@ function PEARL.ListEngineGlobals()
 end
 
 function PEARL.execute_tests(testset_name)
-    local tests = require("tests/"..testset_name)
+    local tests = PEARL.loadfile("tests/"..testset_name)
     if not type(tests) == "table" then
         PEARL.info("Failed to load the specified test set!")
     end
@@ -540,3 +540,31 @@ end
 function PEARL.TESTS.MarkdownInChat()
     DSay("**test**")
 end
+
+--------------------------------
+-- [[ Table Debug Print ]]
+--------------------------------
+
+setmetatable(table, {
+    __tostring = function(self)
+        local done = {}
+        local function recurse(t, d)
+            if done[t] then
+                return
+            end
+
+            done[t] = true
+            for i, v in pairs(t) do
+                if type(v) == 'table' then
+                    PEARL.debug(string.rep("\t", d), i, "{")
+                    recurse(v, (d or 0) + 1)
+                    PEARL.debug(string.rep("\t", d), i, "}")
+                else
+                    PEARL.debug(string.rep("\t", d), i, v)
+                end
+            end
+        end
+
+        recurse(self)
+    end,
+})

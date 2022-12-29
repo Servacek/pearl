@@ -11,7 +11,7 @@ local PEARL = PEARL
 local table = table
 local TheNet = TheNet
 
---- @class Blacklist
+--- @class BlackList
 local BlackList = {}
 
 --------------------------------

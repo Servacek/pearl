@@ -3,7 +3,7 @@ local math = math
 local PEARL = PEARL
 
 --------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 --------------------------------------
 
 local WHITELIST_PATH = "../../whitelist.txt"
@@ -11,8 +11,22 @@ local WHITELIST_PATH = "../../whitelist.txt"
 --------------------------------------
 -- [[ Initialization ]]
 --------------------------------------
+
 --- @class Whitelist
-local WhiteList = {}
+local WhiteList = {
+    MODE = {
+        DISABLED = 0,
+        DEFAULT = 1,
+        -- Keep total player slots count in sync with the total reserved slot's count
+        ALLOWLIST = 2,
+    }
+}
+
+--------------------------------------
+-- [[ Private Variables ]]
+--------------------------------------
+
+local _mode = WhiteList.MODE.DEFAULT
 
 --------------------------------------
 -- [[ Private Functions ]]
@@ -24,16 +38,41 @@ local function GetSavedMaxReservedSlots()
     return whitelist_slots and tonumber(whitelist_slots) or 0
 end
 
+
 local function GetSavedMaxPlayers()
     local max_players = TheSim:GetSetting("GAMEPLAY", "max_players")
-    return max_players and tonumber(max_players) or 6
+    return max_players and tonumber(max_players) or TUNING.MAX_SERVER_SIZE
 end
 
 local function ResetMaxPlayers()
     TheNet:SetDefaultMaxPlayers(GetSavedMaxPlayers())
 end
 
-local function ReCalculateMaxPlayers()
+--------------------------------------
+-- [[ Setters ]]
+--------------------------------------
+
+function WhiteList:Add(userid)
+    TheNet:AddToWhiteList(userid)
+
+    if _mode == WhiteList.MODE.ALLOWLIST then
+        self:SyncReservedWithSlots()
+    end
+end
+
+function WhiteList:Remove(userid)
+    TheNet:RemoveFromWhiteList(userid)
+
+    if _mode == WhiteList.MODE.ALLOWLIST then
+        self:SyncReservedWithSlots()
+    end
+end
+
+function WhiteList:SetMode(mode)
+    _mode = mode
+end
+
+function WhiteList:SyncReservedWithSlots()
     WhiteList:GetContent(function(success, content)
         if not success then
             return PEARL.error("Failed to load the whitelist!")
@@ -67,22 +106,6 @@ local function ReCalculateMaxPlayers()
 end
 
 --------------------------------------
--- [[ Setters ]]
---------------------------------------
-
-function WhiteList:Add(userid)
-    TheNet:AddToWhiteList(userid)
-
-    ReCalculateMaxPlayers()
-end
-
-function WhiteList:Remove(userid)
-    TheNet:RemoveFromWhiteList(userid)
-
-    ReCalculateMaxPlayers()
-end
-
---------------------------------------
 -- [[ Getters ]]
 --------------------------------------
 
@@ -94,10 +117,3 @@ end
 function WhiteList:GetContent(cb)
     return TheSim:GetPersistentString(WHITELIST_PATH, cb)
 end
-
---------------------------------------
--- [[ Setup ]]
---------------------------------------
-
-PEARL.WhiteList = WhiteList
-ReCalculateMaxPlayers()

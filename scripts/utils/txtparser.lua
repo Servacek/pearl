@@ -3,10 +3,11 @@
 -- [[ Constants ]]
 --------------------------------------
 
-local PATH_TEMPLATE = PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/%s"
+local PATH_TEMPLATE = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/%s"
 local COMMENT_PREFIX = "//"
 local ESCAPE_PREFIX = "/"
 local TITLE_PREFIX = "#"
+local VERSION_PREFIX = "@v"
 
 --------------------------------------
 -- [[ Locals ]]
@@ -14,6 +15,7 @@ local TITLE_PREFIX = "#"
 
 --- @type table<string, string>?
 local _open_section
+local _version
 
 local function RemoveLinePrefix(line, prefix)
     return line:rtake(#line - #prefix)
@@ -35,6 +37,10 @@ end
 
 local function ParseLine(tbl, raw_line, subtitles)
     local line = raw_line:strip()
+
+    if line:startswith(VERSION_PREFIX) and not _version then
+        _version = line
+    end
 
     -- Comments
     if line:startswith(COMMENT_PREFIX) then
@@ -82,6 +88,8 @@ return function(filename, create_if_needed, subtitles)
     end
 
     _open_section = nil
+
+    result.version = _version
 
     return result
 end

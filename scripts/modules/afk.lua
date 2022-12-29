@@ -79,8 +79,6 @@ local function OnBecomeActive()
         ThePlayer.Network:RemoveUserFlag(USERFLAGS.IS_AFK)
     end
 
-    -- @TODO: Cancel the idle animation
-
     UpdateAFKState(false)
 end
 

@@ -6,7 +6,8 @@ local PEARL = PEARL
 PEARL.info("Loading Mod FE...")
 
 PEARL.ModTableSafeAppend("CONSTS", {
-    AGREEMENT_FILE_PATH = PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/AGREEMENT"
+    -- Create the file in game's data directory which is more persistent on clients
+    AGREEMENT_FILE_PATH = "AGREEMENT"
 })
 
 ----------------------------------
@@ -22,13 +23,13 @@ PEARL.ModTableSafeAppend("CONFIG", {
     CZSK_ONLY                = PEARL.GetConfigData("CZSK_ONLY"),
     DEBUG_MODE               = PEARL.GetConfigData("DEBUG_MODE"),
     LANGUAGE                 = PEARL.GetConfigData("LANGUAGE"),
+    SLASH_COMMANDS           = PEARL.GetConfigData("SLASH_COMMANDS"),
+    CUSTOM_LOADING_TIPS      = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
+    CUSTOM_CONTROLS          = PEARL.GetConfigData("CUSTOM_CONTROLS"),
 
     WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
     AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
 })
-
-print("WP", PEARL.CONFIG.WELCOME_POPUP_CONTENT)
-print("AS", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT)
 
 PEARL.ModTableSafeAppend("CONTROLS", {
     TOGGLE_CHAT = KEY_F1 -- 282
@@ -38,11 +39,11 @@ PEARL.ModTableSafeAppend("CONTROLS", {
 -- FrontEnd Debug Mode
 ----------------------------------
 
-if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
-    -- PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
-    -- PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
-    -- PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)
-end
+-- if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
+--     PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
+--     PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
+--     PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)
+-- end
 
 ----------------------------------
 -- Assets
@@ -64,7 +65,7 @@ PEARL.info("Loading UI...")
 
 PEARL.POPUPS = {}
 
-modimport(PEARL.SOURCE_DIR_NAME.."/constants/strings")
+PEARL.loadfile("constants/strings")
 
 --[[
     <string_table> can be one of the following:
@@ -79,47 +80,58 @@ modimport(PEARL.SOURCE_DIR_NAME.."/constants/strings")
     <controltipdata> is a table containing input control bindings to be used in the tip string. Refer to LOADING_SCREEN_CONTROL_TIP_KEYS in constants.lua and LOADING_SCREEN_CONTROL_TIPS in strings.lua for an example usage.
 ]]
 -- Loading screen tips setup
-AddLoadingTip(
-    STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS, "TIP_TOGGLE_CHAT",
-    STRINGS.PEARL.UI.TIP_TOGGLE_CHAT, {toggle = PEARL.CONTROLS.TOGGLE_CHAT}
-)
+if PEARL.CONFIG.CUSTOM_LOADING_TIPS then
+    PEARL.AddLoadingTip(
+        STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS, "TIP_TOGGLE_CHAT",
+        STRINGS.PEARL.UI.TIP_TOGGLE_CHAT, {toggle = PEARL.CONTROLS.TOGGLE_CHAT}
+    )
+end
 
 ----------------------------------
 -- UI Extensions
 ----------------------------------
 
 PEARL.info("Loading user interface extensions...")
-modimport(PEARL.SOURCE_DIR_NAME.."/extensions/ui/consolescreen")
-modimport(PEARL.SOURCE_DIR_NAME.."/extensions/ui/chatqueue")
-modimport(PEARL.SOURCE_DIR_NAME.."/extensions/ui/playerstatusscreen")
+PEARL.loadfile("extensions/ui/consolescreen")
+PEARL.loadfile("extensions/ui/chatqueue")
+PEARL.loadfile("extensions/ui/playerstatusscreen")
 
 ----------------------------------
 -- Client Network
 ----------------------------------
 
 PEARL.info("Loading client network...")
-modimport(PEARL.SOURCE_DIR_NAME.."/clientnetwork")
+
+--- @type ClientNetwork
+PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
+
+--- @type ClientLoader
+PEARL.ClientLoader = PEARL.loadfile("clientloader")
 
 ----------------------------------
 -- Other Modules
 ----------------------------------
 
 PEARL.info("Loading modules...")
-local ModuleManager = require("libraries/modulemanager")
 
-ModuleManager.AddModule("keybinds", true)
-ModuleManager.AddModule("slashcommands", true)
+--- @type ModuleManager
+local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+ModuleManager:SetLoader(PEARL.loadfile)
+ModuleManager:SetModuleDirectory("modules")
+
+ModuleManager:AddModule("keybinds", PEARL.CONFIG.CUSTOM_CONTROLS)
+ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
-    ModuleManager.AddModule(
+    ModuleManager:AddModule(
         "localizer", PEARL.CONFIG.CZSK_ONLY
     )
-    -- ModuleManager.AddModule(
-    --     "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {})
-    -- )
-    ModuleManager.AddModule(
+    ModuleManager:AddModule(
+        "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {})
+    )
+    ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
-    ModuleManager.AddModule(
+    ModuleManager:AddModule(
         "agreement", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil and PEARL.CONFIG.WELCOME_POPUP_CONTENT ~= nil
     )
 end
@@ -127,6 +139,3 @@ end
 ModuleManager:LoadAllModules()
 
 PEARL.info("Done")
-
--- Only load this after everything that controls the client's loading state in anyway
-modimport(PEARL.SOURCE_DIR_NAME.."/clientloader")

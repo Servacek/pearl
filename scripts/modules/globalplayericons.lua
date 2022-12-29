@@ -15,7 +15,7 @@ local REQUIRED_AGE_PERCENT = 0.3
 -- [[ Implementation ]]
 --------------------------------
 
-AddPlayerPostInit(function(inst)
+PEARL.AddPlayerPostInit(function(inst)
     if not inst or not inst.components or not inst.components.maprevealable then
         return
     end

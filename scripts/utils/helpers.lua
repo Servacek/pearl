@@ -1,11 +1,10 @@
 
-local Embed = require("libraries/discordapi/models/embed")
+local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 local UserCommands = require("usercommands")
 local EncodeBase64 = require('utils/base64encoder')
 
 --------------------------------
 
-local PEARL = PEARL
 local TheSim, TheShard, TheNet, bit = TheSim, TheShard, TheNet, bit
 local ParseUserSessionData = ParseUserSessionData
 local string, table, math = string, table, math
@@ -528,7 +527,7 @@ function PEARL.RepairStructuresNearAll()
 end
 
 function PEARL.UnbanUserByID(userid)
-    if PEARL.Blacklist.RemovePlayerByID(userid) then
+    if PEARL.BlackList:RemovePlayerByID(userid) then
         return PEARL.info("Successfully removed", userid, "from the blocklist!")
     end
 

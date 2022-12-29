@@ -2,12 +2,14 @@
     Alternative to whitelist.txt.
 ]]
 
+if TheNet:GetIsClient() or not TheNet:IsDedicated() then
+    return
+end
+
 local io = io
 local PEARL = PEARL
 
-PEARL.warn("Allowlist is enabled! Only players on the list or admins will be able to join.")
-
-local ALLOWLIST_PATH = PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/allowlist.txt"
+local ALLOWLIST_PATH = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/allowlist.txt"
 
 --------------------------------------
 -- [[ Initialization ]]
@@ -38,7 +40,7 @@ function AllowList:Contains(userid)
 end
 
 function AllowList:Load()
-    if not io.exits(ALLOWLIST_PATH) then
+    if not io.exists(ALLOWLIST_PATH) then
         PEARL.info("Allowlist file not found. Creating a new one...")
         return self:Save()
     end
@@ -78,6 +80,8 @@ List:Load()
 
 -- This module loads when localization is enabled as well.
 if PEARL.CONFIG.ALLOWLIST then
+    PEARL.warn("Allowlist is enabled! Only players on the list or admins will be able to join.")
+
     PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid)
         return List:Contains(userid)
     end)

@@ -98,7 +98,7 @@ end)
 -- We are using frontend class since 'ModIndex:EndStartupSequence'
 -- is being called too late so the server send's the join announcement.
 PEARL.AddClientPreLoad(function()
-    if PEARL.ClientLoader:IsLoading() or PEARL.ClientLoader:IsLoaded() then
+    if PEARL.ClientLoader:IsLoaded() then
         return
     end
 

@@ -4,8 +4,8 @@ local PEARL = PEARL
 local string = string
 local GetSkinDescription, GetSkinName, GetColorForItem, UserToName = GetSkinDescription, GetSkinName, GetColorForItem, UserToName
 
-local MARKDOWN = require("libraries/markdown")
-local Embed = require("libraries/discordapi/models/embed")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
 -----------------------------
 -- [[ Networking Handlers ]]

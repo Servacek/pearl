@@ -89,7 +89,7 @@ function RestAPI:ExecuteWebhook(webhook, json_data, force)
 
     return PEARL.RestClient:POST(
         webhook.url, on_request_completed, json_data, REQUEST_TIMEOUT, self
-    ):Send(force)
+    ):SetCallbackFnInst(self):Send(force)
 end
 
 function RestAPI:RateLimitForTime(seconds)

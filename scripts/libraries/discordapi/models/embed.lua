@@ -60,15 +60,17 @@ Embed.COLORS = {
 ------------------------------------------
 -- [[ Setters ]]
 ------------------------------------------
+-- ALWAYS return self in these
 
 function Embed:SetTitle(title, url)
     if not (type(title) == "string" and #title < Embed.MAX_TITLE_LENGTH) then
-        return PEARL.warn("Attempted to set an invalid title!")
+        PEARL.warn("Attempted to set an invalid title!")
+        return self
     end
 
     self.title = title
 
-    if url ~= nil then
+    if type(url) == "string" then
         self.url = url
     end
 
@@ -124,7 +126,9 @@ end
 
 function Embed:SetFooter(footer)
     if not (type(footer) == "string" and #footer < Embed.MAX_FOOTER_LENGTH) then
-        return PEARL.warn("Attempted to set an invalid footer!")
+        PEARL.warn("Attempted to set an invalid footer!")
+
+        return self
     end
 
     self.footer = footer
@@ -140,11 +144,15 @@ end
 
 function Embed:AddField(name, value, inline)
     if not (type(name) == "string" and #name < Embed.MAX_FIELD_NAME_LENGTH) then
-        return PEARL.warn("Attempted to set an invalid field name!")
+        PEARL.warn("Attempted to set an invalid field name!")
+
+        return self
     end
 
     if not (type(value) == "string" and #value < Embed.MAX_FIELD_VALUE_LENGTH) then
-        return PEARL.warn("Attempted to set an invalid field name!")
+        PEARL.warn("Attempted to set an invalid field value!")
+
+        return self
     end
 
     if not self.fields then

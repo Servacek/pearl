@@ -21,16 +21,22 @@ local Request = Class(function(self, url, method)
     assert(type(url) == "string", "Invalid request url supplied!")
     assert(PEARL.RestClient.METHODS[method], "Invalid request method supplied!")
 
+    --- @type string
     self.url = url
+    --- @type function?
     self.callbackfn = nil
     self.method = method
+    --- @type string?
     self.data = nil
     self.timeout = DEFAULT_REQUEST_TIMEOUT
     --- Note: always a table if callback function is set.
     --- @type table?
     self.callbackfn_inst = nil
+    --- @type table?
+    self.callbackfn_args = nil
     self.skipondeadline = true
 
+    --- @type string?
     self.host = string.match(url, URL_HOST_PATTERN)
     if not self.host then
         PEARL.error("Couldn't fetch host from request url.")
@@ -62,8 +68,14 @@ function Request:SetData(data)
     return self
 end
 
-function Request:SetCallbackFn(callbackfn, inst)
+function Request:SetCallbackFn(callbackfn, ...)
     self.callbackfn = callbackfn
+    self.callbackfn_args = {...}
+
+    return self
+end
+
+function Request:SetCallbackFnInst(inst)
     self.callbackfn_inst = inst
 
     return self
@@ -94,7 +106,8 @@ end
 -------------------------------------
 
 function Request:Send(force)
-    --print(CalledFrom())
+    PEARL.debug("Request:Send", CalledFrom())
+
     if force then
         return PEARL.RestClient:ForceSend(self)
     end
@@ -113,11 +126,11 @@ function Request:OnCompleted(result, is_successful, http_code)
     if self.callbackfn then
         if self.callbackfn_inst then
             self.callbackfn(
-                self.callbackfn_inst, result, success, http_code, self
+                self.callbackfn_inst, result, success, http_code, self, unpack(self.callbackfn_args)
             )
         else
             self.callbackfn(
-                result, success, http_code, self
+                result, success, http_code, self, unpack(self.callbackfn_args)
             )
         end
     end
@@ -127,7 +140,7 @@ function Request:OnCompleted(result, is_successful, http_code)
         PEARL.info(
             REQUEST_FAILED_HEADER:format(
                 self.host or "unknown", http_code, result or "Reason unknown."
-            )
+            ), self.data
         )
     end
 end

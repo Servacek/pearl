@@ -51,7 +51,7 @@ AddGamePostInit(function()
         return
     end
 
-    ProfanityFilter:AddDictionary("czech", require("languages/filters/czech"))
+    ProfanityFilter:AddDictionary("czech", PEARL.loadfile("languages/filters/czech"))
     OnGamePostInit(ProfanityFilter)
 
     function ProfanityFilter:Apply(input)

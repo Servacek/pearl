@@ -2,7 +2,7 @@
 local PEARL = PEARL
 local os, string = os, string
 
-local MARKDOWN = require("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 ------------------------------------------
 -- [[ Constants ]]

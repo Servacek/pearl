@@ -4,7 +4,8 @@
 
     Notes:
         - MAX_CHAT_INPUT_LENGTH = 150
-        - string.urf8len -> returns the
+        - string.urf8len
+        - Looks like files are not able to be sent using the default request body.
 --]]
 
 local PEARL = PEARL
@@ -130,7 +131,9 @@ end
 --- @param embed Embed The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddEmbed(embed)
-    if not (embed and self:AcceptsEmbeds()) then
+    PEARL.debug("Message:AddEmbed", embed)
+
+    if not (type(embed) == "table" and self:AcceptsEmbeds()) then
         return
     end
 

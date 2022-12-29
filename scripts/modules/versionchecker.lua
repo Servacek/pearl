@@ -8,7 +8,6 @@
 local PEARL = PEARL
 local APP_VERSION, json, LoadingStates = APP_VERSION, json, LoadingStates
 local TheNet = TheNet
-local string = string
 local tonumber, tostring, pcall = tonumber, tostring, pcall
 
 -------------------------------------

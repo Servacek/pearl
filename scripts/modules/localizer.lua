@@ -1,19 +1,28 @@
+-- NOTE: All of this on the client's side needs to be executed in one tick!
+
 
 local PEARL = PEARL
 
 local TheNet, TheSim = TheNet, TheSim
+local table = table
 
 --------------------------------
 -- [[ Imports ]]
 --------------------------------
 
-local AllowList = require("modules/allowlist")
+local AllowList = PEARL.loadfile("modules/allowlist")
 
 --------------------------------
 -- [[ Contants ]]
 --------------------------------
 
 local LOCALE_PATTERN = "&locale=(%w+)&"
+local CACHE_FILE_NAME = "loc_uids_cache"
+local CACHE_MAX_SIZE = 2^4
+local CACHE_ENCODE = false
+local ID_SEPARATOR = "|"
+
+local CLIENT_LOAD_WAIT_DELAY = 30 * FRAMES
 
 local ALLOWED_LOCALES = {
     ["SK"] = true,
@@ -24,6 +33,7 @@ local ALLOWED_LOCALES = {
 -- [[ Private - Client Side ]]
 --------------------------------
 
+--- @return string? locale The locale of this machine or nil if we have failed to fetch it.
 local function _GetLocale()
     local motd_url = TheSim:GetMOTDQueryURL()
     if type(motd_url) ~= "string" then
@@ -38,93 +48,199 @@ local function _GetLocale()
     return locale:upper()
 end
 
-local function _OnLocalizationRequestReceived()
-    PEARL.debug("_OnLocalizationRequestReceived")
-
+local function _Localize()
     local locale = _GetLocale()
     if type(locale) ~= "string" then
         return PEARL.error("Failed to fetch the locale!")
     end
 
-    PEARL.debug("Client localized as ", locale)
+    PEARL.debug("Client localized as", locale)
     PEARL.SendRPCToServer(PEARL.RPCS.ClientLocalizationCompleted, locale)
+end
+
+local function _OnLocaleAllowed()
+    if PEARL.ClientLoader:HasLoadDelayStarted() then
+        return PEARL.ClientLoader:Load()
+    end
 end
 
 --------------------------------
 -- [[ Private - Server Side ]]
 --------------------------------
 
-local _timeout
-local _client_cache
+--- @type table<string>?
+local _client_userid_cache
 
-local function _CacheLocalizedClient(userid)
-    if not _client_cache then
-        _client_cache = {}
+--- @type table<string, Task>
+local _timeouts = {}
+
+--------- TIMEOUT ------------
+
+local function _CancelTimeoutFor(userid)
+    PEARL.debug("_CancelTimeoutFor", userid)
+
+    if _timeouts[userid] ~= nil then
+        _timeouts[userid]:Cancel()
+        _timeouts[userid] = nil
     end
-
-    _client_cache[userid] = true
 end
 
-local function _OnClientModNetworkReady(userid)
-    if LookupPlayerInstByUserID(userid) or (_client_cache and _client_cache[userid] == true) then
+local function _OnTimeout(userid)
+    PEARL.debug("_OnTimeout", userid)
+
+    _CancelTimeoutFor(userid)
+
+    PEARL.warn("The localization process for client ", userid, "has timed out.")
+    -- Safe-Fall - do nothing for now, but in the future it would
+    -- be a good idea to disconnect such connections
+    --PEARL.ServerNetwork:SendUserDisconnectFor(userid, "ID_DISCONNECTION_NOTIFICATION")
+end
+
+local function _StartTimeoutFor(userid)
+    PEARL.debug("_StartTimeoutFor", userid)
+
+    -- If there is already an timeout task scheduled do not reset it
+    if _timeouts[userid] then
         return
     end
 
-    -- Send a request to the client that it should localize.
-    PEARL.SendRPCToClient(PEARL.RPCS.SendLocalizationRequest, userid)
+    _timeouts[userid] = PEARL.Scheduler:ExecuteInTime(
+        PEARL.CONSTS.LOCALIZATION_TIMEOUT, _OnTimeout, nil, userid
+    )
+end
 
-    _timeout = PEARL.Scheduler:ExecuteInTime(PEARL.CONSTS.LOCALIZATION_TIMEOUT, function()
-        PEARL.warn("The localization process for client ", userid, "has timed out.")
-        --PEARL.ServerNetwork:SendUserDisconnectFor(userid, "ID_DISCONNECTION_NOTIFICATION")
+--------- CACHE ------------
+
+local function _IsClientCached(userid)
+    if not _client_userid_cache then
+        return false
+    end
+
+    for _, cached_userid in ipairs(_client_userid_cache) do
+        if cached_userid == userid then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Should be called just once - on start
+local function _LoadPersistentCache()
+    TheSim:GetPersistentString(CACHE_FILE_NAME, function(success, data)
+        if not success or not data then
+            PEARL.error("Failed to load the cache!")
+        end
+
+        _client_userid_cache = data:split(ID_SEPARATOR)
     end)
 end
 
+local function _BuildPersistentStringForCache()
+    return table.concat(_client_userid_cache, ID_SEPARATOR)
+end
+
+local function _SavePersistentCache()
+    if #_client_userid_cache <= 0 then
+        return
+    end
+
+    return TheSim:SetPersistentString(
+        CACHE_FILE_NAME, _BuildPersistentStringForCache(), CACHE_ENCODE
+    )
+end
+
+local function _CacheLocalizedClient(userid)
+    if not _client_userid_cache then
+        _client_userid_cache = {}
+    end
+
+    table.insert(_client_userid_cache, userid)
+
+    if #_client_userid_cache > CACHE_MAX_SIZE then
+        table.remove(_client_userid_cache, 1)
+    end
+end
+
+--------- HANDLERS ------------
+
+local function _OnClientAuthenticationComplete(userid)
+    if type(userid) ~= "string" then
+        return
+    end
+
+    PEARL.debug("_OnClientAuthenticationComplete")
+
+    _StartTimeoutFor(userid)
+end
+
 local function _OnClientLocalizationComplete(userid, locale)
-    --PEARL.debug("Client", userid, "localized as", locale)
+    PEARL.debug("_OnClientLocalizationComplete")
 
-    if _timeout ~= nil then
-        _timeout:Cancel()
-        _timeout = nil
+    _CancelTimeoutFor(userid)
+
+    if LookupPlayerInstByUserID(userid) or _IsClientCached(userid) or AllowList:Contains(userid) then
+        PEARL.debug("_OnClientLocalizationComplete: Sending local allowed rpc to client...")
+        return PEARL.SendRPCToClient(PEARL.RPCS.LocaleAllowed, userid)
     end
 
-    if AllowList:Contains(userid) or ALLOWED_LOCALES[locale] == true then
+    -- Check only if the locale is allowed explicitly
+    -- Everything else should be checked before sending the localization request
+    if ALLOWED_LOCALES[locale] == true then
         PEARL.info("Client successfully localized. Caching...")
-        return _CacheLocalizedClient(userid)
+        _CacheLocalizedClient(userid)
+
+        return PEARL.SendRPCToClient(PEARL.RPCS.LocaleAllowed, userid)
     end
 
+    PEARL.info("Client localization failed. Reason: Locale not allowed!")
     -- Do not allow further loading
     return PEARL.ServerNetwork:SendUserDisconnectFor(
         userid, "ID_DST_LOCALE_BLOCKED"
     )
 end
 
+-- Save the cage when we are shutting down
+local function _OnShutdown()
+    _SavePersistentCache()
+end
+
 --------------------------------
--- [[ Setup ]]
+-- [[ Setup - Client ]]
 --------------------------------
 
 if TheNet:GetIsClient() then
-    -- Being pushed only client side
-    PEARL.EventProcessor:AddEventHandler("localization_request_received", _OnLocalizationRequestReceived)
+    PEARL.EventProcessor:AddEventHandler(
+        "locale_allowed", _OnLocaleAllowed
+    )
 
-    PEARL.AddClientPreLoad(function()
-        if (PEARL.ClientLoader:IsLoading() or PEARL.ClientLoader:IsLoaded()) then
-            return
-        end
+    --- @TODO: Try to use default RPCS instead of the mod ones.
+    -- Send our locale to the server
+    -- Game logic is loaded right after RPC namespaces are registered
+    -- This is so we manage to localize in the mod loading tick
+    PEARL.AddGameLogicPreLoad(_Localize)
 
-        -- Wait a few frames for a server's response.
-        -- If none, continue normally.
-        PEARL.ClientLoader:DelayLoad()
-
-        -- Do not load the client yet.
-        return false
-    end)
+    -- Send our locale to the server
+    -- Wait a few ticks for the server's response
+    PEARL.ClientLoader:SetLoadDelay(CLIENT_LOAD_WAIT_DELAY)
 
     return
 end
 
+--------------------------------
+-- [[ Setup - Server ]]
+--------------------------------
+
+_LoadPersistentCache()
+
 PEARL.EventProcessor:AddEventHandler(
     "ms_clientlocalizationcomplete", _OnClientLocalizationComplete
 )
+
 PEARL.EventProcessor:AddEventHandler(
-    "ms_clientmodnetworkready", _OnClientModNetworkReady
+    "ms_clientauthenticationcomplete", _OnClientAuthenticationComplete
+)
+
+PEARL.EventProcessor:AddEventHandler(
+    "quit", _OnShutdown
 )

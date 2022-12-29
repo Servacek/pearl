@@ -118,6 +118,9 @@ PEARL.ModTableSafeAppend("CONFIG", {
         ["INTRO_POPUP_BODY"] = true,
         ["AGREEMENT_SCREEN_CONTENT"] = true,
         ["WELCOME_POPUP_CONTENT"] = true,
+        ["SLASH_COMMANDS"] = true,
+        ["CUSTOM_LOADING_TIPS"] = true,
+        ["CUSTOM_CONTROLS"] = true,
     },
 
     -- The discord module
@@ -126,13 +129,12 @@ PEARL.ModTableSafeAppend("CONFIG", {
 
         LHOOK                   = PEARL.GetConfigData("LOG_WEBHOOK"),
         RHOOK                   = PEARL.GetConfigData("REPORT_WEBHOOK"),
+
+        LHOOK_BUFFER_TIMEOUT    = PEARL.GetConfigData("LHOOK_BUFFER_TIMEOUT"),
     },
 
     -- REST Client
     REQUEST_FREQUENCY           = PEARL.GetConfigData("REQUEST_FREQUENCY"),
-    --- @TODO
-    -- Maybe move this to DISCORD as well?
-    MESSAGE_WRAPPER_PERIOD      = PEARL.GetConfigData("MESSAGE_WRAPPER_PERIOD"),
 
     COMMAND_BLOCKLIST           = PEARL.GetConfigData("COMMAND_BLOCKLIST"),
     CUSTOM_SERVER_TAGS          = PEARL.GetConfigData("CUSTOM_SERVER_TAGS"),
@@ -153,21 +155,20 @@ PEARL.ModTableSafeAppend("CONFIG", {
     ALLOWLIST                   = PEARL.GetConfigData("ALLOWLIST"),
     PROFANITY_FILTER            = PEARL.GetConfigData("PROFANITY_FILTER"),
     CONSOLE_COMMANDS            = PEARL.GetConfigData("CONSOLE_COMMANDS"),
+    SLASH_COMMANDS              = PEARL.GetConfigData("SLASH_COMMANDS"),
+    CUSTOM_LOADING_TIPS         = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
+    CUSTOM_CONTROLS             = PEARL.GetConfigData("CUSTOM_CONTROLS"),
     SHOW_PLAYER_ICONS           = PEARL.GetConfigData("SHOW_PLAYER_ICONS"),
     BAN_ALT_ACCOUNTS            = PEARL.GetConfigData("BAN_ALT_ACCOUNTS"),
 
-    -- World Generation
-    FORCE_MACTUSK               = PEARL.GetConfigData("FORCE_MACTUSK"),
-    FORCE_REED_TRAP             = PEARL.GetConfigData("FORCE_REEDTRAP"),
-
-    BETTER_EYE                  = PEARL.GetConfigData("BETTER_EYE"),
+    CUSTOM_PREFABS              = PEARL.GetConfigData("CUSTOM_PREFABS"),
 })
 
 ----------------------------------------------------------------
 -- [[ Agreement/Welcome screen configurations ]]
 ----------------------------------------------------------------
 
-local ParseTxt = require("utils/txtparser")
+local ParseTxt = PEARL.loadfile("utils/txtparser")
 if PEARL.CONFIG.INTRO_SCREEN then
     PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = ParseTxt("agreement.txt", true, true)
     PEARL.CONFIG.WELCOME_POPUP_CONTENT = ParseTxt("welcome.txt", true, false)
@@ -187,31 +188,34 @@ end
 -- [[ Modules ]]
 --------------------------------
 
-local ModuleManager = require("libraries/modulemanager")
+--- @type ModuleManager
+local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+ModuleManager:SetLoader(PEARL.loadfile)
+ModuleManager:SetModuleDirectory("modules")
 
 -- Master only modules
 if TheShard:IsMaster() then
-    ModuleManager.AddModule("whitelist", PEARL.CONFIG.WHITELIST)
-    ModuleManager.AddModule("allowlist", PEARL.CONFIG.ALLOWLIST or PEARL.CONFIG.CZSK_ONLY)
-    ModuleManager.AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
+    ModuleManager:AddModule("allowlist", PEARL.CONFIG.ALLOWLIST or PEARL.CONFIG.CZSK_ONLY)
+    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
 end
 
-ModuleManager.AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
-ModuleManager.AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTER)
-ModuleManager.AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
-ModuleManager.AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
-ModuleManager.AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
-ModuleManager.AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
+ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
+ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTER)
+ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
+ModuleManager:AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
+ModuleManager:AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
+ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
+ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 
 -- Logger Modules
-ModuleManager.AddModule("logger/world", true)
-ModuleManager.AddModule("logger/player", true)
+ModuleManager:AddModule("logger/world", true)
+ModuleManager:AddModule("logger/player", true)
 
 -- Discord only loggers
-if PEARL.CONFIG.DISCORD.ENABLED then
-    ModuleManager.AddModule("logger/chat", true)
-    ModuleManager.AddModule("logger/inventory", true)
-    ModuleManager.AddModule("logger/server", true)
+if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
+    ModuleManager:AddModule("logger/chat", true)
+    ModuleManager:AddModule("logger/inventory", true)
+    ModuleManager:AddModule("logger/server", true)
 end
 
 --------------------------------
@@ -231,10 +235,10 @@ end
 --------------------------------
 
 PEARL.info("Loading constants...")
-require("constants/prefabs")
+PEARL.loadfile("constants/prefabs")
 -- Load emotes before icons
-require("constants/emotes")
-require("constants/icons")
+PEARL.loadfile("constants/emotes")
+PEARL.loadfile("constants/icons")
 
 --------------------------------
 -- [[ Scheduler ]]
@@ -243,7 +247,7 @@ require("constants/icons")
 PEARL.info("Setting up the wall-scheduler...")
 
 --- @type WallScheduler
-PEARL.Scheduler = require("libraries/wallscheduler")
+PEARL.Scheduler = PEARL.loadfile("libraries/wallscheduler")
 PEARL.Scheduler:StartWallUpdate()
 
 --------------------------------
@@ -252,39 +256,55 @@ PEARL.Scheduler:StartWallUpdate()
 
 PEARL.info("Setting up the webhooks...")
 
+
 --- @type Logger
-PEARL.DiscordLogger = require("logger")()
-PEARL.DiscordLogger:SetBufferTimeout(PEARL.CONFIG.MESSAGE_WRAPPER_PERIOD)
+PEARL.DiscordLogger = PEARL.loadfile("libraries/discordapi/webhooks/logger")()
+PEARL.DiscordLogger:SetBufferTimeout(
+    PEARL.CONFIG.DISCORD.LHOOK_BUFFER_TIMEOUT
+)
+
 
 --- @type Reporter
-PEARL.DiscordReporter = require("reporter")()
+PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
 
 --------------------------------
 -- [[ Overrides ]]
 --------------------------------
 
 PEARL.info("Loading extensions...")
-require("extensions/components/inventory")
-require("extensions/components/workable")
-require("extensions/components/age")
-require("extensions/components/entityscript")
-require("extensions/components/inventoryitem")
-require("extensions/components/container")
-require("extensions/components/stackable")
-require("extensions/components/playercommon")
-require("extensions/components/edible")
+PEARL.loadfile("extensions/components/inventory")
+PEARL.loadfile("extensions/components/workable")
+PEARL.loadfile("extensions/components/age")
+PEARL.loadfile("extensions/components/entityscript")
+PEARL.loadfile("extensions/components/inventoryitem")
+PEARL.loadfile("extensions/components/container")
+PEARL.loadfile("extensions/components/stackable")
+PEARL.loadfile("extensions/components/playercommon")
+PEARL.loadfile("extensions/components/edible")
+
+-------------------------------------
+-- [[ Blacklist/Whitelist Wrappers ]]
+-------------------------------------
+
+--- @type BlackList
+PEARL.BlackList = PEARL.loadfile("libraries/wrappers/blacklist")
+
+--- @type Whitelist
+PEARL.WhiteList = PEARL.loadfile("libraries/wrappers/whitelist")
+--- @deprecated Use AllowList instead.
+-- if PEARL.CONFIG.WHITELIST then
+--     PEARL.WhiteList:SetMode(PEARL.WhiteList.MODE.ALLOWLIST)
+--     PEARL.WhiteList:SyncReservedWithSlots()
+-- end
 
 --------------------------------
 -- [[ Modules ]]
 --------------------------------
 
---- @type Blacklist
-PEARL.BlackList = require("wrappers/blacklist")
-
 PEARL.info("Loading modules...")
-ModuleManager.LoadAllModules()
+ModuleManager:LoadAllModules()
 
-PEARL.info("Loading other components...")
+-- PEARL.info("Loading other components...")
 --- v2.1
 -- if PEARL.CONFIG.GRIEF_PROTECTION then
 --     PEARL.info("Enabling griefer protection...")
@@ -307,30 +327,40 @@ PEARL.info("Loading other components...")
 PEARL.info("Loading network components...")
 
 --- @type RestClient
-PEARL.RestClient = require("wrappers/restclient")()
+PEARL.RestClient = PEARL.loadfile("libraries/restclient")()
     :SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
 
 --- @type RestAPI
-PEARL.DiscordRestAPI = require("libraries/discordapi/rest")()
+PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")()
 
 PEARL.info("Loading server network...")
 
 --- @type ServerNetwork
-PEARL.ServerNetwork = require("servernetwork")
+PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
+
+--------------------------------
+-- [[ Error Handler ]]
+--------------------------------
+
+if PEARL.DiscordReporter:IsEnabled() then
+    -- This should be loaded after the webhooks are set up.
+    PEARL.info("Loading mod error handler...")
+    PEARL.loadfile("error")
+end
 
 --------------------------------
 -- [[ Discord logs ]]
 --------------------------------
 
-if PEARL.CONFIG.DISCORD.ENABLED
+if PEARL.CONFIG.DISCORD.LHOOK.ENABLED
     and (PEARL.CONFIG.DISCORD.LHOOK_TOKEN == "" or PEARL.CONFIG.DISCORD.LHOOK_ID == "")
 then
     PEARL.warn("Logging to discord is enabled, however, not all required webhook indetifiers were specified.")
 
-    PEARL.CONFIG.DISCORD.ENABLED = false
+    PEARL.CONFIG.DISCORD.LHOOK.ENABLED = false
 end
 
-if not PEARL.CONFIG.DISCORD.ENABLED then
+if not PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
     PEARL.info("Sending system logs to discord is disabled.")
 
     PEARL.DiscordLogger:SetIsDisabled(true)
@@ -343,9 +373,9 @@ end
 
 if PEARL.CONFIG.DEBUG_MODE then
     PEARL.warn("Debug mode enabled! This is not recommended for production use.")
-    modimport(PEARL.SOURCE_DIR_NAME.."/debugtools")
+    PEARL.loadfile("debugtools")
 
-    --PEARL.CreateWordFilterFile = require("utils/wordloader")
+    -- PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
 
     require("profiler")
     PEARL.Profiler = newProfiler("time", 10^6)
@@ -357,19 +387,26 @@ if PEARL.CONFIG.DEBUG_MODE then
 end
 
 --------------------------------
--- [[ Prefabs ]]
+-- [[ Custom Prefabs ]]
 --------------------------------
 -- Here are stored all the prefabs this mod adds to the game.
 -- This is being loaded after the builtin prefabs so we can override them.
 PrefabFiles = {}
 
---- @TODO: Add option to enable/disable every prefab seperately
-if PEARL.CONFIG.BETTER_EYE then
-    PrefabFiles[#PrefabFiles + 1] = "terrarium"
+if type(PEARL.CONFIG.CUSTOM_PREFABS) == "table" then
+    -- Here are stored all the prefabs this mod adds to the game.
+    -- This is being loaded after the builtin prefabs so we can override them.
+    PrefabFiles = {}
+
+    for prefab, enabled in pairs(PEARL.CONFIG.CUSTOM_PREFABS) do
+        if enabled then
+            PrefabFiles[#PrefabFiles + 1] = prefab
+        end
+    end
 end
 
 ---------------------------------
 -- [[ Server Mod Configuration ]]
 ---------------------------------
 
-require("servermodconfig")
+PEARL.loadfile("servermodconfig")

@@ -15,12 +15,12 @@ local PEARL = PEARL
 
 return function(ifile, ofile)
     -- Search for the file in the local data directory
-    local rfile = io.open(PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/"..ifile, "r")
+    local rfile = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..ifile, "r")
     if not rfile then
         return PEARL.error("File not found!")
     end
 
-    local wfile = io.open(PEARL.MODROOT..""..PEARL.DATA_DIR_NAME.."/"..ofile, "w")
+    local wfile = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..ofile, "w")
     if wfile == nil then
         return PEARL.error("File not found!")
     end

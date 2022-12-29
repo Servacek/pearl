@@ -48,3 +48,7 @@ luac.out
 # User Data Folder
 data
 data/*
+
+# TODO Folder
+.todo
+.todo/*

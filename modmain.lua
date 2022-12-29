@@ -1,4 +1,30 @@
 --[[
+Copyright (c) 2023 Fi7iP
+The Czechoslovakian Don't Starve Together Game Comunity
+<https://discord.gg/RHzJxut>
+
+This file is part of the 'Pearl'.
+
+The source code of this program and all its parts are shared under
+the RECEX SHARED SOURCE LICENSE (version 1.0).
+This is NOT Free and Open Source software, and the code is
+NOT redistributable without permission of the author(s).
+The source code licensed under this license is shared "as is" and does
+not come with any warranty including the implied warranty of merchandise.
+Read the RECEX SHARED SOURCE LICENSE for details.
+
+You should have received a copy of the RECEX SHARED SOURCE LICENSE
+in the form of a LICENSE file in the root of the source directory.
+If not, please refer to
+<https://raw.githubusercontent.com/Recex/Licenses/master/SharedSourceLicense/LICENSE.txt>
+
+You can contact the author(s) at
+<https://steamcommunity.com/profiles/76561198339302667/>
+--]]
+
+
+
+--[[
     TODOS:
     - Debug with caves enabled.
 
@@ -58,6 +84,8 @@
 
     - Probably modimport should be used over the basic require since some of the module
       names can conflict with the built-in ones.
+
+    - 'require' doesn't support mod specific pathes.
 --]]
 
 local GLOBAL = GLOBAL
@@ -74,37 +102,25 @@ local ENV = GLOBAL.getfenv(1)
 
 -- Setup the enviroment so we do not have to type GLOBAL
 -- everytime we access something from that table.
-local function SetupEnvironment()
-    local setmetable, rawget, rawset = GLOBAL.setmetatable, GLOBAL.rawget, GLOBAL.rawset
+--- @return table
+local function setupenv()
+    local setmetable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
     -- Modify the metatable of the current safe separated mod environment.
-    setmetable(ENV, {
+    return setmetable(ENV, {
         -- Called when lua is not able to find the field in our environment table.
         -- This allows implicit access to fields of the GLOBAL table.
         __index = function(env, index)
             return rawget(GLOBAL, index) or rawget(env, index)
         end,
-
-        -- __newindex = function(env, index, value)
-        --     if env[index] ~= nil then
-        --         print("[PEARL] [Warn] Overriding Global: "..tostring(index).." = "..tostring(value))
-        --     -- else
-        --     --     print("[SUB] [Debug] Adding New Global: "..tostring(index).." = "..tostring(value))
-        --     end
-
-        --     rawset(env, index, value)
-        -- end
     })
-
-    -- _G should already refer to our modified environment
-    --_G = GLOBAL
 end
 
 --------------------------------
 -- [[ Setup ]]
 --------------------------------
 
-SetupEnvironment()
+setupenv()
 
 -- This is where we store basically all mod specific functions and variables
 -- so it doesn't conflict with any ingame or other mod stuff.
@@ -112,7 +128,10 @@ SetupEnvironment()
 -- Add this table to the main environment so it's accessible everywhere.
 GLOBAL.PEARL = setmetatable({
     -- expose these to all the components
-    MODROOT             = MODROOT,
+
+    ROOTDIR             = MODROOT,
+    SRCDIR              = MODROOT.."scripts/",
+
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
     MODNAME             = modname,
@@ -134,23 +153,15 @@ GLOBAL.PEARL = setmetatable({
         ["en"]          = "english",
     },
 
-    --READY               = false,
-
     -- Used for sending internal mod events.
-    EventProcessor   = EventProcessor()
+    EventProcessor   = EventProcessor(),
 }, {
     __index = function(tbl, name)
         return rawget(PEARL.ENV, name)
     end
 })
 
-local PEARL = PEARL
-
-if TheNet:GetIsServer() and not (TheNet:IsDedicated() and not TheNet:GetServerIsClientHosted()) then
-    print("Current version of "..PEARL.MOD_INFO.name.." does only support dedicated servers.")
-    print("Skipping this mod...")
-    return
-end
+PEARL = GLOBAL.PEARL
 
 --------------------------------
 -- [[ Basic Configurations ]]
@@ -164,50 +175,54 @@ PEARL.CONFIG = {
 PEARL.CONSTS = {}
 
 --------------------------------
+-- [[ FileLoader ]]
+--------------------------------
+
+PEARL.loadfile = require("libraries/fileloader")
+if type(PEARL.loadfile) ~= "function" then
+    PEARL.error("Failed to load the file loader!", tostring(PEARL.loadfile))
+end
+
+--------------------------------
 -- [[ Logging ]]
 --------------------------------
 
-require("logging")
+PEARL.loadfile("extensions/logging")
+
+if TheNet:GetIsServer() and not (TheNet:IsDedicated() and not TheNet:GetServerIsClientHosted()) then
+    return PEARL.warn("Current version of "..PEARL.MOD_INFO.name.." does only support dedicated servers.")
+end
 
 --------------------------------
 -- [[ Standard Libs ]]
 --------------------------------
 
 PEARL.info("Loading extensions for the standard lua libraries...")
-require("extensions/standard/table")
-require("extensions/standard/math")
-require("extensions/standard/io")
-require("extensions/standard/string")
+PEARL.loadfile("extensions/standard/table")
+PEARL.loadfile("extensions/standard/math")
+PEARL.loadfile("extensions/standard/io")
+PEARL.loadfile("extensions/standard/string")
 
 --------------------------------
 -- [[ Helpers ]]
 --------------------------------
 
 PEARL.info("Loading helper functions...")
-require("utils/helpers")
+PEARL.loadfile("utils/helpers")
 
 --------------------------------
 -- [[ Mod API ]]
 --------------------------------
 
 PEARL.info("Loading custom mod application programming interface...")
-require("extensions/api")
-
---------------------------------
--- [[ Error Handler ]]
---------------------------------
-
---- @TODO
--- This should be loaded after the webhooks are set up.
-PEARL.info("Loading mod error handler...")
-require("moderror")
+PEARL.loadfile("extensions/api")
 
 --------------------------------
 -- [[ License ]]
 --------------------------------
 
 PEARL.info("Loading licence...")
-require("licence")
+PEARL.loadfile("licence")
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -227,7 +242,7 @@ end
 --------------------------------
 
 PEARL.info("Loading strings...")
-require("constants/strings")
+PEARL.loadfile("constants/strings")
 
 -- Load translations only after strings.lua else they will be overriden.
 local language = PEARL.SUPPORTED_LANGUAGES[PEARL.CONFIG.LANGUAGE]
@@ -243,12 +258,12 @@ end
 --------------------------------
 
 PEARL.info("Loading client <-> server rpcs...")
-require("networkrpc")
+PEARL.loadfile("networkrpc")
 
 --------------------------------
 -- [[ Load ]]
 --------------------------------
--->                           name    |    icon
+
 PEARL.AddAnnouncementCategory("ignite", "torch.tex", PEARL.GetConfigData("IGNITE"))
 PEARL.AddAnnouncementCategory("burn", "fire.tex", PEARL.GetConfigData("BURNTUP"))
 PEARL.AddAnnouncementCategory("take", "backpack.tex", PEARL.GetConfigData("TAKE"))
@@ -258,31 +273,33 @@ PEARL.AddAnnouncementCategory("kill", "hambat.tex", PEARL.GetConfigData("KILLFOL
 PEARL.AddAnnouncementCategory("defeat", "trophy.tex", PEARL.GetConfigData("KILLBOSS"))
 PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex", PEARL.GetConfigData("DANGER_AT_PORTAL"))
 
-if TheNet:GetIsClient() then
-    --------------------------------
-    -- [[ Frontend ]]
-    --------------------------------
+--------------------------------
+-- [[ Frontend ]]
+--------------------------------
 
+-- In debug mode we want to load frontend on servers as well to see if there is
+-- any error.
+if TheNet:GetIsClient() or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
-    modimport(PEARL.SOURCE_DIR_NAME.."/frontend")
-    PEARL.info("Loading mod FE done.")
-else
-    --------------------------------
-    -- [[ Backend ]]
-    --------------------------------
+    PEARL.loadfile("frontend")
 
+    PEARL.info("Loading mod FE done.")
+end
+
+--------------------------------
+-- [[ Backend ]]
+--------------------------------
+
+if TheNet:GetIsServer() then
     PEARL.info("Loading mod BE...")
-    modimport(PEARL.SOURCE_DIR_NAME.."/backend")
+    PEARL.loadfile("backend")
 
     PEARL.info("Loading mod BE done.")
 end
 
---error("TOTAL FATAL ERROR")
+--------------------------------
+-- [[ Mod Post-Init ]]
+--------------------------------
 
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
-PEARL.READY = true
 PEARL.OnModPostInit()
-
--- PEARL.Scheduler:ExecuteInTime(10, function()
---     error("WALL SCHEDULER CRITICAL ERROR")
--- end)

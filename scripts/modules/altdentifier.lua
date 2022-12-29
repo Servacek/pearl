@@ -19,6 +19,7 @@ local TheNet = TheNet
 local FS_ROOT_CACHE_MAX_SIZE = 100
 local FS_QUERY_TIMEOUT       = 10
 -- Initialized later after FE
+--- @type string
 local FS_QUERY_SERVER_TOKEN
 
 local QUERY_ERRORS        = {
@@ -38,37 +39,44 @@ local DO_NOT_RETRY_ERRORS = {
 -- [[ Private ]]
 --------------------------------
 
--- So it is read only
-local fs_root_cache = {}
-local fs_root_cache_size = 0
+--- @type table<string>
+local fs_root_cache = createTable(FS_ROOT_CACHE_MAX_SIZE)
 
-local CacheRootUserid, GetCachedRootUserid, HandleFSQuery, SendFSQueryFor, VerifyRootUserid
-
-CacheRootUserid = function(userid, rootid)
-    if fs_root_cache_size <= FS_ROOT_CACHE_MAX_SIZE then
-        fs_root_cache[userid] = rootid
-
-        local cached_rootid = GetCachedRootUserid(userid)
-        if cached_rootid ~= nil and cached_rootid ~= rootid then
-            PEARL.warn(userid, " already cached! Root id was overriden.")
-        else
-            fs_root_cache_size = fs_root_cache_size + 1
+local function IsUserIDCached(userid)
+    for i = 1, #fs_root_cache do
+        if fs_root_cache[i] == userid then
+            return true
         end
     end
+
+    return false
 end
 
-GetCachedRootUserid = function(userid)
-    return fs_root_cache[userid]
+--- Adds the given userid to the cache so it will be counted as valid.
+--- @param userid string The target valid userid to be cached.
+local function CacheRootUserid(userid)
+    if IsUserIDCached(userid) then
+        return
+    end
+
+    if #fs_root_cache >= FS_ROOT_CACHE_MAX_SIZE then
+        table.remove(fs_root_cache, 1)
+    end
+
+    table.insert(fs_root_cache, userid)
 end
 
--- Returns false when the rootid is banned and bans userid as well,
--- otherwise returns true and does nothing.
-VerifyRootUserid = function(userid, rootid)
+--- Returns false when the rootid is banned and bans userid as well,
+--- otherwise returns true and does nothing.
+--- @param userid string The ID if the user's borrowed account.
+--- @param rootid string The ID of the borrower's account.
+local function HasAccountValidRoot(userid, rootid)
     -- If the owner of the borrowed game is on our blacklist
     -- we want to ban their alt accounts as well
     -- Note: "ms_clientauthenticationcomplete" is not called for banned players.
-    if rootid ~= userid and PEARL.TheBlackList:IsBlacklisted(rootid) then
-        PEARL.DiscordLogger.OnAltClientWithBannedRoot(userid, rootid)
+    if rootid ~= userid and PEARL.BlackList:IsBlacklisted(rootid) then
+        --- @TODO Add logging...
+        --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS., rootid)
 
         PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
         TheNet:Ban(userid)
@@ -79,19 +87,25 @@ VerifyRootUserid = function(userid, rootid)
     return true
 end
 
+--------------------------------
+-- [[ Query ]]
+--------------------------------
+
+local HandleFSQuery, SendFSQueryFor
+
 HandleFSQuery = function(response, success_query, http_code, request, userid, no_retry)
     if not success_query or not response then
         return PEARL.error("Query failed with status code", http_code, "for user", userid)
     end
 
-    -- PEARL.debug(
-    --     "USERID:", userid,
-    --     "NO_RETRY:", no_retry,
-    --     "RESPONSE:", reponse,
-    --     "SUCCESS:", success_query,
-    --     "CODE:", http_code,
-    --     "REQUEST:", request
-    -- )
+    PEARL.debug(
+        "RESPONSE", response,
+        "USERID:", userid,
+        "NO_RETRY:", no_retry,
+        "SUCCESS:", success_query,
+        "CODE:", http_code,
+        "REQUEST:", request
+    )
     local success_decode, reponse_json = pcall(json.decode, response)
     if not success_decode or not reponse_json then
         return PEARL.error("JSON decoding failed for user", userid)
@@ -108,7 +122,6 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
         end
 
         -- When an error occurs, try to send the request one more time
-        print("NO_RETRY:", tostring(no_retry))
         if not no_retry and not DO_NOT_RETRY_ERRORS[reponse_json.ErrorCode] then
             PEARL.info("Retrying request...")
             return SendFSQueryFor(userid, true)
@@ -119,17 +132,21 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
 
     local rootid = reponse_json.ParentAccount
     if not rootid then
-        return PEARL.info("Blacklist", "No root account info for user", userid)
+        return PEARL.info("No root account info for user", userid)
     end
 
-    local valid_root = VerifyRootUserid(userid, rootid)
-    PEARL.debug("USERID:", userid, "ROOTID:", rootid, "VALID:", tostring(valid_root))
-    if valid_root then
-        -- If verification was successfull, cache this userid to
-        -- reduce the number of queries.
-        PEARL.info("Blacklist", "Account", userid, "has a valid root. Caching...")
-        CacheRootUserid(userid, rootid)
+    if not HasAccountValidRoot then
+        --- @TODO Add logging...
+        --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS., rootid)
+
+        PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
+        return TheNet:Ban(userid)
     end
+
+    -- If verification was successfull, cache this userid to
+    -- reduce the number of queries.
+    PEARL.info("Account", userid, "has a valid root. Caching...")
+    CacheRootUserid(userid)
 end
 
 SendFSQueryFor = function(userid, no_retry)
@@ -142,7 +159,6 @@ SendFSQueryFor = function(userid, no_retry)
         return PEARL.error("JSON failed to encode query data!")
     end
 
-    print("NO_RETRY", tostring(no_retry))
     PEARL.RestClient:POST(
         PEARL.CONSTS.FSLS_QUERY_URL, HandleFSQuery,
         input_json, FS_QUERY_TIMEOUT, userid, no_retry or false
@@ -159,7 +175,7 @@ PEARL.AddWorldPostInit(function(world)
             return
         end
 
-        if not GetCachedRootUserid(userid) then
+        if not IsUserIDCached(userid) then
             SendFSQueryFor(userid)
         end
     end)

@@ -1,5 +1,6 @@
 -- local UserCommands = require("usercommands")
---- @TODO
+--- @TODO: Make execution handlers safe.
+
 local PEARL = PEARL
 local TheNet = TheNet
 
@@ -17,6 +18,18 @@ local KLEI_ID_DELIM = "K"
 -------------------------------------
 
 local function AddCommand(name, data, ...)
+    if data.serverfn then
+        data.serverfn = function(...)
+            pcall(data.serverfn, ...)
+        end
+    end
+
+    if data.localfn then
+        data.localfn = function(...)
+            pcall(data.localfn, ...)
+        end
+    end
+
     AddUserCommand(name, data)
 
     if name and data.slash then
@@ -52,7 +65,7 @@ AddCommand("fire", {
 
         TheNet:Announce(STRINGS.PEARL.LOGS.EXTINGUISH_ALL:format(
             caller and caller:GetDisplayName() or "Shenanigans"
-        ))
+        ), caller and caller.entity)
     end,
 })
 
@@ -72,9 +85,8 @@ AddCommand("repair", {
 
         TheNet:Announce(STRINGS.PEARL.LOGS.REPAIR_ALL:format(
             caller and caller:GetDisplayName() or "Shenanigans"
-        ))
+        ), caller and caller.entity)
     end,
-
 })
 
 AddCommand("unban", {
@@ -132,7 +144,7 @@ AddCommand("whitelist-add", {
             )
         end
 
-        if PEARL.Blacklist.IsUserBlacklisted(params.player_id) then
+        if PEARL.BlackList.IsUserBlacklisted(params.player_id) then
             return PEARL.ServerSendCommandResponse(caller.userid,
                 STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD.ON_BANNED
             )

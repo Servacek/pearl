@@ -38,14 +38,15 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
         })
     end
 
-    -- Wait some time before removing the connection so the rpc can send.
+    -- Give a tick to the RPC queue to handle the Disconnect RPC first
     -- This makes sure that the connection is removed in case of errors.
-    PEARL.Scheduler:ExecuteInTime(3, function()
+    PEARL.Scheduler:ExecuteInTime(0, function()
         -- Kick out the connection from this user,
         -- so it doesn't block other incoming connections.
         --
         -- Note: This doesn't work for admins.
-        TheNet:Kick(userid, PEARL.CONSTS.DISCONNECT_KICK_TIME)
+        PEARL.debug("Kicking player from the server...")
+        TheNet:Kick(userid)--, PEARL.CONSTS.DISCONNECT_KICK_TIME)
     end)
 end
 
@@ -108,6 +109,20 @@ PEARL.OverrideGlobal("ExecuteConsoleCommand", function(fnstr, guid, x, z)
         ThePlayer = saved_ThePlayer
     end
     TheInput.overridepos = nil
+end)
+
+----------------------------------
+-- World Network Events
+----------------------------------
+
+PEARL.AddWorldPostInit(function(world)
+    if not world then
+        return
+    end
+
+    world:ListenForEvent("ms_clientauthenticationcomplete", function(self, data)
+        PEARL.EventProcessor:HandleEvent("ms_clientauthenticationcomplete", data.userid)
+    end)
 end)
 
 ----------------------------------

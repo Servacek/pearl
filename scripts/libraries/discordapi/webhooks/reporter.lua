@@ -1,8 +1,7 @@
 
-local MARKDOWN = require("libraries/markdown")
-local Webhook = require("libraries/discordapi/models/webhook")
-local Message = require("libraries/discordapi/models/message")
-local LogLine = require("libraries/discordapi/models/logline")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 -------------------------------------
 -- [[ Constants ]]
@@ -16,6 +15,11 @@ local MAX_TRACEBACK_LENGHT = 1024
 
 --- @class Reporter
 local Reporter = Class(function(self)
+    self._disabled = not PEARL.CONFIG.DISCORD.RHOOK.ENABLED
+    if self._disabled then
+        return
+    end
+
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.RHOOK.ID, PEARL.CONFIG.DISCORD.RHOOK.TOKEN)
 end)
 
@@ -23,8 +27,12 @@ end)
 -- [[ Public Functions ]]
 -------------------------------------
 
+function Reporter:IsEnabled()
+    return not self._disabled
+end
+
 function Reporter:ReportModError(err)
-    if not type(err) == "string" then
+    if type(err) ~= "string" then
         return
     end
 

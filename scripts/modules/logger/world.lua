@@ -7,7 +7,7 @@
 local TheShard, TheNet = TheShard, TheNet
 local string, math = string, math
 
-local MARKDOWN = require("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 -------------------------------
 -- [[ World State Handlers ]]
@@ -228,7 +228,7 @@ local function OnFireSpreaderKilled(doer, target)
 
     if #entities >= 4 or PEARL.ArrayContainsEntityWithTag(entities, "structure") then
         local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.NEAR, {
-            doer = doer:GetDisplayName(), target = target:GetDisplayName(), near = PEARL.FormatSortedPrefabs(entities, target)
+            doer = doer:GetDisplayName(), target = target:GetDisplayName(), near = PEARL.FormatSortedPrefabs(entities)
         })
 
         PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES, doer.entity)
@@ -333,7 +333,7 @@ PEARL.AddGamePostInit(function()
 
     world:ListenForEvent("entity_death", OnEntityDeath)
 
-    if PEARL.CONFIG.DISCORD.ENABLED then
+    if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
         if world.ismastershard then
             -- We care about these event's only on the master shard
             world:ListenForEvent("cycleschanged", OnCyclesChanged)

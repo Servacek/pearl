@@ -1,90 +1,83 @@
 --[[
-    TODOS:
-        - Restarting the client will crash the game.
-        - Do not call this everytime we are loading, only when the server requests it.
-        - VERY UNSTABLE, DEBUG IS NEEDED!
+    Capable of delaying the client loading process via Profile:Load. Used
+    by localizer when waiting for a server response.
 --]]
 
 
 local PEARL = PEARL
-
----------------------------------
--- [[ Contants ]]
----------------------------------
--- Wait 12 frames for a server response.
-local LOAD_DELAY = 12 * FRAMES
+local Profile = Profile
+-- In frontend, use staticScheduler for background tasks
+-- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
+local staticScheduler = staticScheduler
 
 ---------------------------------
 -- [[ Declaration ]]
 ---------------------------------
 
-PEARL.ClientLoader = {}
+--- @class ClientLoader
+local ClientLoader = {}
 
 ---------------------------------
 -- [[ Private ]]
 ---------------------------------
 
-local _load_fn = nil
+local _load_fn = Profile.Load
+local _load_fn_args = nil
+
 local _load_task = nil
 local _loaded = false
-local _loading = false
-
-local function _SetClientLoadFn(fn)
-    _load_fn = fn
-end
+local _load_delay = nil
 
 ---------------------------------
 -- [[ Public ]]
 ---------------------------------
 
-function PEARL.ClientLoader:Load()
+function ClientLoader:Load()
     if type(_load_fn) ~= "function" then
         return PEARL.error("_load_fn is invalid!")
     end
 
-    if _loaded then
+    if type(_load_fn_args) ~= "table" then
+        return PEARL.error("Invalid _load_fn_args!")
+    end
+
+    if self:IsLoaded() then
         return PEARL.warn("Client already loaded")
     end
 
     self:CancelDelayedLoad()
 
-    PEARL.debug("Loading the client...", _load_fn)
-    _loading = true
-    Profile:Load(_load_fn)
+    PEARL.debug("Loading the client...")
+
+    --_loading = true
+    _load_fn(unpack(_load_fn_args))
+    --_loading = false
+
     _loaded = true
-    _loading = false
 end
 
-function PEARL.ClientLoader:DelayLoad()
-    -- If task already exits, override it
-    if self:IsLoadDelayed() then
-        self:CancelDelayedLoad()
-    end
-
-    if _loaded then
-        return PEARL.warn("Client already loaded")
-    end
-
-    PEARL.debug("Delaying client load... Waiting for a response from the server.")
-    _load_task = staticScheduler:ExecuteInTime(LOAD_DELAY, self.Load, nil, self)
+function ClientLoader:SetLoadDelay(delay)
+    _load_delay = delay
 end
 
-function PEARL.ClientLoader:CancelDelayedLoad()
-    if self:IsLoadDelayed() then
+function ClientLoader:StartLoadDelayTask()
+    if _load_delay and _load_fn and _load_fn_args and not self:HasLoadDelayStarted() then
+        _load_task = staticScheduler:ExecuteInTime(_load_delay, self.Load, nil, self)
+    end
+end
+
+function ClientLoader:CancelDelayedLoad()
+    if self:HasLoadDelayStarted() then
         _load_task:Cancel()
         _load_task = nil
     end
 end
 
-function PEARL.ClientLoader:IsLoaded()
-    return _loaded
+function ClientLoader:IsLoaded()
+    return _loaded == true
 end
 
-function PEARL.ClientLoader:IsLoading()
-    return _loading
-end
-
-function PEARL.ClientLoader:IsLoadDelayed()
+function ClientLoader:HasLoadDelayStarted()
     return _load_task ~= nil and _load_task.limit and _load_task.limit > 0
 end
 
@@ -92,13 +85,23 @@ end
 -- [[ Setup ]]
 ---------------------------------
 
-PEARL.AddClientPreLoad(function(self, load_fn)
-    if not _load_fn then
-        _SetClientLoadFn(load_fn)
+Profile.Load = function(...)
+    if not _load_fn_args then
+        _load_fn_args = {...}
     end
-end)
 
+    if _load_delay and not ClientLoader:IsLoaded() then
+        ClientLoader:StartLoadDelayTask()
+
+        -- Do not load now
+        return false
+    end
+
+    return _load_fn(...)
+end
 
 PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", function()
-    PEARL.ClientLoader:CancelDelayedLoad()
+    ClientLoader:CancelDelayedLoad()
 end)
+
+return ClientLoader

@@ -13,8 +13,8 @@
         - The discord REST API rate limit is 16 requests/second.
 --]]
 
-local Queue = require("models/queue")
-local Request = require("models/request")
+local Queue = PEARL.loadfile("models/queue")
+local Request = PEARL.loadfile("models/request")
 
 local PEARL = PEARL
 local Class = Class
@@ -27,7 +27,7 @@ local TheSim = TheSim
 local DEFAULT_QUEUE_SIZE_LIMIT = 10
 -- This is here in case something fails and the request frequency
 -- isn't set according to the configurations.
-local DEFAULT_REQUEST_FREQUNCY = 2
+local DEFAULT_REQUEST_FREQUENCY = 2
 -- Determines the number of requests which can be force-sent from the queue
 -- when the requester is shutting down.
 local MAX_QUEUE_FORCE_COUNT = 3
@@ -39,6 +39,8 @@ local MAX_QUEUE_FORCE_COUNT = 3
 local _SendRequest, _ProcessQueue, _FinishCooldown
 
 _SendRequest = function(self, request, force)
+    -- PEARL.debug("_SendRequest", request, force)
+
     if not request or (self._cooldown and not force) then
         return
     end
@@ -74,14 +76,14 @@ end
 
 --- @class RestClient singleton
 local RestClient = Class(function(self)
-    self._frequency = DEFAULT_REQUEST_FREQUNCY
+    self._frequency = DEFAULT_REQUEST_FREQUENCY
 
     -- Lazy load the queue
     --- @type Queue?
     self._queue = nil
     self._request_cache = {}
     --- @type Task?
-    self._task = nil
+    self._cooldown_task = nil
 
     -- Used for debugging
     self._rcount = 0
@@ -153,7 +155,7 @@ function RestClient:GetCached(url)
     return self._request_cache[url]
 end
 
--- Used for debuggin puproses
+-- Used for debugging purposes
 function RestClient:GetSentRequestsCount()
     return self._rcount
 end
@@ -167,14 +169,19 @@ function RestClient:StartCooldown()
         return
     end
 
-    if self._task and self._task.limit and self._task.limit > 0 then
-        PEARL.warn("<Requester.StartCooldown> Overriding an unfinished task!")
-
-        self._task:Cancel()
+    -- Do not allow overriding
+    if self._cooldown_task and self._cooldown_task.limit and self._cooldown_task.limit > 0 then
+        return PEARL.warn("Attempted to override an unfinished cooldown task!")
     end
 
+    -- if self:IsOnCooldown() then
+    --     PEARL.warn("<Requester.StartCooldown> Overriding an unfinished task!")
+
+    --     self._cooldown_task:Cancel()
+    -- end
+
     --PEARL.debug("Cooling down...")
-    self._task = PEARL.Scheduler:ExecuteInTime(
+    self._cooldown_task = PEARL.Scheduler:ExecuteInTime(
         self._frequency, _FinishCooldown, nil, self
     )
 end
@@ -191,7 +198,7 @@ function RestClient:ProcessRequest(request)
         self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
     end
 
-    --PEARL.debug("Adding request to the queue...")
+    -- PEARL.debug("Adding request to the queue...")
     self._queue:Push(request)
 end
 
@@ -219,7 +226,7 @@ function RestClient:Request(url, method)
 end
 
 function RestClient:RetryRequestAfter(request, seconds)
-    PEARL.info("RestClient", "Retrying request in", seconds, "seconds...")
+    PEARL.info("Retrying request in", seconds, "seconds...")
 
     return PEARL.Scheduler:ExecuteInTime(seconds, function()
         RestClient:ProcessRequest(request)
@@ -247,9 +254,9 @@ function RestClient:OnShutdown()
     PEARL.info("Requester", "Shutting down...")
     self._shutting_down = true
 
-    if self._task then
-        self._task:Cancel()
-        self._task = nil
+    if self._cooldown_task then
+        self._cooldown_task:Cancel()
+        self._cooldown_task = nil
     end
 
     if not self._queue or self._queue:IsEmpty() then

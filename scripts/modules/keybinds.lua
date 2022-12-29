@@ -11,7 +11,7 @@ TheInput:AddKeyDownHandler(PEARL.CONTROLS.TOGGLE_CHAT, function()
     end
 end)
 
-AddClassPostConstruct("widgets/redux/chatqueue", function(self)
+PEARL.AddClassPostConstruct("widgets/redux/chatqueue", function(self)
     ChatQueue = self
 end)
 

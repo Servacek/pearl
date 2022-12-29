@@ -1,6 +1,7 @@
+---@diagnostic disable: invisible
 
-local Embed = require("libraries/discordapi/models/embed")
-local Message = require("libraries/discordapi/models/message")
+local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 ----------------------------------------
 

@@ -1,15 +1,16 @@
-local Screen = require "widgets/screen"
-local Button = require "widgets/button"
-local AnimButton = require "widgets/animbutton"
-local ImageButton = require "widgets/imagebutton"
-local Text = require "widgets/text"
-local Image = require "widgets/image"
-local Widget = require "widgets/widget"
-local Menu = require "widgets/menu"
-local TrueScrollArea = require "widgets/truescrollarea"
-local ScrollableList = require("widgets/scrollablelist")
+
+local Screen = require("widgets/screen")
+-- local Button = require "widgets/button"
+-- local AnimButton = require "widgets/animbutton"
+-- local ImageButton = require "widgets/imagebutton"
+local Text = require("widgets/text")
+-- local Image = require "widgets/image"
+local Widget = require("widgets/widget")
+-- local Menu = require "widgets/menu"
+local TrueScrollArea = require("widgets/truescrollarea")
+-- local ScrollableList = require("widgets/scrollablelist")
 local RadioButtons = require("widgets/radiobuttons")
-local TEMPLATES = require "widgets/redux/templates"
+local TEMPLATES = require("widgets/redux/templates")
 
 -- --------------------------------
 -- -- [[ Constants ]]
@@ -153,13 +154,19 @@ local AgreementScreen = Class(Screen, function(self)
 
     self._body.agreement_checkbox = self._body:AddChild(TEMPLATES.LabelCheckbox(
         function(checkbox)
+            if self._body.disagreement_checkbox.checked then
+                self._body.disagreement_checkbox.checked = false
+            end
+
             checkbox.checked = not checkbox.checked
-            self._body.disagreement_checkbox.checked = not checkbox.checked
-
-            checkbox:Refresh()
             self._body.disagreement_checkbox:Refresh()
+            checkbox:Refresh()
 
-            self._dialog.continue_button:Enable()
+            if checkbox.checked then
+                self._dialog.continue_button:Enable()
+            else
+                self._dialog.continue_button:Disable()
+            end
             -- Keep unchecked by default
         end, false, STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_AGREE)
     )
@@ -170,13 +177,19 @@ local AgreementScreen = Class(Screen, function(self)
 
     self._body.disagreement_checkbox = self._body:AddChild(TEMPLATES.LabelCheckbox(
         function(checkbox)
+            if self._body.agreement_checkbox.checked then
+                self._body.agreement_checkbox.checked = false
+            end
+
             checkbox.checked = not checkbox.checked
-            self._body.agreement_checkbox.checked = not checkbox.checked
-
-            checkbox:Refresh()
             self._body.agreement_checkbox:Refresh()
+            checkbox:Refresh()
 
-            self._dialog.continue_button:Enable()
+            if checkbox.checked then
+                self._dialog.continue_button:Enable()
+            else
+                self._dialog.continue_button:Disable()
+            end
             -- Keep unchecked by default
         end, false, STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DISAGREE)
     )

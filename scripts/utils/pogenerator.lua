@@ -3,7 +3,7 @@
 
 local PEARL = PEARL
 
-local O_FILE_PATH = PEARL.MODROOT..PEARL.DATA_DIR_NAME.."/translation.po"
+local O_FILE_PATH = PEARL.ROOTDIR..PEARL.DATA_DIR_NAME.."/translation.po"
 
 local function raw(str)
     return string.format("%q", str:gsub("\n", "\\n"))

@@ -7,6 +7,7 @@
     TODOS:
         - Try to replace the task with a simpler table and recycle it.
         - Other performance improvements.
+        - Create a restart function for tasks.
 ]]
 
 
@@ -108,7 +109,7 @@ end
 
 function WallScheduler:_AddTask(task)
     if task ~= nil then
-        PEARL.debug("WallScheduler", "Registering task:", task)
+        --PEARL.debug("WallScheduler", "Registering task:", task)
         tasks[#tasks + 1] = task
     end
 
@@ -120,7 +121,7 @@ end
 --- @param processfn function The callback of the task
 --- @param id integer? The id of the task used for debuging
 --- @param ... any Additional arguments to the callback function
---- @return Task? task The new created task
+--- @return Task task The new created task
 function WallScheduler:ExecuteInTime(timefromnow, processfn, id, ...)
     return self:_AddTask(self:_CreateTask(timefromnow, processfn, 1, nil, id, ...))
 end

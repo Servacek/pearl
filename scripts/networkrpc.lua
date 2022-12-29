@@ -23,12 +23,17 @@ local CLIENT_RPCS = {
     end,
 
     Disconnect = function(...)
+        PEARL.EventProcessor:HandleEvent("force_disconnected", ...)
         PEARL.ClientNetwork:Disconnect(...)
     end,
 
-    SendLocalizationRequest = function()
-        PEARL.EventProcessor:HandleEvent("localization_request_received")
-    end,
+    -- SendLocalizationRequest = function()
+    --     PEARL.EventProcessor:HandleEvent("localization_request_received")
+    -- end,
+
+    LocaleAllowed = function()
+        PEARL.EventProcessor:HandleEvent("locale_allowed")
+    end
 }
 
 local SHARD_RPCS = {
@@ -41,14 +46,19 @@ local SHARD_RPCS = {
 
 -- local SERVER_RPCS = {}
 
---- @TODO Create some kind of a persistent cache for localized clients
 local SERVER_USERID_RPCS = {
-    -- This is being sent when the mod is loaded on the client's side
-    ClientModNetworkReady = function(userid)
-        PEARL.debug("RPC: ClientModNetworkReady")
+    -- ClientModReady = function(userid)
+    --     PEARL.debug("RPC: ClientModReady")
 
-        PEARL.EventProcessor:HandleEvent("ms_clientmodnetworkready", userid)
-    end,
+    --     PEARL.EventProcessor:HandleEvent("ms_clientmodready", userid)
+    -- end,
+
+    -- This is being sent when the mod is loaded on the client's side
+    -- ClientModNetworkReady = function(userid)
+    --     PEARL.debug("RPC: ClientModNetworkReady")
+
+    --     PEARL.EventProcessor:HandleEvent("ms_clientmodnetworkready", userid)
+    -- end,
 
     ClientLocalizationCompleted = function(userid, locale)
         PEARL.debug("RPC: ClientLocalizationCompleted")
@@ -80,18 +90,20 @@ local SERVER_USERID_RPCS = {
 }
 
 -- For Debug
-local CLIENT_RPCS_TO_NAME = {
-    [1] = "SendDirectMessage",
-    [2] = "Disconnect",
-    [3] = "SendLocalizationRequest",
-}
+-- local CLIENT_RPCS_TO_NAME = {
+--     [1] = "SendDirectMessage",
+--     [2] = "Disconnect",
+--     [3] = "SendLocalizationRequest",
+--     [4] = "LocaleAllowed",
+-- }
 
--- For Debug
-local SERVER_RPCS_TO_NAME = {
-    [1] = "AfkStateChanged",
-    [2] = "ClientModNetworkReady",
-    [3] = "ClientLocalizationCompleted",
-}
+-- -- For Debug
+-- local SERVER_RPCS_TO_NAME = {
+--     -- [1] = "ClientModReady",
+--     [2] = "ClientModNetworkReady",
+--     [3] = "ClientLocalizationCompleted",
+--     [4] = "AfkStateChanged",
+-- }
 
 --------------------------
 -- Helpers
@@ -111,7 +123,8 @@ function PEARL.GetServerRPC(name)
 end
 
 function PEARL.SendRPCToClient(name, ...)
-    PEARL.debug("Sending rpc", CLIENT_RPCS_TO_NAME[name], "to the client")
+    -- print("SEND TO CLIENT", name, ...)
+    --PEARL.debug("Sending rpc", CLIENT_RPCS_TO_NAME[name], "to the client")
     return SendModRPCToClient(PEARL.GetClientRPC(name), ...)
 end
 
@@ -120,7 +133,8 @@ function PEARL.SendRPCToShard(name, ...)
 end
 
 function PEARL.SendRPCToServer(name, ...)
-    PEARL.debug("Sending rpc", SERVER_RPCS_TO_NAME[name], "to the server")
+    -- print("SEND RPC TO SERVER", name, ...)
+    --PEARL.debug("Sending rpc", SERVER_RPCS_TO_NAME[name], "to the server")
     return SendModRPCToServer(PEARL.GetServerRPC(name), ...)
 end
 

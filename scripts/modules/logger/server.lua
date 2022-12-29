@@ -1,20 +1,33 @@
 
-local PEARL = PEARL
+--local PEARL = PEARL
 local TheShard = TheShard
-local string = string
 
-local MARKDOWN = require("libraries/markdown")
 local TEMPLATES = require("widgets/redux/templates")
-local Embed = require("libraries/discordapi/models/embed")
+
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
+
+-------------------------------
+-- [[ Locals ]]
+-------------------------------
+
+local _is_shutting_down = false
 
 -------------------------------
 -- [[ Server State Handlers ]]
 -------------------------------
 
 local function OnShutdown()
+    if _is_shutting_down then
+        return
+    end
+
+    PEARL.debug("Shard is shutting down!")
+    _is_shutting_down = true
+
     PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.SHUTDOWN:format(
         MARKDOWN.codeline(PEARL.GetShardName())
-    ), PEARL.ICONS.SERVER_STATE.STOP)
+    ), PEARL.ICONS.SERVER_STATE.STOP, true)
 end
 
 -- local function OnStart()
@@ -67,9 +80,11 @@ end
 
 local function OnFirstLaunch()
     -- TheWorld should exist at this point
-    if not (TheWorld and TheWorld.meta) then
+    if not (TheWorld and TheWorld.meta) or _is_shutting_down then
         return
     end
+
+    PEARL.debug("OnFirstLaunch!")
 
     PEARL.DiscordLogger:LogEmbed(Embed()
         :SetTitle(STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE)
@@ -104,7 +119,7 @@ end
 -------------------------------
 
 PEARL.AddGamePostInit(function()
-    if not (TheWorld and PEARL.CONFIG.DISCORD.ENABLED) then
+    if not (TheWorld and PEARL.CONFIG.DISCORD.LHOOK.ENABLED) then
         return
     end
 
@@ -128,3 +143,5 @@ PEARL.AddModPostInit(function()
         OnModBackendPostInit()
     end
 end)
+
+PEARL.EventProcessor:AddEventHandler("quit", OnShutdown)

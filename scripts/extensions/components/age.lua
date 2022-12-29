@@ -17,7 +17,7 @@ local Age = require("components/age")
 --------------------------------
 
 function Age:IsTrustworthy()
-    return self:GetAgeInDays() >= PEARL.TRUST_AGE
+    return self:GetAgeInDays() >= PEARL.CONFIG.TRUST_AGE
 end
 
 -- function Age:IsNewcomer()

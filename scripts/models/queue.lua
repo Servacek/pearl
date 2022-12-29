@@ -52,7 +52,7 @@ end
 function Queue:Push(val)
     -- If the queue is too big
     if #self >= self.max_size then
-        PEARL.error("Tried to append to a full queue!")
+        PEARL.error("Tried to append to a full queue!", val)
         return false
     end
 

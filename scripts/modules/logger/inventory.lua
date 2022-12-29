@@ -28,7 +28,7 @@ end
 -------------------------------
 
 PEARL.AddWorldPostInit(function(inst)
-    if not (inst and PEARL.CONFIG.DISCORD.ENABLED) then
+    if not (inst and PEARL.CONFIG.DISCORD.LHOOK.ENABLED) then
         return
     end
 

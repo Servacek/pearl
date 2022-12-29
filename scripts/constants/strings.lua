@@ -1,5 +1,5 @@
 
-local MARKDOWN = require("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 ------------------------------------
 -- Mod Specific Strings
@@ -269,5 +269,5 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_MODS_PROHIBITED",
 
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_LOCALE_BLOCKED",
     "Community Server",
-    "This server currently only allows connections\nfrom the Czech Republic and Slovakia."
+    "This server currently only accepts connections\nfrom the Czech Republic and Slovakia."
 )

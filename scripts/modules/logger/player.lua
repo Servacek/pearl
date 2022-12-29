@@ -57,7 +57,7 @@ AddPlayerPostInit(function(player)
     player:ListenForEvent("tookrareitem", OnTakeRareItem)
     player:ListenForEvent("finishedlooting", OnFinishedLooting)
 
-    if PEARL.CONFIG.DISCORD.ENABLED then
+    if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
         player:ListenForEvent("ms_commandexecuted", OnCommandExecuted)
     end
 end)

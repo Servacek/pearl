@@ -6,10 +6,10 @@
 --]]
 
 
-local MARKDOWN = require("libraries/markdown")
-local LogLine = require("libraries/discordapi/models/logline")
-local Message = require("libraries/discordapi/models/message")
-local Webhook = require("libraries/discordapi/models/webhook")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 
 -------------------------------------
 -- [[ Handlers ]]
@@ -30,7 +30,7 @@ end
 
 --- @class Logger
 local Logger = Class(function(self)
-    self._disabled = not PEARL.CONFIG.DISCORD.ENABLED
+    self._disabled = not PEARL.CONFIG.DISCORD.LHOOK.ENABLED
     if self._disabled then
         return
     end
@@ -52,15 +52,17 @@ end)
 -- [[ Private Functions ]]
 -------------------------------------
 
-function Logger:_LogBufferedMessage()
+function Logger:_LogBufferedMessage(force)
+    PEARL.debug("Logger:_LogBufferedMessage")
+
     self:_StopBufferTimeout()
 
-    local success, json_data = self._buffered_message:ToJson()
-    if not success then
+    local _, json_data = self._buffered_message:ToJson()
+    if not json_data then
         return PEARL.error("Logger", "JSON failed to encode the message!")
     end
 
-    PEARL.DiscordRestAPI:ExecuteWebhook(self._webhook, json_data)
+    PEARL.DiscordRestAPI:ExecuteWebhook(self._webhook, json_data, force)
 
     -- Clear the buffer when we are done
     self._buffered_message:Clear()
@@ -94,16 +96,20 @@ end
 
 function Logger:SetBufferTimeout(buffer_timeout)
     self._buffer_timeout = buffer_timeout
+
+    return self
 end
 
 function Logger:SetIsDisabled(disabled)
     self._disabled = disabled
+
+    return self
 end
 
 -------------------------------------
 -- [[ Getters ]]
 -------------------------------------
--- Warning: This can be nil!
+-- Warning: This can be nil if we are disabled!
 function Logger:GetBufferedMessage()
     return self._buffered_message
 end
@@ -124,15 +130,24 @@ function Logger:LogEmbed(embed, force)
         return
     end
 
-    -- Returns nil if adding the embed has failed
+    if type(embed) ~= "table" then
+        return PEARL.error("Attempted to add an invalid embed!", embed)
+    end
+
+    -- Returns nil if adding the embed has failed.
+    -- Try to not use recursion here, it can introduce a nasty vulnerability.
     if not self._buffered_message:AddEmbed(embed) then
         self:_LogBufferedMessage()
 
-        return self:LogEmbed(embed, force)
+        -- Retry with a cleared buffered message
+        if not self._buffered_message:AddEmbed(embed) then
+            -- If still no success, the embed is most likely invalid.
+            return PEARL.error("Attempted to add an invalid embed!", embed)
+        end
     end
 
     if force then
-        return self:_LogBufferedMessage()
+        return self:_LogBufferedMessage(force)
     end
 
     self:_StartBufferTimeout()
@@ -147,14 +162,24 @@ function Logger:LogLine(logline, force)
         return
     end
 
+    if type(logline) ~= "table" then
+        return PEARL.error("Attempted to send an invalid logline!", logline)
+    end
+
+    -- Returns nil if adding the embed has failed.
+    -- Try to not use recursion here, it can introduce a nasty vulnerability.
     if not self._buffered_message:AddLogLine(logline) then
         self:_LogBufferedMessage()
 
-        return self:LogLine(logline, force)
+        -- Retry with a cleared buffered message
+        if not self._buffered_message:AddLogLine(logline) then
+            -- If still no success, the embed is most likely invalid.
+            return PEARL.error("Attempted to add an invalid logline!", logline)
+        end
     end
 
     if force then
-        return self:_LogBufferedMessage()
+        return self:_LogBufferedMessage(force)
     end
 
     self:_StartBufferTimeout()

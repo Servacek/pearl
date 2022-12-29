@@ -574,6 +574,9 @@ msgstr "Seed Sveta"
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLAYSTYLE"
 msgstr "Herný Režim"
 
+msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.LOCALE"
+msgstr "Sídlo Servera"
+
 msgctxt "STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE"
 msgstr "Pokračovať"
 
