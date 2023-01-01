@@ -2,6 +2,7 @@
     Efficient strict queue implementation.
 --]]
 
+-- Yes, this is REALLY required
 require("metaclass")
 
 local PEARL = PEARL
@@ -12,6 +13,7 @@ local START_INDEX_LAST = 0
 
 ------------------------------
 
+--- @class Queue
 local Queue = MetaClass(function(self, max_size)
     self.list = {first = START_INDEX_FIRST, last = START_INDEX_LAST}
     self.max_size = max_size or -1
@@ -92,8 +94,6 @@ end
 
 --- Clears the queue.
 function Queue:Clear()
-    PEARL.info("Queue", "Cleaning up...")
-
     for k, _ in pairs(self.list) do
         self.list[k] = nil
     end

@@ -1,6 +1,6 @@
 -- Prefab names of some important entities we care of
 
-PEARL.PREFABS = {
+return {
 	ACTIVATABLE = {
 		["terrarium"] = true,
 	},

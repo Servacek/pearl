@@ -59,7 +59,7 @@ function Logger:_LogBufferedMessage(force)
 
     local _, json_data = self._buffered_message:ToJson()
     if not json_data then
-        return PEARL.error("Logger", "JSON failed to encode the message!")
+        return PEARL.error("JSON failed to encode the message!")
     end
 
     PEARL.DiscordRestAPI:ExecuteWebhook(self._webhook, json_data, force)

@@ -86,9 +86,18 @@ You can contact the author(s) at
       names can conflict with the built-in ones.
 
     - 'require' doesn't support mod specific pathes.
+
+    - Try to not push in-game events.
+
+    - Use raw tables for singleton non-inherited classes.
 --]]
 
 local GLOBAL = GLOBAL
+
+-- The server is being relaunched at boot so ignore the actual first launch.
+if not GLOBAL.TheSim or GLOBAL.TheSim:GetNumLaunches() == 1 then
+    return
+end
 
 --------------------------------
 -- [[ Local Constants ]]
@@ -172,7 +181,9 @@ PEARL.CONFIG = {
     LANGUAGE = PEARL.GetConfigData("LANGUAGE"),
 }
 
-PEARL.CONSTS = {}
+PEARL.CONSTS = {
+    EVENT_PREFIX = "__"..string.lower(PEARL.MODNAME).."__"
+}
 
 --------------------------------
 -- [[ FileLoader ]]
@@ -189,9 +200,10 @@ end
 
 PEARL.loadfile("extensions/logging")
 
-if TheNet:GetIsServer() and not (TheNet:IsDedicated() and not TheNet:GetServerIsClientHosted()) then
-    return PEARL.warn("Current version of "..PEARL.MOD_INFO.name.." does only support dedicated servers.")
-end
+--- @TODO
+-- if TheNet:GetIsServer() and not (TheNet:IsDedicated() and not TheNet:GetServerIsClientHosted()) or TheNet:IsDedicatedOfflineCluster() then
+--     return PEARL.warn("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
+-- end
 
 --------------------------------
 -- [[ Standard Libs ]]
@@ -202,6 +214,14 @@ PEARL.loadfile("extensions/standard/table")
 PEARL.loadfile("extensions/standard/math")
 PEARL.loadfile("extensions/standard/io")
 PEARL.loadfile("extensions/standard/string")
+
+--------------------------------
+-- [[ License ]]
+--------------------------------
+
+--- We are working with files here so load after the io extension
+PEARL.info("Loading licence...")
+PEARL.loadfile("licence")
 
 --------------------------------
 -- [[ Helpers ]]
@@ -216,13 +236,6 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
-
---------------------------------
--- [[ License ]]
---------------------------------
-
-PEARL.info("Loading licence...")
-PEARL.loadfile("licence")
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -264,14 +277,14 @@ PEARL.loadfile("networkrpc")
 -- [[ Load ]]
 --------------------------------
 
-PEARL.AddAnnouncementCategory("ignite", "torch.tex", PEARL.GetConfigData("IGNITE"))
-PEARL.AddAnnouncementCategory("burn", "fire.tex", PEARL.GetConfigData("BURNTUP"))
-PEARL.AddAnnouncementCategory("take", "backpack.tex", PEARL.GetConfigData("TAKE"))
-PEARL.AddAnnouncementCategory("eat", "faketheeth.tex", PEARL.GetConfigData("EATRARE"))
-PEARL.AddAnnouncementCategory("hammer", "hammer.tex", PEARL.GetConfigData("DESTROY"))
-PEARL.AddAnnouncementCategory("kill", "hambat.tex", PEARL.GetConfigData("KILLFOLLOWER") or PEARL.GetConfigData("KILLMONITORED"))
-PEARL.AddAnnouncementCategory("defeat", "trophy.tex", PEARL.GetConfigData("KILLBOSS"))
-PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex", PEARL.GetConfigData("DANGER_AT_PORTAL"))
+PEARL.AddAnnouncementCategory("ignite", "torch.tex")
+PEARL.AddAnnouncementCategory("burn", "fire.tex")
+PEARL.AddAnnouncementCategory("take", "backpack.tex")
+PEARL.AddAnnouncementCategory("eat", "faketheeth.tex")
+PEARL.AddAnnouncementCategory("hammer", "hammer.tex")
+PEARL.AddAnnouncementCategory("kill", "hambat.tex")
+PEARL.AddAnnouncementCategory("defeat", "trophy.tex")
+PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
 
 --------------------------------
 -- [[ Frontend ]]
@@ -301,5 +314,5 @@ end
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
+PEARL.info("Mod for shard", PEARL.GetShardName(), "loaded successfully on version:", PEARL.MOD_INFO.version)
 PEARL.OnModPostInit()

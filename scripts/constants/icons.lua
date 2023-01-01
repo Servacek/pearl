@@ -2,7 +2,7 @@
 -- So these icons should work on all discord servers.
 
 
-PEARL.ICONS = {
+return {
     PLAYER_PREFABS = {
         -- DST
         wilson =            "<:Wilson:700037170785681479>",

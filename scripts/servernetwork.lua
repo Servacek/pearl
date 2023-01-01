@@ -33,7 +33,7 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
 
     PEARL.SendRPCToClient(PEARL.RPCS.Disconnect, userid, reason, ...)
     if TheWorld ~= nil then
-        TheWorld:PushEvent("ms_clientconnectionclosed", {
+        TheWorld:PushModEvent("clientconnectionclosed", {
             userid = userid, reason = reason
         })
     end
@@ -99,7 +99,7 @@ PEARL.OverrideGlobal("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     if success then
         local doer = Ents[guid]
         if doer then
-            doer:PushEvent("ms_commandexecuted", fnstr)
+            doer:PushModEvent("ms_commandexecuted", fnstr)
         end
     else
         nolineprint(response)
@@ -120,7 +120,7 @@ PEARL.AddWorldPostInit(function(world)
         return
     end
 
-    world:ListenForEvent("ms_clientauthenticationcomplete", function(self, data)
+    world:SafeListenForEvent("ms_clientauthenticationcomplete", function(self, data)
         PEARL.EventProcessor:HandleEvent("ms_clientauthenticationcomplete", data.userid)
     end)
 end)

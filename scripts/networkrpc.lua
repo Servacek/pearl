@@ -3,7 +3,7 @@
     client side. So we do not have access to the SUB table here.
 --]]
 
-local PEARL = PEARL
+--local PEARL = PEARL
 
 local TheNet = TheNet
 
@@ -68,7 +68,7 @@ local SERVER_USERID_RPCS = {
 
     AFKStateChanged = function(userid, is_afk, kicked, ...)
         local player = LookupPlayerInstByUserID(userid)
-        local client = TheNet:GetClientTableForUser(userid)
+        local client = userid and TheNet:GetClientTableForUser(userid)
         if not (player or client) then
             return
         end

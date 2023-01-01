@@ -1,7 +1,7 @@
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 
-PEARL.EMOTES = {
+return {
     -- Game utf-8 formatted emotes accessed by name
     GAME = {
         ABIGAIL         = "󰀜",

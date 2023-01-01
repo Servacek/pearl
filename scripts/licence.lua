@@ -30,37 +30,50 @@ local PEARL = PEARL
 -- [[ Contants ]]
 --------------------------------------
 
-local LICENCE_FILE = PEARL.ROOTDIR.."LICENSE"
+local LICENCE_FILENAME = PEARL.ROOTDIR.."LICENSE"
+local CACHED_USERID_FILENAME = "cached_userid"
 local LICENCE_OWNERS = {
     ["KU_NujB7r1v"] = true,
     ["KU_ZC24p91Q"] = true,
 }
 
 --------------------------------------
+-- [[ Local Variables ]]
+--------------------------------------
+
+local cached_userid
+
+--------------------------------------
 -- [[ Local Functions ]]
 --------------------------------------
 
 local function HasServerOwnerLicense()
-    return LICENCE_OWNERS[TheNet:GetUserID()] == true
+    return LICENCE_OWNERS[TheNet:GetUserID()] == true or LICENCE_OWNERS[cached_userid] == true
 end
 
 local function VerifyLicenceFile()
-    if not io.exists(LICENCE_FILE) then
+    if not io.exists(LICENCE_FILENAME) then
         return error("The licence file is invalid or missing!")
     end
 end
 
+local function Load()
+    --Loading cached userid for offline servers
+    TheSim:GetPersistentString(CACHED_USERID_FILENAME, function(load_success, str)
+        cached_userid = load_success and str
+
+        VerifyLicenceFile()
+
+        if not HasServerOwnerLicense() then
+            return error(TheNet:GetUserID().." missing licence for private mod "..PEARL.MOD_INFO.name..". For more informations, please try to contact the author.")
+        end
+
+        PEARL.info("Licence valid.")
+    end)
+end
 --------------------------------------
 -- [[ Initialization ]]
 --------------------------------------
 
--- Called after the server owner userid is received in the first instance.
-PEARL.AddGlobalFunctionPreCall("StartDedicatedServer", function(...)
-    VerifyLicenceFile()
-
-    if not HasServerOwnerLicense() then
-        return error(TheNet:GetUserID().." missing licence for private mod "..PEARL.MOD_INFO.name..". For more informations, please try to contact the author.")
-    end
-
-    PEARL.info("Licence valid.")
-end)
+-- For offline servers
+Load()

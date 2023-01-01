@@ -106,8 +106,6 @@ end
 -------------------------------------
 
 function Request:Send(force)
-    PEARL.debug("Request:Send", CalledFrom())
-
     if force then
         return PEARL.RestClient:ForceSend(self)
     end

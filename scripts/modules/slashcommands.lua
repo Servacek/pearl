@@ -1,7 +1,6 @@
--- local UserCommands = require("usercommands")
---- @TODO: Make execution handlers safe.
+--- @TODO: Debug
 
-local PEARL = PEARL
+
 local TheNet = TheNet
 
 -------------------------------------
@@ -17,17 +16,22 @@ local KLEI_ID_DELIM = "K"
 -- Helpers
 -------------------------------------
 
+local function make_safe_cb(name, cb)
+    return function(...)
+        local success, result = pcall(cb, ...)
+        if not success then
+            return PEARL.error("Failed to run command '/"..name.."'! Error:\n", result or "unknown...")
+        end
+    end
+end
+
 local function AddCommand(name, data, ...)
     if data.serverfn then
-        data.serverfn = function(...)
-            pcall(data.serverfn, ...)
-        end
+        data.serverfn = make_safe_cb(name, data.serverfn)
     end
 
     if data.localfn then
-        data.localfn = function(...)
-            pcall(data.localfn, ...)
-        end
+        data.localfn = make_safe_cb(name, data.localfn)
     end
 
     AddUserCommand(name, data)
@@ -108,25 +112,19 @@ AddCommand("unban", {
         end
 
         if PEARL.UnbanUserByID(params.player_id) then
-            PEARL.info("Successfuly removed player with ID", params.player_id, "from the list!")
-
-            PEARL.ServerSendCommandResponse(caller.userid, string.format(
+            return PEARL.SendMessageToClient(caller.userid, string.format(
                 STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, params.player_id
             ))
-        else
-            PEARL.info("Player was not found on the blacklist...")
-
-            PEARL.ServerSendCommandResponse(
-                caller.userid, STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND
-            )
         end
+
+        PEARL.SendMessageToClient(caller.userid, STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND)
     end,
 })
 
-AddCommand("whitelist-add", {
+AddCommand("allowlist-add", {
     aliases = {},
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.WHITELIST_ADD.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.WHITELIST_ADD.DESC,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     usermenu = false,
@@ -136,38 +134,66 @@ AddCommand("whitelist-add", {
     params_optional= { false },
 
     serverfn = function(params, caller)
-        if params == nil or caller == nil then return end
+        if not (params and caller and params.player_id) then
+            return
+        end
 
-        if PEARL.CONFIG.WHITELIST_ENABLED then
-            return PEARL.ServerSendCommandResponse(caller.userid,
-                STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD.ON_DISABLED
+        if PEARL.BlackList:Contains(params.player_id) then
+            PEARL.info("Specified userid is banned on this server.")
+
+            return PEARL.SendMessageToClient(caller.userid,
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED
             )
         end
 
-        if PEARL.BlackList.IsUserBlacklisted(params.player_id) then
-            return PEARL.ServerSendCommandResponse(caller.userid,
-                STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD.ON_BANNED
+        if PEARL.AllowList:Contains(params.player_id) then
+            PEARL.info("Specified userid is already on the allowlist!")
+
+            return PEARL.SendMessageToClient(caller.userid,
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED
             )
         end
 
-        if TheNet:IsWhiteListed(params.player_id) then
-            return PEARL.ServerSendCommandResponse(caller.userid,
-                STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD.ON_ALREADY_WHITELISTED
-            )
+        PEARL.AllowList:Add(params.player_id)
+        if PEARL.AllowList:Save() then
+            PEARL.info("Successfully added", params.player_id, "to the allowlist!")
+
+            return PEARL.SendMessageToClient(caller.userid, string.format(
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS,
+                params.player_id
+            ))
         end
 
-        TheNet:AddToWhiteList(params.player_id)
-        PEARL.ServerSendCommandResponse(caller.userid, string.format(
-            STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD.ON_SUCCESS,
+        PEARL.SendMessageToClient(caller.userid, string.format(
+            STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_FAILURE,
             params.player_id
         ))
     end,
 })
 
-AddCommand("whitelist-remove", {
+-- AddCommand("allowlist-toggle", {
+--     aliases = {},
+--     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.PRETTYNAME,
+--     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.DESC,
+--     permission = COMMAND_PERMISSION.ADMIN,
+--     slash = true,
+--     usermenu = false,
+--     servermenu = false,
+--     vote = false,
+
+--     serverfn = function()
+--         if PEARL.AllowList:Toggle() then
+--             return PEARL.SendMessageToClient(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.ON_ENABLED)
+--         end
+
+--         return PEARL.SendMessageToClient(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.ON_DISABLED)
+--     end,
+-- })
+
+AddCommand("allowlist-remove", {
     aliases = {},
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.WHITELIST_REMOVE.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.WHITELIST_REMOVE.DESC,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     usermenu = false,
@@ -177,37 +203,34 @@ AddCommand("whitelist-remove", {
     params_optional= { false },
 
     serverfn = function(params, caller)
-        if params == nil or caller == nil then return end
-
-        if PEARL.Whitelist == nil then
-            if not PEARL.CONFIG.WHITELIST_ENABLED then
-                return PEARL.ServerSendCommandResponse(caller.userid,
-                    STRINGS.UI.BUILTINCOMMANDS.WHITELIST_REMOVE.ON_DISABLED
-                )
-            end
-
+        if not (params and caller and params.player_id) then
             return
         end
 
-        if not PEARL.Whitelist:Contains(params.player_id) then
-            return PEARL.ServerSendCommandResponse(caller.userid,
-                STRINGS.UI.BUILTINCOMMANDS.WHITELIST_REMOVE.ON_NOTFOUND
+        if not PEARL.AllowList:Contains(params.player_id) then
+            PEARL.info("Specified player is not on the allowlist.")
+
+            return PEARL.SendMessageToClient(caller.userid,
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
             )
         end
 
-        PEARL.Whitelist:Remove(params.player_id)
+        PEARL.AllowList:Remove(params.player_id)
         TheNet:Kick(params.player_id)
 
-        if PEARL.Whitelist:Save() then
-            return PEARL.ServerSendCommandResponse(caller.userid, string.format(
-                    STRINGS.UI.BUILTINCOMMANDS.WHITELIST_REMOVE.ON_SUCCESS,
+        if PEARL.AllowList:Save() then
+            PEARL.info("Successfully removed", params.player_id, "from the allowlist!")
+
+            return PEARL.SendMessageToClient(caller.userid, string.format(
+                    STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS,
                     params.player_id
                 )
             )
         end
 
-        return PEARL.ServerSendCommandResponse(caller.userid,
-            STRINGS.UI.BUILTINCOMMANDS.WHITELIST_REMOVE.ON_FAILURE
+        PEARL.error("Failed to remove the specified user from the allowlist.")
+        return PEARL.SendMessageToClient(caller.userid,
+            STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_FAILURE
         )
     end,
 })
@@ -225,22 +248,27 @@ AddCommand("inv", {
     params_optional= { false },
 
     serverfn = function(params, caller)
-        if params == nil or caller == nil then return end
+        if not (params and caller) then
+            return
+        end
 
-        if not PEARL.CONSTS.DISCORD_LOGS_ENABLED then
-            return PEARL.ServerSendCommandResponse(caller.userid,
-                STRINGS.UI.BUILTINCOMMANDS.ERRORS.DISCORD_LOGS_DISABLED
+        if PEARL.DiscordLogger:IsDisabled() then
+            PEARL.error("Discord logger webhook is disabled!")
+
+            return PEARL.SendMessageToClient(caller.userid,
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NO_LOGS
             )
         end
 
-        if PEARL.c_inventory(params.player_id) then
-            return PEARL.ServerSendCommandResponse(caller.userid,
-                STRINGS.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
+        if PEARL.LogInventoryFor(params.player_id) then
+            return PEARL.SendMessageToClient(caller.userid,
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
             )
         end
 
-        return PEARL.ServerSendCommandResponse(caller.userid,
-            STRINGS.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND
+        PEARL.error("Specified inventory wasn't found!")
+        return PEARL.SendMessageToClient(caller.userid,
+            STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND
         )
     end,
 })
@@ -260,6 +288,14 @@ AddCommand("inv-find", {
     serverfn = function(params, caller)
         if not (params and caller and params.item_prefab) then
             return
+        end
+
+        if PEARL.DiscordLogger:IsDisabled() then
+            PEARL.error("Discord logger webhook is disabled...")
+
+            return PEARL.SendMessageToClient(caller.userid,
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_NO_LOGS
+            )
         end
 
         local item_owners = {}

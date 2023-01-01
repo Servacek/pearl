@@ -18,14 +18,14 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
     end
 
     PEARL.DiscordLogger:LogStringRaw(
-        STRINGS.PEARL.LOGS.SAY_COMMAND:format(tostring(UserToName(userid)), cmd),
+        STRINGS.PEARL.LOGS.SAY_COMMAND:format(tostring(UserToName(userid) or userid), cmd),
         PEARL.ICONS.PLAYER_STATE.CMD_SEND
     )
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_Announcement", function(message, colour, announce_type)
     -- Announcements are broadcasted between all shards
-    if not (message and announce_type and TheShard:IsMaster()) then
+    if not (message and TheShard:IsMaster()) then
         return
     end
 

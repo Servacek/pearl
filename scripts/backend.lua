@@ -141,6 +141,8 @@ PEARL.ModTableSafeAppend("CONFIG", {
 
     -- OPTIMIZED_SCHEDULER         = PEARL.GetConfigData("OPTIMIZED_SCHEDULER"),
 
+    ANNOUNCEMENTS               = PEARL.GetConfigData("ANNOUNCEMENTS"),
+
     -- Version Checker
     VERSION_CHECK_FREQUENCY     = PEARL.GetConfigData("VERSION_CHECK_FREQUENCY"), -- minutes
     UPDATE_SERVER_AFTER         = PEARL.GetConfigData("UPDATE_SERVER_AFTER"), -- minutes
@@ -150,7 +152,7 @@ PEARL.ModTableSafeAppend("CONFIG", {
     TRUST_AGE                   = PEARL.GetConfigData("TRUST_AGE"),
     LOG_SUSPICIOUS_INVENTORIES  = PEARL.GetConfigData("LOG_SUSPICIOUS_INVENTORIES"),
     CZSK_ONLY                   = PEARL.GetConfigData("CZSK_ONLY"),
-    WHITELIST                   = PEARL.GetConfigData("WHITELIST"),
+    STRICT_WHITELIST            = PEARL.GetConfigData("STRICT_WHITELIST"),
     INTRO_SCREEN                = PEARL.GetConfigData("INTRO_SCREEN"),
     ALLOWLIST                   = PEARL.GetConfigData("ALLOWLIST"),
     PROFANITY_FILTER            = PEARL.GetConfigData("PROFANITY_FILTER"),
@@ -195,20 +197,21 @@ ModuleManager:SetModuleDirectory("modules")
 
 -- Master only modules
 if TheShard:IsMaster() then
-    ModuleManager:AddModule("allowlist", PEARL.CONFIG.ALLOWLIST or PEARL.CONFIG.CZSK_ONLY)
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
+    -- Master handles the connections
+    ModuleManager:AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
+    ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 end
 
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
 ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTER)
-ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
-ModuleManager:AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
 ModuleManager:AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
 ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)
+--- @TODO: Replace with DFT's tracker for now.
 ModuleManager:AddModule("logger/player", true)
 
 -- Discord only loggers
@@ -235,10 +238,14 @@ end
 --------------------------------
 
 PEARL.info("Loading constants...")
-PEARL.loadfile("constants/prefabs")
+--- @type table<table<string, boolean>>
+PEARL.PREFABS = PEARL.loadfile("constants/prefabs")
+
 -- Load emotes before icons
-PEARL.loadfile("constants/emotes")
-PEARL.loadfile("constants/icons")
+--- @type table<table<string, string>>
+PEARL.EMOTES = PEARL.loadfile("constants/emotes")
+--- @type table<table<string, string>|table<table<string, string>>>
+PEARL.ICONS = PEARL.loadfile("constants/icons")
 
 --------------------------------
 -- [[ Scheduler ]]
@@ -268,19 +275,22 @@ PEARL.DiscordLogger:SetBufferTimeout(
 PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
 
 --------------------------------
--- [[ Overrides ]]
+-- [[ Extensions ]]
 --------------------------------
 
-PEARL.info("Loading extensions...")
+PEARL.info("Loading game component extensions...")
 PEARL.loadfile("extensions/components/inventory")
 PEARL.loadfile("extensions/components/workable")
 PEARL.loadfile("extensions/components/age")
-PEARL.loadfile("extensions/components/entityscript")
 PEARL.loadfile("extensions/components/inventoryitem")
 PEARL.loadfile("extensions/components/container")
 PEARL.loadfile("extensions/components/stackable")
-PEARL.loadfile("extensions/components/playercommon")
 PEARL.loadfile("extensions/components/edible")
+PEARL.loadfile("extensions/components/activable")
+
+PEARL.info("Loading game script extensions...")
+PEARL.loadfile("extensions/scripts/entityscript")
+PEARL.loadfile("extensions/scripts/playercommon")
 
 -------------------------------------
 -- [[ Blacklist/Whitelist Wrappers ]]
@@ -292,10 +302,18 @@ PEARL.BlackList = PEARL.loadfile("libraries/wrappers/blacklist")
 --- @type Whitelist
 PEARL.WhiteList = PEARL.loadfile("libraries/wrappers/whitelist")
 --- @deprecated Use AllowList instead.
--- if PEARL.CONFIG.WHITELIST then
---     PEARL.WhiteList:SetMode(PEARL.WhiteList.MODE.ALLOWLIST)
---     PEARL.WhiteList:SyncReservedWithSlots()
--- end
+if PEARL.CONFIG.STRICT_WHITELIST then
+    PEARL.WhiteList:SetMode(PEARL.WhiteList.MODE.ALLOWLIST)
+    PEARL.WhiteList:SyncReservedWithSlots()
+end
+
+--- @type AllowList
+PEARL.AllowList = PEARL.loadfile("libraries/wrappers/allowlist")
+if PEARL.CONFIG.ALLOWLIST and TheShard:IsMaster() then
+    PEARL.warn("Allowlist is enabled! Only players on the list or admins will be able to join.")
+    PEARL.AllowList:SetIsEnabled(true)
+end
+PEARL.AllowList:Load()
 
 --------------------------------
 -- [[ Modules ]]
@@ -384,6 +402,10 @@ if PEARL.CONFIG.DEBUG_MODE then
     require("debugkeys")
     -- Fix for a broken debug handler
     handlers[KEY_D] = nil
+
+    PEARL.AddGlobalFunctionPreCall("c_reset", function()
+        TheSim:ResetError()
+    end)
 end
 
 --------------------------------

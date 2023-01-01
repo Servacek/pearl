@@ -9,6 +9,8 @@ local string, math = string, math
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
+local UserCommands = require("usercommands")
+
 -------------------------------
 -- [[ World State Handlers ]]
 -------------------------------
@@ -49,11 +51,8 @@ end
 -------------------------------
 
 local function OnClientAuthenticationComplete(world, data)
-    if not data then
-        return
-    end
-
-    local client = TheNet:GetClientTableForUser(data.userid)
+    -- TheNet:GetClientTableForUser crashes for nil values
+    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
     if not client or PEARL.IsClientMigrating(client) then
         return
     end
@@ -80,46 +79,35 @@ local function OnClientConnectionClosed(world, data)
 end
 
 local function OnClientDisconnected(world, data)
-    if not data or not data.userid then
+    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
+    if not (client and client.name) then
         return
     end
 
-    local client = TheNet:GetClientTableForUser(data.userid)
-
-    if client ~= nil and client.name ~= nil then
-        if data.expected == false then
-            return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
-                    client.name, PEARL.GetShardName()
-            ))
-        end
-
-        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
+    if data.expected == false then
+        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
                 client.name, PEARL.GetShardName()
         ))
     end
+
+    return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
+            client.name, PEARL.GetShardName()
+    ))
 end
 
---- @TODO
-local function OnClientNotWhitelisted(userid)
-    if not userid then return end
+--- @deprecated: Now the allowlist is handled by the 'JoinServerFilter'.
+--- So the not allowlisted connections are being filtered before the user
+--- can even join the server.
+-- local function OnClientNotWhitelisted(userid)
+--     if not userid then return end
 
-    PEARL.DiscordLogger:LogString(
-        STRINGS.PEARL.NOT_WHITELISTED:format(userid),
-        PEARL.ICONS.ANNOUNCEMENTS['kicked_from_game']
-    )
-end
+--     PEARL.DiscordLogger:LogString(
+--         STRINGS.PEARL.NOT_WHITELISTED:format(userid),
+--         PEARL.ICONS.ANNOUNCEMENTS['kicked_from_game']
+--     )
+-- end
 
---- @TODO
-local function OnAltClientWithBannedRoot(userid, rootid)
-    if not userid or not rootid then return end
-
-    PEARL.DiscordLogger:LogString(
-        STRINGS.PEARL.BANNED_ROOT_CLIENT:format(userid, rootid),
-        PEARL.ICONS.ANNOUNCEMENTS['banned_from_game']
-    )
-end
-
---- @TODO
+--- @TODO: v2.1
 -- local function Logger.OnPlayerWarnedForGriefing(name)
 --     if not name then return end
 
@@ -144,18 +132,17 @@ end
 -------------------------------
 
 local function OnStartVote(self, data)
-    if not data then
+    local doer = data and data.starteruserid and TheNet:GetClientTableForUser(data.starteruserid)
+    local target = data and data.targetuserid and TheNet:GetClientTableForUser(data.targetuserid)
+    if not (doer and target) then
         return
     end
-
-    local doer = TheNet:GetClientTableForUser(data.starteruserid)
-    local target = TheNet:GetClientTableForUser(data.targetuserid)
 
     local command = UserCommands.GetCommandFromHash(data.commandhash)
     local votefmt = ResolveCommandStringProperty(command, "votenamefmt", STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT)
     local votename = votefmt:format(target and target.name or "?")
 
-    -- TODO: add some custom icon
+    --- @TODO: add some custom icon
     PEARL.DiscordLogger:LogString(
         (doer and doer.name) and STRINGS.PEARL.LOGS.START_VOTE:format(
             doer.name, votename
@@ -231,7 +218,7 @@ local function OnFireSpreaderKilled(doer, target)
             doer = doer:GetDisplayName(), target = target:GetDisplayName(), near = PEARL.FormatSortedPrefabs(entities)
         })
 
-        PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES, doer.entity)
+        PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES, doer.entity)
     end
 end
 
@@ -242,11 +229,11 @@ local function OnNonRenewableMobKilled(doer, target)
         return
     end
 
-    local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.MONITORED, {
+    local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.REMAINING, {
         doer = doer:GetDisplayName(), target = target:GetDisplayName()
     })
 
-    PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
 end
 
 local function OnBossDefeated(doer, target)
@@ -254,7 +241,7 @@ local function OnBossDefeated(doer, target)
         doer = doer:GetDisplayName(), target = target:GetDisplayName()
     })
 
-    PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT, doer.entity)
+    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT, doer.entity)
 end
 
 local function OnCompanionKilled(doer, target)
@@ -262,7 +249,7 @@ local function OnCompanionKilled(doer, target)
         doer = doer:GetDisplayName(), target = target:GetDisplayName()
     })
 
-    PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
 end
 
 local function OnFollowerKilled(doer, target, leader)
@@ -270,7 +257,7 @@ local function OnFollowerKilled(doer, target, leader)
         doer = doer:GetDisplayName(), target = target:GetDisplayName(), owner = leader:GetDisplayName()
     })
 
-    PEARL.Announce(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
 end
 
 local function OnEntityDeath(self, data)
@@ -331,31 +318,34 @@ PEARL.AddGamePostInit(function()
         return
     end
 
-    world:ListenForEvent("entity_death", OnEntityDeath)
+    world:SafeListenForEvent("entity_death", OnEntityDeath)
 
     if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
         if world.ismastershard then
             -- We care about these event's only on the master shard
-            world:ListenForEvent("cycleschanged", OnCyclesChanged)
-            world:ListenForEvent("phasechanged", OnPhaseChanged)
+            world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
+            world:SafeListenForEvent("phasechanged", OnPhaseChanged)
 
-            world:ListenForEvent("showworldreset", OnResetCountDownStart)
-            world:ListenForEvent("hideworldreset", OnResetCountDownStop)
+            world:SafeListenForEvent("showworldreset", OnResetCountDownStart)
+            world:SafeListenForEvent("hideworldreset", OnResetCountDownStop)
 
-            world:ListenForEvent("ms_startvote", OnStartVote)
-            world:ListenForEvent("ms_stopvote", OnStopVote)
+            world:SafeListenForEvent("ms_startvote", OnStartVote)
+            world:SafeListenForEvent("ms_stopvote", OnStopVote)
 
             -- Note:
             -- When joining a server, this is being called always on Master.
             -- In caves this can be pushed during migration for example.
-            world:ListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
+            world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
         end
 
-        world:ListenForEvent("ms_clientdisconnected", OnClientDisconnected)
-        world:ListenForEvent("ms_clientconnectionclosed", OnClientConnectionClosed)
-        world:ListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
-        world:ListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
-        world:ListenForEvent("world_reset", OnReset)
-        world:ListenForEvent("world_rollback", OnRollback)
+        world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
+        world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
+        world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
+
+        --> Mod Events
+        world:ListenForModEvent("clientconnectionclosed", OnClientConnectionClosed)
+        world:ListenForModEvent("world_rollback", OnRollback)
+        world:ListenForModEvent("world_reset", OnReset)
+
     end
 end)

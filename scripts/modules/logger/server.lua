@@ -30,10 +30,6 @@ local function OnShutdown()
     ), PEARL.ICONS.SERVER_STATE.STOP, true)
 end
 
--- local function OnStart()
---     PEARL.Logger:LogStringHighlighted(STRINGS.PEARL.LOGS.START)
--- end
-
 local function OnShardStateUpdate(world, state)
     if not state then
         return
@@ -84,8 +80,6 @@ local function OnFirstLaunch()
         return
     end
 
-    PEARL.debug("OnFirstLaunch!")
-
     PEARL.DiscordLogger:LogEmbed(Embed()
         :SetTitle(STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE)
         :SetColor(Embed.COLORS.GREEN)
@@ -100,19 +94,11 @@ local function OnFirstLaunch()
 end
 
 local function OnModBackendPostInit()
-    PEARL.DiscordLogger:LogStringHighlighted("Systém Inicializovaný. Načítavanie servera...", nil, true)
+    -- This is being sent before FrontEnd so the translations are not applied.
+    PEARL.DiscordLogger:LogStringHighlighted(
+        STRINGS.PEARL.LOGS.SERVER_INITIALIZED, nil, true
+    )
 end
-
--- local function OnError(error_msg, silent)
---     PEARL.info("Sending error report...")
-
---     local message = PEARL.Rhook:SendLogLine(MARKDOWN.bold(STRINGS.PEARL.ERROR)
---         .."\n"..MARKDOWN.codeblock(tostring(error_msg)), nil, true
---     )
---     if message and not silent then
---         message:AllowMentionsForType(Message.MENTION_TYPES.USERS)
---     end
--- end
 
 -------------------------------
 -- [[ Listeners ]]
@@ -123,25 +109,34 @@ PEARL.AddGamePostInit(function()
         return
     end
 
-    TheWorld:ListenForEvent("shard_shutdown", OnShutdown)
+    TheWorld:ListenForModEvent("shard_shutdown", OnShutdown)
 
     if TheWorld.ismastershard then
-        TheWorld:ListenForEvent("serverpauseddirty", OnPauseDirty)
+        TheWorld:SafeListenForEvent("serverpauseddirty", OnPauseDirty)
 
         -- Shard Networking
-        TheWorld:ListenForEvent("shard_stateupdate", OnShardStateUpdate)
+        TheWorld:ListenForModEvent("shard_stateupdate", OnShardStateUpdate)
 
         -- initial + current
-        if TheSim:GetNumLaunches() == 2 then
+        if PEARL.IsFirstLaunch() then
             OnFirstLaunch()
         end
     end
 end)
 
-PEARL.AddModPostInit(function()
+-- PEARL.AddModPostInit(function()
+--     if TheShard:IsMaster() and TheSim:GetNumLaunches() > 1 then
+--         OnModBackendPostInit()
+--     end
+-- end)
+
+--- This is actually the point where most of the mod's stuff is loaded.
+--- (translations, rpcs, ...)
+PEARL.AddFrontEndPostInit(function(fe)
     if TheShard:IsMaster() and TheSim:GetNumLaunches() > 1 then
         OnModBackendPostInit()
     end
 end)
 
-PEARL.EventProcessor:AddEventHandler("quit", OnShutdown)
+-- This is being called on regens and resets as well
+-- PEARL.EventProcessor:AddEventHandler("quit", OnShutdown)

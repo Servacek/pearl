@@ -13,6 +13,9 @@
         - The discord REST API rate limit is 16 requests/second.
 --]]
 
+--- @TODO: Think about some way to prevent forced request to exceed rate limits.
+--- Since now you basically force requests in a loop...
+
 local Queue = PEARL.loadfile("models/queue")
 local Request = PEARL.loadfile("models/request")
 
@@ -30,7 +33,7 @@ local DEFAULT_QUEUE_SIZE_LIMIT = 10
 local DEFAULT_REQUEST_FREQUENCY = 2
 -- Determines the number of requests which can be force-sent from the queue
 -- when the requester is shutting down.
-local MAX_QUEUE_FORCE_COUNT = 3
+local MAX_FORCE_THRESHOLD = 3
 
 --------------------------------
 -- [[ Private Functions ]]
@@ -51,6 +54,7 @@ _SendRequest = function(self, request, force)
 
         -- Wait a few seconds before executing next request
         self:StartCooldown()
+        self:ResetForceTreshold()
     end, request.method, request.data, request.timeout)
 
     self._rcount = self._rcount + 1
@@ -67,6 +71,10 @@ end
 _FinishCooldown = function(self)
     self:SetIsOnCooldown(false)
 
+    -- Allow garbage-collection for the cooldown task
+    -- Would be better if the task could be recycled.... @TODO
+    self._cooldown_task = nil
+
     _ProcessQueue(self)
 end
 
@@ -77,6 +85,8 @@ end
 --- @class RestClient singleton
 local RestClient = Class(function(self)
     self._frequency = DEFAULT_REQUEST_FREQUENCY
+
+    self._force_threshold = MAX_FORCE_THRESHOLD
 
     -- Lazy load the queue
     --- @type Queue?
@@ -131,6 +141,10 @@ function RestClient:CacheRequest(request)
     return self
 end
 
+function RestClient:ResetForceTreshold()
+    self._force_threshold = MAX_FORCE_THRESHOLD
+end
+
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
@@ -169,18 +183,13 @@ function RestClient:StartCooldown()
         return
     end
 
-    -- Do not allow overriding
-    if self._cooldown_task and self._cooldown_task.limit and self._cooldown_task.limit > 0 then
+    -- Do not allow overriding except when the last request was force executed.
+    -- In this case we want to reset the cooldown task.
+    if self._cooldown_task and not self._cooldown_task.finished then
         return PEARL.warn("Attempted to override an unfinished cooldown task!")
     end
 
-    -- if self:IsOnCooldown() then
-    --     PEARL.warn("<Requester.StartCooldown> Overriding an unfinished task!")
-
-    --     self._cooldown_task:Cancel()
-    -- end
-
-    --PEARL.debug("Cooling down...")
+    PEARL.debug("Cooling down...")
     self._cooldown_task = PEARL.Scheduler:ExecuteInTime(
         self._frequency, _FinishCooldown, nil, self
     )
@@ -198,13 +207,31 @@ function RestClient:ProcessRequest(request)
         self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
     end
 
-    -- PEARL.debug("Adding request to the queue...")
+    PEARL.debug("Adding request to the queue...")
     self._queue:Push(request)
 end
 
 function RestClient:ForceSend(request)
-    PEARL.debug("Forcing a request!")
+    if self._force_threshold <= 0 then
+        return false
+    end
+
+    -- Clear the cooldown task for now and reset it when the forced request completes
+    if self._cooldown_task then
+        PEARL.debug("Clearing the task because of the forced request!")
+
+        self._cooldown_task:Cancel()
+        self._cooldown_task = nil
+    end
+
+    self._force_threshold = self._force_threshold - 1
+
+    PEARL.debug(string.format("Forcing a request! (%d/%d)",
+        self._force_threshold, MAX_FORCE_THRESHOLD
+    ))
     _SendRequest(self, request, true)
+
+    return true
 end
 
 function RestClient:Request(url, method)
@@ -264,38 +291,22 @@ function RestClient:OnShutdown()
         return
     end
 
-    if self._queue and not self._queue:IsEmpty() then
-        PEARL.info("Processing queued requests...")
+    PEARL.info("Processing queued requests...")
 
-        local forced_count = 0
-        for request in self._queue:Iter() do
-            if request and not request:CanSkipOnDeadline() then
-                self:ForceSend(request)
-
-                forced_count = forced_count + 1
-            end
-
-            if forced_count >= MAX_QUEUE_FORCE_COUNT then
+    for request in self._queue:Iter() do
+        if request and not request:CanSkipOnDeadline() then
+            if not self:ForceSend(request) then
                 PEARL.info("Force-sent requests limit reached! Skipping the remaining requests...")
                 break
             end
         end
-
-        self._queue:Clear()
     end
+
+    self._queue:Clear()
 end
 
--- function RestClient:OnReady()
---     self._ready = true
-
---     _ProcessQueue(self)
--- end
-
+--------------------------------
+-- [[ Return ]]
 --------------------------------
 
 return RestClient
-
--- What was the point of this?
--- AddGamePostInit(function()
---     PEARL.RestClient:OnReady()
--- end)

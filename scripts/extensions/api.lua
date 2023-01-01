@@ -180,6 +180,10 @@ function PEARL.AddWorldPostInit(fn, ...)
     return PEARL.AddPrefabPostInit("world", fn, ...)
 end
 
+function PEARL.AddFrontEndPostInit(...)
+    return AddGlobalClassPostConstruct("frontend", "FrontEnd", ...)
+end
+
 ----------------------------------
 -- Overriders
 ----------------------------------
@@ -278,23 +282,17 @@ end)
 -- [[ Frontend Stuff ]]
 --------------------------------
 
-function PEARL.AddAnnouncementCategory(name, icon, enabled)
+function PEARL.AddAnnouncementCategory(name, icon)
     assert(ANNOUNCEMENT_ICONS, "ANNOUNCEMENT_ICONS is nil!")
 
     ANNOUNCEMENT_ICONS[name] = {
         atlas = "images/announcements.xml", texture = icon
     }
 
-    if not PEARL.CONFIG.ANNS then
-        PEARL.CONFIG.ANNS = {}
-    end
-
     if not PEARL.CONSTS.ANNOUNCEMENT_TYPES then
         PEARL.CONSTS.ANNOUNCEMENT_TYPES = {}
     end
 
-    PEARL.CONFIG.ANNS[string.lower(name)] = enabled
-    PEARL.CONFIG.ANNS[string.upper(name)] = enabled
     PEARL.CONSTS.ANNOUNCEMENT_TYPES[string.upper(name)] = name
 end
 
@@ -302,10 +300,19 @@ end
 -- [[ Logging ]]
 --------------------------------
 
---- @TODO figure out what is the third param for TheNet:Announce.
-function PEARL.Announce(message, type, entity, ...)
+--- @TODO figure out what is the third param for TheNet:Announce
+
+--- Similiar to TheNet:Announce but determines using the type
+--- whether to send the message to the game as well
+--- or just to discord (according to the configurations).
+---
+---@param message string The content text of the announcement (supports multiline).
+---@param type string The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
+---@param entity? unknown The entity the announcement is about.
+---@param ... any Additional arguments to the TheNet:Announce function.
+function PEARL.AnnounceWithType(message, type, entity, ...)
     --print("ANNOUNCE", message)
-    if PEARL.CONFIG.ANNS[type] then
+    if PEARL.CONFIG.ANNOUNCEMENTS and PEARL.CONFIG.ANNOUNCEMENTS[type] then
         return TheNet:Announce(message, entity, nil, type, ...)
     end
 

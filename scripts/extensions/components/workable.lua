@@ -89,6 +89,6 @@ end
 
 PEARL.AddClassPostConstruct("components/workable", function(self)
     if self.inst and self.inst:HasTag("structure") then
-        self.inst:ListenForEvent("onbuilt", onbuilt)
+        self.inst:SafeListenForEvent("onbuilt", onbuilt)
     end
 end)

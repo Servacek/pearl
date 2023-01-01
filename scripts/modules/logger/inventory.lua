@@ -32,5 +32,5 @@ PEARL.AddWorldPostInit(function(inst)
         return
     end
 
-    inst:ListenForEvent("ms_playerdespawn", CheckPlayersInventory)
+    inst:SafeListenForEvent("ms_playerdespawn", CheckPlayersInventory)
 end)

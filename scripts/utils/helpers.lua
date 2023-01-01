@@ -1,3 +1,5 @@
+--- @TODO: Sort this a bit (v2.1)
+
 
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 local UserCommands = require("usercommands")
@@ -368,7 +370,7 @@ function PEARL.IsClientMigrating(client)
 end
 
 function PEARL.IsAdminUserid(userid)
-    local client = TheNet:GetClientTableForUser(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
     return client and client.admin
 end
 
@@ -392,6 +394,10 @@ end
 --------------------------------
 -- [[ Utils ]]
 --------------------------------
+
+function PEARL.SendMessageToClient(userid, message)
+    PEARL.SendRPCToClient(PEARL.RPCS.SendDirectMessage, userid, message)
+end
 
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
@@ -459,18 +465,58 @@ function PEARL.SortPrefabs(list, center)
     return PEARL.FormatSortedPrefabs(prefabs)
 end
 
+
+local function format_grouped(grouped)
+    local fancy_names = {}
+    for name, count in pairs(grouped) do
+        if count > 1 then
+            fancy_names[#fancy_names + 1] = STRINGS.PEARL.LOGS.ITEM:format(count, name)
+        else
+            fancy_names[#fancy_names + 1] = name
+        end
+    end
+
+    return table.fconcat(fancy_names)
+end
+
+function PEARL.GroupEntitiesByPrefab(entities)
+    local grouped = {}
+    for _, ent in ipairs(entities) do
+        local name = ent:GetBasicDisplayName()
+        -- Try to use the basic names here since it's not possible
+        -- to find name for all avaible prefabs in STRINGS.NAMES.
+        -- Example is flower_cave_double - Light Flower
+        if not grouped[name] then
+            grouped[name] = PEARL.GetStackSize(ent)
+        else
+            grouped[name] = grouped[name] + PEARL.GetStackSize(ent)
+        end
+    end
+
+    return format_grouped(grouped)
+end
+
+function PEARL.GetFuncSrcStr(func)
+    local src_info = debug.getinfo(func, "S")
+    local filename = PEARL.GetFileNameFromPath(src_info.source) or "unknown"
+
+    return string.format("[%s]:%d:<%d>",
+        filename, src_info.linedefined or -1, src_info.currentline or -1
+    )
+end
+
 -- Runs a function and catches errors during the call.
 -- Return values are the same as for calling it via pcall function.
 function PEARL.SafeRun(func, ...)
-    if not func then
-        PEARL.info("SafeRun", "[Warning] Tryed to run a non existing function!")
+    if type(func) ~= "function" then
+        PEARL.warn("Tryed to run a non existing function!")
         return false
     end
 
     local success, result = pcall(func, ...)
-    if not success and result then
+    if not success then
         PEARL.error(
-            "Catched an error while safe executing function", debug.getinfo(func, "n").name, "\n"..tostring(result)
+            "Error in function call:", result or "Unknown"
         )
 
         PEARL.DiscordReporter:ReportModError(result)
@@ -528,20 +574,31 @@ end
 
 function PEARL.UnbanUserByID(userid)
     if PEARL.BlackList:RemovePlayerByID(userid) then
-        return PEARL.info("Successfully removed", userid, "from the blocklist!")
+        PEARL.info("Successfully removed", userid, "from the blocklist!")
+
+        return true
     end
 
-    return PEARL.info("Attempt to unban", userid, "failed.")
+    PEARL.info("Attempt to unban", userid, "failed.")
+    return false
 end
 
 function PEARL.LogInventoryFor(userid)
     if type(userid) ~= "string" then
-        return PEARL.error("Invalid userid parameter")
+        PEARL.error("Invalid userid parameter")
+
+        return false
     end
 
     local inventory, prefab, name = PEARL.GetInventoryTabelFor(userid)
+    if not inventory then
+        return false
+    end
+
     PEARL.info(DataDumper(inventory))
 
     local embed = PEARL.InventoryToEmbed(inventory, prefab, name, userid)
-    return PEARL.DiscordLogger:LogEmbed(embed)
+    PEARL.DiscordLogger:LogEmbed(embed)
+
+    return true
 end

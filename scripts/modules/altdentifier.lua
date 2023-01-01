@@ -9,7 +9,6 @@
 ]]
 
 local json = json
-local PEARL = PEARL
 local TheNet = TheNet
 
 --------------------------------
@@ -24,15 +23,14 @@ local FS_QUERY_SERVER_TOKEN
 
 local QUERY_ERRORS        = {
     -- Getting this error in production usage most likely indicates
-    -- some nasty formatting issues. Maybe it would be a good idea to
-    -- report it to discord.
+    -- some nasty formatting issues.
     INVALID_KU         = "E_INVALID_KU",
-    OWNERSHIP_MISSING  = "E_OWNERSHIP_MISSING",
+    --OWNERSHIP_MISSING  = "E_OWNERSHIP_MISSING",
 }
 
 local DO_NOT_RETRY_ERRORS = {
     ["E_INVALID_KU"] = true,
-    ["E_OWNERSHIP_MISSING"] = true,
+    ["E_OWNERSHIP_MISSING"] = not PEARL.CONFIG.DEBUG_MODE,
 }
 
 --------------------------------
@@ -74,17 +72,7 @@ local function HasAccountValidRoot(userid, rootid)
     -- If the owner of the borrowed game is on our blacklist
     -- we want to ban their alt accounts as well
     -- Note: "ms_clientauthenticationcomplete" is not called for banned players.
-    if rootid ~= userid and PEARL.BlackList:IsBlacklisted(rootid) then
-        --- @TODO Add logging...
-        --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS., rootid)
-
-        PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
-        TheNet:Ban(userid)
-
-        return false
-    end
-
-    return true
+    return rootid == userid or not PEARL.BlackList:Contains(rootid)
 end
 
 --------------------------------
@@ -95,30 +83,34 @@ local HandleFSQuery, SendFSQueryFor
 
 HandleFSQuery = function(response, success_query, http_code, request, userid, no_retry)
     if not success_query or not response then
+        -- Try to log this error to discord as well.
+        if not no_retry then
+            PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..tostring(userid).." failed with error code "..(http_code or "UNKNOWN"))
+        end
+
         return PEARL.error("Query failed with status code", http_code, "for user", userid)
     end
 
-    PEARL.debug(
-        "RESPONSE", response,
-        "USERID:", userid,
-        "NO_RETRY:", no_retry,
-        "SUCCESS:", success_query,
-        "CODE:", http_code,
-        "REQUEST:", request
-    )
+    -- PEARL.debug(
+    --     "RESPONSE", response,
+    --     "USERID:", userid,
+    --     "NO_RETRY:", no_retry,
+    --     "SUCCESS:", success_query,
+    --     "CODE:", http_code,
+    --     "REQUEST:", request
+    -- )
     local success_decode, reponse_json = pcall(json.decode, response)
     if not success_decode or not reponse_json then
         return PEARL.error("JSON decoding failed for user", userid)
     end
 
-    --table.foreach(reponse_json, SUB.debug)
     -- reponse_json.Error refers to a boolean
     if reponse_json.Error then
         PEARL.error("Query for", userid, "failed with error code", reponse_json.ErrorCode or "UNKNOWN")
 
         -- If the error is unknown then report it to discord.
-        if not QUERY_ERRORS[reponse_json.ErrorCode] then
-            PEARL.Rhook:SendErrorReport("AO Query for "..userid.." failed with error code "..(reponse_json.ErrorCode or "UNKNOWN"))
+        if not no_retry and not table.contains(QUERY_ERRORS, reponse_json.ErrorCode) then
+            PEARL.DiscordReporter:ReportModError("AO Query for "..userid.." failed with unknown error code "..(reponse_json.ErrorCode or "UNKNOWN"))
         end
 
         -- When an error occurs, try to send the request one more time
@@ -135,9 +127,15 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
         return PEARL.info("No root account info for user", userid)
     end
 
-    if not HasAccountValidRoot then
-        --- @TODO Add logging...
-        --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS., rootid)
+    PEARL.debug("USERID:", userid, "ROOTID:", rootid)
+
+    if not HasAccountValidRoot(userid, rootid) then
+        if TheWorld then
+            TheWorld:PushModEvent("clientconnectionclosed", {
+                reason = "ID_DST_BANNED_ROOT",
+                userid = userid,
+            })
+        end
 
         PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
         return TheNet:Ban(userid)
@@ -145,7 +143,7 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
 
     -- If verification was successfull, cache this userid to
     -- reduce the number of queries.
-    PEARL.info("Account", userid, "has a valid root. Caching...")
+    PEARL.debug("Account", userid, "has a valid root. Caching...")
     CacheRootUserid(userid)
 end
 
@@ -170,7 +168,7 @@ end
 --------------------------------
 
 PEARL.AddWorldPostInit(function(world)
-    world:ListenForEvent("ms_clientauthenticationcomplete", function(_, userid)
+    world:SafeListenForEvent("ms_clientauthenticationcomplete", function(_, userid)
         if not userid or PEARL.IsClientMigrating(userid) then
             return
         end

@@ -10,7 +10,7 @@ function table:filter(checkfn)
     return result
 end
 
-function table:check(checkfn)
+function table:find(checkfn)
     for k, v in pairs(self) do
         if checkfn(k, v) then
             return true
@@ -18,4 +18,11 @@ function table:check(checkfn)
     end
 
     return false
+end
+
+-- Fancy Table Concatenation
+function table:fconcat()
+    return #self > 1 and STRINGS.PEARL.LOGS.AND:format(
+        table.concat(self, ", ", 1, #self - 1), self[#self]
+    ) or table.concat(self, ", ")
 end

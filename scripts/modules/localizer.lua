@@ -1,3 +1,4 @@
+
 -- NOTE: All of this on the client's side needs to be executed in one tick!
 
 
@@ -5,12 +6,6 @@ local PEARL = PEARL
 
 local TheNet, TheSim = TheNet, TheSim
 local table = table
-
---------------------------------
--- [[ Imports ]]
---------------------------------
-
-local AllowList = PEARL.loadfile("modules/allowlist")
 
 --------------------------------
 -- [[ Contants ]]
@@ -179,7 +174,13 @@ local function _OnClientLocalizationComplete(userid, locale)
 
     _CancelTimeoutFor(userid)
 
-    if LookupPlayerInstByUserID(userid) or _IsClientCached(userid) or AllowList:Contains(userid) then
+    -- If the player was already loaded we do not care about localization.
+    -- This happens for example during migration.
+    if LookupPlayerInstByUserID(userid) ~= nil or
+        _IsClientCached(userid) or
+        PEARL.AllowList:Contains(userid) or
+        PEARL.WhiteList:Contains(userid)
+    then
         PEARL.debug("_OnClientLocalizationComplete: Sending local allowed rpc to client...")
         return PEARL.SendRPCToClient(PEARL.RPCS.LocaleAllowed, userid)
     end

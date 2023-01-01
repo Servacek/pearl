@@ -24,7 +24,7 @@ local ITEM_RARITY       = {
 }
 
 --------------------------------
--- [[ Member Functions ]]
+-- [[ Getters ]]
 --------------------------------
 
 function InventoryItem:GetRarityPercent()
@@ -32,36 +32,11 @@ function InventoryItem:GetRarityPercent()
 end
 
 function InventoryItem:IsRare()
-    if self:GetRarityPercent() > 0 then
-        return true
-    end
-
-    if self.inst.components.container then
-        if self.inst.components.container:FindItem(function(item)
-            item.components.inventoryitem:IsRare()
-        end) then
-            return true
-        end
-    end
-
-    return false
+    return self:GetRarityPercent() > 0
 end
 
---- @TODO add container support
 function InventoryItem:IsVeryRare()
-    if self:GetRarityPercent() >= 1 then
-        return true
-    end
-
-    if self.inst.components.container then
-        if self.inst.components.container:FindItem(function(item)
-            item.components.inventoryitem:IsVeryRare()
-        end) then
-            return true
-        end
-    end
-
-    return false
+    return self:GetRarityPercent() >= 1
 end
 
 function InventoryItem:GetStackSize()
@@ -75,7 +50,7 @@ function InventoryItem:GetTotalRarity()
 
     -- Renewable Resources (eg. grass, twigs)
     if self.inst:HasTag("renewable") then
-        print("RENEWABLE ("..self.inst.prefab.." x"..tostring(stacksize).."):")
+        --print("RENEWABLE ("..self.inst.prefab.." x"..tostring(stacksize).."):")
         return rarity + (ITEM_RARITY.RENEWABLE * stacksize)
     end
 
@@ -87,11 +62,11 @@ function InventoryItem:GetTotalRarity()
                     ITEM_RARITY_MAX * PEARL.PREFABS.RARE_ITEMS[ingredient.type]
                 ) * ingredient.amount
 
-                print("RARE INGEREDIENT ("..ingredient.type.." x"..tostring(ingredient.amount)..")", rarity)
+                --print("RARE INGEREDIENT ("..ingredient.type.." x"..tostring(ingredient.amount)..")", rarity)
             end
         end
     elseif self:IsVeryRare() then
-        print("VERY RARE ("..self.inst.prefab.." x"..tostring(stacksize).."):")
+        --print("VERY RARE ("..self.inst.prefab.." x"..tostring(stacksize).."):")
 
         -- Full rarity for very rare items
         return ITEM_RARITY_MAX
@@ -101,28 +76,29 @@ function InventoryItem:GetTotalRarity()
 
     -- Gems
     if self.inst:HasTag("gem") then
-        print("GEM ("..self.inst.prefab.." x"..tostring(stacksize).."):")
+        --print("GEM ("..self.inst.prefab.." x"..tostring(stacksize).."):")
         return rarity + (ITEM_RARITY.GEM * stacksize)
     end
 
     -- Tools/Weapons/Armor/Hats
-    if not self.inst.components.stackable then--and self.inst:HasBuilder() then
+    --- @TODO: Think about a way how to store builders of items as well.
+    if not self.inst.components.stackable then -- self.inst:HasBuilder() then
         -- If this item does not have durability (e. g. Walking Cane) we count it as
         -- if it had 100%.
         local finituse_percent = self.inst.components.finiteuses and self.inst.components.finiteuses:GetPercent() or 1
 
-        if self.inst:IsBuildBy(self.inst.userid) then
-            print("TOOL OWN ("..self.inst.prefab.." x"..tostring(stacksize).." "..math.floor(finituse_percent * 100).."%):")
-            return rarity + (ITEM_RARITY.BUILT_SELF * finituse_percent)
-        end
+        -- if self.inst:IsBuildBy(self.inst.userid) then
+        --     --print("TOOL OWN ("..self.inst.prefab.." x"..tostring(stacksize).." "..math.floor(finituse_percent * 100).."%):")
+        --     return rarity + (ITEM_RARITY.BUILT_SELF * finituse_percent)
+        -- end
 
         local mult = self.skinname ~= nil and ITEM_RARITY.SKIN_MULT or 1
-        print("TOOL OWN ("..self.inst.prefab.." x"..tostring(stacksize).." "..math.floor(finituse_percent * 100).."%):")
+        --print("TOOL OWN ("..self.inst.prefab.." x"..tostring(stacksize).." "..math.floor(finituse_percent * 100).."%):")
         return rarity + (ITEM_RARITY.BUILT_OTHER * finituse_percent) * mult
     end
 
     if self.inst.components.fuel then
-        print("FUEL ("..self.inst.prefab.." x"..tostring(stacksize).."):")
+        --print("FUEL ("..self.inst.prefab.." x"..tostring(stacksize).."):")
         local fuel_val = self.inst.components.fuel.fuelvalue
         return rarity + (ITEM_RARITY.FUEL * (fuel_val / TUNING.SEG_TIME)) * stacksize
     end
@@ -133,21 +109,19 @@ function InventoryItem:GetTotalRarity()
         if food_val > 0 then
             local mult = self.inst:HasTag("preparedfood") and ITEM_RARITY.PER_FOOD_POINT or ITEM_RARITY.PER_FOOD_POINT_RAW
 
-            print("EDIBLE ("..self.inst.prefab.." x"..tostring(stacksize)..")")
+            --print("EDIBLE ("..self.inst.prefab.." x"..tostring(stacksize)..")")
 
             return rarity + (food_val * mult) * stacksize
         end
     end
 
-    print("DEFAULT ("..self.inst.prefab.." x"..tostring(stacksize).."):")
+    --print("DEFAULT ("..self.inst.prefab.." x"..tostring(stacksize).."):")
     return rarity + (ITEM_RARITY.DEFAULT * stacksize)
 end
 
 function InventoryItem:GetDisplayNameWithCount()
     return STRINGS.PEARL.LOGS.ITEM:format(self:GetStackSize(), self.inst:GetDisplayName())
 end
-
--------- Owner History
 
 function InventoryItem:GetLastPlayerOwner()
     return self._last_player_owner
@@ -161,45 +135,37 @@ function InventoryItem:IsLastPlayerOwner(owner)
     return self._last_player_owner == owner
 end
 
+function InventoryItem:IsLastPicker(picker)
+    return self._last_picker == picker
+end
+
+--------------------------------
+-- [[ Setters ]]
+--------------------------------
+
 function InventoryItem:SetLastPlayerOwner(owner)
     self._last_player_owner = owner
 end
 
 function InventoryItem:SetLastOwner(owner)
-    --- @deprecated
-    -- This is also a possible solution but it doesn't handle many edge cases
-    --holder:PushEvent("became_holder", self.inst)
-
-    self._holder = owner
+    self._last_owner = owner
 end
 
-function InventoryItem:IsLastContainer(container)
-    return self._last_container
-end
-
-function InventoryItem:SetLastContainer(container)
-    self._last_container = container
+function InventoryItem:SetLastPicker(picker)
+    self._last_picker = picker
 end
 
 --------------------------------
--- [[ Function Pre Inits ]]
+-- [[ Function Pre Calls ]]
 --------------------------------
 
--- PEARL.AddClassFunctionPreCall("SetOwner", function(self, owner)
---     -- PEARL.debug(string.format("SetOwner[%s]<Owner: %s>",
---     --     self.inst.prefab, tostring(owner)
---     -- ))
-
---     self:SetHolder(owner)
--- end, InventoryItem)
-
-
-PEARL.AddClassFunctionPreCall("ClearOwner", function(self)
-    -- PEARL.debug(string.format("ClearOwner[%s]", self.inst.prefab))
-
+local _ClearOwner = InventoryItem.ClearOwner
+InventoryItem.ClearOwner = _ClearOwner and function(self, ...)
     if self.owner and self.owner:HasTag("player") then
         self:SetLastPlayerOwner(self.owner)
     end
 
     self:SetLastOwner(self.owner)
-end, InventoryItem)
+
+    return _ClearOwner(self, ...)
+end or _ClearOwner

@@ -63,7 +63,7 @@ end
 
 --- @param userid string Supports both Klei and Steam IDs.
 --- @return boolean result Whether the given ID is on the blacklist or not.
-function BlackList:IsBlacklisted(userid)
+function BlackList:Contains(userid)
     return self:GetPlayerByID(userid) ~= nil
 end
 

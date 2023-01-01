@@ -51,14 +51,26 @@ function string.to_emoji(utf8_icon)
     return PEARL.EMOTES.DISCORD[utf8_icon] or utf8_icon
 end
 
-function string:ltake(count, init)
-    return self:sub(init or 1, count)
+-- longline -> ltake(3) -> lon
+--- @param count number The number of characters to take from the right side of the string.
+--- @param init number? The index of the character from which we should start taking.
+--- @param postfix string? An additional string added after the last taken character.
+---
+--- @return string result The modified string.
+function string:ltake(count, init, postfix)
+    local r = self:sub(init or 1, count)
+    return postfix and count > 0 and #self > count and postfix..r or r
 end
 
--- rtake(10)
--- ffasffassafasfasf
-function string:rtake(count, init)
-    return self:sub(#self - count + 1, init or #self)
+-- longline -> rtake(3) -> ine
+--- @param count number The number of characters to take from the right side of the string.
+--- @param init number? The index of the character from which we should start taking.
+--- @param prefix string? An additional string added before the first taken character.
+---
+--- @return string result The modified string.
+function string:rtake(count, init, prefix)
+    local r = self:sub(#self - count + 1, init or #self)
+    return prefix and count > 0 and #self > count and prefix..r or r
 end
 
 --- Converts the first letter of the given string to uppercase

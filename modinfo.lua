@@ -178,8 +178,10 @@ configuration_options = {
     -- Access Lists
     --------------------
 
+    --- @disabled for now, use allowlist instead which is more reliable.
+    -- Keeping it here just in case it is useful for something.
     {
-        name = "WHITELIST",
+        name = "WHITELIST_MODE",
         default = false,
     },
 
@@ -265,52 +267,63 @@ configuration_options = {
     -- Announcements
     --------------------
 
-    --- @TODO: Separate the announcement settings from other things somehow
-
+    --> e.g.:
+    --[[
+        ANNOUNCEMENTS = {
+            ["defeat"] = true,
+            ["kill"] = false,
+            ...
+        },
+    --]]
     {
-        name="IGNITE",
-        default=true,
+        name = "ANNOUNCEMENTS",
+        default = {},
     },
 
-    {
-        name="BURNTUP",
-        default=true,
-    },
+    -- {
+    --     name="IGNITE",
+    --     default=true,
+    -- },
 
-    {
-        name="TAKE",
-        default=true,
-    },
+    -- {
+    --     name="BURNTUP",
+    --     default=true,
+    -- },
 
-    {
-        name="DESTROY",
-        default=true,
-    },
+    -- {
+    --     name="TAKE",
+    --     default=true,
+    -- },
 
-    {
-        name="KILLBOSS",
-        default=true,
-    },
+    -- {
+    --     name="DESTROY",
+    --     default=true,
+    -- },
 
-    {
-        name="KILLFOLLOWER",
-        default=true,
-    },
+    -- {
+    --     name="KILLBOSS",
+    --     default=true,
+    -- },
 
-    {
-        name="KILLMONITORED",
-        default=true,
-    },
+    -- {
+    --     name="KILLFOLLOWER",
+    --     default=true,
+    -- },
 
-    {
-        name="EATRARE",
-        default=true,
-    },
+    -- {
+    --     name="KILLMONITORED",
+    --     default=true,
+    -- },
 
-    {
-        name="DANGER_AT_PORTAL",
-        default=true,
-    },
+    -- {
+    --     name="EATRARE",
+    --     default=true,
+    -- },
+
+    -- {
+    --     name="DANGER_AT_PORTAL",
+    --     default=true,
+    -- },
 
     --------------------
     -- World gen

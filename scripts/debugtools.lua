@@ -1,5 +1,9 @@
 ---@diagnostic disable: deprecated, need-check-nil
 
+--- @TODO Move the tests to the tests folder...
+
+local UserCommands = require("usercommands")
+
 local Embed = require('libraries/discordapi/models/embed')
 local Message = require('libraries/discordapi/models/message')
 
@@ -65,21 +69,21 @@ function PEARL.TESTS.GameEmoteTest()
         return PEARL.error("No results!")
     end
 
-    print(string.len(result))
-    return PEARL.DiscordLogger:LogString(result)
+    -- The message is being cropped because it's too long.
+    return PEARL.DiscordLogger:LogStringRaw(result)
 end
 
 function PEARL.TESTS.DefaultCharactersTest()
     local result = ""
     for _, prefab in ipairs(DST_CHARACTERLIST) do
-        result = result.."\n"..name.." -> "..(PEARL.ICONS.PLAYER_PREFABS[prefab] or "MISSING")
+        result = result.."\n"..PEARL.PrefabToName(prefab).." -> "..(PEARL.ICONS.PLAYER_PREFABS[prefab] or "MISSING")
     end
 
     if string.len(result) <= 0 then
         return PEARL.error("No results!")
     end
 
-    return PEARL.DiscordLogger:LogString(result)
+    return PEARL.DiscordLogger:LogStringRaw(result)
 end
 
 function PEARL.TESTS.AnnouncementIconTest()
@@ -92,7 +96,7 @@ function PEARL.TESTS.AnnouncementIconTest()
         return PEARL.error("No results!")
     end
 
-    return PEARL.DiscordLogger:LogString(result)
+    return PEARL.DiscordLogger:LogStringRaw(result)
 end
 
 --------------------------------
@@ -112,12 +116,12 @@ local function _PFCheck(word, should_censor)
 end
 
 local PFchecks = {
-    {"t--e--s--t", true},
-    {"T e s T", true},
+    {"--p--r--d--", true},
+    {"   p r d   ", true},
     {"řiřřť", false},
-    {"t1e2s3t", false},
-        -- Ignore everything before the start and after the end
-        -- of the filtered word
+    {"p1r2d3e4l", false},
+    -- Ignore everything before the start and after the end
+    -- of the filtered word
     {"ashh1.>te s>>t--.", false}
 }
 function PEARL.TESTS.PFCheckSeparators()
@@ -178,6 +182,18 @@ function PEARL.TESTS.BlacklistMethodTest()
     PEARL.info("---- RemovePlayerById ---")
     PEARL.BlackList:RemovePlayerByID(userid)
     PEARL.BlackList:PrintDebugInfo()
+end
+
+--------------------------------
+-- [[ Logger - World Tests ]]
+--------------------------------
+--- @TODO
+function PEARL.TESTS.LoggerWorldTests()
+    if not TheWorld then
+        return PEARL.warn("TheWorld is nil!")
+    end
+
+    TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_TEST")
 end
 
 --------------------------------
@@ -493,6 +509,66 @@ function PEARL.execute_tests(testset_name)
     tests.test_all()
 end
 
+function PEARL.FakeRunSlashCommand(name, params)
+    local command = UserCommands.GetCommandFromName(name)
+
+    command.serverfn((params or {
+        player_id = "KU_ZC24p91Q",
+    }), {
+        userid = "KU_ZC24p91Q",
+        name = "Fi7iP",
+        GetDisplayName = function()
+            return "Fi7iP"
+        end
+    })
+end
+
+--------------------------------
+-- [[ Slash Commands ]]
+--------------------------------
+
+function PEARL.TESTS.SlashCommands()
+    PEARL.FakeRunSlashCommand("fire")
+    PEARL.FakeRunSlashCommand("repair")
+
+    PEARL.debug("\n\n/unban: TEST NOT FOUND")
+    PEARL.FakeRunSlashCommand("unban")
+    PEARL.debug("/unban: TEST SUCCESS")
+    TheNet:Ban("KU_0Z4zp1dv")
+    PEARL.FakeRunSlashCommand("unban", {player_id = "KU_0Z4zp1dv"})
+
+    PEARL.debug("\n\n/allowlist-add: TEST BANNED")
+    PEARL.FakeRunSlashCommand("allowlist-add", {player_id = "KU_NujB7r1v"})
+    PEARL.debug("/allowlist-add: TEST CONTAINS")
+    PEARL.FakeRunSlashCommand("allowlist-add", {player_id = "KU_ZC24p91Q"})
+    PEARL.debug("/allowlist-add: TEST SUCCESS")
+    PEARL.FakeRunSlashCommand("allowlist-add", {player_id = "KU_TEST"})
+
+    -- Not found
+    PEARL.debug("\n\n/allowlist-remove: TEST NOT FOUND")
+    PEARL.FakeRunSlashCommand("allowlist-remove", {player_id = "KU_ZC291QK"})
+    PEARL.debug("/allowlist-remove: SUCCESS")
+    PEARL.FakeRunSlashCommand("allowlist-remove", {player_id = "KU_TEST"})
+
+    PEARL.debug("\n\n/inv: TEST WEBHOOK DISABLED")
+    PEARL.DiscordLogger:SetIsDisabled(true)
+    PEARL.FakeRunSlashCommand("inv")
+    PEARL.DiscordLogger:SetIsDisabled(false)
+    PEARL.debug("\n\n/inv: TEST EMPTY OR NOT FOUND")
+    PEARL.FakeRunSlashCommand("inv")
+
+    PEARL.debug("\n\n/inv-find: TEST WEBHOOK DISABLED")
+    PEARL.DiscordLogger:SetIsDisabled(true)
+    PEARL.FakeRunSlashCommand("inv-find", {
+        item_prefab = "axe"
+    })
+    PEARL.DiscordLogger:SetIsDisabled(false)
+    PEARL.debug("/inv-find: TEST NOT FOUND")
+    PEARL.FakeRunSlashCommand("inv-find", {
+        item_prefab = "axe"
+    })
+end
+
 --------------------------------
 -- [[ Logger ]]
 --------------------------------
@@ -504,11 +580,11 @@ function PEARL.TESTS.TestChatLogs()
 
     -- SLASH COMMAND
     ----- Default Emote
-    Networking_SlashCmd(123, "KU_ZC24p91Q", "/wave")
+    Networking_SlashCmd(123, "KU_ZC24p91Q", "wave")
     ----- Weable Emote
-    Networking_SlashCmd(123, "KU_ZC24p91Q", "/carol")
+    Networking_SlashCmd(123, "KU_ZC24p91Q", "carol")
     ----- Blocked Server
-    Networking_SlashCmd(123, "KU_ZC24p91Q", "/regenerate")
+    Networking_SlashCmd(123, "KU_ZC24p91Q", "regenerate")
 
     -- ANNOUNCEMENTS
     Networking_Announcement("Základný oznam")
@@ -529,7 +605,7 @@ end
 
 function PEARL.TESTS.AnnouncementCategories()
     for name, type in pairs(PEARL.CONSTS.ANNOUNCEMENT_TYPES) do
-        PEARL.Announce(name, type)
+        PEARL.AnnounceWithType(name, type)
     end
 end
 
@@ -539,6 +615,14 @@ end
 
 function PEARL.TESTS.MarkdownInChat()
     DSay("**test**")
+end
+
+function PEARL.TESTS.URLsInChat()
+    DSay("Hey everyone, did you see this new cool server? https://discord.gg/RHzJxut")
+end
+
+function PEARL.TESTS.HyperlinksInChat()
+    DSay("[Join our discord!](https://discord.gg/RHzJxut)")
 end
 
 --------------------------------

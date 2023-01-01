@@ -371,7 +371,7 @@ msgstr "{doer} zapálil/a {target} pri {near}!"
 #. STRINGS.UI.NOTIFICATION.BANNEDFROMGAME
 msgctxt "STRINGS.UI.NOTIFICATION.BANNEDFROMGAME"
 msgid "%s was banned from the game."
-msgstr "Prístup na server bol zakázany pre %s."
+msgstr "%s bol vypovedaný z hry."
 
 #. STRINGS.UI.NOTIFICATION.DEFAULTVOTEFAILEDFMT
 msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEFAILEDFMT"
@@ -411,7 +411,7 @@ msgstr "%s opustil/a hru."
 #. STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT
 msgctxt "STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT"
 msgid "%s got a new skin: "
-msgstr "%s získal nový skin: "
+msgstr "%s získal/a nový skin: "
 
 #. STRINGS.UI.HUD.REZ_ANNOUNCEMENT
 msgctxt "STRINGS.UI.HUD.REZ_ANNOUNCEMENT"
@@ -426,12 +426,12 @@ msgstr "Server sa reštartuje pre dokončenie generácie sveta."
 #. STRINGS.UI.HUD.RETROFITTING_ANNOUNCEMENT
 msgctxt "STRINGS.UI.HUD.RETROFITTING_ANNOUNCEMENT"
 msgid "World will reload in {time} seconds to complete retrofitting."
-msgstr "Server bude za {time} sekundy reštartovaný pre dokončenie generácie sveta."
+msgstr "Server bude za {time} sekund(y/u) reštartovaný pre dokončenie generácie sveta."
 
 #. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_DEFAULT
 msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_DEFAULT"
 msgid "lost all of their humanity and is gone forever."
-msgstr "prišli o všetku svoju ľudskosť a sú stratený naveky."
+msgstr "prišli o všetku svoju ľudskosť a sú stratení naveky."
 
 #. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_FEMALE
 msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_FEMALE"
@@ -446,32 +446,32 @@ msgstr "prišiel o všetku svoju ľudskosť a je stratený naveky."
 #. STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_ROBOT
 msgctxt "STRINGS.UI.HUD.GHOST_DEATH_ANNOUNCEMENT_ROBOT"
 msgid "lost all of their humanity and is gone forever."
-msgstr "prišli o všetku svoju ľudskosť a sú stratený naveky."
+msgstr "prišiel o všetku svoju ľudskosť a je stratený naveky."
 
 #. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_1
 msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_1"
 msgid "was killed by"
-msgstr "bol/a zabitý/á"
+msgstr "umrel/a na"
 
 #. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_DEFAULT
 msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_DEFAULT"
 msgid ". They became a spooky ghost!"
-msgstr ". Stal sa z nich desivý duch!"
+msgstr ". Teraz je z nich desivý duch!"
 
 #. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_FEMALE
 msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_FEMALE"
 msgid ". She became a spooky ghost!"
-msgstr ". Stal sa z nej desivý duch!"
+msgstr ". Teraz je z nej desivý duch!"
 
 #. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE
 msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE"
 msgid ". He became a spooky ghost!"
-msgstr ". Stal sa z neho desivý duch!"
+msgstr ". Teraz je z neho desivý duch!"
 
 #. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_ROBOT
 msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_ROBOT"
 msgid ". They became a spooky ghost!"
-msgstr ". Stal sa z neho desivý duch!"
+msgstr ". Teraz je z neho desivý duch!"
 
 #. STRINGS.UI.BUILTINCOMMANDS.KICK.VOTENAMEFMT
 msgctxt "STRINGS.UI.BUILTINCOMMANDS.KICK.VOTENAMEFMT"
@@ -498,10 +498,8 @@ msgctxt "STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTEPASSEDFMT"
 msgid "Regenerating world in 5 seconds..."
 msgstr "Svet bude regenerovaný o 5 sekúnd..."
 
-#. STRINGS.UI.NETWORKDISCONNECT.BODY.SERVER_MODS_WORKSHOP_VERSION_MISMATCH
-msgctxt "STRINGS.UI.NETWORKDISCONNECT.BODY.SERVER_MODS_WORKSHOP_VERSION_MISMATCH"
-msgid "The server is running mods with an old version. The server owner must update the mods for new players to join."
-msgstr "Mody ktoré server používa sú zastaralé. Aby sa nový hráči mohli pripojiť, musí správca server mody aktualizovať."
+msgctxt "STRINGS.MODS.VERSIONING.OUT_OF_DATE"
+msgstr "Mod \"%s\" je zastaralý a je potrebné ho aktualizovať aby sa mohli ostatní hráči pripojiť."
 
 #. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.AUTUMN
 msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.AUTUMN"
@@ -538,23 +536,23 @@ msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT"
 msgid "Night"
 msgstr "Noc"
 
-msgctxt "STRINGS.NAMES.NIL"
-msgstr "Temnota"
+#  msgctxt "STRINGS.NAMES.NIL"
+#  msgstr "Temnota"
 
-msgctxt "STRINGS.NAMES.DARKNESS"
-msgstr "Temnota"
+#  msgctxt "STRINGS.NAMES.DARKNESS"
+#  msgstr "Temnota"
 
-msgctxt "STRINGS.NAMES.HUNGER"
-msgstr "Hladovanie"
+#  msgctxt "STRINGS.NAMES.HUNGER"
+#  msgstr "Hladovanie"
 
-msgctxt "STRINGS.NAMES.COLD"
-msgstr "Mrznutie"
+#  msgctxt "STRINGS.NAMES.COLD"
+#  msgstr "Mrznutie"
 
-msgctxt "STRINGS.NAMES.HOT"
-msgstr "Prehrievanie"
+#  msgctxt "STRINGS.NAMES.HOT"
+#  msgstr "Prehrievanie"
 
-msgctxt "STRINGS.NAMES.OLDAGER_COMPONENT"
-msgstr "plynutie času"
+#  msgctxt "STRINGS.NAMES.OLDAGER_COMPONENT"
+#  msgstr "plynutie času"
 
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE"
 msgstr "Server Spustený"
@@ -588,3 +586,9 @@ msgstr "Súhlasím"
 
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DISAGREE"
 msgstr "Nesúhlasím"
+
+msgctxt "STRINGS.PEARL.LOGS.SHARD_EXCEPTION"
+msgstr "Výnimka na sharde %s:\n%s"
+
+msgctxt "STRINGS.PEARL.LOGS.SERVER_INITIALIZED"
+msgstr "Systém Inicializovaný. Načítavanie servera..."

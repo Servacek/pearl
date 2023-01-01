@@ -18,4 +18,8 @@ function tests.skin_announce_test()
     end
 end
 
+function tests.logger()
+
+end
+
 return tests

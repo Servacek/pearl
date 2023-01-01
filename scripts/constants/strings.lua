@@ -9,20 +9,24 @@ STRINGS.PEARL = {
         -- Prefer subftm over string.format when there are multiple versions
         EAT                     = "%s ate %s!",
         FEED                    = "%s feed %s with %s!",
-        BURNTUP                 = "%s burnt up!",
-        HAMMER                  = "%s destroyed %s!",
         TURNOFF                 = "%s turned off %s!",
         TURNON                  = "%s turned on %s!",
+        TEACH                   = "%s learnt %s!",
+        READ                    = "%s read %s!",
+        ACTIVATE                = "%s activated %s!",
+        --DEFEAT                  = "%s defeated %s!",
 
         TAKE_ITEM = {
             GENERIC     = "{doer} took {item}!",
             FROM        = "{doer} took {items} from {target}!",
+            WITH        = "{doer} took {item} with {with}!"
         },
 
         KILL = {
             GENERIC     = "{doer} killed {target}!",
             NEAR        = "{doer} killed {target} near {near}!",
-            MONITORED   = "{doer} killed {target}! Remaining: {remaining}",
+            REMAINING   = "{doer} killed {target}! Remaining: {remaining}",
+            LAST        = "{doer} killed the last {target}!",
             FOLLOWER    = "{doer} killed {target}! Owner: {owner}",
             BOSS        = "{doer} defeated {target}!"
         },
@@ -47,6 +51,16 @@ STRINGS.PEARL = {
             GENERIC     = "{doer} placed {item}!",
             NEAR        = "{doer} placed {item} near {near}!",
         },
+
+        BURNTUP = {
+            GENERIC     = "{target} burnt up!",
+            OWNED       = "{target} burnt up! Owner: {owner}"
+        },
+
+        HAMMER = {
+            GENERIC     = "{doer} hammered {target}!",
+            OWNED       = "{doer} hammered {target}! Owner: {owner}"
+        }
     },
 
     LOGS        = {
@@ -91,6 +105,8 @@ STRINGS.PEARL = {
         RESET_COUNTDOWN_START   = "World reset countdown has started!",
         RESET_COUNTDOWN_STOP    = "World reset countdown has stopped.",
 
+        SERVER_INITIALIZED      = "The system has been initialized. Loading the server...",
+
         AUTO_UPDATE_FIRST       = "Server's version is outdated, new players aren't able to connect. It will be automatically updated in %s seconds.",
         AUTO_UPDATE_FIRST_DIS   = "Server's version is outdated, new players aren't able to connect.",
         AUTO_UPDATE_SECOND      = "Server will be automatically updated in 15 seconds. All your current progress will remain untouched. Don't forget to update your game as well :)",
@@ -113,6 +129,10 @@ STRINGS.PEARL = {
 
         SIM_PAUSED              = "Simulation was paused.",
         SIM_UNPAUSED            = "Simulation was unpaused.",
+
+        EXCEPTION_CATCHED       = "Catched exception on shard %s:\n%s",
+        EXCEPTION_UNCATCHED     = "Exception on shard %s:\n%s",
+        HTTP_ERROR              = "HTTP Error status code on shard %s:\n%s",
 
         EXTINGUISH              = "Fires were extinguished!",
         EXTINGUISH_NEAR         = "Fire near %s were extinguished!",
@@ -191,33 +211,44 @@ STRINGS.PEARL = {
 
                 ON_SUCCESS  = "Inventár hráča bol odoslaný na discord.",
                 ON_NOTFOUND = "Inventár zadaného hráča je prázdny alebo neexistuje...",
+                ON_NO_LOGS  = "Webhook určený pre logy je vypnutý."
             },
 
             INV_FIND = {
                 PRETTYNAME = "Find Inventory",
                 DESC       = "Searches for inventory containing specified item.",
+
+                ON_NO_LOGS  = "Webhook určený pre logy je vypnutý."
             },
 
-            WHITELIST_ADD = {
+            ALLOWLIST_ADD = {
                 PRETTYNAME = "Add to whitelist",
-                DESC       = "Whitelists the given player id.",
+                DESC       = "Increases the allowlist with the given user ID.",
 
                 ON_ALREADY_WHITELISTED = "Zadané ID už na zozname je.",
-                ON_SUCCESS = "Bol povolený prístup na tento server pre hráča s ID %s.",
-                ON_FAILURE = "Nebolo možné uložiť zmeny...",
-                ON_BANNED = "Zadané ID je na zozname blokovaných.",
-                ON_DISABLED = "Whitelist je aktuálne vypnutý.",
+                ON_SUCCESS  = "Bol povolený prístup na tento server pre hráča s ID %s.",
+                ON_FAILURE  = "Nebolo možné uložiť zmeny...",
+                ON_BANNED   = "Zadané ID je na zozname blokovaných.",
+                ON_DISABLED = "Allowlist je aktuálne vypnutý.",
             },
 
-            WHITELIST_REMOVE = {
-                PRETTYNAME = "Remove from whitelist",
-                DESC       = "Attempts to remove the given player id from the whitelist.",
+            ALLOWLIST_REMOVE = {
+                PRETTYNAME = "Remove from allowlist",
+                DESC       = "Attempts to remove the given player id from the allowlist.",
 
-                ON_SUCCESS = "ID odstránené zo zoznamu.",
-                ON_DISABLED = "Whitelist je aktuálne vypnutý.",
-                ON_FAILURE = "Nebolo možné uložiť zmeny...",
+                ON_SUCCESS  = "ID odstránené zo zoznamu.",
+                ON_DISABLED = "Allowlist je aktuálne vypnutý.",
+                ON_FAILURE  = "Nebolo možné uložiť zmeny...",
                 ON_NOTFOUND = "Zadané ID nieje na zozname."
             },
+
+            ALLOWLIST_TOGGLE = {
+                PRETTYNAME = "Toggle the allowlist",
+                DESC       = "Turns on/off the allowlisting.",
+
+                ON_ENABLED  = "Allowlisting was enabled! Only players on the list will be able to join.",
+                ON_DISABLED = "Allowlisting was disabled! Everyone can join now."
+            }
         },
 
         DISCORD_BUTTON_HOVER = "View Discord",
@@ -271,3 +302,59 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_LOCALE_BLOCKED",
     "Community Server",
     "This server currently only accepts connections\nfrom the Czech Republic and Slovakia."
 )
+
+------------------------------------
+-- Slash Commands
+
+--- @TODO: Add translations
+STRINGS.UI.BUILTINCOMMANDS.ERRORS = {
+    BACKEND_UNAVAILABLE = "K správnej funkcii tohto príkazu je potrebný mod Server Utils Backend.",
+    DISCORD_LOGS_DISABLED = "Logovanie na discord je vypnuté!",
+}
+
+STRINGS.UI.BUILTINCOMMANDS.FIRE = {
+    PRETTYNAME = "Extinguish Fires",
+    DESC       = "When a nasty griefer appears, this can safe your base from fire!",
+}
+
+STRINGS.UI.BUILTINCOMMANDS.REPAIR = {
+    PRETTYNAME = "Repair Structures",
+    DESC       = "Brings back structures that were engulfed in fire.",
+}
+
+STRINGS.UI.BUILTINCOMMANDS.UNBAN = {
+    PRETTYNAME = "Unban",
+    DESC       = "Removes the given player from the blocklist. Accepts both, Klei ID and Steam ID as player_id argument.",
+
+    ON_SUCCESS  = "ID %s bolo úspešne odstránené zo zoznamu blokovaných hráčov!\nHráč s týmto ID sa môže znova pripojiť na server.",
+    ON_NOTFOUND = "Zadané ID nieje na zozname...",
+}
+
+STRINGS.UI.BUILTINCOMMANDS.INV = {
+    PRETTYNAME = "Display Inventory",
+    DESC       = "Displays player's inventory on discord.",
+
+    ON_SUCCESS  = "Inventár hráča bol odoslaný na discord.",
+    ON_NOTFOUND = "Inventár zadaného hráča je prázdny alebo neexistuje...",
+}
+
+STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD = {
+    PRETTYNAME = "Add to whitelist",
+    DESC       = "Whitelists the given player id.",
+
+    ON_ALREADY_WHITELISTED = "Zadané ID už na zozname je.",
+    ON_SUCCESS = "Bol povolený prístup na tento server pre hráča s ID %s.",
+    ON_FAILURE = "Nebolo možné uložiť zmeny...",
+    ON_BANNED = "Zadané ID je na zozname blokovaných.",
+    ON_DISABLED = "Whitelist je aktuálne vypnutý.",
+}
+
+STRINGS.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE = {
+    PRETTYNAME = "Remove from whitelist",
+    DESC       = "Attempts to remove the given player id from the whitelist.",
+
+    ON_SUCCESS = "ID odstránené zo zoznamu.",
+    ON_DISABLED = "Whitelist je aktuálne vypnutý.",
+    ON_FAILURE = "Nebolo možné uložiť zmeny...",
+    ON_NOTFOUND = "Zadané ID nieje na zozname."
+}

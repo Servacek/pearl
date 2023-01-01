@@ -9,8 +9,8 @@ local string = string
 
 local LOG_LEVELS = {
     ERROR   = "Error",
-    WARN    = "Warn",
-    INFO    = "Info",
+    WARN    = "Warn]",
+    INFO    = "Info]",
     DEBUG   = "Debug",
 }
 
@@ -23,21 +23,20 @@ local PATTERN_DEBUG = "["..HEADER_NAME.."] [%s] %s -> %s"
 -- [[ Local Functions ]]
 ---------------------------
 
-local function get_file_name(filepath)
-    return type(filepath) == "string" and filepath:match("([^/]*).lua")
-    or nil
+function PEARL.GetFileNameFromPath(path)
+    return type(path) == "string" and path:match("([^/]*).lua")
 end
 
 local function get_source()
     local info = debug.getinfo(4, "Sl")
-    local source_filename = get_file_name(info.source)
+    local filename = PEARL.GetFileNameFromPath(info.source)
 
-    if not source_filename then
+    if not filename then
         return
     end
 
     return SOURCE_PATTERN:format(
-        source_filename, info.currentline
+        filename, info.currentline
     )
 end
 
@@ -46,11 +45,11 @@ end
 ---------------------------
 
 function PEARL.log(lv, ...)
+    lv = lv and tostring(lv) or LOG_LEVELS.INFO
+
     -- Accept nil as an argument
     local args = toarrayornil(...)
-    local src = PEARL.CONFIG.DEBUG_MODE and get_source() or nil
-
-    lv = lv and tostring(lv) or LOG_LEVELS.INFO
+    local src = (PEARL.CONFIG.DEBUG_MODE or lv == LOG_LEVELS.ERROR) and get_source()
 
     local content = ""
     if type(args) == "table" then
