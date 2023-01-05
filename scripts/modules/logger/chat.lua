@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local TheShard = TheShard
 local PEARL = PEARL
@@ -84,7 +97,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
     local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..string.capitalize(prefab).."]")
     message = (whisper and STRINGS.PEARL.LOGS.SAY_WHISPER or STRINGS.PEARL.LOGS.SAY):format(
         MARKDOWN.escape(name),
-        MARKDOWN.escape(message:emojify())
+        MARKDOWN.escape(message):emojify()
     )
 
     PEARL.DiscordLogger:LogStringRaw(message, icon)

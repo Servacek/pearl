@@ -1,27 +1,14 @@
---[[
-Copyright (c) 2023 Fi7iP
-The Czechoslovakian Don't Starve Together Game Comunity
-<https://discord.gg/RHzJxut>
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
 
-This file is part of the 'Pearl'.
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
 
-The source code of this program and all its parts are shared under
-the RECEX SHARED SOURCE LICENSE (version 1.0).
-This is NOT Free and Open Source software, and the code is
-NOT redistributable without permission of the author(s).
-The source code licensed under this license is shared "as is" and does
-not come with any warranty including the implied warranty of merchandise.
-Read the RECEX SHARED SOURCE LICENSE for details.
-
-You should have received a copy of the RECEX SHARED SOURCE LICENSE
-in the form of a LICENSE file in the root of the source directory.
-If not, please refer to
-<https://raw.githubusercontent.com/Recex/Licenses/master/SharedSourceLicense/LICENSE.txt>
-
-You can contact the author(s) at
-<https://steamcommunity.com/profiles/76561198339302667/>
---]]
-
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
 
 
 ---@diagnostic disable: lowercase-global
@@ -63,18 +50,29 @@ configuration_options = {
     --------------------
 
     {
-        name="LANGUAGE",
-        default="en",
+        name = "LANGUAGE",
+        default = "en",
+        options = {
+            "en",
+            "sk",
+        },
+        type = "string",
     },
 
     {
         name="PROFANITY_FILTER",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     { -- regenerate, rollback, kick...
         name="COMMAND_BLOCKLIST",
         default={},
+        type = "table",
     },
 
     --------------------
@@ -84,6 +82,7 @@ configuration_options = {
     {
         name="MOD_BLACKLIST",
         default={},
+        type = "table",
     },
 
     --------------------
@@ -93,16 +92,27 @@ configuration_options = {
     { -- Additional table of tags
         name = "CUSTOM_SERVER_TAGS",
         default = {},
+        type = "table",
     },
 
-    {
+    { --- @TODO: Option to add custom loading tips.
         name = "CUSTOM_LOADING_TIPS",
         default = true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     {
         name = "CUSTOM_CONTROLS",
         default = true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     --------------------
@@ -112,11 +122,17 @@ configuration_options = {
     {
         name="SHOW_PLAYER_ICONS",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     {
         name = "TRUST_AGE",
         default = 24,
+        type = "number",
     },
 
 
@@ -127,11 +143,21 @@ configuration_options = {
     {
         name="LOG_SUSPICIOUS_INVENTORIES",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     {
         name="BAN_ALT_ACCOUNTS",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     --------------------
@@ -141,11 +167,21 @@ configuration_options = {
     {
         name="SLASH_COMMANDS",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     {
         name="CONSOLE_COMMANDS",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     --------------------
@@ -156,6 +192,7 @@ configuration_options = {
       -- Settings this to 0 or lower will disable afk state (so no announcement).
         name = "AFK_TIME",
         default = 1 * 60,
+        type = "number"
     },
 
     { -- Total AFK time in seconds after which the player
@@ -163,6 +200,7 @@ configuration_options = {
       -- Setting this to 0 or lower will prevent kicking AFK players.
         name = "AFK_TIME_KICK",
         default = 5 * 60,
+        type = "number"
     },
 
     --------------------
@@ -172,6 +210,11 @@ configuration_options = {
     { -- This is an experimental feature.
         name = "CZSK_ONLY",
         default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     --------------------
@@ -183,11 +226,41 @@ configuration_options = {
     {
         name = "WHITELIST_MODE",
         default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     {
         name = "ALLOWLIST",
         default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    --------------------
+    -- Voting
+    --------------------
+
+    {
+        name = "MIN_VOTE_AGE",
+        default = nil, -- When nil, uses the default built-in value
+        type = "number|nil",
+    },
+
+    --------------------
+    -- Admin Calls
+    --------------------
+
+    {
+        name = "ADMIN_CALL_COOLDOWN",
+        default = nil, -- When nil or 0, there is no cooldown
+        type = "number|nil",
     },
 
     --------------------
@@ -197,23 +270,22 @@ configuration_options = {
     {
         name = "INTRO_SCREEN",
         default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
     },
 
     --------------------
     -- Discord Module
     --------------------
 
-    --- @TODO: Shutdown the logs by shutting down the rhook and lhook webhooks
-    -- Logging
-    -- {
-    --     name="DISCORD_LOGS",
-    --     default=true,
-    -- },
-
     -- Note: The url should contain also the protocol prefix
     {
-        name="DISCORD_INVITE",
-        default=nil,
+        name = "DISCORD_INVITE",
+        default = nil,
+        type = "string|nil",
     },
 
     -- Webhook Identifiers (required if DISCORD_LOGS option is enabled)
@@ -223,7 +295,8 @@ configuration_options = {
             ID = "",
             TOKEN = "",
             ENABLED = true,
-        }
+        },
+        type = "table",
     },
 
     {
@@ -233,11 +306,13 @@ configuration_options = {
             TOKEN = "",
             ENABLED = true,
         },
+        type = "table",
     },
 
     {
         name="LHOOK_BUFFER_TIMEOUT",
-        default = 4
+        default = 4,
+        type = "number",
     },
 
     --------------------
@@ -247,6 +322,7 @@ configuration_options = {
     {
         name="REQUEST_FREQUENCY", -- In seconds
         default=2,
+        type = "number",
     },
 
     --------------------
@@ -256,11 +332,13 @@ configuration_options = {
     {
         name="VERSION_CHECK_FREQUENCY", -- In minutes
         default=30,
+        type = "number",
     },
 
     {
         name="UPDATE_SERVER_AFTER", -- In minutes
         default=5,
+        type = "number",
     },
 
     --------------------
@@ -278,52 +356,8 @@ configuration_options = {
     {
         name = "ANNOUNCEMENTS",
         default = {},
+        type = "table",
     },
-
-    -- {
-    --     name="IGNITE",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="BURNTUP",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="TAKE",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="DESTROY",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="KILLBOSS",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="KILLFOLLOWER",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="KILLMONITORED",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="EATRARE",
-    --     default=true,
-    -- },
-
-    -- {
-    --     name="DANGER_AT_PORTAL",
-    --     default=true,
-    -- },
 
     --------------------
     -- World gen
@@ -345,11 +379,13 @@ configuration_options = {
     {
         name = "REQUIRED_WORLDGEN_TASKS",
         default = {},
+        type = "table",
     },
 
     {
         name="SEED",
         default = nil,
+        type = "number|nil",
     },
 
     --------------------
@@ -359,6 +395,7 @@ configuration_options = {
     {
         name = "CUSTOM_PREFABS",
         default = {},
+        type = "table",
     },
 
     --------------------
@@ -368,5 +405,10 @@ configuration_options = {
     {
         name="DEBUG_MODE",
         default = false,
+        type = "boolean",
+        options = {
+            true,
+            false,
+        },
     },
 }

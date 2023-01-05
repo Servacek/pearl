@@ -1,5 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
 
-local PEARL = PEARL
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+--- Keep in mind that only configuration is loaded at this point.
+--- Also this is being loaded using 'require', so not mod environment as well.
+
 
 -------------------------------------
 -- [[ Private Functions ]]
@@ -38,7 +50,7 @@ end
 -- [[ Function Overrides ]]
 -------------------------------------
 
-PEARL.OverrideGlobal("GetEnabledServerModsConfigData", function()
+rawset(_G, "GetEnabledServerModsConfigData", function()
     local mods_config_data = {}
 
 	for _, modname in ipairs(ModManager:GetEnabledServerModNames()) do
@@ -48,21 +60,29 @@ PEARL.OverrideGlobal("GetEnabledServerModsConfigData", function()
 		end
 	end
 
+    if PEARL.CONFIG.DEBUG_MODE then
+        print("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:\n", DataDumper(mods_config_data, nil, false))
+    end
+
     return DataDumper(mods_config_data, nil, false)
 end)
 
--- PEARL.OverrideGlobal("GetEnabledModsModInfoDetails", function()
+-- rawset(_G, "GetEnabledModsModInfoDetails", function()
 --     local modinfo_details = {}
 
---     for k,mod_name in pairs(ModManager:GetEnabledServerModNames()) do
+--     for _, mod_name in pairs(ModManager:GetEnabledServerModNames()) do
 --         local modinfo = KnownModIndex:GetModInfo(mod_name)
---         if mod_name == "workshop-2189004162" then
---             mod_name = "workshop-         2189004162"
+--         -- If there is a space between the prefix and the ID then
+--         -- the TheSim:QueueDownloadTempMod will be able to recognize it
+--         -- but the url will be invalid.
+--         local info_name
+--         if mod_name == PEARL.MODNAME then
+--             info_name = nil
 --         end
 
 --         table.insert(modinfo_details, {
 --             name = mod_name,
---             info_name = modinfo ~= nil and modinfo.name or mod_name,
+--             info_name = info_name or modinfo ~= nil and modinfo.name or mod_name,
 --             version = modinfo ~= nil and modinfo.version or "",
 --             version_compatible = modinfo ~= nil and modinfo.version_compatible or "",
 --             all_clients_require_mod = modinfo ~= nil and modinfo.all_clients_require_mod == true,

@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Mod server-side network.
 --]]
@@ -58,14 +72,14 @@ end
 -- that a secondary shard has changed it's state. This also notifies the shard itself.
 PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(world_id, state)
     if TheWorld ~= nil then
-        TheWorld:PushEvent("shard_stateupdate", state)
+        TheWorld:PushModEvent("shard_stateupdate", state)
     end
 end)
 
 -- Looks like this is pushed only on the Master shard
 PEARL.AddGlobalFunctionPreCall("WorldRollbackFromSim", function(count)
     if TheWorld ~= nil then
-        TheWorld:PushEvent("world_rollback", count)
+        TheWorld:PushModEvent("world_rollback", count)
     end
 
     PEARL.EventProcessor:HandleEvent("quit")
@@ -73,7 +87,7 @@ end)
 
 PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
     if TheWorld ~= nil then
-        TheWorld:PushEvent("world_reset")
+        TheWorld:PushModEvent("world_reset")
     end
 
     PEARL.EventProcessor:HandleEvent("quit")
@@ -81,7 +95,7 @@ end)
 
 PEARL.AddGlobalFunctionPreCall("Shutdown", function(...)
     if TheWorld ~= nil then
-        TheWorld:PushEvent("shard_shutdown")
+        TheWorld:PushModEvent("shard_shutdown")
     end
 
     PEARL.EventProcessor:HandleEvent("quit")

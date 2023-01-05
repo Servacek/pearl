@@ -1,4 +1,3 @@
-
 function table:filter(checkfn)
     local result = {}
     for k, v in pairs(self) do

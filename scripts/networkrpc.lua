@@ -1,9 +1,21 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Here we handle all the client RPCs. Therefore, this is loaded only
     client side. So we do not have access to the SUB table here.
 --]]
-
---local PEARL = PEARL
 
 local TheNet = TheNet
 

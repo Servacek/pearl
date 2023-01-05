@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 ---@diagnostic disable: deprecated, need-check-nil
 
 --- @TODO Move the tests to the tests folder...
@@ -13,8 +27,6 @@ local TheSim = TheSim
 
 local json = json
 
-PEARL.TESTS = {}
-
 function PEARL.PrintTests()
     local i = 1
     for name, func in pairs(PEARL.TESTS) do
@@ -24,9 +36,43 @@ function PEARL.PrintTests()
     end
 end
 
+PEARL.TESTS = setmetatable({}, {
+    __index = function()
+        print("INDEX!")
+
+        PEARL.PrintTests()
+    end
+})
+
 function PEARL.ResetError()
     TheSim:ResetError()
     c_reset()
+end
+
+local fake_player
+fake_player = {
+    userid = "KU_TEST",
+    name = "Fi7iP",
+    prefab = "willow",
+    GetDisplayName = function()
+        return fake_player.name
+    end,
+}
+fake_player.player = fake_player
+
+local function make_event_test(src, event, ...)
+    PEARL.debug(event, "TEST")
+    print(src:SafePushEvent(event, ...))
+end
+
+local function make_mod_event_test(src, event, ...)
+    PEARL.debug(event, "TEST")
+    src:PushModEvent(event, ...)
+end
+
+local function make_player_event_test(src, event, ...)
+    PEARL.debug(event, "SAFE TEST")
+    print(src:SafePushEvent(event, fake_player, ...))
 end
 
 --------------------------------
@@ -193,7 +239,53 @@ function PEARL.TESTS.LoggerWorldTests()
         return PEARL.warn("TheWorld is nil!")
     end
 
-    TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_TEST")
+    local listeners = TheWorld.listeners
+    local event_listeners = TheWorld.event_listeners
+    TheWorld.listeners = {}
+    TheWorld.event_listeners = {}
+    for _, cb in ipairs(PEARL.ENV.postinitfns.GamePostInit) do
+        cb()
+    end
+
+    make_player_event_test(TheWorld, "ms_clientauthenticationcomplete")
+    make_player_event_test(TheWorld, "ms_playerdespawnandmigrate")
+    TheWorld.ismastershard = false
+    make_player_event_test(TheWorld, "ms_playerdespawnandmigrate")
+    TheWorld.ismastershard = true
+    make_player_event_test(TheWorld, "ms_newplayerspawned")
+    make_player_event_test(TheWorld, "ms_clientdisconnected")
+
+    PEARL.debug("EXPECTED DISCONNECT TEST")
+    TheWorld:PushEvent("ms_clientdisconnected", {
+        userid = "KU_TEST",
+        expected = true,
+    })
+    PEARL.debug("UNEXPECTED DISCONNECT TEST")
+    TheWorld:PushEvent("ms_clientdisconnected", {
+        userid = "KU_TEST",
+        expected = false,
+    })
+
+    make_mod_event_test(TheWorld,"clientconnectionclosed", {
+        userid = "KU_TEST",
+        reason = "ID_DST_ITS_DEBUG_TIME",
+    })
+
+    make_event_test(TheWorld, "showworldreset")
+    make_event_test(TheWorld, "hideworldreset")
+
+    make_event_test(TheWorld, "ms_startvote", {
+        starteruserid = "KU_STARTER",
+        targetuserid = "KU_TARGET",
+        commandhash = UserCommands.GetCommandFromName("kick").hash,
+    })
+    make_event_test(TheWorld, "ms_stopvote")
+
+    make_mod_event_test(TheWorld, "world_reset")
+    make_mod_event_test(TheWorld, "world_rollback", 3)
+
+    TheWorld.listeners = listeners
+    TheWorld.event_listeners = event_listeners
 end
 
 --------------------------------
@@ -551,21 +643,26 @@ function PEARL.TESTS.SlashCommands()
     PEARL.FakeRunSlashCommand("allowlist-remove", {player_id = "KU_TEST"})
 
     PEARL.debug("\n\n/inv: TEST WEBHOOK DISABLED")
-    PEARL.DiscordLogger:SetIsDisabled(true)
+    PEARL.DiscordReporter:SetIsDisabled(true)
     PEARL.FakeRunSlashCommand("inv")
-    PEARL.DiscordLogger:SetIsDisabled(false)
+    PEARL.DiscordReporter:SetIsDisabled(false)
     PEARL.debug("\n\n/inv: TEST EMPTY OR NOT FOUND")
     PEARL.FakeRunSlashCommand("inv")
 
     PEARL.debug("\n\n/inv-find: TEST WEBHOOK DISABLED")
-    PEARL.DiscordLogger:SetIsDisabled(true)
+    PEARL.DiscordReporter:SetIsDisabled(true)
     PEARL.FakeRunSlashCommand("inv-find", {
         item_prefab = "axe"
     })
-    PEARL.DiscordLogger:SetIsDisabled(false)
+    PEARL.DiscordReporter:SetIsDisabled(false)
     PEARL.debug("/inv-find: TEST NOT FOUND")
     PEARL.FakeRunSlashCommand("inv-find", {
         item_prefab = "axe"
+    })
+
+    PEARL.debug("\n\n/daysback: TEST")
+    PEARL.FakeRunSlashCommand("daysback", {
+        days = 1,
     })
 end
 
@@ -577,6 +674,8 @@ function PEARL.TESTS.TestChatLogs()
     -- SAY
     DSay(":wave: **Hello World!** @everyone")
     DSay("__Odkaz [tu](https://google.com)__", true)
+
+    DSay("󰀜  󰀔")
 
     -- SLASH COMMAND
     ----- Default Emote

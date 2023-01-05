@@ -1,11 +1,23 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Capable of delaying the client loading process via Profile:Load. Used
     by localizer when waiting for a server response.
 --]]
 
 
-local PEARL = PEARL
-local Profile = Profile
 -- In frontend, use staticScheduler for background tasks
 -- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
 local staticScheduler = staticScheduler

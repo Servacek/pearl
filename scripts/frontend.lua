@@ -1,11 +1,23 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 -- [[ FrontEnd ]]
 -- Should be loaded only on the client's side.
 
-local PEARL = PEARL
-
 PEARL.info("Loading Mod FE...")
 
-PEARL.ModTableSafeAppend("CONSTS", {
+PEARL.SafeModTableExtend("CONSTS", {
     -- Create the file in game's data directory which is more persistent on clients
     AGREEMENT_FILE_PATH = "AGREEMENT"
 })
@@ -15,7 +27,7 @@ PEARL.ModTableSafeAppend("CONSTS", {
 ----------------------------------
 
 PEARL.info("Loading Configuration...")
-PEARL.ModTableSafeAppend("CONFIG", {
+PEARL.SafeModTableExtend("CONFIG", {
     DISCORD_INVITE           = PEARL.GetConfigData("DISCORD_INVITE"),
     MOD_BLACKLIST            = PEARL.GetConfigData("MOD_BLACKLIST"),
     AFK_TIME                 = PEARL.GetConfigData("AFK_TIME"),
@@ -26,12 +38,15 @@ PEARL.ModTableSafeAppend("CONFIG", {
     SLASH_COMMANDS           = PEARL.GetConfigData("SLASH_COMMANDS"),
     CUSTOM_LOADING_TIPS      = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
     CUSTOM_CONTROLS          = PEARL.GetConfigData("CUSTOM_CONTROLS"),
+    COMMAND_BLOCKLIST        = PEARL.GetConfigData("COMMAND_BLOCKLIST"),
+    MIN_VOTE_AGE             = PEARL.GetConfigData("MIN_VOTE_AGE"),
+    ADMIN_CALL_COOLDOWN      = PEARL.GetConfigData("ADMIN_CALL_COOLDOWN"),
 
     WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
     AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
 })
 
-PEARL.ModTableSafeAppend("CONTROLS", {
+PEARL.SafeModTableExtend("CONTROLS", {
     TOGGLE_CHAT = KEY_F1 -- 282
 })
 
@@ -122,17 +137,24 @@ ModuleManager:SetModuleDirectory("modules")
 ModuleManager:AddModule("keybinds", PEARL.CONFIG.CUSTOM_CONTROLS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
+    -- All of the slash commands are for admins yet
+    ModuleManager:AddModule(
+        "slashcommands", PEARL.CONFIG.SLASH_COMMANDS
+    )
     ModuleManager:AddModule(
         "localizer", PEARL.CONFIG.CZSK_ONLY
     )
     ModuleManager:AddModule(
-        "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {})
+        "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
     )
     ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
     ModuleManager:AddModule(
         "agreement", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil and PEARL.CONFIG.WELCOME_POPUP_CONTENT ~= nil
+    )
+    ModuleManager:AddModule(
+        "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {})
     )
 end
 

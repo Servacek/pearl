@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+--- @category FrontEnd & BackEnd
+
 
 -- NOTE: All of this on the client's side needs to be executed in one tick!
 
@@ -49,12 +62,12 @@ local function _Localize()
         return PEARL.error("Failed to fetch the locale!")
     end
 
-    PEARL.debug("Client localized as", locale)
     PEARL.SendRPCToServer(PEARL.RPCS.ClientLocalizationCompleted, locale)
 end
 
 local function _OnLocaleAllowed()
     if PEARL.ClientLoader:HasLoadDelayStarted() then
+        PEARL.debug("_OnLocaleAllowed")
         return PEARL.ClientLoader:Load()
     end
 end
@@ -169,6 +182,7 @@ local function _OnClientAuthenticationComplete(userid)
     _StartTimeoutFor(userid)
 end
 
+-- Client is being localized on every load.
 local function _OnClientLocalizationComplete(userid, locale)
     PEARL.debug("_OnClientLocalizationComplete")
 
@@ -176,8 +190,7 @@ local function _OnClientLocalizationComplete(userid, locale)
 
     -- If the player was already loaded we do not care about localization.
     -- This happens for example during migration.
-    if LookupPlayerInstByUserID(userid) ~= nil or
-        _IsClientCached(userid) or
+    if _IsClientCached(userid) or
         PEARL.AllowList:Contains(userid) or
         PEARL.WhiteList:Contains(userid)
     then

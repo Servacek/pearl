@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Server specific stuff. Needs to be loaded only on the server.
 --]]
@@ -10,7 +24,7 @@ PEARL.info("Loading BE...")
 -- [[ Contants ]]
 --------------------------------
 
-PEARL.ModTableSafeAppend("CONSTS", {
+PEARL.SafeModTableExtend("CONSTS", {
     --> The discord module
     DISCORD = {
         API_VERSION                 = 10, -- Currently the newest
@@ -25,8 +39,10 @@ PEARL.ModTableSafeAppend("CONSTS", {
         MAX_MESSAGE_CONTENT_LENGTH = 2000,
         MAX_LOGLINE_COUNT = 16,
         MAX_EMBED_COUNT = 10,
-        -- 1800 / 6
-        MAX_LOGLINE_CONTENT_LENGTH = 300,
+        --- @TODO: Calculate this according to the message's space.
+        --- So the first logline would have max ~2000 characters.
+        --- The second would have 2000 - prev.length, etc...
+        MAX_LOGLINE_CONTENT_LENGTH = 400,
 
         MAX_USER_MENTIONS = 100,
         MAX_ROLE_MENTIONS = 100,
@@ -92,8 +108,6 @@ PEARL.ModTableSafeAppend("CONSTS", {
     --     ":", -- escape discord emojis as well, ex. :wave: (this also escapes links)
     --     "[", -- hyperlinks ([text](url))
     -- },
-
-    MOD_ERROR                   = false,
 })
 PEARL.CONSTS.ENT_ONEOF_TAGS = ArrayUnion(
     PEARL.CONSTS.BASE_STRUCTURE_TAGS, PEARL.CONSTS.RESOURCE_PLANT_TAGS
@@ -104,25 +118,7 @@ PEARL.CONSTS.ENT_ONEOF_TAGS = ArrayUnion(
 --------------------------------
 
 PEARL.info("Loading Configuration...")
-PEARL.ModTableSafeAppend("CONFIG", {
-    -- What configurations should be sent to clients
-    PUBLIC = {
-        ["DEBUG_MODE"] = true,
-        ["DISCORD_INVITE"] = true,
-        ["MOD_BLACKLIST"] = true,
-        ["AFK_TIME"] = true,
-        ["AFK_TIME_KICK"] = true,
-        ["CZSK_ONLY"] = true,
-        ["LANGUAGE"] = true,
-        ["INTRO_POPUP_TITLE"] = true,
-        ["INTRO_POPUP_BODY"] = true,
-        ["AGREEMENT_SCREEN_CONTENT"] = true,
-        ["WELCOME_POPUP_CONTENT"] = true,
-        ["SLASH_COMMANDS"] = true,
-        ["CUSTOM_LOADING_TIPS"] = true,
-        ["CUSTOM_CONTROLS"] = true,
-    },
-
+PEARL.SafeModTableExtend("CONFIG", {
     -- The discord module
     DISCORD                     = {
         ENABLED                 = PEARL.GetConfigData("DISCORD_LOGS"),
@@ -149,6 +145,7 @@ PEARL.ModTableSafeAppend("CONFIG", {
 
     -- Anti-Grief
     --GRIEF_PROTECTION            = PEARL.GetConfigData("FIRE_PROTECTION"),
+
     TRUST_AGE                   = PEARL.GetConfigData("TRUST_AGE"),
     LOG_SUSPICIOUS_INVENTORIES  = PEARL.GetConfigData("LOG_SUSPICIOUS_INVENTORIES"),
     CZSK_ONLY                   = PEARL.GetConfigData("CZSK_ONLY"),
@@ -184,41 +181,6 @@ if PEARL.CONFIG.INTRO_SCREEN then
         PEARL.warn("The body and content for the welcome popup are not setuped!")
         PEARL.CONFIG.WELCOME_POPUP_CONTENT = nil
     end
-end
-
---------------------------------
--- [[ Modules ]]
---------------------------------
-
---- @type ModuleManager
-local ModuleManager = PEARL.loadfile("libraries/modulemanager")
-ModuleManager:SetLoader(PEARL.loadfile)
-ModuleManager:SetModuleDirectory("modules")
-
--- Master only modules
-if TheShard:IsMaster() then
-    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
-    -- Master handles the connections
-    ModuleManager:AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
-    ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
-end
-
-ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
-ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTER)
-ModuleManager:AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
-ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
-ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
-
--- Logger Modules
-ModuleManager:AddModule("logger/world", true)
---- @TODO: Replace with DFT's tracker for now.
-ModuleManager:AddModule("logger/player", true)
-
--- Discord only loggers
-if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
-    ModuleManager:AddModule("logger/chat", true)
-    ModuleManager:AddModule("logger/inventory", true)
-    ModuleManager:AddModule("logger/server", true)
 end
 
 --------------------------------
@@ -315,12 +277,56 @@ if PEARL.CONFIG.ALLOWLIST and TheShard:IsMaster() then
 end
 PEARL.AllowList:Load()
 
+--- @type AdminList
+PEARL.AdminList = PEARL.loadfile("libraries/wrappers/adminlist")
+PEARL.AdminList:Load()
+
 --------------------------------
 -- [[ Modules ]]
 --------------------------------
 
 PEARL.info("Loading modules...")
+
+--- @type ModuleManager
+local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+ModuleManager:SetLoader(PEARL.loadfile)
+ModuleManager:SetModuleDirectory("modules")
+
+-- Master only modules
+if TheShard:IsMaster() then
+    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
+    -- Master handles the connections
+    ModuleManager:AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
+    ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
+end
+
+ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
+ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTER)
+-- This should not be called in backend I guess
+--ModuleManager:AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
+ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
+ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
+
+-- Logger Modules
+ModuleManager:AddModule("logger/world", true)
+ModuleManager:AddModule("logger/player", true)
+
+-- Discord report channel logs only
+if PEARL.DiscordReporter:IsEnabled() then
+    ModuleManager:AddModule("logger/inventory", true)
+end
+
+-- Discord only loggers
+if PEARL.DiscordLogger:IsEnabled() then
+    ModuleManager:AddModule("logger/chat", true)
+    ModuleManager:AddModule("logger/server", true)
+end
+
 ModuleManager:LoadAllModules()
+
+--------------------------------
+-- [[ Anti-Grief ]]
+--------------------------------
 
 -- PEARL.info("Loading other components...")
 --- v2.1
@@ -403,9 +409,12 @@ if PEARL.CONFIG.DEBUG_MODE then
     -- Fix for a broken debug handler
     handlers[KEY_D] = nil
 
+    -- Better c_reset
     PEARL.AddGlobalFunctionPreCall("c_reset", function()
         TheSim:ResetError()
     end)
+
+    PEARL.GenerateConfigFile = require("utils/configfilegenerator")
 end
 
 --------------------------------
@@ -426,9 +435,3 @@ if type(PEARL.CONFIG.CUSTOM_PREFABS) == "table" then
         end
     end
 end
-
----------------------------------
--- [[ Server Mod Configuration ]]
----------------------------------
-
-PEARL.loadfile("servermodconfig")

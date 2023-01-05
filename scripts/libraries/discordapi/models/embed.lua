@@ -1,10 +1,22 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
 
-local PEARL = PEARL
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 ------------------------------------------
 -- [[ Class Declaration ]]
 ------------------------------------------
---- @TODO Make it so we cannot create an invalid embed
+
+--- @class Embed
 local Embed = Class(function(self)
     self.title = nil
     self.url = nil
@@ -65,6 +77,7 @@ Embed.COLORS = {
 function Embed:SetTitle(title, url)
     if not (type(title) == "string" and #title < Embed.MAX_TITLE_LENGTH) then
         PEARL.warn("Attempted to set an invalid title!")
+
         return self
     end
 
@@ -79,7 +92,9 @@ end
 
 function Embed:SetDescription(description)
     if not (type(description) == "string" and #description < Embed.MAX_DESCRIPTION_LENGTH) then
-        return PEARL.warn("Attempted to set an invalid description!")
+        PEARL.warn("Attempted to set an invalid description!")
+
+        return self
     end
 
     self.description = description

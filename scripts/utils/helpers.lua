@@ -1,7 +1,22 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --- @TODO: Sort this a bit (v2.1)
 
 
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local UserCommands = require("usercommands")
 local EncodeBase64 = require('utils/base64encoder')
 
@@ -13,7 +28,7 @@ local string, table, math = string, table, math
 
 --------------------------------
 
-local KLEI_DATA_PATTERN = "KLEI     1D%s"
+local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
 
 --------------------------------
 -- [[ Inventory ]]
@@ -161,11 +176,8 @@ function PEARL.GetInventoryTabelFor(ku_id, player)
 end
 
 --- @TODO move this elsewhere + add some more info about the inv (age, item count, etc...)
+--- @return Embed
 function PEARL.InventoryToEmbed(inventory, target_prefab, name, userid)
-    if not (inventory and (userid or name)) then
-        return
-    end
-
     name = name or userid or string.capitalize(target_prefab) or STRINGS.PEARL.UNKNOWN
     local icon = PEARL.ICONS.PLAYER_PREFABS[target_prefab] or PEARL.ICONS.PLAYER_PREFABS[""]
     local title = STRINGS.PEARL.LOGS.INV_REPORT_TITLE:format(icon, name)
@@ -202,7 +214,7 @@ end
 -- [[ Server Commands ]]
 --------------------------------
 
--- TODO: add support for all param
+-- TODO: add support for 'all' param
 --- @param all any Whether campfires and staff lights should be removed too or not
 function PEARL.ExtinguishFiresNear(x, y, z, all)
     if x ~= nil and y ~= nil and z ~= nil then
@@ -230,15 +242,22 @@ function PEARL.ExtinguishFiresNear(x, y, z, all)
     end
 end
 
-function PEARL.RollbackByDays(cycles)
+--- @param days number The number of cycles to go back. (cycle = day - 1)
+--- @param handler function<boolean, string>? The handler function for error messages.
+--- @param delay number?
+function PEARL.RollbackByDays(days, handler, delay)
+    handler = handler or function(...) end
+
     -- Note: This returns an array where the snapshots are sorted by the newest
     -- So the snapshot on index 1 is the latest, etc...
     local snapshots = TheNet:ListSnapshots(TheNet:GetSessionIdentifier(), true)
     if type(snapshots) ~= "table" then
+        handler(false, STRINGS.PEARL.UI.CMD_ERRORS.FAILED_SNAPHOTS_LOAD)
         return PEARL.error("Failed to load the list of snapshots!")
     end
 
-    local target_cycle = math.max((TheWorld.state.cycles or 1) - cycles, 1)
+    local target_cycle = math.max((TheWorld.state.cycles or 1) - days, 1)
+    local target_day = target_cycle + 1 -- day = cycle + 1 (we are starting from 0)
     local function onsnapshotloaded(str, id)
         id = id or 1
 
@@ -246,20 +265,25 @@ function PEARL.RollbackByDays(cycles)
             local noerror, metadata = RunInSandbox(str)
             if noerror and metadata.clock and metadata.clock.cycles then
                 if metadata.clock.cycles < target_cycle then
+                    handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
                     return PEARL.info("No snapshot found for day", target_cycle)
                 end
 
                 if metadata.clock.cycles == target_cycle then
-                    PEARL.info("Rolling server back to cycle", target_cycle)
-                    -- Using raw low-level 'TheNet:TruncateSnapshots' instead of
-                    -- the default 'WorldRollbackFromSim' because of the 30 seconds limit.
-                    TheNet:TruncateSnapshots(
-                        TheNet:GetSessionIdentifier(), -id
-                    )
+                    PEARL.Scheduler:ExecuteInTime(delay or 0, function()
+                        handler(true, STRINGS.PEARL.LOGS.ROLLBACK_DAYS:format(target_day))
+                        PEARL.info("Rolling server back to cycle", target_cycle)
 
-                    -- Restart the server after truncating the snapshots
-                    -- to apply the changes
-                    return WorldRollbackFromSim(0)
+                        -- Using raw low-level 'TheNet:TruncateSnapshots' instead of
+                        -- the default 'WorldRollbackFromSim' because of the 30 seconds limit.
+                        TheNet:TruncateSnapshots(
+                            TheNet:GetSessionIdentifier(), -id
+                        )
+
+                        -- Restart the server after truncating the snapshots
+                        -- to apply the changes
+                        return WorldRollbackFromSim(0)
+                    end)
                 end
             end
         end
@@ -267,7 +291,8 @@ function PEARL.RollbackByDays(cycles)
         local nextid = id + 1
         local nextsnapshot = snapshots[nextid]
         if not nextsnapshot then
-            return PEARL.info("No snapshot found for day", target_cycle)
+            handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
+            return PEARL.info("No snapshot found for day", target_day)
         end
 
         return TheSim:GetPersistentString(nextsnapshot.world_file..".meta", function(success, str)
@@ -384,7 +409,7 @@ end
 --------------------------------
 
 function PEARL.EncodeKleiData(data)
-    return KLEI_DATA_PATTERN:format(EncodeBase64(data))
+    return KLEI_ENCODED_DATA_PATTERN:format(EncodeBase64(data))
 end
 
 function PEARL.DecodeKleiData(data)
@@ -396,6 +421,7 @@ end
 --------------------------------
 
 function PEARL.SendMessageToClient(userid, message)
+    PEARL.info("SendMessageToClient<"..userid..">", message)
     PEARL.SendRPCToClient(PEARL.RPCS.SendDirectMessage, userid, message)
 end
 
@@ -482,15 +508,11 @@ end
 function PEARL.GroupEntitiesByPrefab(entities)
     local grouped = {}
     for _, ent in ipairs(entities) do
-        local name = ent:GetBasicDisplayName()
         -- Try to use the basic names here since it's not possible
         -- to find name for all avaible prefabs in STRINGS.NAMES.
         -- Example is flower_cave_double - Light Flower
-        if not grouped[name] then
-            grouped[name] = PEARL.GetStackSize(ent)
-        else
-            grouped[name] = grouped[name] + PEARL.GetStackSize(ent)
-        end
+        local name = ent:GetBasicDisplayName()
+        grouped[name] = (grouped[name] or 0) + PEARL.GetStackSize(ent)
     end
 
     return format_grouped(grouped)
@@ -519,7 +541,7 @@ function PEARL.SafeRun(func, ...)
             "Error in function call:", result or "Unknown"
         )
 
-        PEARL.DiscordReporter:ReportModError(result)
+        PEARL.DiscordReporter:ReportCatchedLuaError(result)
     end
 
     return success, result
@@ -598,7 +620,10 @@ function PEARL.LogInventoryFor(userid)
     PEARL.info(DataDumper(inventory))
 
     local embed = PEARL.InventoryToEmbed(inventory, prefab, name, userid)
-    PEARL.DiscordLogger:LogEmbed(embed)
+    local message = Message()
+    message:AddEmbed(embed)
+
+    PEARL.DiscordReporter:SendRawReportMessage(message)
 
     return true
 end

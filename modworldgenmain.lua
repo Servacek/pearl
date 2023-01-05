@@ -1,26 +1,14 @@
---[[
-Copyright (c) 2023 Fi7iP
-The Czechoslovakian Don't Starve Together Game Comunity
-<https://discord.gg/RHzJxut>
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
 
-This file is part of the 'Pearl'.
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
 
-The source code of this program and all its parts are shared under
-the RECEX SHARED SOURCE LICENSE (version 1.0).
-This is NOT Free and Open Source software, and the code is
-NOT redistributable without permission of the author(s).
-The source code licensed under this license is shared "as is" and does
-not come with any warranty including the implied warranty of merchandise.
-Read the RECEX SHARED SOURCE LICENSE for details.
-
-You should have received a copy of the RECEX SHARED SOURCE LICENSE
-in the form of a LICENSE file in the root of the source directory.
-If not, please refer to
-<https://raw.githubusercontent.com/Recex/Licenses/master/SharedSourceLicense/LICENSE.txt>
-
-You can contact the author(s) at
-<https://steamcommunity.com/profiles/76561198339302667/>
---]]
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
 
 
 

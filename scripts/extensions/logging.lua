@@ -1,7 +1,19 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local TheSim = TheSim
 local toarrayornil, tostring  = toarrayornil, tostring
-local string = string
 
 ---------------------------
 -- [[ Constants ]]
@@ -44,6 +56,8 @@ end
 -- [[ Logging Utils ]]
 ---------------------------
 
+--- @param lv string? The log level of this message.
+--- @param ... any Anything you want to print out. (uses tostring)
 function PEARL.log(lv, ...)
     lv = lv and tostring(lv) or LOG_LEVELS.INFO
 

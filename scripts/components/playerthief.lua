@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Detects movements with rare items caused by a player. This is an internal component.
     It doesn't provide basically any useful function to the outside. It uses event's
@@ -31,8 +45,9 @@ return Class(function(self, inst)
         end
 
         local stolen_items = GetStolenItems(container)
-        if #stolen_items > 0 then
-            doer:PushEvent("finishedlooting", {
+        PEARL.debug("STOLEN", DataDumper(stolen_items))
+        if stolen_items and #stolen_items > 0 then
+            doer:PushModEvent("finishedlooting", {
                 items = stolen_items,
                 container = container,
             })
@@ -69,7 +84,7 @@ return Class(function(self, inst)
             end
 
             if #rare_items > 0 then
-                return self._inst:PushEvent("tookrarecontainer", {
+                return self._inst:PushModEvent("tookrarecontainer", {
                     container = data.item,
                     items = rare_items
                 })
@@ -80,7 +95,7 @@ return Class(function(self, inst)
             return
         end
 
-        self._inst:PushEvent("tookrareitem", data.item)
+        self._inst:PushModEvent("tookrareitem", data.item)
 
         data.item.components.inventoryitem:SetLastPicker(self._inst)
     end
@@ -99,12 +114,11 @@ return Class(function(self, inst)
         --> Do not use itemget and itemlose events for this since they are used by the Frontend
         self._inst:ListenForEvent("onpickupitem", onpickupitem)
 
-        self._inst:ListenForEvent("openedcontainer", onopencontainer)
-        --> Use "closecontainer" instead of the built-in "closecontainer" event because
+        self._inst:ListenForModEvent("openedcontainer", onopencontainer)
+        --> Use "closedcontainer" instead of the built-in "closecontainer" event because
         --> that is for some reason called only when closing a container by clicking on it.
-        self._inst:ListenForEvent("closedcontainer", onclosecontainer)
+        self._inst:ListenForModEvent("closedcontainer", onclosecontainer)
 
-        --- @TODO: Debug if this is needed
         self._inst:ListenForEvent("player_despawn", onplayerdespawned)
     end
 
@@ -163,8 +177,8 @@ return Class(function(self, inst)
 
     function self:OnRemoveFromEntity()
         if self._inst then
-            self._inst:RemoveEventCallback("closedcontainer", onclosecontainer)
-            self._inst:RemoveEventCallback("openedcontainer", onopencontainer)
+            self._inst:RemoveModEventCallback("closedcontainer", onclosecontainer)
+            self._inst:RemoveModEventCallback("openedcontainer", onopencontainer)
             self._inst:RemoveEventCallback("onpickupitem", onpickupitem)
             self._inst:RemoveEventCallback("player_despawn", onplayerdespawned)
         end

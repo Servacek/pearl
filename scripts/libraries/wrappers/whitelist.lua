@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local math = math
 local PEARL = PEARL
@@ -73,7 +86,7 @@ function WhiteList:SetMode(mode)
 end
 
 function WhiteList:SyncReservedWithSlots()
-    WhiteList:GetContent(function(success, content)
+    return TheSim:GetPersistentString(WHITELIST_PATH, function(success, content)
         if not success then
             return PEARL.error("Failed to load the whitelist!")
         end
@@ -111,9 +124,4 @@ end
 
 function WhiteList:Contains(userid)
     return TheNet:IsWhiteListed(userid)
-end
-
---- @async
-function WhiteList:GetContent(cb)
-    return TheSim:GetPersistentString(WHITELIST_PATH, cb)
 end

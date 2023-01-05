@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Alternative to whitelist.txt.
 ]]
@@ -5,9 +19,6 @@
 if TheNet:GetIsClient() or not TheNet:IsDedicated() then
     return
 end
-
-local io = io
-local PEARL = PEARL
 
 --------------------------------------
 -- [[ Contants ]]
@@ -21,9 +32,9 @@ local ALLOWLIST_PATH = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/allowlist.txt"
 
 --- @class AllowList
 local AllowList = {
-    userids = {},
+    _userids = {},
 
-    enabled = false,
+    _enabled = false,
 }
 
 --------------------------------------
@@ -31,33 +42,33 @@ local AllowList = {
 --------------------------------------
 
 function AllowList:Toggle()
-    self.enabled = not self.enabled
+    self._enabled = not self._enabled
 
-    return self.enabled
+    return self._enabled
 end
 
 function AllowList:SetIsEnabled(enabled)
-    self.enabled = enabled
+    self._enabled = enabled
 end
 
 function AllowList:IsEnabled()
-    return self.enabled
+    return self._enabled
 end
 
 function AllowList:Add(userid)
-    if userid and not self.userids[userid] then
-        self.userids[userid] = true
+    if userid and not self._userids[userid] then
+        self._userids[userid] = true
     end
 end
 
 function AllowList:Remove(userid)
-    if self.userids[userid] then
-        self.userids[userid] = nil
+    if self._userids[userid] then
+        self._userids[userid] = nil
     end
 end
 
 function AllowList:Contains(userid)
-    return self.userids[userid] or false
+    return self._userids[userid] or false
 end
 
 function AllowList:Load()
@@ -81,7 +92,7 @@ function AllowList:Save()
         return false
     end
 
-    for userid, allowed in pairs(self.userids) do
+    for userid, allowed in pairs(self._userids) do
         if allowed == true then
             local _, errmsg = file:write(userid, "\n")
             if errmsg then
@@ -101,9 +112,22 @@ end
 -- Master does handle all the connections.
 if TheShard:IsMaster() then
     PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid)
-        if AllowList:IsEnabled() then
+        -- IsEnabled return value can be changed during runtime!
+        -- TheNet:GetUserID returns the owner's ID on dedicated servers.
+        if (
+            AllowList:IsEnabled() and
+            PEARL.AdminList:Contains(userid) or
+            userid == TheNet:GetUserID()
+        ) and not AllowList:Contains(userid) then
             PEARL.debug("Prohibiting connection for", userid)
-            return AllowList:Contains(userid)
+
+            if TheWorld then
+                TheWorld:PushModEvent("clientconnectionclosed", {
+                    userid = userid, reason = "ID_DST_SLOT_RESERVATION"
+                })
+            end
+
+            return false
         end
 
         -- Else let the the default callback execute.

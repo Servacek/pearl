@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Additional API helper functions. This is basically just
     an extension to modindex.lua's environment functions.
@@ -22,7 +36,7 @@ function PEARL.AddFunctionPostCall(name, postcb, tbl, noraw)
         PEARL.info("AddFunctionPostCall", name, postcb, tbl)
     end
 
-    if not (type(name) == "string" and type(postcb) == "function") then
+    if not (type(name) == "string" and type(postcb) == "function" and type(tbl) == "table") then
         return PEARL.warn("<AddFunctionPreCall> Invalid arguments!")
     end
 
@@ -64,7 +78,7 @@ function PEARL.AddFunctionPreCall(name, precb, tbl, noraw)
         PEARL.info("AddFunctionPreCall", name, precb, tbl)
     end
 
-    if not (type(name) == "string" and type(precb) == "function") then
+    if not (type(name) == "string" and type(precb) == "function" and type(tbl) == "table") then
         return PEARL.warn("<AddFunctionPreCall> Invalid arguments!", name, precb)
     end
 
@@ -193,7 +207,9 @@ end
 function PEARL.OverrideGlobal(name, value)
     if PEARL.CONFIG.DEBUG_MODE then
         local old_v = rawget(_G, name)
-        PEARL.debug("Overriding global "..name.." ("..tostring(old_v)..") with "..tostring(value))
+        if old_v ~= nil then
+            PEARL.debug("Overriding global "..name.." ("..tostring(old_v)..") with "..tostring(value))
+        end
     end
 
     return rawset(_G, name, value)
@@ -203,7 +219,7 @@ end
 -- Initializers
 ----------------------------------
 
-function PEARL.ModTableSafeAppend(name, init_val)
+function PEARL.SafeModTableExtend(name, init_val)
     local tbl = rawget(PEARL, name)
     if not tbl then
         return rawset(PEARL, name, init_val or {})
@@ -285,9 +301,11 @@ end)
 function PEARL.AddAnnouncementCategory(name, icon)
     assert(ANNOUNCEMENT_ICONS, "ANNOUNCEMENT_ICONS is nil!")
 
-    ANNOUNCEMENT_ICONS[name] = {
-        atlas = "images/announcements.xml", texture = icon
-    }
+    if icon then
+        ANNOUNCEMENT_ICONS[name] = {
+            atlas = "images/announcements.xml", texture = icon
+        }
+    end
 
     if not PEARL.CONSTS.ANNOUNCEMENT_TYPES then
         PEARL.CONSTS.ANNOUNCEMENT_TYPES = {}
@@ -300,21 +318,35 @@ end
 -- [[ Logging ]]
 --------------------------------
 
---- @TODO figure out what is the third param for TheNet:Announce
-
 --- Similiar to TheNet:Announce but determines using the type
 --- whether to send the message to the game as well
 --- or just to discord (according to the configurations).
 ---
 ---@param message string The content text of the announcement (supports multiline).
----@param type string The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
+---@param tp string? The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
 ---@param entity? unknown The entity the announcement is about.
 ---@param ... any Additional arguments to the TheNet:Announce function.
-function PEARL.AnnounceWithType(message, type, entity, ...)
-    --print("ANNOUNCE", message)
-    if PEARL.CONFIG.ANNOUNCEMENTS and PEARL.CONFIG.ANNOUNCEMENTS[type] then
-        return TheNet:Announce(message, entity, nil, type, ...)
+function PEARL.AnnounceWithType(message, tp, entity, ...)
+    local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
+    -- Everything overrides the default value
+    if type(PEARL.CONFIG.ANNOUNCEMENTS[tp]) == "boolean" then
+        enabled = PEARL.CONFIG.ANNOUNCEMENTS[tp]
     end
 
-    PEARL.DiscordLogger:LogString(message, PEARL.ICONS.ANNOUNCEMENTS[type])
+    -- The all config overrides everything
+    if type(PEARL.CONFIG.ANNOUNCEMENTS.all) == "boolean" then
+        enabled = PEARL.CONFIG.ANNOUNCEMENTS.all
+    end
+
+    if type(ANNOUNCEMENT_ICONS[tp]) ~= "table" then
+        tp = "default"
+    end
+
+    -- Check for explicit false so by default is everything enabled.
+    if enabled ~= false then
+        -- When we announce the message it will be logged to discord implicitly.
+        return TheNet:Announce(message, entity, nil, tp, ...)
+    end
+
+    PEARL.DiscordLogger:LogString(message, PEARL.ICONS.ANNOUNCEMENTS[tp])
 end

@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+    
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+    
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Manages the REST client's request queue so requests are not sent directly.
 
@@ -12,9 +26,6 @@
 
         - The discord REST API rate limit is 16 requests/second.
 --]]
-
---- @TODO: Think about some way to prevent forced request to exceed rate limits.
---- Since now you basically force requests in a loop...
 
 local Queue = PEARL.loadfile("models/queue")
 local Request = PEARL.loadfile("models/request")
@@ -48,8 +59,9 @@ _SendRequest = function(self, request, force)
         return
     end
 
-    self:SetIsOnCooldown(true)
-    TheSim:QueryServer(request.url, function(...)
+    -- Run in a protected call so if an error occures and the request is not actually
+    -- being sent, we do not block the requester.
+    local success, err = pcall(TheSim.QueryServer, TheSim, request.url, function(...)
         request:OnCompleted(...)
 
         -- Wait a few seconds before executing next request
@@ -57,7 +69,15 @@ _SendRequest = function(self, request, force)
         self:ResetForceTreshold()
     end, request.method, request.data, request.timeout)
 
-    self._rcount = self._rcount + 1
+    if success then
+        self:SetIsOnCooldown(true)
+        self._rcount = self._rcount + 1
+    else -- If we have failed to execute the task
+        PEARL.error("Failed to execute request!", err)
+        _FinishCooldown(self)
+    end
+
+    return success, err
 end
 
 _ProcessQueue = function(self)
@@ -229,9 +249,8 @@ function RestClient:ForceSend(request)
     PEARL.debug(string.format("Forcing a request! (%d/%d)",
         self._force_threshold, MAX_FORCE_THRESHOLD
     ))
-    _SendRequest(self, request, true)
 
-    return true
+    return _SendRequest(self, request, true)
 end
 
 function RestClient:Request(url, method)

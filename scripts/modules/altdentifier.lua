@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+--- @category BackEnd
+
+
 --[[
     Standalone module for identifing alternative accounts of players using
     Klei's built-in API. Alt accounts with banned root will be banned as well.
@@ -75,6 +89,14 @@ local function HasAccountValidRoot(userid, rootid)
     return rootid == userid or not PEARL.BlackList:Contains(rootid)
 end
 
+local function ShouldCheckClient(userid)
+    return (
+        not IsUserIDCached(userid) and
+        not PEARL.AdminList:Contains(userid) and
+        not TheNet:GetUserID() == userid
+    )
+end
+
 --------------------------------
 -- [[ Query ]]
 --------------------------------
@@ -110,7 +132,7 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
 
         -- If the error is unknown then report it to discord.
         if not no_retry and not table.contains(QUERY_ERRORS, reponse_json.ErrorCode) then
-            PEARL.DiscordReporter:ReportModError("AO Query for "..userid.." failed with unknown error code "..(reponse_json.ErrorCode or "UNKNOWN"))
+            PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..userid.." failed with unknown error code "..(reponse_json.ErrorCode or "UNKNOWN"))
         end
 
         -- When an error occurs, try to send the request one more time
@@ -126,8 +148,6 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
     if not rootid then
         return PEARL.info("No root account info for user", userid)
     end
-
-    PEARL.debug("USERID:", userid, "ROOTID:", rootid)
 
     if not HasAccountValidRoot(userid, rootid) then
         if TheWorld then
@@ -168,13 +188,19 @@ end
 --------------------------------
 
 PEARL.AddWorldPostInit(function(world)
-    world:SafeListenForEvent("ms_clientauthenticationcomplete", function(_, userid)
-        if not userid or PEARL.IsClientMigrating(userid) then
+    if not world then
+        return
+    end
+
+    -- Pushed during world migration as well, such event's should be filtered out
+    -- by the cache.
+    world:SafeListenForEvent("ms_clientauthenticationcomplete", function(_, data)
+        if not (data and data.userid) then
             return
         end
 
-        if not IsUserIDCached(userid) then
-            SendFSQueryFor(userid)
+        if ShouldCheckClient(data.userid) then
+            SendFSQueryFor(data.userid)
         end
     end)
 end)

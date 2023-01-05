@@ -1,26 +1,14 @@
---[[
-Copyright (c) 2023 Fi7iP
-The Czechoslovakian Don't Starve Together Game Comunity
-<https://discord.gg/RHzJxut>
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
 
-This file is part of the 'Pearl'.
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
 
-The source code of this program and all its parts are shared under
-the RECEX SHARED SOURCE LICENSE (version 1.0).
-This is NOT Free and Open Source software, and the code is
-NOT redistributable without permission of the author(s).
-The source code licensed under this license is shared "as is" and does
-not come with any warranty including the implied warranty of merchandise.
-Read the RECEX SHARED SOURCE LICENSE for details.
-
-You should have received a copy of the RECEX SHARED SOURCE LICENSE
-in the form of a LICENSE file in the root of the source directory.
-If not, please refer to
-<https://raw.githubusercontent.com/Recex/Licenses/master/SharedSourceLicense/LICENSE.txt>
-
-You can contact the author(s) at
-<https://steamcommunity.com/profiles/76561198339302667/>
---]]
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
 
 
 
@@ -95,9 +83,9 @@ You can contact the author(s) at
 local GLOBAL = GLOBAL
 
 -- The server is being relaunched at boot so ignore the actual first launch.
-if not GLOBAL.TheSim or GLOBAL.TheSim:GetNumLaunches() == 1 then
-    return
-end
+-- if not GLOBAL.TheSim or GLOBAL.TheSim:GetNumLaunches() == 1 then
+--     return
+-- end
 
 --------------------------------
 -- [[ Local Constants ]]
@@ -177,13 +165,55 @@ PEARL = GLOBAL.PEARL
 --------------------------------
 
 PEARL.CONFIG = {
+    -- What configurations should be sent to clients
+    PUBLIC = {
+        ["DEBUG_MODE"] = true,
+        ["DISCORD_INVITE"] = true,
+        ["MOD_BLACKLIST"] = true,
+        ["AFK_TIME"] = true,
+        ["AFK_TIME_KICK"] = true,
+        ["CZSK_ONLY"] = true,
+        ["LANGUAGE"] = true,
+        ["INTRO_POPUP_TITLE"] = true,
+        ["INTRO_POPUP_BODY"] = true,
+        ["AGREEMENT_SCREEN_CONTENT"] = true,
+        ["WELCOME_POPUP_CONTENT"] = true,
+        ["SLASH_COMMANDS"] = true,
+        ["CUSTOM_LOADING_TIPS"] = true,
+        ["CUSTOM_CONTROLS"] = true,
+        ["COMMAND_BLOCKLIST"] = true,
+        ["MIN_VOTE_AGE"] = true,
+        ["ADMIN_CALL_COOLDOWN"] = true,
+    },
+
     DEBUG_MODE = PEARL.GetConfigData("DEBUG_MODE"),
     LANGUAGE = PEARL.GetConfigData("LANGUAGE"),
 }
 
 PEARL.CONSTS = {
-    EVENT_PREFIX = "__"..string.lower(PEARL.MODNAME).."__"
+    EVENT_PREFIX = "__"..string.lower(PEARL.MODNAME).."__",
+
+    -- If encoded then there is an 'D' at the end.
+    -- For non-encoded data there is a space between
+    -- the prefix and the actual content
+    KLEI_DATA_PREFIX            = "KLEI     1",
+    KLEI_ENCODED_DATA_PREFIX    = "KLEI     1D",
 }
+
+--------------------------------
+-- [[ Server Mod Config ]]
+--------------------------------
+
+require("servermodconfig")
+
+if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
+    -- Make sure we do not leak any internal configurations
+    return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
+end
+
+if not TheSim or TheSim:GetNumLaunches() == 1 then
+    return -- Do not load much on the first launch.
+end
 
 --------------------------------
 -- [[ FileLoader ]]
@@ -191,7 +221,7 @@ PEARL.CONSTS = {
 
 PEARL.loadfile = require("libraries/fileloader")
 if type(PEARL.loadfile) ~= "function" then
-    PEARL.error("Failed to load the file loader!", tostring(PEARL.loadfile))
+    return error("Failed to load the file loader!", tostring(PEARL.loadfile))
 end
 
 --------------------------------
@@ -199,11 +229,6 @@ end
 --------------------------------
 
 PEARL.loadfile("extensions/logging")
-
---- @TODO
--- if TheNet:GetIsServer() and not (TheNet:IsDedicated() and not TheNet:GetServerIsClientHosted()) or TheNet:IsDedicatedOfflineCluster() then
---     return PEARL.warn("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
--- end
 
 --------------------------------
 -- [[ Standard Libs ]]
@@ -214,14 +239,6 @@ PEARL.loadfile("extensions/standard/table")
 PEARL.loadfile("extensions/standard/math")
 PEARL.loadfile("extensions/standard/io")
 PEARL.loadfile("extensions/standard/string")
-
---------------------------------
--- [[ License ]]
---------------------------------
-
---- We are working with files here so load after the io extension
-PEARL.info("Loading licence...")
-PEARL.loadfile("licence")
 
 --------------------------------
 -- [[ Helpers ]]
@@ -236,6 +253,14 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
+
+--------------------------------
+-- [[ License ]]
+--------------------------------
+
+--- We are working with files here so load after the io extension
+PEARL.info("Loading licence...")
+PEARL.loadfile("licence")
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -286,13 +311,18 @@ PEARL.AddAnnouncementCategory("kill", "hambat.tex")
 PEARL.AddAnnouncementCategory("defeat", "trophy.tex")
 PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
 
+--- @TODO: add custom icon for these...
+PEARL.AddAnnouncementCategory("activate")
+PEARL.AddAnnouncementCategory("teach")
+PEARL.AddAnnouncementCategory("read")
+
 --------------------------------
 -- [[ Frontend ]]
 --------------------------------
 
 -- In debug mode we want to load frontend on servers as well to see if there is
 -- any error.
-if TheNet:GetIsClient() or PEARL.CONFIG.DEBUG_MODE then
+if TheNet:GetIsClient() then--or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
 

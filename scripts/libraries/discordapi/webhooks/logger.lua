@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     This file adds a Logger class to the mod's environment. It's a class that manages
     the message creation and buffering process. As a buffer it uses the Message container itself.
@@ -15,14 +29,13 @@ local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 -- [[ Handlers ]]
 -------------------------------------
 
-local function on_message_post_construct(message, force, self)
-    if force then
-        return self:_LogBufferedMessage()
-    end
+-- local function on_message_post_construct(message, force, self)
+--     if force then
+--         return self:_LogBufferedMessage()
+--     end
 
-    --- Start buffered timeout task here
-    self:_StartBufferTimeout()
-end
+--     self:_StartBufferTimeout()
+-- end
 
 -------------------------------------
 -- [[ Class Declarations ]]
@@ -38,7 +51,7 @@ local Logger = Class(function(self)
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.LHOOK.ID, PEARL.CONFIG.DISCORD.LHOOK.TOKEN)
 
     self._buffered_message = Message()
-        :SetPostConstructFn(on_message_post_construct, self)
+        -- :SetPostConstructFn(on_message_post_construct, self)
     --- @type Task
     self._buffer_timeout_task = nil
     self._buffer_timeout = 0
@@ -53,9 +66,13 @@ end)
 -------------------------------------
 
 function Logger:_LogBufferedMessage(force)
-    PEARL.debug("Logger:_LogBufferedMessage")
+    --PEARL.debug("Logger:_LogBufferedMessage")
 
     self:_StopBufferTimeout()
+
+    if not self._buffered_message or not self._buffered_message:IsValid() then
+        return
+    end
 
     local _, json_data = self._buffered_message:ToJson()
     if not json_data then
@@ -70,7 +87,7 @@ end
 
 function Logger:_StartBufferTimeout()
     if not self._buffer_timeout_task then
-        PEARL.debug("Wrap timeout has started!")
+        --PEARL.debug("Wrap timeout has started!")
 
         self._buffer_timeout_task = PEARL.Scheduler:ExecuteInTime(
             self._buffer_timeout, self._OnBufferTimeout, nil, self
@@ -86,7 +103,7 @@ function Logger:_StopBufferTimeout()
 end
 
 function Logger:_OnBufferTimeout()
-    PEARL.debug("Wrap timeout has ended!")
+    --PEARL.debug("Wrap timeout has ended!")
     self:_LogBufferedMessage()
 end
 
@@ -116,6 +133,10 @@ end
 
 function Logger:IsDisabled()
     return self._disabled
+end
+
+function Logger:IsEnabled()
+    return not self._disabled
 end
 
 -------------------------------------

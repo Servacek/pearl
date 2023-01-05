@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 
@@ -88,7 +102,10 @@ return {
     },
 
     SIM_STATE = {
-        REGENERATE  = nil, -- TODO
+        REGENERATE              = "<:sim:998561317164163172>",
+        REGENERATE_COUNT_DOWN   = "<:clock:1060193937379299518>",
+
+        --- @deprecated
         PAUSE       = "<:sim:998561317164163172>",
         RESUME      = "<:sim:998561317164163172>",
     },

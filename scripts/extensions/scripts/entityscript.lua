@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local PEARL = PEARL
 local TheSim = TheSim
@@ -120,5 +133,10 @@ end
 ---
 --- @param ... any Additional parameters to the 'PushEvent' function.
 function EntityScript:SafePushEvent(...)
-    return PEARL.SafeRun(self.PushEvent, ...)
+    -- Don't forget the 'self' parameter!
+    return PEARL.SafeRun(self.PushEvent, TheWorld, ...)
+end
+
+function EntityScript:RemoveModEventCallback(event, ...)
+    return self:RemoveEventCallback(PEARL.CONSTS.EVENT_PREFIX..event, ...)
 end

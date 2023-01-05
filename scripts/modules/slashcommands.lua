@@ -1,31 +1,65 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+--- @category FrontEnd & BackEnd
 --- @TODO: Debug
 
 
 local TheNet = TheNet
+
+local Message = require("libraries/discordapi/models/message")
+local MARKDOWN = require("libraries/markdown")
 
 -------------------------------------
 -- Contants
 -------------------------------------
 
 local SLASH_COMMANDS = {}
+local REQUIRED_FIELDS = {
+    params = {},
+}
 
 local SLASH_COMMAND_DELIM = "/"
 local KLEI_ID_DELIM = "K"
+
+local DAYSBACK_DELAY = 3
 
 -------------------------------------
 -- Helpers
 -------------------------------------
 
 local function make_safe_cb(name, cb)
-    return function(...)
-        local success, result = pcall(cb, ...)
+    return function(params, caller, ...)
+        local success, result = PEARL.SafeRun(cb, params, caller, ...)
         if not success then
-            return PEARL.error("Failed to run command '/"..name.."'! Error:\n", result or "unknown...")
+            PEARL.error("Failed to run command '/"..name.."'! Error:\n", result or "unknown...")
+
+            if type(caller) == "table" and caller.userid then
+                PEARL.SendMessageToClient(caller.userid,
+                    STRINGS.PEARL.UI.CMD_ERRORS.EXECUTION
+                )
+            end
         end
     end
 end
 
 local function AddCommand(name, data, ...)
+    if data.rhook_required == true and not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
+        return
+    end
+
+    if PEARL.CONFIG.COMMAND_BLOCKLIST[name] == false then
+        return
+    end
+
     if data.serverfn then
         data.serverfn = make_safe_cb(name, data.serverfn)
     end
@@ -34,27 +68,38 @@ local function AddCommand(name, data, ...)
         data.localfn = make_safe_cb(name, data.localfn)
     end
 
+    if data.canstartfn then
+        data.canstartfn = make_safe_cb(name, data.canstartfn)
+    end
+
+    for key, value in pairs(REQUIRED_FIELDS) do
+        if data[key] == nil then
+            data[key] = value
+        end
+    end
+
     AddUserCommand(name, data)
 
     if name and data.slash then
         table.insert(SLASH_COMMANDS, name)
+
+        if data.aliases then
+            for _, alias in ipairs(data.aliases) do
+                table.insert(SLASH_COMMANDS, alias)
+            end
+        end
     end
 end
 
 ------------------------------------
--- Slash commands
+-- Slash commands [ADMIN]
 ------------------------------------
 
 AddCommand("fire", {
-    aliases = {},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
-    params = {},
 
     serverfn = function(params, caller)
         -- if caller and caller.Transform then
@@ -74,15 +119,10 @@ AddCommand("fire", {
 })
 
 AddCommand("repair", {
-    aliases = {},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
-    params = {},
 
     serverfn = function(params, caller)
         PEARL.RepairStructuresNearAll()
@@ -94,14 +134,10 @@ AddCommand("repair", {
 })
 
 AddCommand("unban", {
-    aliases = {},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
     params = {"player_id"}, -- Net/Klei ID
     params_optional= { false },
 
@@ -113,23 +149,20 @@ AddCommand("unban", {
 
         if PEARL.UnbanUserByID(params.player_id) then
             return PEARL.SendMessageToClient(caller.userid, string.format(
-                STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, params.player_id
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, params.player_id
             ))
         end
 
-        PEARL.SendMessageToClient(caller.userid, STRINGS.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND)
+        PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND)
     end,
 })
 
 AddCommand("allowlist-add", {
-    aliases = {},
+    aliases = {"allow"},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
     params = {"player_id"}, -- Net/Klei ID
     params_optional= { false },
 
@@ -139,16 +172,12 @@ AddCommand("allowlist-add", {
         end
 
         if PEARL.BlackList:Contains(params.player_id) then
-            PEARL.info("Specified userid is banned on this server.")
-
             return PEARL.SendMessageToClient(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED
             )
         end
 
         if PEARL.AllowList:Contains(params.player_id) then
-            PEARL.info("Specified userid is already on the allowlist!")
-
             return PEARL.SendMessageToClient(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED
             )
@@ -156,8 +185,6 @@ AddCommand("allowlist-add", {
 
         PEARL.AllowList:Add(params.player_id)
         if PEARL.AllowList:Save() then
-            PEARL.info("Successfully added", params.player_id, "to the allowlist!")
-
             return PEARL.SendMessageToClient(caller.userid, string.format(
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS,
                 params.player_id
@@ -171,34 +198,12 @@ AddCommand("allowlist-add", {
     end,
 })
 
--- AddCommand("allowlist-toggle", {
---     aliases = {},
---     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.PRETTYNAME,
---     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.DESC,
---     permission = COMMAND_PERMISSION.ADMIN,
---     slash = true,
---     usermenu = false,
---     servermenu = false,
---     vote = false,
-
---     serverfn = function()
---         if PEARL.AllowList:Toggle() then
---             return PEARL.SendMessageToClient(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.ON_ENABLED)
---         end
-
---         return PEARL.SendMessageToClient(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE.ON_DISABLED)
---     end,
--- })
-
 AddCommand("allowlist-remove", {
-    aliases = {},
+    aliases = {"deny"},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
     params = {"player_id"}, -- Net/Klei ID
     params_optional= { false },
 
@@ -208,8 +213,6 @@ AddCommand("allowlist-remove", {
         end
 
         if not PEARL.AllowList:Contains(params.player_id) then
-            PEARL.info("Specified player is not on the allowlist.")
-
             return PEARL.SendMessageToClient(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
             )
@@ -219,8 +222,6 @@ AddCommand("allowlist-remove", {
         TheNet:Kick(params.player_id)
 
         if PEARL.AllowList:Save() then
-            PEARL.info("Successfully removed", params.player_id, "from the allowlist!")
-
             return PEARL.SendMessageToClient(caller.userid, string.format(
                     STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS,
                     params.player_id
@@ -228,7 +229,6 @@ AddCommand("allowlist-remove", {
             )
         end
 
-        PEARL.error("Failed to remove the specified user from the allowlist.")
         return PEARL.SendMessageToClient(caller.userid,
             STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_FAILURE
         )
@@ -236,27 +236,23 @@ AddCommand("allowlist-remove", {
 })
 
 AddCommand("inv", {
-    aliases = {},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
     params = {"player_id"}, -- Net/Klei ID
     params_optional= { false },
+    rhook_required = true,
 
     serverfn = function(params, caller)
         if not (params and caller) then
             return
         end
 
-        if PEARL.DiscordLogger:IsDisabled() then
-            PEARL.error("Discord logger webhook is disabled!")
-
+        -- We are sending this to the report channel not to the log channel.
+        if PEARL.DiscordReporter:IsDisabled() then
             return PEARL.SendMessageToClient(caller.userid,
-                STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NO_LOGS
+                STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
             )
         end
 
@@ -266,7 +262,6 @@ AddCommand("inv", {
             )
         end
 
-        PEARL.error("Specified inventory wasn't found!")
         return PEARL.SendMessageToClient(caller.userid,
             STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND
         )
@@ -274,43 +269,43 @@ AddCommand("inv", {
 })
 
 AddCommand("inv-find", {
-    aliases = {},
+    aliases = {"item-find"},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    usermenu = false,
-    servermenu = false,
-    vote = false,
     params = {"item_prefab"},
-    params_optional= { false },
+    params_optional = { false },
+    rhook_required = true,
 
     serverfn = function(params, caller)
         if not (params and caller and params.item_prefab) then
             return
         end
 
-        if PEARL.DiscordLogger:IsDisabled() then
-            PEARL.error("Discord logger webhook is disabled...")
-
+        -- We are sending this to the report channel not to the log channel.
+        if PEARL.DiscordReporter:IsDisabled() then
             return PEARL.SendMessageToClient(caller.userid,
-                STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_NO_LOGS
+                STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
             )
         end
 
         local item_owners = {}
         for _, player in ipairs(AllPlayers) do
-            local item_count = player.components.inventory:GetItemByName(params.item_prefab, nil, true)
-            if item_count and item_count > 0 then
+            local items = player.components.inventory:FindItems(function(item)
+                return item.prefab == params.item_prefab
+            end)
+
+            if items and #items > 0 then
                 item_owners[#item_owners + 1] = {
                     player = player,
-                    item_count = item_count,
+                    item_count = #items,
                 }
             end
         end
 
         if #item_owners <= 0 then
-            return PEARL.info("No results")
+            return PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE)
         end
 
         table.sort(item_owners, function(k1, k2)
@@ -320,15 +315,115 @@ AddCommand("inv-find", {
 
         -- Anounce first 5 inventories reversed
         -- so the first one is on the bottom of the chat.
-        for i = 5, 1, -1 do
+        --- @type Message
+        local message = Message(STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR:format(
+            params.item_prefab, #item_owners
+        ))
+        for i = math.min(#item_owners, 5), 1, -1 do
             local player = item_owners[i].player
 
             local inventory, prefab, name = PEARL.GetInventoryTabelFor(player.userid, player)
             local embed = PEARL.InventoryToEmbed(inventory, prefab, player.name or name, player.userid)
-            PEARL.DiscordLogger:LogEmbed(embed)
+            if not message:AddEmbed(embed) then
+                break -- The message is full and doesn't accept any more embeds
+            end
         end
+
+        PEARL.DiscordReporter:SendRawReportMessage(message)
+        return PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
+            #item_owners
+        ))
     end,
 })
+
+AddCommand("daysback", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    params = { "days" },
+    params_optional= { false },
+
+    serverfn = function(params, caller)
+        if not (params and caller and params.days) then
+            return
+        end
+
+        PEARL.RollbackByDays(tonumber(params.days), function(success, result)
+            if success then
+                return TheNet:Announce(result)
+            end
+
+            PEARL.SendMessageToClient(caller.userid, result)
+        end, DAYSBACK_DELAY)
+    end,
+})
+
+--- @temporary solution
+local ChatQueue
+AddCommand("toggle", {
+    prettyname = "Toggle the Chat Queue",
+    desc = "Turns on/off the chat queue when it becomes annoying.",
+    permission = COMMAND_PERMISSION.USER,
+    slash = true,
+
+    localfn = function()
+        if ChatQueue:Toggle() then
+            return ChatHistory:SendCommandResponse("The chat queue is hidden!")
+        end
+
+        return ChatHistory:SendCommandResponse("The chat queue is back!")
+    end,
+})
+
+AddCommand("admins", {
+    aliases = {"staff", "sos"},
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.DESC,
+    permission = COMMAND_PERMISSION.USER,
+    confirm = true,
+    slash = true,
+    servermenu = true,
+	menusort = 2,
+    params = { "message" },
+    paramsoptional = { true },
+    rhook_required = true,
+
+    canstartfn = function(command, caller)
+        if GetTime() <= (caller.__soscall_cd_time or 0) then
+            return false, "COOLDOWN"
+        end
+
+        return true
+    end,
+
+    -- Handle's the cooldown locally
+    localfn = function(params, caller)
+        local curr_time = GetTime()
+        if caller.__soscall_cd_time < curr_time then
+            return -- This should not happen
+        end
+
+        caller.__soscall_cd_time = curr_time + (PEARL.CONFIG.ADMIN_CALL_COOLDOWN or 0)
+    end,
+
+    serverfn = function(params, caller)
+        -- In case the webhook reporter was disabled during runtime
+        if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
+            return PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK)
+        end
+
+        PEARL.DiscordReporter:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
+            PEARL.ICONS.ANNOUNCEMENTS["default"], caller.userid, MARKDOWN.escape(caller:GetDisplayName()), MARKDOWN.escape(params.message or "")
+        )):AllowMentionsForType(Message.MENTION_TYPES.EVERYONE))
+
+        PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.ON_SUCCESS)
+    end,
+})
+
+if TheNet:GetIsServer() then
+    return -- Nothing interesting for the server here
+end
 
 -------------------------------------------
 -- Command Prediction
@@ -357,4 +452,12 @@ AddClassPostConstruct("screens/chatinputscreen", function(self)
         delim = KLEI_ID_DELIM,
         words = userids,
     })
+end)
+
+-------------------------------------------
+-- Chat Queue
+-------------------------------------------
+
+PEARL.AddClassPostConstruct("widgets/redux/chatqueue", function(self)
+    ChatQueue = self
 end)

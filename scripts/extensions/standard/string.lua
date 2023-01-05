@@ -1,3 +1,15 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+    
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+    
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
 
 
 function string:center(count, char)
@@ -59,7 +71,7 @@ end
 --- @return string result The modified string.
 function string:ltake(count, init, postfix)
     local r = self:sub(init or 1, count)
-    return postfix and count > 0 and #self > count and postfix..r or r
+    return postfix and count > 0 and #self > count and r..postfix or r
 end
 
 -- longline -> rtake(3) -> ine

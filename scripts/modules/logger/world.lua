@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Stores logging handlers for event's pushed by TheWorld.
 --]]
@@ -117,43 +131,48 @@ end
 --     )
 -- end
 
+-- data.player, data.portalid, data.worldid
 local function OnPlayerMigrating(self, data)
     if not (data and data.player) then
         return
     end
 
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
-        data.player:GetDisplayName(), TheShard:IsMaster() and "Caves" or "Master"
-    ), TheShard:IsMaster() and PEARL.ICONS.PLAYER_STATE.CAVE_ENTER or PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE)
+        data.player:GetDisplayName(), self.ismastershard and "Caves" or "Master"
+    ), self.ismastershard and PEARL.ICONS.PLAYER_STATE.CAVE_ENTER or PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE)
 end
 
 -------------------------------
 -- [[ Server State Handlers ]]
 -------------------------------
 
+-- Vote passed and vote failed is being announced by Networking.
+-- So handle only the start and the cancelation of it.
 local function OnStartVote(self, data)
-    local doer = data and data.starteruserid and TheNet:GetClientTableForUser(data.starteruserid)
-    local target = data and data.targetuserid and TheNet:GetClientTableForUser(data.targetuserid)
-    if not (doer and target) then
-        return
-    end
+    local target, doer = {}, {}
+    -- local doer = data and data.starteruserid and TheNet:GetClientTableForUser(data.starteruserid)
+    -- local target = data and data.targetuserid and TheNet:GetClientTableForUser(data.targetuserid)
+    -- if not (doer and target) then
+    --     return
+    -- end
 
     local command = UserCommands.GetCommandFromHash(data.commandhash)
     local votefmt = ResolveCommandStringProperty(command, "votenamefmt", STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT)
     local votename = votefmt:format(target and target.name or "?")
 
-    --- @TODO: add some custom icon
     PEARL.DiscordLogger:LogString(
         (doer and doer.name) and STRINGS.PEARL.LOGS.START_VOTE:format(
             doer.name, votename
         ) or STRINGS.PEARL.LOGS.START_VOTE_ANONYMOUS:format(
             votename
-        )
+        ), PEARL.ICONS.ANNOUNCEMENTS["vote"]
     )
 end
 
 local function OnStopVote(self)
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.STOP_VOTE)
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.STOP_VOTE,
+        PEARL.ICONS.ANNOUNCEMENTS["vote"]
+    )
 end
 
 local function OnNewPlayerSpawn(self, player)
@@ -167,9 +186,24 @@ local function OnNewPlayerSpawn(self, player)
 end
 
 local function OnResetCountDownStart(self)
-    if InGamePlay() then
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START)
+    if not InGamePlay() then
+        return
     end
+
+    local resettime = GetResetTime() or {time = 120}
+    -- This should never really happen
+    if not resettime then
+        return PEARL.error("OnResetCountDownStart was called even though resettime is nil!")
+    end
+
+    -- There is no point in the announcement here.
+    if resettime.instant then
+        return
+    end
+
+    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START:format(
+        MARKDOWN.codeline(tostring(resettime.time or 0))
+    ), PEARL.ICONS.ANNOUNCEMENTS["default"])
 end
 
 local function OnResetCountDownStop(self)
@@ -189,10 +223,14 @@ local function OnRollback(self, count)
     local icon
 
     if count ~= nil and count > 0 then
-        message = STRINGS.PEARL.LOGS.ROLLBACK:format(count)
+        message = STRINGS.PEARL.LOGS.ROLLBACK:format(
+            MARKDOWN.codeline(tostring(count))
+        )
         icon = PEARL.ICONS.SERVER_STATE.ROLLBACK
     else
-        message = STRINGS.PEARL.LOGS.RESTART:format(MARKDOWN.codeline(PEARL.GetShardName()))
+        message = STRINGS.PEARL.LOGS.RESTART:format(
+            MARKDOWN.codeline(PEARL.GetShardName())
+        )
         icon = PEARL.ICONS.SERVER_STATE.RESTART
     end
 
@@ -208,7 +246,7 @@ local function OnFireSpreaderKilled(doer, target)
     local entities = TheSim:FindEntities(x, y, z,
         -- The flames have bigger radius in this case
         PEARL.CONSTS.LARGE_PROPAGATOR_RADIUS,
-        PEARL.CONSTS.FIRE_MUSTHAVE_TAGS,
+        PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
         PEARL.CONSTS.ENT_CANTHAVE_TAGS,
         PEARL.CONSTS.ENT_ONEOF_TAGS
     )
@@ -314,11 +352,12 @@ end
 -- between instance starts
 PEARL.AddGamePostInit(function()
     local world = TheWorld
-    if not (world) then
+    if not world then
         return
     end
 
-    world:SafeListenForEvent("entity_death", OnEntityDeath)
+    --- @TODO: Debug
+    -- world:SafeListenForEvent("entity_death", OnEntityDeath)
 
     if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
         if world.ismastershard then

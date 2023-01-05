@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local Screen = require("widgets/screen")
 -- local Button = require "widgets/button"
@@ -133,7 +146,6 @@ local AgreementScreen = Class(Screen, function(self)
         local desc = self._body:AddChild(Text(CHATFONT, NORMAL_FONT_SIZE, nil, UICOLOURS.GREY))
         desc:SetHAlign(ANCHOR_LEFT)
         desc:SetVAlign(ANCHOR_TOP)
-        --- @TODO: Calculate the number of lines dinamically
         desc:SetMultilineTruncatedString(section.description, DESCRIPTION_MAX_LINES, DESCRIPTION_MAX_WIDTH)
         x, y = desc:GetRegionSize()
         desc:SetPosition(left + 0.5 * x, height - 0.5 * y)

@@ -1,7 +1,22 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+--- @Category FrontEnd
+
+
 --[[
 
 --]]
 
+--- @TODO: Check out also 'kleifileexists' as a possible alternative
 -- We have already agreed to the agreement and the version of the agreement is the same as
 -- the version of the newest released agreement.
 local _agr_file_exists = io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH)

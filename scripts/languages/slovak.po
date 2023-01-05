@@ -20,9 +20,11 @@ msgctxt "STRINGS.PEARL.SEASON_UNKNOWN"
 msgid "Unknown Season"
 msgstr "Neznáma Sezóna"
 
-msgctxt "STRINGS.PEARL.ACTIONS.BURNTUP"
-msgid "%s burnt up!"
-msgstr "Zhorel/a %s!"
+msgctxt "STRINGS.PEARL.ACTIONS.BURNTUP.GENERIC"
+msgstr "Zhorel/a {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.BURNTUP.OWNED"
+msgstr "Zhorel/a {target}! Majiteľ: {owner}"
 
 msgctxt "STRINGS.PEARL.LOGS.ANNOUNCEMENT"
 msgid "Announcement"
@@ -44,17 +46,32 @@ msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM"
 msgid "{doer} took {items} from {target}!"
 msgstr "{doer} vzal/a {items} z {target}!"
 
+msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH"
+msgstr "{doer} vzal/a {item} s {with}!"
+
 msgctxt "STRINGS.PEARL.ACTIONS.EAT"
 msgid "%s ate %s!"
 msgstr "%s zjedol/la %s!"
 
+msgctxt "STRINGS.PEARL.ACTIONS.ACTIVATE"
+msgstr "%s aktivoval/a %s!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.READ"
+msgstr "%s prečítal/a %s!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.TEACH"
+msgstr "%s použil/a %s!"
+
 msgctxt "STRINGS.PEARL.LOGS.ROLLBACK"
-msgid "Rolling server %d snapshots back!"
-msgstr "Server bude vrátený o %d záznam/y/ov späť."
+msgid "Rolling server %s snapshots back!"
+msgstr "Server bude vrátený o %s záznam/y/ov späť."
 
 msgctxt "STRINGS.PEARL.LOGS.START"
 msgid "Starting the server..."
 msgstr "Spúšťanie servera..."
+
+msgctxt "STRINGS.PEARL.LOGS.UNKNOWN"
+msgstr "Neznámy"
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
 msgid "%s was unexpectedly disconnected from shard %s."
@@ -84,9 +101,11 @@ msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_START"
 msgid "Updating the server to version %s..."
 msgstr "Aktualizovanie servera na verziu %s..."
 
-msgctxt "STRINGS.PEARL.ACTIONS.HAMMER"
-msgid "%s destroyed %s!"
-msgstr "%s rozbil/a %s!"
+msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.GENERIC"
+msgstr "{doer} rozbil/a {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.OWNED"
+msgstr "{doer} rozbil/a {target}! Majiteľ: {owner}"
 
 msgctxt "STRINGS.PEARL.LOGS.SAY"
 msgid "**%s**: %s"
@@ -101,8 +120,8 @@ msgid "%s %s's Inventory"
 msgstr "%s Inventár hráča %s"
 
 msgctxt "STRINGS.PEARL.LOGS.MIGRATING"
-msgid "%s migruje do %s."
-msgstr "%s migruje do %s."
+msgid "%s migruje do shardu %s."
+msgstr "%s migruje do shardu %s."
 
 msgctxt "STRINGS.PEARL.LOGS.OWNER"
 msgid "%s Owner: %s"
@@ -129,8 +148,7 @@ msgid "Secondary shard Caves has been %s."
 msgstr "Sekundárny shard Caves bol %s."
 
 msgctxt "STRINGS.PEARL.LOGS.AND"
-msgid "and"
-msgstr "a"
+msgstr "%s a %s"
 
 msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.GRIEFER_WARNINGS.BAN"
 msgid "There we go again..."
@@ -142,7 +160,7 @@ msgstr "Verzia servera je zastaralá, nový hráči sa nebudú môcť pripojiť.
 
 msgctxt "STRINGS.PEARL.LOGS.RESET_COUNTDOWN_STOP"
 msgid "World reset countdown has stopped."
-msgstr "Odpočet pre automatické regenerovanie sveta bol zrušený."
+msgstr "Odpočet regenerácie sveta bol zrušený."
 
 msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON_NEAR"
 msgid "{doer} used {item} on {target} near {near}!"
@@ -160,13 +178,9 @@ msgctxt "STRINGS.PEARL.LOGS.SKIN_RECEIVED"
 msgid "%s received %s!"
 msgstr "%s získal/a %s!"
 
-msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
-msgid "`%dx` `%s` `(\"%s\")`"
-msgstr "`%dx` `%s` `(\"%s\")`"
-
 msgctxt "STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START"
 msgid "World reset countdown has started!"
-msgstr "Odpočet pre automatické regenerovanie sveta bol spustený."
+msgstr "Odpočet regenerácie sveta bol zahájený! Svet bude regenerovaný o %s sekúnd."
 
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.GENERIC"
 msgid "{doer} killed {target}!"
@@ -176,9 +190,12 @@ msgctxt "STRINGS.PEARL.ACTIONS.KILL.FOLLOWER"
 msgid "{doer} killed {target}! Owner: {owner}"
 msgstr "{doer} zabil/a {target}! Majiteľ: {owner}"
 
-msgctxt "STRINGS.PEARL.ACTIONS.KILL.MONITORED"
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.REMAINING"
 msgid "{doer} killed {target}! Remaining: {remaining}"
 msgstr "{doer} zabil/a {target}! Ostáva: {remaining}"
+
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.LAST"
+msgstr "{doer} vyhubil/a {target}!"
 
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.NEAR"
 msgid "{doer} killed {target} near {near}!"
@@ -238,10 +255,6 @@ msgstr "Pozastavenie servera bolo zrušené."
 msgctxt "STRINGS.PEARL.LOGS.USER_ACTIVE"
 msgid "%s came back!"
 msgstr "%s je späť!"
-
-msgctxt "STRINGS.PEARL.LOGS.TAG"
-msgid "[%s]"
-msgstr "[%s]"
 
 msgctxt "STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED"
 msgid "%s was kicked for inactivity."
@@ -557,6 +570,12 @@ msgstr "Noc"
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE"
 msgstr "Server Spustený"
 
+msgctxt "STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR"
+msgstr "**Výsledky vyhľadávania pre `%s` (`%d`):**"
+
+msgctxt "STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY"
+msgstr "%s **%s (`%s`)**\n> Počet prežitých dní: `%s`\n> Podozrenie: `%d%%`"
+
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLATFORM"
 msgstr "Platforma"
 
@@ -592,3 +611,54 @@ msgstr "Výnimka na sharde %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.SERVER_INITIALIZED"
 msgstr "Systém Inicializovaný. Načítavanie servera..."
+
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.EXECUTION"
+msgstr "Vyskytla sa chyba pri spracúvaní príkazu!",
+
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
+msgstr "Webhook na odosielanie reportov je vypnutý!\nJe potrebné zapnúť 'RHOOK' v modoverrides.lua.",
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS"
+msgstr "Hráč bol úspešne odstránený zo zoznamu blokovaných hráčov a môže sa znova pripojiť!",
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND"
+msgstr "Hráč nebol nájdený na zozname..."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS"
+msgstr "Inventár hráča bol odoslaný na discord."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND"
+msgstr "Inventár hráča je prázdny alebo neexistuje..."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND"
+msgstr "Zadané ID nieje na zozname..."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS"
+msgstr "Výsledky boli odoslané na discord. Počet: %d"
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE"
+msgstr "Žiadne výsledky..."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED"
+msgstr "Hráč sa už náchadza na zozname povolených."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS"
+msgstr "Hráč bol pridaný na zoznam povolených hráčov."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_FAILURE"
+msgstr "Vyskytla sa chyba pri ukládaní zmien..."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED"
+msgstr "Vypadá to tak, že tento hráč je na zozname blokovaných hráčov a nemá prístup na server."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS"
+msgstr "Hráč bol odstránený zo zoznamu povolených hráčov."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND"
+msgstr "Hráč nebol nájdený na tomto zozname."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_FAILURE"
+msgstr "Vyskytla sa chyba pri ukládaní zmien..."
+
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.ON_SUCCESS"
+msgstr "Správcovia a moderátori servera boli upozornení. Ostavá len čakať..."

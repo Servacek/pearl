@@ -1,3 +1,20 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
+-- Note: Prefer %s over %d because sometimes we want to format
+-- the number variables as a codeline.
+--- @TODO: Maybe most of the markdown should be added here instead of dynamically.
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
@@ -70,27 +87,24 @@ STRINGS.PEARL = {
         AND                     = "%s and %s",
         TAG                     = "[%s]",
         ANNOUNCEMENT            = "Announcement",
+        UNKNOWN                 = "Unknown",
 
         INV_REPORT_TITLE        = "%s %s's Inventory",
         INV_REPORT_EMPTY        = "*Loading failed or the inventory is empty.*",
-        INV_REPORT_ITEM_RARE    = "**%dx %s (\"%s\")**",
+        INV_REPORT_ITEM_RARE    = "**%dx\t%s (\"%s\")**",
         INV_REPORT_ITEM         = MARKDOWN.codeline("%dx").." "..MARKDOWN.codeline("%s").." "..MARKDOWN.codeline("(\"%s\")"),
 
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
-        -- STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR
         SAY_WHISPER             = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..MARKDOWN.bold("%s")..": "..MARKDOWN.italic("%s"),
         CONNECTION_CLOSE        = "Connection for %s was closed -> %s",
         CONSOLE_CMD             = "%s executed remote command:\n```lua\n%s```",
         AUTH                    = "%s authenticated as %s",
-        --- @TODO Rework these to use CONNECTION_CLOSE with a custom reason instead
-        --NOT_WHITELISTED         = "%s nieje na zozname povolených hráčov! Prístup na server bol zamietnutý.",
-        --BANNED_ROOT_CLIENT      = "%s identifikovaný ako alternatívny účet blokovaného hráča %s! Prístup na server pre tento účet bol zakázaný.",
         DISCONNECT              = "%s was disconnected from shard %s.",
         DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s.",
         DISCONNECT_REASON       = "%s was disconnected from shard %s. %s",
         CAVES_STATE_UPDATE      = "Secondary shard Caves has been %s.",
-        MIGRATING               = "%s migruje do %s.",
+        MIGRATING               = "%s is migrating to shard %s.",
         WARNED                  = "%s was warned for griefing!",
         SKIN_RECEIVED           = "%s received %s!",
         DAY                     = "Day %d - %s (%s °C)",
@@ -102,7 +116,7 @@ STRINGS.PEARL = {
 
         NEW_PLAYER_SPAWN        = "%s entered the constant as %s",
 
-        RESET_COUNTDOWN_START   = "World reset countdown has started!",
+        RESET_COUNTDOWN_START   = "World reset countdown has started! The server will be regenerated in %s seconds.",
         RESET_COUNTDOWN_STOP    = "World reset countdown has stopped.",
 
         SERVER_INITIALIZED      = "The system has been initialized. Loading the server...",
@@ -114,7 +128,8 @@ STRINGS.PEARL = {
 
         GAME_LOADED             = "Shard %s was loaded.",
         RESTART                 = "Rastarting the server...",
-        ROLLBACK                = "Rolling server %d snapshots back!",
+        ROLLBACK                = "Rolling server %s snapshots back!",
+        ROLLBACK_DAYS           = "Rolling server back to day %s!",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
         START                   = "Starting the server...",
@@ -156,6 +171,12 @@ STRINGS.PEARL = {
             SEED        = "World Seed",
             PLAYSTYLE   = "Playstyle",
         },
+
+        SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
+        SUSPICIOUS_INVENTORY = "%s **%s (`%s`)**\n> Days survived: `%s`\n> Suspicioness: `%d%`",
+
+        PLAYER_REPORT         = "%s [@here] `%s` **%s**: %s",
+        PLAYER_REPORT_EMPTY   = "%s [@here] `%s` **%s**",
     },
 
     SHARD_STATE             = {
@@ -186,6 +207,14 @@ STRINGS.PEARL = {
 
         TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
 
+        CMD_ERRORS = {
+            EXECUTION = "Error while executing the command!",
+            NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",
+            NO_SNAPSHOT_FOUND = "Couldn't find any snaphots for day %d.",
+            FAILED_SNAPHOTS_LOAD = "Failed to load the snapshots for this session.",
+        },
+
+        -- Add more translations
         BUILTINCOMMANDS = {
             FIRE = {
                 PRETTYNAME = "Extinguish Fires",
@@ -199,55 +228,67 @@ STRINGS.PEARL = {
 
             UNBAN = {
                 PRETTYNAME = "Unban",
-                DESC       = "Removes the given player from the blocklist. Accepts both, Klei ID and Steam ID as player_id argument.",
+                DESC       = "Removes the given player from the blacklist. Accepts both, Klei ID and Steam ID.",
 
-                ON_SUCCESS  = "ID %s bolo úspešne odstránené zo zoznamu blokovaných hráčov!\nHráč s týmto ID sa môže znova pripojiť na server.",
-                ON_NOTFOUND = "Zadané ID nieje na zozname...",
+                ON_SUCCESS  = "Player was successfully removed the blacklist and can join back now!",
+                ON_NOTFOUND = "Player was not found on the blacklist...",
             },
 
             INV = {
                 PRETTYNAME = "Display Inventory",
                 DESC       = "Displays player's inventory on discord.",
 
-                ON_SUCCESS  = "Inventár hráča bol odoslaný na discord.",
-                ON_NOTFOUND = "Inventár zadaného hráča je prázdny alebo neexistuje...",
-                ON_NO_LOGS  = "Webhook určený pre logy je vypnutý."
+                ON_SUCCESS          = "Inventory was sent to discord.",
+                ON_NOTFOUND         = "Inventory is empty or doesn't exist...",
             },
 
             INV_FIND = {
                 PRETTYNAME = "Find Inventory",
                 DESC       = "Searches for inventory containing specified item.",
 
-                ON_NO_LOGS  = "Webhook určený pre logy je vypnutý."
+                ON_SUCCESS          = "%d results were sent to discord.",
+                ON_FAILURE          = "No results...",
             },
 
             ALLOWLIST_ADD = {
                 PRETTYNAME = "Add to whitelist",
                 DESC       = "Increases the allowlist with the given user ID.",
 
-                ON_ALREADY_WHITELISTED = "Zadané ID už na zozname je.",
-                ON_SUCCESS  = "Bol povolený prístup na tento server pre hráča s ID %s.",
-                ON_FAILURE  = "Nebolo možné uložiť zmeny...",
-                ON_BANNED   = "Zadané ID je na zozname blokovaných.",
-                ON_DISABLED = "Allowlist je aktuálne vypnutý.",
+                ON_ALREADY_WHITELISTED = "Player is already on the whitelist.",
+                ON_SUCCESS  = "Player was successfully added to the whitelist.",
+                ON_FAILURE  = "An error occured while saving the changes...",
+                ON_BANNED   = "Player is on the blacklist and has no access to this server.",
+                -- ON_DISABLED = "Allowlist je aktuálne vypnutý.",
             },
 
             ALLOWLIST_REMOVE = {
                 PRETTYNAME = "Remove from allowlist",
                 DESC       = "Attempts to remove the given player id from the allowlist.",
 
-                ON_SUCCESS  = "ID odstránené zo zoznamu.",
-                ON_DISABLED = "Allowlist je aktuálne vypnutý.",
-                ON_FAILURE  = "Nebolo možné uložiť zmeny...",
-                ON_NOTFOUND = "Zadané ID nieje na zozname."
+                ON_SUCCESS  = "Player was removed from the allowlist.",
+                -- ON_DISABLED = "Allowlist je aktuálne vypnutý.",
+                ON_FAILURE  = "An error occured while saving the changes...",
+                ON_NOTFOUND = "Player was not found on the allowlist."
             },
 
-            ALLOWLIST_TOGGLE = {
-                PRETTYNAME = "Toggle the allowlist",
-                DESC       = "Turns on/off the allowlisting.",
+            -- ALLOWLIST_TOGGLE = {
+            --     PRETTYNAME = "Toggle the allowlist",
+            --     DESC       = "Turns on/off the allowlisting.",
 
-                ON_ENABLED  = "Allowlisting was enabled! Only players on the list will be able to join.",
-                ON_DISABLED = "Allowlisting was disabled! Everyone can join now."
+            --     ON_ENABLED  = "Allowlisting was enabled! Only players on the list will be able to join.",
+            --     ON_DISABLED = "Allowlisting was disabled! Everyone can join now."
+            -- }
+
+            DAYSBACK = {
+                PRETTYNAME = "Rollback by Days",
+                DESC       = "Roll the server back by actual days instead of snapshots.",
+            },
+
+            SOS = {
+                PRETTYNAME = "Call the Admins",
+                DESC       = "If you find yourself in a hopeless situation... call the admins!",
+
+                ON_SUCCESS = "Admins and server moderators were notified.",
             }
         },
 
@@ -302,59 +343,3 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_LOCALE_BLOCKED",
     "Community Server",
     "This server currently only accepts connections\nfrom the Czech Republic and Slovakia."
 )
-
-------------------------------------
--- Slash Commands
-
---- @TODO: Add translations
-STRINGS.UI.BUILTINCOMMANDS.ERRORS = {
-    BACKEND_UNAVAILABLE = "K správnej funkcii tohto príkazu je potrebný mod Server Utils Backend.",
-    DISCORD_LOGS_DISABLED = "Logovanie na discord je vypnuté!",
-}
-
-STRINGS.UI.BUILTINCOMMANDS.FIRE = {
-    PRETTYNAME = "Extinguish Fires",
-    DESC       = "When a nasty griefer appears, this can safe your base from fire!",
-}
-
-STRINGS.UI.BUILTINCOMMANDS.REPAIR = {
-    PRETTYNAME = "Repair Structures",
-    DESC       = "Brings back structures that were engulfed in fire.",
-}
-
-STRINGS.UI.BUILTINCOMMANDS.UNBAN = {
-    PRETTYNAME = "Unban",
-    DESC       = "Removes the given player from the blocklist. Accepts both, Klei ID and Steam ID as player_id argument.",
-
-    ON_SUCCESS  = "ID %s bolo úspešne odstránené zo zoznamu blokovaných hráčov!\nHráč s týmto ID sa môže znova pripojiť na server.",
-    ON_NOTFOUND = "Zadané ID nieje na zozname...",
-}
-
-STRINGS.UI.BUILTINCOMMANDS.INV = {
-    PRETTYNAME = "Display Inventory",
-    DESC       = "Displays player's inventory on discord.",
-
-    ON_SUCCESS  = "Inventár hráča bol odoslaný na discord.",
-    ON_NOTFOUND = "Inventár zadaného hráča je prázdny alebo neexistuje...",
-}
-
-STRINGS.UI.BUILTINCOMMANDS.WHITELIST_ADD = {
-    PRETTYNAME = "Add to whitelist",
-    DESC       = "Whitelists the given player id.",
-
-    ON_ALREADY_WHITELISTED = "Zadané ID už na zozname je.",
-    ON_SUCCESS = "Bol povolený prístup na tento server pre hráča s ID %s.",
-    ON_FAILURE = "Nebolo možné uložiť zmeny...",
-    ON_BANNED = "Zadané ID je na zozname blokovaných.",
-    ON_DISABLED = "Whitelist je aktuálne vypnutý.",
-}
-
-STRINGS.UI.BUILTINCOMMANDS.ALLOWLIST_TOGGLE = {
-    PRETTYNAME = "Remove from whitelist",
-    DESC       = "Attempts to remove the given player id from the whitelist.",
-
-    ON_SUCCESS = "ID odstránené zo zoznamu.",
-    ON_DISABLED = "Whitelist je aktuálne vypnutý.",
-    ON_FAILURE = "Nebolo možné uložiť zmeny...",
-    ON_NOTFOUND = "Zadané ID nieje na zozname."
-}

@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local PEARL = PEARL
 local os, string = os, string
@@ -33,6 +46,7 @@ local TEMPLATE_HEADER_FULL = TEMPLATE.." %s %s"
 ------------------------------------------
 
 -- The content parameter should be required for initiliazation
+--- @class LogLine
 local LogLine = Class(function(self, content)
     self._content = nil
     self._icon = nil
@@ -94,7 +108,7 @@ end
 -- [[ Setter Methods ]]
 ------------------------------------------
 
---- @TODO: The length of the content should
+--- @TODO: The max length of the content should be calculated dynamically
 function LogLine:SetContent(content)
     if type(content) == "string" and #content > 0 then
         self._content = content:ltake(MAX_CONTENT_LENGTH)

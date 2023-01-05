@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Represents a discord message object. Used as a dataclass which is being
     converted to a json string and sent via the REST API to discord.
@@ -13,9 +27,9 @@ local table = table
 local json, bit = json, bit
 local pcall = pcall
 
--- Userdata object which represents a discord message
 -- A message object can contain multiple log lines
---- @param content string? The content of the initial logline
+--- @param content string? The content of the message
+--- @class Message
 local Message = Class(function(self, content)
     -- Create the table only when it's needed
     -- for embed only messages
@@ -23,7 +37,7 @@ local Message = Class(function(self, content)
     --- @type table?
     self._loglines = nil
 
-    self._content = nil
+    self._content = content
     -- This table is rarely used so create it
     -- only when it's needed
     --- @type table?
@@ -43,10 +57,6 @@ local Message = Class(function(self, content)
     -- --- @type function?
     -- self._postconstructfn = nil
     -- self._postconstructfn_args = nil
-
-    if content then
-        self:AddLogLine(content)
-    end
 end)
 
 ------------------------------------------
@@ -66,7 +76,7 @@ Message.JSON_STRING             = [[
 Message.MENTION_TYPES           = {
     USERS       = "users",
     ROLES       = "roles",
-    EVERYONE    = "everyone",
+    EVERYONE    = "everyone", -- @everyone and @here
 }
 
 Message.FLAGS                   = {
@@ -89,7 +99,7 @@ function Message:GetLength()
         return 0
     end
 
-    local length = 0
+    local length = self._content and #self._content or 0
     for _, logline in ipairs(self._loglines) do
         length = #logline
     end
@@ -113,9 +123,22 @@ function Message:HasEmbed()
     return self._embeds ~= nil and #self._embeds > 0
 end
 
+function Message:HasContent()
+    -- Maybe just blank characters are not counted as a content?
+    return self._content ~= nil and #self._content > 0
+end
+
 function Message:GetContent()
     return self:HasLogLines() and table.concat(self._loglines, "\n")
     or self._content
+end
+
+-- A Message is valid if it has at least one of the main attributes:
+-- - Content
+-- - File
+-- - Embed
+function Message:IsValid()
+    return self:HasLogLines() or self:HasContent() or self:HasEmbed()
 end
 
 ------------------------------------------
@@ -131,8 +154,6 @@ end
 --- @param embed Embed The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddEmbed(embed)
-    PEARL.debug("Message:AddEmbed", embed)
-
     if not (type(embed) == "table" and self:AcceptsEmbeds()) then
         return
     end
@@ -177,20 +198,21 @@ function Message:AddFlag(flag)
     return self
 end
 
---- @NOTE Do not allow changing the mention type
--- function Message:AllowMentionsForType(mention_type)
---     if not self.allowed_mentions then
---         self.allowed_mentions = {}
---     end
+--- @NOTE: Careful here.
+function Message:AllowMentionsForType(mention_type)
+    if not self._allowed_mentions then
+        self._allowed_mentions = {}
+    end
 
---     if not self.allowed_mentions.parse then
---         self.allowed_mentions.parse = {}
---     end
+    -- This is not always a table
+    if type(self._allowed_mentions.parse) ~= "table" then
+        self._allowed_mentions.parse = {}
+    end
 
---     table.insert(self.allowed_mentions.parse, mention_type)
+    table.insert(self._allowed_mentions.parse, mention_type)
 
---     return self
--- end
+    return self
+end
 
 function Message:AllowMentionsForRole(roleid)
     if not self._allowed_mentions then
@@ -255,13 +277,13 @@ function Message:ToJson()
     return pcall(json.encode_compliant, self:ToTable())
 end
 
-function Message:Construct(force)
-    if not self._postconstructfn then
-        return PEARL.error("Message", "_postconstructfn is a nil value!")
-    end
+-- function Message:Construct(force)
+--     if not self._postconstructfn then
+--         return PEARL.error("Message", "_postconstructfn is a nil value!")
+--     end
 
-    self._postconstructfn(self, force, self._postconstructfn_args)
-end
+--     self._postconstructfn(self, force, self._postconstructfn_args)
+-- end
 
 -- Allows reuse of the message object (when used as a buffer)
 function Message:Clear()

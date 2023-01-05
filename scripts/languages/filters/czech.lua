@@ -1,3 +1,5 @@
+-- https://github.com/kast1450/steam-profanity-filter/tree/main/czech
+
 return {
     loose_match = {
         --"KLEI     1DdGVzdA==", -- 'test' for debugging purposes

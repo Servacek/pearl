@@ -1,5 +1,19 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 --- @TODO: Think about a way to reduce duplication here...
+--- @TODO: Write some tests for this thing
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
@@ -30,16 +44,14 @@ end)
 -------------------------------------
 
 --- @param content string
---- @param force boolean
+--- @param force boolean?
 function Reporter:_SendReportMessage(content, force)
     if type(content) ~= "string" then
-        return
+        return PEARL.error("Attempted to send an invalid report message...")
     end
 
     PEARL.info("Sending error log to discord...")
-    PEARL.DiscordRestAPI:ExecuteWebhook(
-        self._webhook, Message():SetContent(content):ToJson(), force
-    )
+    return self:SendRawReportMessage(Message(content), force)
 end
 
 -------------------------------------
@@ -58,6 +70,16 @@ function Reporter:SetIsDisabled(disabled)
     self._disabled = disabled
 end
 
+--- @param message Message
+--- @param force boolean?
+function Reporter:SendRawReportMessage(message, force)
+    local _, json_data = message:ToJson()
+
+    return PEARL.DiscordRestAPI:ExecuteWebhook(
+        self._webhook, json_data, force
+    )
+end
+
 --- @param reason string A short description of the issue that has occured.
 function Reporter:ReportFailedHTTPRequest(reason)
     if type(reason) ~= "string" or self:IsDisabled() then
@@ -65,11 +87,9 @@ function Reporter:ReportFailedHTTPRequest(reason)
     end
 
     reason = MARKDOWN.codeblock(reason:ltake(MAX_TRACEBACK_LENGHT, nil, "..."))
-    return self:_SendReportMessage(Message()
-        :SetContent(MARKDOWN.bold(STRINGS.PEARL.LOGS.HTTP_ERROR:format(
-            MARKDOWN.codeline(PEARL.GetShardName()), reason
-        )))
-    )
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.HTTP_ERROR:format(
+        MARKDOWN.codeline(PEARL.GetShardName()), reason
+    )))
 end
 
 --- WARNING: Uses force sending to send the report. Use with caution!
@@ -80,11 +100,9 @@ function Reporter:ReportUncatchedLuaError(traceback)
     end
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(Message()
-        :SetContent(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED:format(
-            MARKDOWN.codeline(PEARL.GetShardName()), traceback
-        ))), true -- Force-send uncatched errors.
-    )
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED:format(
+        MARKDOWN.codeline(PEARL.GetShardName()), traceback
+    )), true) -- Force-send uncatched errors.
 end
 
 --- @param traceback string
@@ -94,11 +112,9 @@ function Reporter:ReportCatchedLuaError(traceback)
     end
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(Message()
-        :SetContent(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_CATCHED:format(
-            MARKDOWN.codeline(PEARL.GetShardName()), traceback
-        )))
-    )
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_CATCHED:format(
+        MARKDOWN.codeline(PEARL.GetShardName()), traceback
+    )))
 end
 
 -------------------------------------

@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Special scheduler for scheduling tasks when the server is paused
 
@@ -21,7 +35,7 @@ local unpack = unpack
 -- [[ Contants ]]
 ------------------------------------------
 
-local WALL_TICKS = 1 / 60
+-- local WALL_TICKS = 1 / 60
 
 ------------------------------------------
 -- [[ Private Functions ]]
@@ -32,7 +46,7 @@ local function calc_time_for_task(period, curtime)
 end
 
 ------------------------------------------
---- @TODO Try to replace the task with a simpler table and recycle it.
+
 --- @class Task
 local Task = Class(function(self, time, fn, limit, id, exec_time, ...)
     self.time = time
@@ -120,7 +134,8 @@ end
 --- @param timefromnow integer The time in seconds after which this task should be executed
 --- @param processfn function The callback of the task
 --- @param id integer? The id of the task used for debuging
---- @param ... any Additional arguments to the callback function
+--- @param ... any? Additional arguments to the callback function
+---
 --- @return Task task The new created task
 function WallScheduler:ExecuteInTime(timefromnow, processfn, id, ...)
     return self:_AddTask(self:_CreateTask(timefromnow, processfn, 1, nil, id, ...))
@@ -133,7 +148,8 @@ end
 --- @param limit integer? The task execution limit, if this is exceeded the task will be stopped
 --- @param initialdelay integer? Time until the first execution
 --- @param id integer? The id of the task used for debug
---- @param ... any Additional arguments to the callback function
+--- @param ... any? Additional arguments to the callback function
+---
 --- @return Task? task The new created task
 function WallScheduler:ExecutePeriodic(period, processfn, limit, initialdelay, id, ...)
     return self:_AddTask(self:_CreateTask(period, processfn, limit, initialdelay, id, ...))

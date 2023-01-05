@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
 Temporary solution for logging.
 --]]
@@ -91,25 +105,24 @@ end)
 
 RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
     -- Check for explicit true
-    if PEARL.PREFABS.MONITORED_ITEMS[item.prefab] ~= true then
+    if not PEARL.PREFABS.RARE_ITEMS[item.prefab] then
         return
     end
 
     return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.EAT:format(
         doer:GetDisplayName(), item:GetFancyName()
-    ), PEARL.ANNOUNCEMENT_TYPES.EAT, doer.entity)
+    ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
     -- Check for explicit true
-    if PEARL.PREFABS.MONITOR_READING[item.prefab] ~= true or not item.is_rare then
+    if not item.is_rare then
         return
     end
 
-    --- @TODO: Add custom type for this
     return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.TEACH:format(
         doer:GetDisplayName(), item:GetFancyName()
-    ), "default", doer.entity)
+    ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TEACH, doer.entity)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
@@ -135,21 +148,19 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
 
     -- Check for explicit true
     if PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] == true then
-        --- @TODO: Add custom type for this
         return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.READ:format(
             doer:GetDisplayName(), item:GetFancyName()
-        ), "default", doer.entity)
+        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.READ, doer.entity)
     end
 end)
 
 RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
-    if PEARL.PREFABS.SUMMONING_ITEMS[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
+    if PEARL.PREFABS.ACTIVATABLE[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
         target.components.activatable:SetLastPlayerActivator(doer)
 
-        --- @TODO: Add custom type for this.
         return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.ACTIVATE:format(
             doer:GetDisplayName(), target:GetFancyName()
-        ), "default", doer.entity)
+        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.ACTIVATE, doer.entity)
     end
 end)
 
@@ -232,7 +243,7 @@ onburntup = function(target)
         return
     end
 
-    -- We will not needs this callback anymore.
+    -- We will not need this callback anymore.
     target:RemoveEventCallback("burntup", onburntup)
 
     local workable = target.components and target.components.workable or nil
@@ -264,7 +275,7 @@ end)
 
 local function oncommandexecuted(doer, fnstr)
     if not doer or doer.admin or not (type(fnstr) == "string" and #fnstr > 0) then
-        return
+        return PEARL.warn("Called oncommandexecuted with invalid arguments!")
     end
 
     if #fnstr > MAX_COMMAND_LENGTH then
@@ -278,6 +289,10 @@ end
 
 local function ontookrareitem(doer, item)
     if not (doer and item) then
+        return PEARL.warn("Called ontookrareitem with invalid arguments!")
+    end
+
+    if item.components.inventoryitem:IsLastPlayerOwner(doer) or item.components.inventoryitem:IsLastPicker(doer) then
         return
     end
 
@@ -288,7 +303,7 @@ end
 
 local function ontookrarecontainer(doer, data)
     if not (doer and data and data.items and data.container) then
-        return
+        return PEARL.warn("Called ontookrarecontainer with invalid arguments!")
     end
 
     local items_str = PEARL.GroupEntitiesByPrefab(data.items)
@@ -298,12 +313,12 @@ local function ontookrarecontainer(doer, data)
 end
 
 local function onfinishedlooting(doer, data)
-    if not (doer and data and data.loot and data.container) then
-        return
+    if not (doer and data and data.items and data.container) then
+        return PEARL.warn("Called onfinishedlooting with invalid arguments!")
     end
 
-    local loot_string = PEARL.BuildFancyStringForEntities(data.loot)
-    PEARL.Announce(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM, {
+    local loot_string = PEARL.BuildFancyStringForEntities(data.items)
+    PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM, {
         doer = doer:GetDisplayName(), items = loot_string, target = data.container:GetFancyName()
     }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
 end

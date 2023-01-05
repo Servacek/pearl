@@ -1,4 +1,15 @@
---- @TODO: Debug
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+--- @category FrontEnd
 
 local UserCommands = require("usercommands")
 
@@ -6,15 +17,17 @@ local UserCommands = require("usercommands")
 -- [[ Handlers ]]
 --------------------------------
 
-PEARL.AddGamePostInit(function()
-    for name, allowed in pairs(PEARL.CONFIG.COMMAND_BLOCKLIST) do
+-- PlayerPostInit in FrontEnd is like GamePostInit in BackEnd
+-- At this point everything should have already added it's commands.
+PEARL.AddPlayerPostInit(function()
+    for _, name in ipairs(UserCommands.GetCommandNames()) do
         local command = UserCommands.GetCommandFromName(name)
         if command then
-            PEARL.AddClassFunctionPreCall("hasaccessfn", function(command_name, caller)
-                if not caller or (not caller.admin and allowed == false) then
-                    return false
-                end
-            end, command)
+            if PEARL.CONFIG.COMMAND_BLOCKLIST[name] == false then
+                command.hasaccessfn = function() return false end
+            end
+
+            command.voteminstartage = PEARL.CONFIG.MIN_VOTE_AGE
         end
     end
 end)

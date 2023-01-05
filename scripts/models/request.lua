@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 
 local PEARL = PEARL
 local Class = Class
@@ -57,12 +70,20 @@ end
 -- Note: Always return 'self' in these setters so we can chain them
 
 function Request:SetTimeout(timeout)
+    if type(timeout) ~= "number" then
+        return PEARL.error("Attempted to set an invalid request timeout!")
+    end
+
     self.timeout = timeout
 
     return self
 end
 
 function Request:SetData(data)
+    if type(data) ~= "string" then
+        return PEARL.error("Attempted to set an invalid request data!")
+    end
+
     self.data = data
 
     return self
@@ -88,6 +109,10 @@ function Request:SetSkipOnDeadline(skipondeadline)
 end
 
 function Request:SetMethod(method)
+    if type(method) ~= "string" then
+        return PEARL.error("Attempted to set an invalid request method!")
+    end
+
     self.method = method
 
     return self
@@ -133,11 +158,15 @@ function Request:OnCompleted(result, is_successful, http_code)
         end
     end
 
+    --- @TODO: We should retry the request when it fails on timeout - bad connection.
+    -- If we have no http_code it's most likely a timeout.
+    local reason = (tonumber(http_code or 0) == 0 and "Operation timed out!") or result or "Reason unknown."
+
     -- Log only failed requests to reduce log spam
     if not success then
         PEARL.info(
             REQUEST_FAILED_HEADER:format(
-                self.host or "unknown", http_code, result or "Reason unknown."
+                self.host or "unknown", http_code, reason
             ), self.data
         )
     end
