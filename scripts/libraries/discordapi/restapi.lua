@@ -1,10 +1,10 @@
 --[[====================================================[==[
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
-    
+
     Copyright (c) 2023 Fi7iP
     All rights reserved.
-    
+
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
@@ -60,8 +60,12 @@ end)
 --------------------------------
 -- [[ Private Functions ]]
 --------------------------------
---- @TODO: Test
+
 function RestAPI:_OnErrorStatusCode(status_code, result, request)
+    if self:IsDisabled() then
+        return
+    end
+
     -- Handle rate limits first
     if status_code == DISCORD_STATUS_CODES.TOO_MANY_REQUESTS then
         local success, decoded_result = pcall(json.decode, result)
@@ -79,7 +83,7 @@ function RestAPI:_OnErrorStatusCode(status_code, result, request)
     if status_code == DISCORD_STATUS_CODES.GATEWAY_UNAVAILABLE then
         local retry_seconds = RETRY_SECONDS + math.random(RETRY_SECONDS)
         PEARL.error("RestAPI", "Gateway Unavailable.")
-        PEARL.RestClient:RetryRequestAfter(retry_seconds, request)
+        PEARL.RestClient:RetryRequestAfter(request, retry_seconds)
     end
 
     if status_code > 500 then
@@ -110,6 +114,8 @@ function RestAPI:RateLimitForTime(seconds)
 
     if type(seconds) == "number" and seconds >= 0 then
         PEARL.info("RestAPI", "Disabling for", seconds, "seconds...")
+
+        -- If the task already exists then increase it's number of seconds.
         if self._rate_limit_task ~= nil and type(self._rate_limit_task.exec_time) == "number" then
             self._rate_limit_task.exec_time = self._rate_limit_task.exec_time + seconds
             return

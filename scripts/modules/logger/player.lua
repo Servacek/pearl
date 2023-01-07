@@ -110,7 +110,9 @@ RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
     end
 
     return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.EAT:format(
-        doer:GetDisplayName(), item:GetFancyName()
+        -- Use GetBasicDisplayName over GetFancyName because it causes problems
+        -- when eating from a stack of items.
+        doer:GetDisplayName(), item:GetBasicDisplayName()
     ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)
 end)
 
@@ -121,7 +123,7 @@ RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
     end
 
     return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.TEACH:format(
-        doer:GetDisplayName(), item:GetFancyName()
+        doer:GetDisplayName(), item:GetBasicDisplayName()
     ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TEACH, doer.entity)
 end)
 
@@ -134,7 +136,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         end
 
         return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, {
-            doer = doer:GetDisplayName(), target = target:GetFancyName(), owner = workable:GetBuilderName()
+            doer = doer:GetDisplayName(), target = target:GetBasicDisplayName(), owner = workable:GetBuilderName()
         }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER, doer.entity)
     end
 end)
@@ -149,7 +151,7 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
     -- Check for explicit true
     if PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] == true then
         return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.READ:format(
-            doer:GetDisplayName(), item:GetFancyName()
+            doer:GetDisplayName(), item:GetBasicDisplayName()
         ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.READ, doer.entity)
     end
 end)
@@ -159,7 +161,7 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
         target.components.activatable:SetLastPlayerActivator(doer)
 
         return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.ACTIVATE:format(
-            doer:GetDisplayName(), target:GetFancyName()
+            doer:GetDisplayName(), target:GetBasicDisplayName()
         ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.ACTIVATE, doer.entity)
     end
 end)
@@ -192,7 +194,7 @@ local function onentitydeath(world, data)
     end
 
     -- NOT RESPAWNABLE MOB
-    local pop_threshold = PEARL.PREFABS.MONITOR_POPULATION[target.prefab]
+    local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
         --- @TODO This is not ideal (also it works only for the current shard)
         local remaining = c_countprefabs(target.prefab, false) - 1 or -1
@@ -213,7 +215,7 @@ local function onentitydeath(world, data)
 
 
     -- COMPANION
-    if PEARL.PREFABS.COMPANIONS[target.prefab] then
+    if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
         return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.GENERIC, {
             doer = doer:GetDisplayName(), target = target:GetFancyName()
         }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)

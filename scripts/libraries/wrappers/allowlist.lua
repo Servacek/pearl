@@ -105,6 +105,17 @@ function AllowList:Save()
     return file:close()
 end
 
+function AllowList:Clear()
+    for userid, _ in pairs(self._userids) do
+        self._userids[userid] = nil
+    end
+end
+
+function AllowList:Reload()
+    self:Clear()
+    self:Load()
+end
+
 --------------------------------------
 -- [[ Setup ]]
 --------------------------------------

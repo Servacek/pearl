@@ -72,7 +72,7 @@ configuration_options = {
     { -- regenerate, rollback, kick...
         name="COMMAND_BLOCKLIST",
         default={},
-        type = "table",
+        type = "table<string, boolean>",
     },
 
     --------------------
@@ -82,7 +82,7 @@ configuration_options = {
     {
         name="MOD_BLACKLIST",
         default={},
-        type = "table",
+        type = "table<string, boolean>",
     },
 
     --------------------
@@ -92,7 +92,7 @@ configuration_options = {
     { -- Additional table of tags
         name = "CUSTOM_SERVER_TAGS",
         default = {},
-        type = "table",
+        type = "table<string>",
     },
 
     { --- @TODO: Option to add custom loading tips.
@@ -132,6 +132,12 @@ configuration_options = {
     {
         name = "TRUST_AGE",
         default = 24,
+        type = "number",
+    },
+
+    {
+        name = "TRUST_AGE_PERCENT",
+        default = .3,
         type = "number",
     },
 
@@ -207,14 +213,21 @@ configuration_options = {
     -- Localizer Module
     --------------------
 
-    { -- This is an experimental feature.
-        name = "CZSK_ONLY",
-        default = false,
-        options = {
-            true,
-            false,
+    --> e.g.:
+    --[[
+        ALLOWED_LOCALES = {
+            ["SK"] = true,
+            ["CZ"] = true,
+            ...
         },
-        type = "boolean",
+    --]]
+    { -- This is an experimental feature.
+        name = "ALLOWED_LOCALES",
+        default = {},
+        type = "table<string, boolean>",
+
+        --- @TODO: Add logging for this
+        experimental = true,
     },
 
     --------------------
@@ -259,7 +272,7 @@ configuration_options = {
 
     {
         name = "ADMIN_CALL_COOLDOWN",
-        default = nil, -- When nil or 0, there is no cooldown
+        default = 5 * 60, -- When nil or 0, there is no cooldown
         type = "number|nil",
     },
 
@@ -296,7 +309,7 @@ configuration_options = {
             TOKEN = "",
             ENABLED = true,
         },
-        type = "table",
+        type = "table<string, any>",
     },
 
     {
@@ -306,7 +319,7 @@ configuration_options = {
             TOKEN = "",
             ENABLED = true,
         },
-        type = "table",
+        type = "table<string, any>",
     },
 
     {
@@ -356,7 +369,7 @@ configuration_options = {
     {
         name = "ANNOUNCEMENTS",
         default = {},
-        type = "table",
+        type = "table<string, boolean>",
     },
 
     --------------------

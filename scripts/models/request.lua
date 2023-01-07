@@ -70,18 +70,20 @@ end
 -- Note: Always return 'self' in these setters so we can chain them
 
 function Request:SetTimeout(timeout)
-    if type(timeout) ~= "number" then
-        return PEARL.error("Attempted to set an invalid request timeout!")
+    if tonumber(timeout) ~= "number" then
+        --PEARL.error("Attempted to set an invalid request timeout!")
+        return self
     end
 
-    self.timeout = timeout
+    self.timeout = tonumber(timeout)
 
     return self
 end
 
 function Request:SetData(data)
     if type(data) ~= "string" then
-        return PEARL.error("Attempted to set an invalid request data!")
+        PEARL.error("Attempted to set an invalid request data!")
+        return self
     end
 
     self.data = data
@@ -110,7 +112,8 @@ end
 
 function Request:SetMethod(method)
     if type(method) ~= "string" then
-        return PEARL.error("Attempted to set an invalid request method!")
+        PEARL.error("Attempted to set an invalid request method!")
+        return self
     end
 
     self.method = method
@@ -167,7 +170,7 @@ function Request:OnCompleted(result, is_successful, http_code)
         PEARL.info(
             REQUEST_FAILED_HEADER:format(
                 self.host or "unknown", http_code, reason
-            ), self.data
+            ), tonumber(http_code or 0) > 0 and self.data
         )
     end
 end

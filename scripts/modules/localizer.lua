@@ -32,11 +32,6 @@ local ID_SEPARATOR = "|"
 
 local CLIENT_LOAD_WAIT_DELAY = 30 * FRAMES
 
-local ALLOWED_LOCALES = {
-    ["SK"] = true,
-    ["CZ"] = true,
-}
-
 --------------------------------
 -- [[ Private - Client Side ]]
 --------------------------------
@@ -141,7 +136,7 @@ local function _LoadPersistentCache()
         end
 
         _client_userid_cache = data:split(ID_SEPARATOR)
-    end)
+    end, CACHE_ENCODE)
 end
 
 local function _BuildPersistentStringForCache()
@@ -172,6 +167,12 @@ end
 
 --------- HANDLERS ------------
 
+local function _OnClientDisconnected(userid)
+    PEARL.debug("_OnClientDisconnected")
+
+    _CancelTimeoutFor(userid)
+end
+
 local function _OnClientAuthenticationComplete(userid)
     if type(userid) ~= "string" then
         return
@@ -199,8 +200,10 @@ local function _OnClientLocalizationComplete(userid, locale)
     end
 
     -- Check only if the locale is allowed explicitly
+    -- So by default everything is prohibited
     -- Everything else should be checked before sending the localization request
-    if ALLOWED_LOCALES[locale] == true then
+    -- Cache only successfull localizations.
+    if PEARL.CONFIG.ALLOWED_LOCALES[locale] == true or table.contains(PEARL.CONFIG.ALLOWED_LOCALES, locale) then
         PEARL.info("Client successfully localized. Caching...")
         _CacheLocalizedClient(userid)
 
@@ -234,9 +237,16 @@ if TheNet:GetIsClient() then
     -- This is so we manage to localize in the mod loading tick
     PEARL.AddGameLogicPreLoad(_Localize)
 
-    -- Send our locale to the server
-    -- Wait a few ticks for the server's response
-    PEARL.ClientLoader:SetLoadDelay(CLIENT_LOAD_WAIT_DELAY)
+    if PEARL.ClientLoader then
+        -- Send our locale to the server
+        -- Wait a few ticks for the server's response
+        if (PEARL.ClientLoader:GetLoadDelay() or 0) < CLIENT_LOAD_WAIT_DELAY then
+            PEARL.ClientLoader:SetLoadDelay(CLIENT_LOAD_WAIT_DELAY)
+        end
+
+        -- Enable client loader
+        PEARL.ClientLoader:SetIsDisabled(false)
+    end
 
     return
 end
@@ -249,6 +259,14 @@ _LoadPersistentCache()
 
 PEARL.EventProcessor:AddEventHandler(
     "ms_clientlocalizationcomplete", _OnClientLocalizationComplete
+)
+
+PEARL.EventProcessor:AddEventHandler(
+    "ms_clientdisconnected", _OnClientDisconnected
+)
+
+PEARL.EventProcessor:AddEventHandler(
+    "clientconnectionclosed", _OnClientDisconnected
 )
 
 PEARL.EventProcessor:AddEventHandler(

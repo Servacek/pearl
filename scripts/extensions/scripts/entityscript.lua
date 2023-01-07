@@ -28,7 +28,6 @@ local EntityScript = EntityScript
 -- [[ Member Functions ]]
 -----------------------------------
 
--- TODO: Maybe move these to workable.lua?
 -- function EntityScript:HasBuilder()
 --     return self.builder     ~= nil
 --     and self.builder.userid ~= nil

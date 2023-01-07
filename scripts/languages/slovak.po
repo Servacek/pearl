@@ -91,7 +91,7 @@ msgstr "%s bol/a odpojený/á od shardu %s."
 
 msgctxt "STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN"
 msgid "%s entered the constant as %s"
-msgstr "%s vstúpil/a do konštanty ako %s"
+msgstr "%s vstúpil/a do konštanty ako %s!"
 
 msgctxt "STRINGS.PEARL.ACTIONS.FEED"
 msgid "%s feed %s with %s!"
@@ -271,6 +271,9 @@ msgstr "%s je preč."
 msgctxt "STRINGS.PEARL.LOGS.START_VOTE"
 msgid "%s started %s."
 msgstr "%s spustil %s."
+
+msgctxt "STRINGS.PEARL.LOGS.SHUTDOWN_ERROR"
+msgstr "Shard %s bol neočakávane ukončený kvôli neošetrenej výnimke..."
 
 msgctxt "STRINGS.PEARL.ACTIONS.BUILD.GENERIC"
 msgid "{doer} built {target}!"

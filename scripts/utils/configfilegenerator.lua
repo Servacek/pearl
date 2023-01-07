@@ -22,9 +22,17 @@ return function()
         return PEARL.error("Failed to open the result file!", err)
     end
 
+    local max_spaces_num = 0
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if #option.name >  max_spaces_num then
+            max_spaces_num = #option.name
+        end
+    end
+
     f:write("return {")
     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        local comment = option.type and option.options and "\t-- "..tostring(option.type)..": " or ""
+        option.type = option.type or option.default and type(option.default) or nil
+        local comment = option.type and (type(option.default) == "table" or option.options) and "\t-- "..tostring(option.type)..": " or ""
 
         for i = 1, option.options and #option.options or 0 do
             option.options[i] = tostring(option.options[i])
@@ -35,10 +43,17 @@ return function()
             option.default = string.raw(tostring(option.default))
         end
 
+        if table.contains(PEARL.CONFIG.PUBLIC, option.name) or PEARL.CONFIG.PUBLIC[option.name] ~= nil then
+            f:write("\n\n    --- @requires-reboot")
+        end
+
+        if #option.name < max_spaces_num then
+            option.name = option.name..string.rep(" ", max_spaces_num - #option.name)
+        end
+
         local expression = tostring(option.name).." = "..tostring(option.default)
         if type(option.default) == "table" then
-            expression = DataDumper(option.default, option.name, false, 4)
-            comment = ""
+            expression = PEARL.DataDumper(option.default, option.name, false)
         end
 
         if comment and comment ~= "" then

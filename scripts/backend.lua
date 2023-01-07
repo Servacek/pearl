@@ -147,8 +147,9 @@ PEARL.SafeModTableExtend("CONFIG", {
     --GRIEF_PROTECTION            = PEARL.GetConfigData("FIRE_PROTECTION"),
 
     TRUST_AGE                   = PEARL.GetConfigData("TRUST_AGE"),
+    TRUST_AGE_PERCENT           = PEARL.GetConfigData("TRUST_AGE_PERCENT"),
     LOG_SUSPICIOUS_INVENTORIES  = PEARL.GetConfigData("LOG_SUSPICIOUS_INVENTORIES"),
-    CZSK_ONLY                   = PEARL.GetConfigData("CZSK_ONLY"),
+    ALLOWED_LOCALES             = PEARL.GetConfigData("ALLOWED_LOCALES"),
     STRICT_WHITELIST            = PEARL.GetConfigData("STRICT_WHITELIST"),
     INTRO_SCREEN                = PEARL.GetConfigData("INTRO_SCREEN"),
     ALLOWLIST                   = PEARL.GetConfigData("ALLOWLIST"),
@@ -296,7 +297,7 @@ ModuleManager:SetModuleDirectory("modules")
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
     -- Master handles the connections
-    ModuleManager:AddModule("localizer", PEARL.CONFIG.CZSK_ONLY)
+    ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER)
     ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 end
 
@@ -415,6 +416,8 @@ if PEARL.CONFIG.DEBUG_MODE then
     end)
 
     PEARL.GenerateConfigFile = require("utils/configfilegenerator")
+
+    PEARL.DataDumper = require("utils/datadumper")
 end
 
 --------------------------------

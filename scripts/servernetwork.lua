@@ -39,6 +39,7 @@ function ServerNetwork:SendCommandResponse(userid, message, ...)
         return
     end
 
+    PEARL.info("ServerNetwork:SendCommandResponse<"..userid..">", message)
     return PEARL.SendRPCToClient(PEARL.RPCS.SendDirectMessage, userid, message, ...)
 end
 
@@ -136,6 +137,14 @@ PEARL.AddWorldPostInit(function(world)
 
     world:SafeListenForEvent("ms_clientauthenticationcomplete", function(self, data)
         PEARL.EventProcessor:HandleEvent("ms_clientauthenticationcomplete", data.userid)
+    end)
+
+    world:SafeListenForEvent("ms_clientdisconnected", function(self, data)
+        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid)
+    end)
+
+    world:SafeListenForEvent("clientconnectionclosed", function(self, data)
+        PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
 end)
 

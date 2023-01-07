@@ -164,16 +164,26 @@ function PEARL.AddGameLogicPreLoad(fn)
 end
 
 function PEARL.AddModIndexPostInit(fn)
-    PEARL.info("AddModIndexPostInit", fn)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddModIndexPostInit", fn)
+    end
 
     return PEARL.AddClassFunctionPostCall("EndStartupSequence", fn, KnownModIndex)
 end
 
 function PEARL.AddClientPreLoad(fn, ...)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddClientPreLoad", fn)
+    end
+
     table.insert(client_pre_loads, fn)
 end
 
 function PEARL.AddFilePreLoad(filename, fn)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddFilePreLoad", fn)
+    end
+
     -- If the file was already loaded
     if package.loaded[filename] then
         return
@@ -195,7 +205,23 @@ function PEARL.AddWorldPostInit(fn, ...)
 end
 
 function PEARL.AddFrontEndPostInit(...)
-    return AddGlobalClassPostConstruct("frontend", "FrontEnd", ...)
+    return PEARL.AddGlobalClassPostConstruct("frontend", "FrontEnd", ...)
+end
+
+function PEARL.AddFrontEndPreInit(...)
+    return PEARL.AddGlobalClassPreConstruct("frontend", "FrontEnd", ...)
+end
+
+function PEARL.AddGlobalClassPreConstruct(filename, classname, precb)
+    require(filename)
+	local classdef = rawget(_G, classname)
+	if classdef == nil then
+		classdef = require(filename)
+	end
+
+	assert(type(classdef) == "table", "Class '"..classname.."' wasn't loaded to global from '"..filename.."'.")
+
+    PEARL.AddClassFunctionPreCall("_ctor", precb, classdef)
 end
 
 ----------------------------------
@@ -219,7 +245,7 @@ end
 -- Initializers
 ----------------------------------
 
-function PEARL.SafeModTableExtend(name, init_val)
+function PEARL.SafeModTableExtend(name, init_val, replace)
     local tbl = rawget(PEARL, name)
     if not tbl then
         return rawset(PEARL, name, init_val or {})
@@ -230,7 +256,7 @@ function PEARL.SafeModTableExtend(name, init_val)
     end
 
     for k, v in pairs(init_val) do
-        if tbl[k] == nil then
+        if replace or tbl[k] == nil then
             tbl[k] = v
         end
     end

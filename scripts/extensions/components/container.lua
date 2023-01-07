@@ -38,14 +38,14 @@ end
 -- [[ Public Functions ]]
 --------------------------------
 
-PEARL.AddClassFunctionPreCall("Close", function(self, doer)
+PEARL.AddClassFunctionPostCall("Close", function(self, doer)
     if doer then
         doer:PushModEvent("closedcontainer", self.inst)
     end
 end, Container)
 
-PEARL.AddClassFunctionPreCall("Open", function(self, doer)
-    if doer then
-        doer:PushModEvent("openedcontainer", self.inst)
-    end
-end, Container)
+-- PEARL.AddClassFunctionPreCall("Open", function(self, doer)
+--     if doer then
+--         doer:PushModEvent("openedcontainer", self.inst)
+--     end
+-- end, Container)

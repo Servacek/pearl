@@ -19,6 +19,9 @@
 
 local TheNet = TheNet
 
+local Message = require("libraries/discordapi/models/message")
+local MARKDOWN = require("libraries/markdown")
+
 --------------------------
 -- Initialization
 --------------------------
@@ -36,7 +39,7 @@ local CLIENT_RPCS = {
 
     Disconnect = function(...)
         PEARL.EventProcessor:HandleEvent("force_disconnected", ...)
-        PEARL.ClientNetwork:Disconnect(...)
+        PEARL.ClientNetwork:Disconnect(..., true)
     end,
 
     -- SendLocalizationRequest = function()
@@ -59,23 +62,16 @@ local SHARD_RPCS = {
 -- local SERVER_RPCS = {}
 
 local SERVER_USERID_RPCS = {
-    -- ClientModReady = function(userid)
-    --     PEARL.debug("RPC: ClientModReady")
-
-    --     PEARL.EventProcessor:HandleEvent("ms_clientmodready", userid)
-    -- end,
-
-    -- This is being sent when the mod is loaded on the client's side
-    -- ClientModNetworkReady = function(userid)
-    --     PEARL.debug("RPC: ClientModNetworkReady")
-
-    --     PEARL.EventProcessor:HandleEvent("ms_clientmodnetworkready", userid)
-    -- end,
-
     ClientLocalizationCompleted = function(userid, locale)
         PEARL.debug("RPC: ClientLocalizationCompleted")
 
         PEARL.EventProcessor:HandleEvent("ms_clientlocalizationcomplete", userid, locale)
+    end,
+
+    ClientForceDisconnected = function(userid, reason)
+        PEARL.debug("RPC: ClientForceDisconnected")
+
+        PEARL.ServerNetwork:SendUserDisconnectFor(userid, reason)
     end,
 
     AFKStateChanged = function(userid, is_afk, kicked, ...)
@@ -99,6 +95,24 @@ local SERVER_USERID_RPCS = {
             name
         ), entity, nil, is_afk and "afk_start" or "afk_stop")
     end,
+
+    --- @TODO: Maybe move this somewhere else?
+    PlayerReportMessage = function(userid, message)
+        local client = userid and TheNet:GetClientTableForUser(userid)
+        if not client then
+            return
+        end
+
+        -- In case the webhook reporter was disabled during runtime
+        if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
+            return PEARL.ServerNetwork:SendCommandResponse(userid, STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK)
+        end
+
+        --- @TODO: Maybe use an embed instead.
+        PEARL.DiscordReporter:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
+            PEARL.ICONS.ANNOUNCEMENTS["default"], userid, MARKDOWN.escape(client.name), MARKDOWN.escape(message or "")
+        )):AllowMentionsForType(Message.MENTION_TYPES.EVERYONE))
+    end
 }
 
 -- For Debug

@@ -19,9 +19,17 @@
 
 local function GetAllSelfConfigData()
     local config_data = {}
-    for name, value in pairs(PEARL.CONFIG.PUBLIC) do
-        if value == true then
-            config_data[name] = PEARL.GetConfigData(name) or PEARL.CONFIG[name]
+    for key, value in pairs(PEARL.CONFIG.PUBLIC) do
+        -- In case this is an array field
+        if type(key) == "number" and type(value) == "string" then
+            config_data[value] = PEARL.GetConfigData(value) or PEARL.CONFIG[value]
+        end
+
+        -- In case this is an hash field
+        if type(key) == "string" then
+            if value ~= nil then
+                config_data[key] = value
+            end
         end
     end
 

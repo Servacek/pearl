@@ -21,7 +21,6 @@
 --]]
 
 local PEARL = PEARL
-local KnownModIndex, ModManager = KnownModIndex, ModManager
 local IsWorkshopMod = IsWorkshopMod
 
 -- Use the redux version instead of the default on since this is newer
@@ -39,7 +38,7 @@ local MOD_BLACKLIST = PEARL.CONFIG.MOD_BLACKLIST
 
 local _were_mods_blocked = false
 
-local function _IsModAllowed(modname)
+local function IsModAllowed(modname)
     local client_only_mod = KnownModIndex:GetModInfo(modname).client_only_mod
     if not client_only_mod then
         return true
@@ -48,24 +47,33 @@ local function _IsModAllowed(modname)
     return IsWorkshopMod(modname) and MOD_BLACKLIST[modname] ~= true
 end
 
+local function SaveModIndex()
+    --- @NOTE: This only works if DEVELOPER MODE is OFF!
+    KnownModIndex:Save()
+
+    if PEARL.CONFIG.DEBUG_MODE then
+        PEARL.OverrideGlobal("BRANCH", not _G.BRANCH)
+        KnownModIndex:Save()
+        PEARL.OverrideGlobal("BRANCH", not _G.BRANCH)
+    end
+end
+
 --------------------------------------
 -- [[ Custom Mod Load Handlers ]]
 --------------------------------------
 
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
-    if _IsModAllowed(modname) then
+    if IsModAllowed(modname) then
         return true
     end
 
-    PEARL.info("Blocking mod "..modname)
+    PEARL.debug("Blocking mod "..modname)
     -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
     table.removearrayvalue(self.enabledmods, modname)
 
     -- Disable permanently so the popup does not show each time during shard migration or reset
-    KnownModIndex:DisableBecauseBad(modname)
-    KnownModIndex:Save(function(...)
-        print("SAVE MODINDEX", ...)
-    end)
+    KnownModIndex:Disable(modname)
+    SaveModIndex()
 
     _were_mods_blocked = true
 
@@ -112,20 +120,42 @@ end)
 -- We are using frontend class since 'ModIndex:EndStartupSequence'
 -- is being called too late so the server send's the join announcement.
 PEARL.AddClientPreLoad(function()
-    if PEARL.ClientLoader:IsLoaded() then
-        return
-    end
+    -- if PEARL.ClientLoader:IsLoaded() then
+    --     return
+    -- end
 
     local enabled_mods = ModManager:GetEnabledModNames()
     if type(enabled_mods) ~= "table" then
         return
     end
 
+    local prohibited_mods = false
     for _, modname in ipairs(enabled_mods) do
-        if not _IsModAllowed(modname) and KnownModIndex:IsModEnabled(modname) then
-            PEARL.ClientNetwork:Disconnect("ID_DST_MODS_PROHIBITED")
+        if not IsModAllowed(modname) and KnownModIndex:IsModEnabled(modname) then
+            prohibited_mods = true
 
-            return false
+            -- Even though we are being disconnected,
+            -- disable the mods in case of re-join.
+            KnownModIndex:Disable(modname)
         end
     end
+
+    if prohibited_mods then
+        -- Save the changes made to the mod configurations
+        SaveModIndex()
+
+        PEARL.ClientNetwork:Disconnect("ID_DST_MODS_PROHIBITED")
+
+        return false
+    end
 end)
+
+if PEARL.ClientLoader then
+    if PEARL.ClientLoader:GetLoadDelay() ~= nil then
+        -- No load delay if we are the only module using the client loader
+        PEARL.ClientLoader:SetLoadDelay(0)
+    end
+
+    -- Enable client loader
+    PEARL.ClientLoader:SetIsDisabled(false)
+end

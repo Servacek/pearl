@@ -23,7 +23,7 @@ PEARL.AddPlayerPostInit(function()
     for _, name in ipairs(UserCommands.GetCommandNames()) do
         local command = UserCommands.GetCommandFromName(name)
         if command then
-            if PEARL.CONFIG.COMMAND_BLOCKLIST[name] == false then
+            if PEARL.CONFIG.COMMAND_BLOCKLIST[name] == true then
                 command.hasaccessfn = function() return false end
             end
 

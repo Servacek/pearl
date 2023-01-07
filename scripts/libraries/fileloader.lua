@@ -43,8 +43,14 @@ local function loadfile(rfp, env)
     end
 
     -- The logging library doesn't have to be loaded yet.
-    if PEARL.CONFIG and PEARL.CONFIG.DEBUG_MODE and PEARL.debug then
-        PEARL.debug("Loading mod file ->", rfp)
+    if PEARL.CONFIG and PEARL.CONFIG.DEBUG_MODE then
+        if PEARL.debug then
+            PEARL.debug("Loading mod file ->", rfp)
+        end
+
+        -- Support for DoReload()
+        local ft = TheSim:GetFileModificationTime(afp)
+        RequiredFilesForReload[afp] = ft
     end
 
     -- This is here in case we declare there some global variables
@@ -52,6 +58,7 @@ local function loadfile(rfp, env)
     -- environment instead.
     setfenv(fn, env or PEARL.ENV)
     _cache[afp] = {fn()}
+
     return unpack(_cache[afp])
 end
 

@@ -125,3 +125,9 @@ end
 function WhiteList:Contains(userid)
     return TheNet:IsWhiteListed(userid)
 end
+
+--------------------------------------
+-- [[ Return ]]
+--------------------------------------
+
+return WhiteList

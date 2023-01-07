@@ -19,13 +19,6 @@
 local PEARL = PEARL
 
 --------------------------------
--- [[ Constants ]]
---------------------------------
-
-local REQUIRED_AGE = 20
-local REQUIRED_AGE_PERCENT = 0.3
-
---------------------------------
 -- [[ Implementation ]]
 --------------------------------
 
@@ -43,8 +36,7 @@ PEARL.AddGlobalFunctionPreCall("NotifyPlayerProgress", function(name, value, pla
         return
     end
 
-    local age_percent = player.components.age:GetPercent()
-    if value >= REQUIRED_AGE or age_percent >= REQUIRED_AGE_PERCENT then
+    if player.components.age and player.components.age:IsTrustworthy() then
         player:AddTag("compatriot")
     end
 end)

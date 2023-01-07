@@ -24,10 +24,11 @@ local function OnError(error)
 
     --- @TODO: Maybe some internal "error" event would be better?
     if TheWorld then
-        TheWorld:PushModEvent("shard_shutdown")
+        TheWorld:PushModEvent("shard_shutdown", true)
     end
 
     PEARL.EventProcessor:HandleEvent("quit")
+    SaveAndShutdown()
 end
 
 PEARL.AddClassPostConstruct("widgets/scripterrorwidget", function(self)

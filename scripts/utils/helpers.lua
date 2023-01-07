@@ -420,11 +420,6 @@ end
 -- [[ Utils ]]
 --------------------------------
 
-function PEARL.SendMessageToClient(userid, message)
-    PEARL.info("SendMessageToClient<"..userid..">", message)
-    PEARL.SendRPCToClient(PEARL.RPCS.SendDirectMessage, userid, message)
-end
-
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
@@ -535,16 +530,21 @@ function PEARL.SafeRun(func, ...)
         return false
     end
 
-    local success, result = pcall(func, ...)
-    if not success then
+    -- #1 is status code
+    -- #2 is error message in case the status is false
+    local result = {pcall(func, ...)}
+    if not result[1] then
         PEARL.error(
-            "Error in function call:", result or "Unknown"
+            "Error in function call:", result[2] or "Unknown"
         )
 
-        PEARL.DiscordReporter:ReportCatchedLuaError(result)
+        -- This function is being used in frontend as well!
+        if PEARL.DiscordReporter then
+            PEARL.DiscordReporter:ReportCatchedLuaError(result[2])
+        end
     end
 
-    return success, result
+    return unpack(result)
 end
 
 function PEARL.PercentToRGB(percent)
@@ -579,6 +579,8 @@ function PEARL.RepairStructuresNear(player)
         local orig_pos = ent:GetPosition()
         ent:Remove()
 
+        --- @TODO: Does not inherit the builder
+        --- Also investigate the 'creator' parameter for TheSim:CreateEntity
         local inst = SpawnPrefab(tostring(ent.prefab), tostring(ent.skinname), nil, player.userid)
         if inst then
             inst.Transform:SetPosition(orig_pos:Get())

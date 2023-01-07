@@ -13,9 +13,6 @@
 
 
 --[[
-    TODOS:
-    - Debug with caves enabled.
-
     NOTES:
     - APP_ARCHITECTURE determines whether we are using
         64bit or 32bit version. Possible stored values are:
@@ -167,27 +164,29 @@ PEARL = GLOBAL.PEARL
 PEARL.CONFIG = {
     -- What configurations should be sent to clients
     PUBLIC = {
-        ["DEBUG_MODE"] = true,
-        ["DISCORD_INVITE"] = true,
-        ["MOD_BLACKLIST"] = true,
-        ["AFK_TIME"] = true,
-        ["AFK_TIME_KICK"] = true,
-        ["CZSK_ONLY"] = true,
-        ["LANGUAGE"] = true,
-        ["INTRO_POPUP_TITLE"] = true,
-        ["INTRO_POPUP_BODY"] = true,
-        ["AGREEMENT_SCREEN_CONTENT"] = true,
-        ["WELCOME_POPUP_CONTENT"] = true,
-        ["SLASH_COMMANDS"] = true,
-        ["CUSTOM_LOADING_TIPS"] = true,
-        ["CUSTOM_CONTROLS"] = true,
-        ["COMMAND_BLOCKLIST"] = true,
-        ["MIN_VOTE_AGE"] = true,
-        ["ADMIN_CALL_COOLDOWN"] = true,
+        "DEBUG_MODE",
+        "DISCORD_INVITE",
+        "MOD_BLACKLIST",
+        "AFK_TIME",
+        "AFK_TIME_KICK",
+        "CZSK_ONLY",
+        "LANGUAGE",
+        "INTRO_POPUP_TITLE",
+        "INTRO_POPUP_BODY",
+        "AGREEMENT_SCREEN_CONTENT",
+        "WELCOME_POPUP_CONTENT",
+        "SLASH_COMMANDS",
+        "CUSTOM_LOADING_TIPS",
+        "CUSTOM_CONTROLS",
+        "COMMAND_BLOCKLIST",
+        "MIN_VOTE_AGE",
+        "ADMIN_CALL_COOLDOWN",
+        "LOCALIZER",
     },
 
     DEBUG_MODE = PEARL.GetConfigData("DEBUG_MODE"),
     LANGUAGE = PEARL.GetConfigData("LANGUAGE"),
+    LOCALIZER = type(PEARL.GetConfigData("ALLOWED_LOCALES")) == "table" and not IsTableEmpty(PEARL.GetConfigData("ALLOWED_LOCALES")) or nil
 }
 
 PEARL.CONSTS = {
@@ -268,11 +267,23 @@ PEARL.loadfile("licence")
 
 -- Load the debug mode early so in case of errors we have Ctrl+R.
 if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
-    -- overriding the branch causes problems with the modblocker module
+    -- Do not override this because it attempts to load some
+    -- test files that are not provided.
     --PEARL.OverrideGlobal("CONFIGURATION", "dev")
+
+    PEARL.OverrideGlobal("ENCODE_SAVES", false)
     PEARL.OverrideGlobal("BRANCH", "dev")
     PEARL.OverrideGlobal("CHEATS_ENABLED", true)
     PEARL.OverrideGlobal("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
+
+    --- @NOTE: DoReload doesn't really affect these...
+    --- Maybe this would require some further investigation
+    local modmain_fp = PEARL.ROOTDIR.."modmain.lua"
+    local modmain_ft = TheSim:GetFileModificationTime(modmain_fp)
+    local worldgenmain_fp = PEARL.ROOTDIR.."modworldgenmain.lua"
+    local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
+    RequiredFilesForReload[modmain_fp] = modmain_ft
+    RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
 end
 
 --------------------------------
@@ -344,5 +355,5 @@ end
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.info("Mod for shard", PEARL.GetShardName(), "loaded successfully on version:", PEARL.MOD_INFO.version)
+PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
 PEARL.OnModPostInit()

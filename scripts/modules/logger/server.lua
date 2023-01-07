@@ -30,17 +30,18 @@ local _is_shutting_down = false
 -- [[ Server State Handlers ]]
 -------------------------------
 
-local function OnShutdown()
+local function OnShutdown(world, error)
     if _is_shutting_down then
         return
     end
 
-    PEARL.debug("Shard is shutting down!")
     _is_shutting_down = true
 
-    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.SHUTDOWN:format(
-        MARKDOWN.codeline(PEARL.GetShardName())
-    ), PEARL.ICONS.SERVER_STATE.STOP, true)
+    PEARL.DiscordLogger:LogStringHighlighted(
+        STRINGS.PEARL.LOGS[error and "SHUTDOWN_ERROR" or "SHUTDOWN"]:format(
+            MARKDOWN.codeline(PEARL.GetShardName())
+        ), PEARL.ICONS.SERVER_STATE.STOP, true
+    )
 end
 
 local function OnShardStateUpdate(world, state)

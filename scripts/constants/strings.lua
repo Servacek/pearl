@@ -20,7 +20,6 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 ------------------------------------
 -- Mod Specific Strings
---- @TODO Solve the problem with markdown in strings.
 STRINGS.PEARL = {
     ACTIONS     = {
         -- Prefer subftm over string.format when there are multiple versions
@@ -132,6 +131,7 @@ STRINGS.PEARL = {
         ROLLBACK_DAYS           = "Rolling server back to day %s!",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
+        SHUTDOWN_ERROR          = "Shard %s has crashed!",
         START                   = "Starting the server...",
         SERVER_REPORT           = MARKDOWN.bold("<@&%s> Server Report:\n")..MARKDOWN.codeblock("%s"),
         STATUS_CODE_REPORT      = "STATUS_CODE -> %d:\n%s",

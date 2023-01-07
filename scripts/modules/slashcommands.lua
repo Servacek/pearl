@@ -10,7 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category FrontEnd & BackEnd
---- @TODO: Debug
 
 
 local TheNet = TheNet
@@ -38,25 +37,26 @@ local DAYSBACK_DELAY = 3
 
 local function make_safe_cb(name, cb)
     return function(params, caller, ...)
-        local success, result = PEARL.SafeRun(cb, params, caller, ...)
-        if not success then
-            PEARL.error("Failed to run command '/"..name.."'! Error:\n", result or "unknown...")
+        local result = {PEARL.SafeRun(cb, params, caller, ...)}
+        if not result[1] then
+            PEARL.error("Failed to run command '/"..name.."'! Error:\n", result[2] or "unknown...")
 
             if type(caller) == "table" and caller.userid then
-                PEARL.SendMessageToClient(caller.userid,
+                PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                     STRINGS.PEARL.UI.CMD_ERRORS.EXECUTION
                 )
             end
+
+            return
         end
+
+        -- Skip the first element which is the status code.
+        return unpack(result, 2)
     end
 end
 
 local function AddCommand(name, data, ...)
-    if data.rhook_required == true and not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
-        return
-    end
-
-    if PEARL.CONFIG.COMMAND_BLOCKLIST[name] == false then
+    if PEARL.CONFIG.COMMAND_BLOCKLIST[name] == true then
         return
     end
 
@@ -148,12 +148,12 @@ AddCommand("unban", {
         end
 
         if PEARL.UnbanUserByID(params.player_id) then
-            return PEARL.SendMessageToClient(caller.userid, string.format(
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, params.player_id
             ))
         end
 
-        PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND)
+        PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND)
     end,
 })
 
@@ -172,26 +172,26 @@ AddCommand("allowlist-add", {
         end
 
         if PEARL.BlackList:Contains(params.player_id) then
-            return PEARL.SendMessageToClient(caller.userid,
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED
             )
         end
 
         if PEARL.AllowList:Contains(params.player_id) then
-            return PEARL.SendMessageToClient(caller.userid,
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED
             )
         end
 
         PEARL.AllowList:Add(params.player_id)
         if PEARL.AllowList:Save() then
-            return PEARL.SendMessageToClient(caller.userid, string.format(
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS,
                 params.player_id
             ))
         end
 
-        PEARL.SendMessageToClient(caller.userid, string.format(
+        PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
             STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_FAILURE,
             params.player_id
         ))
@@ -213,7 +213,7 @@ AddCommand("allowlist-remove", {
         end
 
         if not PEARL.AllowList:Contains(params.player_id) then
-            return PEARL.SendMessageToClient(caller.userid,
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
             )
         end
@@ -222,14 +222,14 @@ AddCommand("allowlist-remove", {
         TheNet:Kick(params.player_id)
 
         if PEARL.AllowList:Save() then
-            return PEARL.SendMessageToClient(caller.userid, string.format(
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
                     STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS,
                     params.player_id
                 )
             )
         end
 
-        return PEARL.SendMessageToClient(caller.userid,
+        return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
             STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_FAILURE
         )
     end,
@@ -242,7 +242,6 @@ AddCommand("inv", {
     slash = true,
     params = {"player_id"}, -- Net/Klei ID
     params_optional= { false },
-    rhook_required = true,
 
     serverfn = function(params, caller)
         if not (params and caller) then
@@ -251,18 +250,18 @@ AddCommand("inv", {
 
         -- We are sending this to the report channel not to the log channel.
         if PEARL.DiscordReporter:IsDisabled() then
-            return PEARL.SendMessageToClient(caller.userid,
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
             )
         end
 
         if PEARL.LogInventoryFor(params.player_id) then
-            return PEARL.SendMessageToClient(caller.userid,
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
             )
         end
 
-        return PEARL.SendMessageToClient(caller.userid,
+        return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
             STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND
         )
     end,
@@ -276,7 +275,6 @@ AddCommand("inv-find", {
     slash = true,
     params = {"item_prefab"},
     params_optional = { false },
-    rhook_required = true,
 
     serverfn = function(params, caller)
         if not (params and caller and params.item_prefab) then
@@ -285,7 +283,7 @@ AddCommand("inv-find", {
 
         -- We are sending this to the report channel not to the log channel.
         if PEARL.DiscordReporter:IsDisabled() then
-            return PEARL.SendMessageToClient(caller.userid,
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
             )
         end
@@ -305,7 +303,7 @@ AddCommand("inv-find", {
         end
 
         if #item_owners <= 0 then
-            return PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE)
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE)
         end
 
         table.sort(item_owners, function(k1, k2)
@@ -330,7 +328,7 @@ AddCommand("inv-find", {
         end
 
         PEARL.DiscordReporter:SendRawReportMessage(message)
-        return PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
+        return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
             #item_owners
         ))
     end,
@@ -354,7 +352,7 @@ AddCommand("daysback", {
                 return TheNet:Announce(result)
             end
 
-            PEARL.SendMessageToClient(caller.userid, result)
+            PEARL.ServerNetwork:SendCommandResponse(caller.userid, result)
         end, DAYSBACK_DELAY)
     end,
 })
@@ -387,7 +385,6 @@ AddCommand("admins", {
 	menusort = 2,
     params = { "message" },
     paramsoptional = { true },
-    rhook_required = true,
 
     canstartfn = function(command, caller)
         if GetTime() <= (caller.__soscall_cd_time or 0) then
@@ -400,25 +397,18 @@ AddCommand("admins", {
     -- Handle's the cooldown locally
     localfn = function(params, caller)
         local curr_time = GetTime()
-        if caller.__soscall_cd_time < curr_time then
+        if curr_time <= (caller.__soscall_cd_time or 0) then
             return -- This should not happen
         end
 
         caller.__soscall_cd_time = curr_time + (PEARL.CONFIG.ADMIN_CALL_COOLDOWN or 0)
+
+        PEARL.ClientNetwork:SendPlayerReportToServer(params.message)
+        ChatHistory:SendCommandResponse(STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.ON_SUCCESS)
     end,
 
-    serverfn = function(params, caller)
-        -- In case the webhook reporter was disabled during runtime
-        if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
-            return PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK)
-        end
-
-        PEARL.DiscordReporter:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
-            PEARL.ICONS.ANNOUNCEMENTS["default"], caller.userid, MARKDOWN.escape(caller:GetDisplayName()), MARKDOWN.escape(params.message or "")
-        )):AllowMentionsForType(Message.MENTION_TYPES.EVERYONE))
-
-        PEARL.SendMessageToClient(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.ON_SUCCESS)
-    end,
+    -- For server handling we use RPCs so the command is not being sent to the server.
+    -- We do not want to log the messages.
 })
 
 if TheNet:GetIsServer() then

@@ -20,6 +20,7 @@
 
     TODOS: (v2.1)
         - Make the cache persistent?
+        - Load the token from token.txt
 ]]
 
 local json = json

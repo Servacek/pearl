@@ -40,12 +40,12 @@ return Class(function(self, inst)
     local ClearActiveContainerCache, CacheActiveContainerItems, GetStolenItems
 
     local function onclosecontainer(doer, container)
-        if not container then
+        -- Only clean up if we have closed the active container
+        if not container or container ~= self._ac_container then
             return
         end
 
-        local stolen_items = GetStolenItems(container)
-        PEARL.debug("STOLEN", DataDumper(stolen_items))
+        local stolen_items = GetStolenItems()
         if stolen_items and #stolen_items > 0 then
             doer:PushModEvent("finishedlooting", {
                 items = stolen_items,
@@ -56,13 +56,13 @@ return Class(function(self, inst)
         ClearActiveContainerCache()
     end
 
-    local function onopencontainer(doer, container)
-        if not (doer and container and not container:IsInLimbo()) then
+    local function onopencontainer(doer, data)
+        if not (doer and data and data.container and not data.container:IsInLimbo()) then
             return
         end
 
         -- Cache all items in the newly opened container
-        CacheActiveContainerItems(container)
+        CacheActiveContainerItems(data.container)
     end
 
     local function onpickupitem(doer, data)
@@ -112,14 +112,14 @@ return Class(function(self, inst)
         end
 
         --> Do not use itemget and itemlose events for this since they are used by the Frontend
+        --> Use the default ListenForEvent because we remove these events.
         self._inst:ListenForEvent("onpickupitem", onpickupitem)
+        self._inst:ListenForEvent("opencontainer", onopencontainer)
+        self._inst:ListenForEvent("player_despawn", onplayerdespawned)
 
-        self._inst:ListenForModEvent("openedcontainer", onopencontainer)
         --> Use "closedcontainer" instead of the built-in "closecontainer" event because
         --> that is for some reason called only when closing a container by clicking on it.
         self._inst:ListenForModEvent("closedcontainer", onclosecontainer)
-
-        self._inst:ListenForEvent("player_despawn", onplayerdespawned)
     end
 
     --------------------------------
@@ -129,6 +129,11 @@ return Class(function(self, inst)
     CacheActiveContainerItems = function(container)
         if not container.components.container then
             return
+        end
+
+        -- We have still an active container! Close it.
+        if self._ac_container then
+            onclosecontainer(self._inst, self._ac_container)
         end
 
         self._ac_container = container
@@ -143,8 +148,10 @@ return Class(function(self, inst)
     ClearActiveContainerCache = function()
         self._ac_container = nil
 
-        for i, _ in ipairs(self._ac_items_cache) do
-            self._ac_items_cache[i] = nil
+        if self._ac_items_cache then
+            for i, _ in ipairs(self._ac_items_cache) do
+                self._ac_items_cache[i] = nil
+            end
         end
     end
 
@@ -178,7 +185,7 @@ return Class(function(self, inst)
     function self:OnRemoveFromEntity()
         if self._inst then
             self._inst:RemoveModEventCallback("closedcontainer", onclosecontainer)
-            self._inst:RemoveModEventCallback("openedcontainer", onopencontainer)
+            self._inst:RemoveEventCallback("openedcontainer", onopencontainer)
             self._inst:RemoveEventCallback("onpickupitem", onpickupitem)
             self._inst:RemoveEventCallback("player_despawn", onplayerdespawned)
         end

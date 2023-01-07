@@ -1,10 +1,10 @@
 --[[====================================================[==[
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
-    
+
     Copyright (c) 2023 Fi7iP
     All rights reserved.
-    
+
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
@@ -35,9 +35,10 @@ return {
 			["eyeturret"] = true,
 		},
 
+		-- table<prefab, pop_threshold>
 		MONITOR_POPULATION = {
-			["beefalo"] = true,
-			["lightninggoat"] = true,
+			["beefalo"] = 5,
+			["lightninggoat"] = 1,
 		},
 
 		FIRE_SPREADERS = { -- Especially after death

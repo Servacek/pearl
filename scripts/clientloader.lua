@@ -40,6 +40,9 @@ local _load_task = nil
 local _loaded = false
 local _load_delay = nil
 
+-- Disabled by default
+local _disabled = true
+
 ---------------------------------
 -- [[ Public ]]
 ---------------------------------
@@ -68,8 +71,16 @@ function ClientLoader:Load()
     _loaded = true
 end
 
+function ClientLoader:GetLoadDelay()
+    return _load_delay
+end
+
 function ClientLoader:SetLoadDelay(delay)
     _load_delay = delay
+end
+
+function ClientLoader:SetIsDisabled(disabled)
+    _disabled = disabled
 end
 
 function ClientLoader:StartLoadDelayTask()
@@ -89,8 +100,16 @@ function ClientLoader:IsLoaded()
     return _loaded == true
 end
 
+function ClientLoader:IsDisabled()
+    return _disabled
+end
+
+function ClientLoader:IsEnabled()
+    return not _disabled
+end
+
 function ClientLoader:HasLoadDelayStarted()
-    return _load_task ~= nil and _load_task.limit and _load_task.limit > 0
+    return _load_task ~= nil
 end
 
 ---------------------------------
@@ -98,15 +117,17 @@ end
 ---------------------------------
 
 Profile.Load = function(...)
-    if not _load_fn_args then
-        _load_fn_args = {...}
-    end
+    if ClientLoader:IsEnabled() then
+        if not _load_fn_args then
+            _load_fn_args = {...}
+        end
 
-    if _load_delay and not ClientLoader:IsLoaded() then
-        ClientLoader:StartLoadDelayTask()
+        if _load_delay and not ClientLoader:IsLoaded() then
+            ClientLoader:StartLoadDelayTask()
 
-        -- Do not load now
-        return false
+            -- Do not load yet
+            return false
+        end
     end
 
     return _load_fn(...)

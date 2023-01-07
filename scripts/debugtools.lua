@@ -233,7 +233,7 @@ end
 --------------------------------
 -- [[ Logger - World Tests ]]
 --------------------------------
---- @TODO
+
 function PEARL.TESTS.LoggerWorldTests()
     if not TheWorld then
         return PEARL.warn("TheWorld is nil!")
@@ -728,26 +728,30 @@ end
 -- [[ Table Debug Print ]]
 --------------------------------
 
-setmetatable(table, {
-    __tostring = function(self)
-        local done = {}
-        local function recurse(t, d)
-            if done[t] then
-                return
-            end
+local TAB_SIZE = 4
+local MAX_RECURSIONS = 10
+function _G.tdump(t, i)
+    if not i then
+        print("\n{")
+    end
 
-            done[t] = true
-            for i, v in pairs(t) do
-                if type(v) == 'table' then
-                    PEARL.debug(string.rep("\t", d), i, "{")
-                    recurse(v, (d or 0) + 1)
-                    PEARL.debug(string.rep("\t", d), i, "}")
-                else
-                    PEARL.debug(string.rep("\t", d), i, v)
-                end
+    i = i or 1
+    for k, v in pairs(t) do
+
+        local fm = string.rep(" ", i * TAB_SIZE)..tostring(k).." = "
+        if type(v) == "table" then
+            print(fm.."{")
+            if i < MAX_RECURSIONS then
+                tdump(v, i + 1)
+            else
+                print("...")
             end
+        elseif type(v) == "string" then
+            print(fm..string.format("%q", v)..",")
+        else
+            print(fm..tostring(v)..",")
         end
+    end
 
-        recurse(self)
-    end,
-})
+    print(string.rep(" ", i * TAB_SIZE - TAB_SIZE).."},")
+end

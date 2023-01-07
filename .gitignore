@@ -42,12 +42,20 @@ luac.out
 # VS Code settings folder and it's contents
 .vscode
 .vscode/*
+
+# Archive
 .archive
 .archive/*
 
+# Documentation folder
+.doc
+.doc/*
+
 # User Data Folder
-data
 data/*
+!data/allowlist.txt
+!data/agreement.txt
+!data/welcome.txt
 
 # TODO Folder
 .todo

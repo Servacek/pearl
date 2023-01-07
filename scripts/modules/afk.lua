@@ -15,9 +15,6 @@
 --[[
     Implements the Anti-AFK system.
 
-    TODOS:
-        - Add lobby support (should be already added, needs some debugging)
-
     NOTES:
         - 'TheNet:Announce' works only server-side.
 --]]
@@ -100,7 +97,7 @@ local function ResetAFKTime()
     _afk_time_current = 0
 end
 
-local function IsTrackingEnabledFor()
+local function IsTrackingEnabled()
     return not IsMigrating() and InGamePlay() and (not ThePlayer or not ThePlayer:HasTag("sleeping"))
 end
 
@@ -136,7 +133,7 @@ local function OnUpdate()
     end
 
     -- Make sure we are not migrating or sleeping, etc...
-    if not IsTrackingEnabledFor() then
+    if not IsTrackingEnabled() then
         ResetAFKTime()
         return
     end

@@ -1,0 +1,18 @@
+@v0.1
+// Lines that start with "//" are being ignored.
+// Use "#" for line representing the title (first line prefixed with this simbol) or subtitles
+// By prefixing a magic character ("#") with "/" you can escape it.
+// The @v<x.y> on the top of this file is meant to be a place for the agreement version. You can replace the numbers to change it.
+
+# Terms of Service
+For information on uploading gameplay videos to YouTube or creating mods & fan art, check out our Player Creation Guidelines.
+Applicable from: January 24, 2013 Don’t Starve™
+
+# 24. CHANGES TO GAME
+From time to time, without prior notice, we may in our sole discretion add new features to the Game, remove existing features from the Game, or otherwise modify or update the Game. We may provide updates that must be installed on your computer for you to access and use the Game.
+
+# 25. EXPORT CONTROLS
+The Game is subject to all applicable export laws and restrictions. The Game may not be re-exported, downloaded or otherwise exported to (or downloaded or installed by a national or resident of) any country to which Canada or the United States maintains an embargo, or any person or entity specifically designated on a control list maintained by Canada or the United States.
+
+# 26. GENERAL
+Waiver: No waiver, delay, or failure to act by us regarding any particular default or omission will prejudice or impair any of our rights or remedies regarding that or any subsequent default or omission that are not expressly waived in writing.

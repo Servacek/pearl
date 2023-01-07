@@ -41,6 +41,12 @@ function AdminList:Remove(userid)
     end
 end
 
+function AdminList:Clear()
+    for userid, _ in pairs(self._userids) do
+        self._userids[userid] = nil
+    end
+end
+
 --------------------------------------
 -- [[ Getters ]]
 --------------------------------------
@@ -89,6 +95,11 @@ function AdminList:Save()
 
     -- Adds the 'KLEI     1' prefix...
     return TheSim:SetPersistentString(ADMINLIST_PATH, content, false)
+end
+
+function AdminList:Reload()
+    self:Clear()
+    self:Load()
 end
 
 --------------------------------------

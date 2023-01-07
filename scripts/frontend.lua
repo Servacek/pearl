@@ -42,9 +42,12 @@ PEARL.SafeModTableExtend("CONFIG", {
     MIN_VOTE_AGE             = PEARL.GetConfigData("MIN_VOTE_AGE"),
     ADMIN_CALL_COOLDOWN      = PEARL.GetConfigData("ADMIN_CALL_COOLDOWN"),
 
+    -- Frontend Specific configuration
+    LOCALIZER                = PEARL.GetConfigData("LOCALIZER"),
+
     WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
     AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
-})
+}, true)
 
 PEARL.SafeModTableExtend("CONTROLS", {
     TOGGLE_CHAT = KEY_F1 -- 282
@@ -136,13 +139,10 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("keybinds", PEARL.CONFIG.CUSTOM_CONTROLS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
+ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
-    -- All of the slash commands are for admins yet
     ModuleManager:AddModule(
-        "slashcommands", PEARL.CONFIG.SLASH_COMMANDS
-    )
-    ModuleManager:AddModule(
-        "localizer", PEARL.CONFIG.CZSK_ONLY
+        "localizer", PEARL.CONFIG.LOCALIZER
     )
     ModuleManager:AddModule(
         "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
