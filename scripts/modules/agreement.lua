@@ -9,19 +9,22 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @Category FrontEnd
+--- @category FrontEnd
 
-
---[[
-
---]]
 
 --- @TODO: Check out also 'kleifileexists' as a possible alternative
 -- We have already agreed to the agreement and the version of the agreement is the same as
 -- the version of the newest released agreement.
 local _agr_file_exists = io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH)
 local _agr_file_version = io.line(PEARL.CONSTS.AGREEMENT_FILE_PATH)
-if _agr_file_exists and _agr_file_version == PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version then
+if _agr_file_exists and type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) ~= "table" then
+    return
+end
+
+if type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" and
+    PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version and
+    PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version == _agr_file_version
+then
     return
 end
 
@@ -34,6 +37,27 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 
 local _agreement_displayed = false
 
+local function IsAgreementScreenEnabled()
+    return type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" and #PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT > 0
+end
+
+local function IsWelcomeScreenEnabled()
+    return type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table" and #PEARL.CONFIG.WELCOME_POPUP_CONTENT > 0
+end
+
+local function CreateAgreementCacheFile()
+    local agr_file = io.open(PEARL.CONSTS.AGREEMENT_FILE_PATH, "w")
+    if not agr_file then
+        return PEARL.error("Failed to create the agreement cache file!")
+    end
+
+    if IsAgreementScreenEnabled() and PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version ~= nil then
+        agr_file:write(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version)
+    end
+
+    agr_file:close()
+end
+
 local function OnPlayerFinishedAgreement(self, agreed)
     self:Close()
 
@@ -41,22 +65,43 @@ local function OnPlayerFinishedAgreement(self, agreed)
         return DoRestart(true)
     end
 
-    local agr_file = io.open(PEARL.CONSTS.AGREEMENT_FILE_PATH, "w")
-    if not agr_file then
-        return PEARL.error("Failed to create the agreement cache file!")
-    end
-
-    if PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version ~= nil then
-        agr_file:write(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version)
-    end
-    agr_file:close()
+    CreateAgreementCacheFile()
 end
 
 local function ShowAgreement()
+    -- The Agreement Screen has no content so do not show it
+    if not IsAgreementScreenEnabled() then
+        return
+    end
+
     local agreement_screen = AgreementScreen()
     agreement_screen:SetOnContinue(OnPlayerFinishedAgreement)
 
     TheFrontEnd:PushScreen(agreement_screen)
+end
+
+local function OnWelcomeScreenContinue()
+    TheFrontEnd:PopScreen()
+
+    if IsAgreementScreenEnabled() then
+        return ShowAgreement()
+    end
+
+    -- Even though agreement screen is disable we still want to create the agreement file
+    -- so the next join the welcome screen doesn't pop-up again.
+    -- Note: This file will not have any version - it will be empty.
+    CreateAgreementCacheFile()
+end
+
+local function ShowWelcomeScreen()
+    if not IsWelcomeScreenEnabled() then
+        return
+    end
+
+    -- Welcome Popup has only one section, so index it directly.
+    TheFrontEnd:PushScreen(PopupDialogScreen(PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].title, PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].description, {
+        {text = STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE, cb = OnWelcomeScreenContinue}
+    }))
 end
 
 local function OnPlayerEnteredGame()
@@ -64,21 +109,21 @@ local function OnPlayerEnteredGame()
         return
     end
 
+    _agreement_displayed = true
+
     -- We have already accepted the agreement but it was updated
     if _agr_file_exists then
-        ShowAgreement()
-    else -- We are on the server for the first time.
-        TheFrontEnd:PushScreen(PopupDialogScreen(PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].title, PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].description, {
-            {text = STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE, cb = function()
-                TheFrontEnd:PopScreen()
-
-                ShowAgreement()
-            end}
-        }))
+        return ShowAgreement()
     end
 
-    -- We should not get here if the agreement was not accepted
-    _agreement_displayed = true
+    -- We are on the server for the first time.
+
+    if IsWelcomeScreenEnabled() then
+        -- Welcome screen should display the agreement on continue
+        ShowWelcomeScreen()
+    else
+        ShowAgreement()
+    end
 end
 
 PEARL.AddWorldPostInit(function(world)

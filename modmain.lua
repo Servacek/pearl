@@ -210,9 +210,10 @@ if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflin
     return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
 end
 
-if not TheSim or TheSim:GetNumLaunches() == 1 then
-    return -- Do not load much on the first launch.
-end
+-- Backend needs to be loaded even on the first launch because of some configurations.
+-- if not TheSim or TheSim:GetNumLaunches() == 1 then
+--     return -- Do not load much on the first launch.
+-- end
 
 --------------------------------
 -- [[ FileLoader ]]
@@ -344,7 +345,7 @@ end
 -- [[ Backend ]]
 --------------------------------
 
-if TheNet:GetIsServer() then
+if not TheNet:GetIsClient() then
     PEARL.info("Loading mod BE...")
     PEARL.loadfile("backend")
 

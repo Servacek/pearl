@@ -151,7 +151,7 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
     ModuleManager:AddModule(
-        "agreement", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil and PEARL.CONFIG.WELCOME_POPUP_CONTENT ~= nil
+        "agreement", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil or PEARL.CONFIG.WELCOME_POPUP_CONTENT ~= nil
     )
     ModuleManager:AddModule(
         "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {})

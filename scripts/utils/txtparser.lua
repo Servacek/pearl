@@ -62,7 +62,7 @@ local function ParseLine(tbl, raw_line, subtitles)
 
     -- The title and subtitles
     if line:startswith(TITLE_PREFIX) and (subtitles or #tbl < 1) then
-        local title = RemoveLinePrefix(line, TITLE_PREFIX)
+        local title = RemoveLinePrefix(line, TITLE_PREFIX):strip()
         return AddSection(tbl, title)
     end
 

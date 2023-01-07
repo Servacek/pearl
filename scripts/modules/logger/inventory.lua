@@ -11,7 +11,8 @@
 --]==]====================================================]]
 
 
-
+--- @TODO: Create some kind of cache so we do not announce the same inventories
+-- again and again...
 --[[
     Checks the content of an inventory when it's owner despawns.
     Logs suspicious intentories to discord.
