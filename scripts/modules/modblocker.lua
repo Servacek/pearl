@@ -20,7 +20,6 @@
           send the mod list to the server...
 --]]
 
-local PEARL = PEARL
 local IsWorkshopMod = IsWorkshopMod
 
 -- Use the redux version instead of the default on since this is newer
@@ -36,15 +35,30 @@ local MOD_BLACKLIST = PEARL.CONFIG.MOD_BLACKLIST
 -- [[ Private ]]
 --------------------------------------
 
-local _were_mods_blocked = false
+local were_mods_blocked = false
+
+local mods_report = {}
+PEARL.ClientNetwork:SetCFDField("enabled_mods", mods_report)
+
+--------------------------------------
+-- [[ Helper Wrappers ]]
+--------------------------------------
+
+local function IsClientOnlyMod(modname)
+    local modinfo = KnownModIndex:GetModInfo(modname)
+    return modinfo and modinfo.client_only_mod
+end
+
+local function IsModBlacklisted(modname)
+    return MOD_BLACKLIST[modname] == true
+end
+
+local function IsModPrivate(modname)
+    return not IsWorkshopMod(modname)
+end
 
 local function IsModAllowed(modname)
-    local client_only_mod = KnownModIndex:GetModInfo(modname).client_only_mod
-    if not client_only_mod then
-        return true
-    end
-
-    return IsWorkshopMod(modname) and MOD_BLACKLIST[modname] ~= true
+    return not IsClientOnlyMod(modname) and not IsModBlacklisted(modname) and not IsModPrivate(modname)
 end
 
 local function SaveModIndex()
@@ -52,9 +66,27 @@ local function SaveModIndex()
     KnownModIndex:Save()
 
     if PEARL.CONFIG.DEBUG_MODE then
-        PEARL.OverrideGlobal("BRANCH", not _G.BRANCH)
+        local _BRANCH = _G.BRANCH
+
+        PEARL.OverrideVariable("BRANCH", "release")
         KnownModIndex:Save()
-        PEARL.OverrideGlobal("BRANCH", not _G.BRANCH)
+        PEARL.OverrideVariable("BRANCH", _BRANCH)
+    end
+end
+
+local function AddReportForMod(modname)
+    local blocked = IsModBlacklisted(modname)
+    mods_report[modname] = {
+        client_only = IsClientOnlyMod(modname),
+        private     = IsModPrivate(modname),
+        blocked     = blocked,
+        id          = GetWorkshopIdNumber(modname),
+        temp        = KnownModIndex:IsModTempEnabled(modname),
+        fancyname   = GetModFancyName(modname)
+    }
+
+    if not mods_report.prohibited and blocked then
+        PEARL.ClientNetwork:SetCFDField("mods_prohibited", true)
     end
 end
 
@@ -63,6 +95,16 @@ end
 --------------------------------------
 
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
+    -- If we are in the strict mode leave the blocked mod's for the post mods load handler,
+    -- so clients with blocked mods enabled will be disconnected from the server.
+    if MOD_BLACKLIST.strict == true then
+        return
+    end
+
+    if not mods_report[modname] then
+        AddReportForMod(modname)
+    end
+
     if IsModAllowed(modname) then
         return true
     end
@@ -75,7 +117,7 @@ PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
     KnownModIndex:Disable(modname)
     SaveModIndex()
 
-    _were_mods_blocked = true
+    were_mods_blocked = true
 
     -- Stop further execution
     return false
@@ -87,7 +129,7 @@ end, ModManager)
 
 -- This is when the game loads for the client and we can start playing
 local function OnPlayerActivated()
-    if _were_mods_blocked then
+    if were_mods_blocked then
         -- Inform the player that some of his mods were blocked by the server
         TheFrontEnd:PushScreen(
             PopupDialogScreen(
@@ -104,7 +146,7 @@ local function OnPlayerActivated()
         )
 
         -- We do not want multiple popup windows.
-        _were_mods_blocked = false
+        were_mods_blocked = false
     end
 end
 
@@ -112,25 +154,21 @@ end
 -- [[ Initialization ]]
 --------------------------------------
 
-AddPlayerPostInit(function(inst)
+PEARL.AddPlayerPostInit(function(inst)
     inst:ListenForEvent("playeractivated", OnPlayerActivated)
+    -- Show the popup in lobby as well.
+    inst:ListenForEvent("entercharacterselect", OnPlayerActivated)
 end)
 
--- Mod loading should be completed at this point.
--- We are using frontend class since 'ModIndex:EndStartupSequence'
--- is being called too late so the server send's the join announcement.
-PEARL.AddClientPreLoad(function()
-    -- if PEARL.ClientLoader:IsLoaded() then
-    --     return
-    -- end
-
-    local enabled_mods = ModManager:GetEnabledModNames()
-    if type(enabled_mods) ~= "table" then
-        return
-    end
-
+-- So far the best place where to drop this check I guess
+-- Load this before frontend since on FE post init we send the CFD data.
+PEARL.AddFrontEndPreInit(function()
     local prohibited_mods = false
-    for _, modname in ipairs(enabled_mods) do
+    for _, modname in ipairs(ModManager:GetEnabledModNames() or {}) do
+        if not mods_report[modname] then
+            AddReportForMod(modname)
+        end
+
         if not IsModAllowed(modname) and KnownModIndex:IsModEnabled(modname) then
             prohibited_mods = true
 
@@ -145,17 +183,5 @@ PEARL.AddClientPreLoad(function()
         SaveModIndex()
 
         PEARL.ClientNetwork:Disconnect("ID_DST_MODS_PROHIBITED")
-
-        return false
     end
 end)
-
-if PEARL.ClientLoader then
-    if PEARL.ClientLoader:GetLoadDelay() ~= nil then
-        -- No load delay if we are the only module using the client loader
-        PEARL.ClientLoader:SetLoadDelay(0)
-    end
-
-    -- Enable client loader
-    PEARL.ClientLoader:SetIsDisabled(false)
-end

@@ -75,14 +75,15 @@
     - Try to not push in-game events.
 
     - Use raw tables for singleton non-inherited classes.
+
+    - For singletons use locals as private variables and functions without the '_' prefix.
+
+    - Do not use raw RPCs! Use the built-in mod API. They are being registered
+      after TheFrontEnd.
 --]]
 
 local GLOBAL = GLOBAL
-
--- The server is being relaunched at boot so ignore the actual first launch.
--- if not GLOBAL.TheSim or GLOBAL.TheSim:GetNumLaunches() == 1 then
---     return
--- end
+local setmetable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
 --------------------------------
 -- [[ Local Constants ]]
@@ -98,8 +99,6 @@ local ENV = GLOBAL.getfenv(1)
 -- everytime we access something from that table.
 --- @return table
 local function setupenv()
-    local setmetable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
-
     -- Modify the metatable of the current safe separated mod environment.
     return setmetable(ENV, {
         -- Called when lua is not able to find the field in our environment table.
@@ -132,7 +131,34 @@ GLOBAL.PEARL = setmetatable({
     MOD_INFO            = KnownModIndex:GetModInfo(modname),
     RPC_NAME            = modname.."_rpc",
 
-    GetConfigData       = GetModConfigData,
+    GetConfigData       = function(opt_name, no_supp, ...)
+        local data = ENV.GetModConfigData(opt_name, ...)
+        if type(data) ~= "table" or no_supp then
+            return data
+        end
+
+        local function supplement(level)
+            for k, v in pairs(level) do
+                if data[k] == nil then
+                    data[k] = v
+                elseif type(data[k]) == "table" then
+                    supplement(data[k])
+                end
+            end
+        end
+
+        for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+            if option.name == opt_name then
+                if type(option.default) == "table" then
+                    supplement(option.default)
+                end
+
+                break
+            end
+        end
+
+        return data
+    end,
 
     SOURCE_DIR_NAME     = "scripts",
     DATA_DIR_NAME       = "data",
@@ -158,36 +184,24 @@ GLOBAL.PEARL = setmetatable({
 PEARL = GLOBAL.PEARL
 
 --------------------------------
--- [[ Basic Configurations ]]
+-- [[ General Configurations ]]
 --------------------------------
 
-PEARL.CONFIG = {
-    -- What configurations should be sent to clients
-    PUBLIC = {
-        "DEBUG_MODE",
-        "DISCORD_INVITE",
-        "MOD_BLACKLIST",
-        "AFK_TIME",
-        "AFK_TIME_KICK",
-        "CZSK_ONLY",
-        "LANGUAGE",
-        "INTRO_POPUP_TITLE",
-        "INTRO_POPUP_BODY",
-        "AGREEMENT_SCREEN_CONTENT",
-        "WELCOME_POPUP_CONTENT",
-        "SLASH_COMMANDS",
-        "CUSTOM_LOADING_TIPS",
-        "CUSTOM_CONTROLS",
-        "COMMAND_BLOCKLIST",
-        "MIN_VOTE_AGE",
-        "ADMIN_CALL_COOLDOWN",
-        "LOCALIZER",
-    },
+PEARL.CONFIG = {}
 
-    DEBUG_MODE = PEARL.GetConfigData("DEBUG_MODE"),
-    LANGUAGE = PEARL.GetConfigData("LANGUAGE"),
-    LOCALIZER = type(PEARL.GetConfigData("ALLOWED_LOCALES")) == "table" and not IsTableEmpty(PEARL.GetConfigData("ALLOWED_LOCALES")) or nil
-}
+local function load_general_config()
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.general == true then
+            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+        end
+    end
+end
+
+load_general_config()
+
+--------------------------------
+-- [[ General Mod Constants]]
+--------------------------------
 
 PEARL.CONSTS = {
     EVENT_PREFIX = "__"..string.lower(PEARL.MODNAME).."__",
@@ -258,9 +272,12 @@ PEARL.loadfile("extensions/api")
 -- [[ License ]]
 --------------------------------
 
---- We are working with files here so load after the io extension
-PEARL.info("Loading licence...")
-PEARL.loadfile("licence")
+-- Load licences only on servers
+if TheNet:GetIsServer() then
+    --- We are working with files here so load after the io extension
+    PEARL.info("Loading licence...")
+    PEARL.loadfile("licence")
+end
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -268,14 +285,17 @@ PEARL.loadfile("licence")
 
 -- Load the debug mode early so in case of errors we have Ctrl+R.
 if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
+    PEARL.info("Setting up debug mode!")
+
+    KnownModIndex.modsettings.initdebugprint = true
     -- Do not override this because it attempts to load some
     -- test files that are not provided.
     --PEARL.OverrideGlobal("CONFIGURATION", "dev")
 
-    PEARL.OverrideGlobal("ENCODE_SAVES", false)
-    PEARL.OverrideGlobal("BRANCH", "dev")
-    PEARL.OverrideGlobal("CHEATS_ENABLED", true)
-    PEARL.OverrideGlobal("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
+    PEARL.OverrideVariable("ENCODE_SAVES", false)
+    PEARL.OverrideVariable("BRANCH", "dev")
+    PEARL.OverrideVariable("CHEATS_ENABLED", true)
+    PEARL.OverrideVariable("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
 
     --- @NOTE: DoReload doesn't really affect these...
     --- Maybe this would require some further investigation
@@ -329,22 +349,17 @@ PEARL.AddAnnouncementCategory("teach")
 PEARL.AddAnnouncementCategory("read")
 
 --------------------------------
--- [[ Frontend ]]
+-- [[ Custom Error Handler ]]
 --------------------------------
 
--- In debug mode we want to load frontend on servers as well to see if there is
--- any error.
-if TheNet:GetIsClient() then--or PEARL.CONFIG.DEBUG_MODE then
-    PEARL.info("Loading mod FE...")
-    PEARL.loadfile("frontend")
-
-    PEARL.info("Loading mod FE done.")
-end
+PEARL.info("Loading mod error handler...")
+PEARL.loadfile("error")
 
 --------------------------------
 -- [[ Backend ]]
 --------------------------------
 
+--- TheNet:GetIsClient return's false when the we disconnect.
 if not TheNet:GetIsClient() then
     PEARL.info("Loading mod BE...")
     PEARL.loadfile("backend")
@@ -353,8 +368,21 @@ if not TheNet:GetIsClient() then
 end
 
 --------------------------------
+-- [[ Frontend ]]
+--------------------------------
+
+-- In debug mode we want to load sometimes the frontend on servers as well to see if there is
+-- any error.
+if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
+    PEARL.info("Loading mod FE...")
+    PEARL.loadfile("frontend")
+
+    PEARL.info("Loading mod FE done.")
+end
+
+--------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
 PEARL.OnModPostInit()
+PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)

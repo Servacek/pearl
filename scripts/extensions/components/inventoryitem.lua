@@ -1,10 +1,10 @@
 --[[====================================================[==[
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
-    
+
     Copyright (c) 2023 Fi7iP
     All rights reserved.
-    
+
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
@@ -22,18 +22,21 @@ local InventoryItem = require("components/inventoryitem")
 -- [[ Contants ]]
 --------------------------------
 
-local ITEM_RARITY_MAX   = 3
+local TOTAL_RARITY          = 3
+local MAX_RARITY_PER_ITEM   = TOTAL_RARITY / 2
 
 local ITEM_RARITY       = {
-    RENEWABLE           = ITEM_RARITY_MAX / 320,  -- max stacks of renewable material
-    BUILT_SELF          = ITEM_RARITY_MAX / 75,
-    BUILT_OTHER         = ITEM_RARITY_MAX / 30,   -- max built items by someone else
-    PER_FOOD_POINT      = (ITEM_RARITY_MAX / 25) / 45,
-    PER_FOOD_POINT_RAW  = (ITEM_RARITY_MAX / 75) / 45,
-    GEM                 = ITEM_RARITY_MAX / 9,
-    FUEL                = ITEM_RARITY_MAX / 200,
+    VERY_RARE           = TOTAL_RARITY / 4,
+    RARE                = TOTAL_RARITY / 36,
+    RENEWABLE           = TOTAL_RARITY / 420,  -- max stacks of renewable material
+    BUILT_SELF          = TOTAL_RARITY / 95,
+    BUILT_OTHER         = TOTAL_RARITY / 30,   -- max built items by someone else
+    PER_FOOD_POINT      = (TOTAL_RARITY / 25) / 45,
+    PER_FOOD_POINT_RAW  = (TOTAL_RARITY / 75) / 45,
+    GEM                 = TOTAL_RARITY / 12,
+    FUEL                = TOTAL_RARITY / 220,
     SKIN_MULT           = 1.25,
-    DEFAULT             = ITEM_RARITY_MAX / 240,  -- max stacks of a non-renewable material
+    DEFAULT             = TOTAL_RARITY / 280,  -- max stacks of a non-renewable material
 }
 
 --------------------------------
@@ -67,22 +70,27 @@ function InventoryItem:GetTotalRarity()
         return rarity + (ITEM_RARITY.RENEWABLE * stacksize)
     end
 
+    local rarity_percent = self:GetRarityPercent()
+    if rarity_percent and rarity_percent > 0 then
+        -- Very rare items
+        if rarity_percent >= 1 then
+            return rarity + (ITEM_RARITY.VERY_RARE * rarity_percent) * stacksize
+        end
+
+        return rarity + (ITEM_RARITY.RARE * rarity_percent) * (stacksize / 2)
+    end
+
     local recipe = AllRecipes[self.inst.prefab]
     if recipe ~= nil then
         for _, ingredient in ipairs(recipe.ingredients) do
             if PEARL.PREFABS.RARE_ITEMS[ingredient.type] and PEARL.PREFABS.RARE_ITEMS[ingredient.type] > 0 then
                 rarity = rarity + (
-                    ITEM_RARITY_MAX * PEARL.PREFABS.RARE_ITEMS[ingredient.type]
+                    MAX_RARITY_PER_ITEM * PEARL.PREFABS.RARE_ITEMS[ingredient.type]
                 ) * ingredient.amount
 
                 --print("RARE INGEREDIENT ("..ingredient.type.." x"..tostring(ingredient.amount)..")", rarity)
             end
         end
-    elseif self:IsVeryRare() then
-        --print("VERY RARE ("..self.inst.prefab.." x"..tostring(stacksize).."):")
-
-        -- Full rarity for very rare items
-        return ITEM_RARITY_MAX
     end
 
     --local stacksize = self:GetStackSize()

@@ -52,7 +52,8 @@ local Message = Class(function(self, content)
     --    parse,
     --    roles,
     --    users,
-    self._allowed_mentions = {parse = false}
+    -- Settings parse to false disabled the @everyone and @here ping
+    self._allowed_mentions = self.DEFAULT_ALLOWED_MENTIONS
 
     -- --- @type function?
     -- self._postconstructfn = nil
@@ -88,6 +89,10 @@ Message.FLAGS                   = {
     HAS_THREAD	            = bit.lshift(1, 5),	-- this message has an associated thread, with the same id as the message
     EPHEMERAL	            = bit.lshift(1, 6),	-- this message is only visible to the user who invoked the Interaction
     LOADING	                = bit.lshift(1, 7),	-- this message is an Interaction Response and the bot is "thinking"
+}
+
+Message.DEFAULT_ALLOWED_MENTIONS = {
+    parse = {}
 }
 
 ------------------------------------------
@@ -199,17 +204,12 @@ function Message:AddFlag(flag)
 end
 
 --- @NOTE: Careful here.
-function Message:AllowMentionsForType(mention_type)
-    if not self._allowed_mentions then
-        self._allowed_mentions = {}
+function Message:SetAllowedMentionTypes(mention_types)
+    if type(self._allowed_mentions) ~= "table" or self._allowed_mentions == Message.DEFAULT_ALLOWED_MENTIONS then
+        self._allowed_mentions = shallowcopy(self._allowed_mentions) or {}
     end
 
-    -- This is not always a table
-    if type(self._allowed_mentions.parse) ~= "table" then
-        self._allowed_mentions.parse = {}
-    end
-
-    table.insert(self._allowed_mentions.parse, mention_type)
+    self._allowed_mentions.parse = mention_types
 
     return self
 end
@@ -260,12 +260,13 @@ end
 ------------------------------------------
 
 function Message:ToTable()
+    -- Send as few data here as possible since for every
+    -- character we need to send one byte of data.
     return {
         content = self:GetContent(),
-        embeds = self._embeds,
-        flags = self._flags,
-        -- Always disable everyone ping
-        allowed_mentions = self._allowed_mentions,
+        embeds = not table.empty(self._embeds) and self._embeds or nil,
+        flags = not table.empty(self._flags) and self._flags or nil,
+        allowed_mentions = not table.empty(self._allowed_mentions) and self._allowed_mentions or nil,
     }
 end
 
@@ -287,12 +288,22 @@ end
 
 -- Allows reuse of the message object (when used as a buffer)
 function Message:Clear()
+     self._flags = nil
+
     cleartable(self._loglines)
     cleartable(self._embeds)
+
+    local parse
+    if self._allowed_mentions then
+        parse = self._allowed_mentions.parse
+    end
+
     cleartable(self._allowed_mentions)
 
-    self._flags = nil
-    self._allowed_mentions.parse = false
+    if parse then
+        cleartable(parse)
+        self._allowed_mentions.parse = parse
+    end
 end
 
 return Message

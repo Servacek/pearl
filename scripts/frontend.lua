@@ -27,31 +27,49 @@ PEARL.SafeModTableExtend("CONSTS", {
 ----------------------------------
 
 PEARL.info("Loading Configuration...")
-PEARL.SafeModTableExtend("CONFIG", {
-    DISCORD_INVITE           = PEARL.GetConfigData("DISCORD_INVITE"),
-    MOD_BLACKLIST            = PEARL.GetConfigData("MOD_BLACKLIST"),
-    AFK_TIME                 = PEARL.GetConfigData("AFK_TIME"),
-    AFK_TIME_KICK            = PEARL.GetConfigData("AFK_TIME_KICK"),
-    CZSK_ONLY                = PEARL.GetConfigData("CZSK_ONLY"),
-    DEBUG_MODE               = PEARL.GetConfigData("DEBUG_MODE"),
-    LANGUAGE                 = PEARL.GetConfigData("LANGUAGE"),
-    SLASH_COMMANDS           = PEARL.GetConfigData("SLASH_COMMANDS"),
-    CUSTOM_LOADING_TIPS      = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
-    CUSTOM_CONTROLS          = PEARL.GetConfigData("CUSTOM_CONTROLS"),
-    COMMAND_BLOCKLIST        = PEARL.GetConfigData("COMMAND_BLOCKLIST"),
-    MIN_VOTE_AGE             = PEARL.GetConfigData("MIN_VOTE_AGE"),
-    ADMIN_CALL_COOLDOWN      = PEARL.GetConfigData("ADMIN_CALL_COOLDOWN"),
+for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+    if option.public and PEARL.CONFIG[option.name] == nil then
+        PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+    end
+end
 
-    -- Frontend Specific configuration
-    LOCALIZER                = PEARL.GetConfigData("LOCALIZER"),
+-- PEARL.SafeModTableExtend("CONFIG", {
+--     DISCORD_INVITE           = PEARL.GetConfigData("DISCORD_INVITE"),
+--     MOD_BLACKLIST            = PEARL.GetConfigData("MOD_BLACKLIST"),
+--     AFK_TIME                 = PEARL.GetConfigData("AFK_TIME"),
+--     AFK_TIME_KICK            = PEARL.GetConfigData("AFK_TIME_KICK"),
+--     CZSK_ONLY                = PEARL.GetConfigData("CZSK_ONLY"),
+--     DEBUG_MODE               = PEARL.GetConfigData("DEBUG_MODE"),
+--     LANGUAGE                 = PEARL.GetConfigData("LANGUAGE"),
+--     SLASH_COMMANDS           = PEARL.GetConfigData("SLASH_COMMANDS"),
+--     CUSTOM_LOADING_TIPS      = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
+--     CUSTOM_CONTROLS          = PEARL.GetConfigData("CUSTOM_CONTROLS"),
+--     COMMAND_BLOCKLIST        = PEARL.GetConfigData("COMMAND_BLOCKLIST"),
+--     MIN_VOTE_AGE             = PEARL.GetConfigData("MIN_VOTE_AGE"),
+--     ADMIN_CALL_COOLDOWN      = PEARL.GetConfigData("ADMIN_CALL_COOLDOWN"),
 
-    WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
-    AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
-}, true)
+--     -- Frontend Specific configuration
+--     SERVER_REQUIRE_CFD       = PEARL.GetConfigData("SERVER_REQUIRE_CFD"),
+
+--     WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
+--     AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
+-- }, true)
 
 PEARL.SafeModTableExtend("CONTROLS", {
     TOGGLE_CHAT = KEY_F1 -- 282
 })
+
+----------------------------------
+-- Client Network
+----------------------------------
+
+PEARL.info("Loading client network...")
+
+--- @type ClientNetwork
+PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
+
+--- @type ClientLoader
+PEARL.ClientLoader = PEARL.loadfile("clientloader")
 
 ----------------------------------
 -- FrontEnd Debug Mode
@@ -66,6 +84,7 @@ PEARL.SafeModTableExtend("CONTROLS", {
 ----------------------------------
 -- Assets
 ----------------------------------
+
 PEARL.info("Loading assets...")
 Assets = {
     Asset("IMAGE", "images/announcements.tex"),
@@ -76,10 +95,19 @@ Assets = {
 }
 
 ----------------------------------
+-- Scheduler
+----------------------------------
+
+-- In frontend, use staticScheduler for background tasks
+-- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
+PEARL.info("Loading static scheduler...")
+PEARL.Scheduler = staticScheduler
+
+----------------------------------
 -- User Interface
 ----------------------------------
 
-PEARL.info("Loading UI...")
+PEARL.info("Loading UI and strings...")
 
 PEARL.POPUPS = {}
 
@@ -115,18 +143,6 @@ PEARL.loadfile("extensions/ui/chatqueue")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 
 ----------------------------------
--- Client Network
-----------------------------------
-
-PEARL.info("Loading client network...")
-
---- @type ClientNetwork
-PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
-
---- @type ClientLoader
-PEARL.ClientLoader = PEARL.loadfile("clientloader")
-
-----------------------------------
 -- Other Modules
 ----------------------------------
 
@@ -141,9 +157,6 @@ ModuleManager:AddModule("keybinds", PEARL.CONFIG.CUSTOM_CONTROLS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
-    ModuleManager:AddModule(
-        "localizer", PEARL.CONFIG.LOCALIZER
-    )
     ModuleManager:AddModule(
         "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
     )

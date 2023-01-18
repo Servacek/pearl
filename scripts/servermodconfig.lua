@@ -12,24 +12,52 @@
 --- Keep in mind that only configuration is loaded at this point.
 --- Also this is being loaded using 'require', so not mod environment as well.
 
+--- Some mod debug utilities used by 'GetConfigData' require the presence of the mod's environment
+--- in this file and since it's being loaded via 'require' we need to set it manually.
+setfenv(1, PEARL.ENV)
 
 -------------------------------------
 -- [[ Private Functions ]]
 -------------------------------------
 
+local function GetGenericConfigData(opt_name, ...)
+    return PEARL.GetConfigData(opt_name, ...) or PEARL.CONFIG[opt_name]
+end
+
+local function ParseFoldedConfigName(name, tbl)
+    local level = PEARL.CONFIG
+    local keys = name:split(".")
+    for _, key in ipairs(keys) do
+        level = level[key]
+        if not tbl[key] then
+            tbl[key] = type(level) == "table" and {} or level
+            tbl = tbl[key]
+        end
+    end
+end
+
+local function ParsePublicConfigOption(option, tbl)
+    if option.public == true then
+        tbl[option.name] = GetGenericConfigData(option.name, true)
+        return
+    end
+
+    if type(option.public) == "string" then
+        ParseFoldedConfigName(option.public, tbl)
+    end
+
+    if type(option.public) == "table" then
+        for _, pub_opt in ipairs(option.public) do
+            ParseFoldedConfigName(pub_opt, tbl)
+        end
+    end
+end
+
 local function GetAllSelfConfigData()
     local config_data = {}
-    for key, value in pairs(PEARL.CONFIG.PUBLIC) do
-        -- In case this is an array field
-        if type(key) == "number" and type(value) == "string" then
-            config_data[value] = PEARL.GetConfigData(value) or PEARL.CONFIG[value]
-        end
-
-        -- In case this is an hash field
-        if type(key) == "string" then
-            if value ~= nil then
-                config_data[key] = value
-            end
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.public then
+            ParsePublicConfigOption(option, config_data)
         end
     end
 

@@ -16,7 +16,6 @@
     Mod server-side network.
 --]]
 
-local PEARL = PEARL
 local Ents = Ents
 local TheNet, TheInput = TheNet, TheInput
 
@@ -24,12 +23,21 @@ local TheNet, TheInput = TheNet, TheInput
 -- Declaration
 ----------------------------------
 
+local conn_filters = {}
+local conn_data_cache = {}
+local client_cache = {}
+
 --- @class ServerNetwork
 local ServerNetwork = {}
 
 ----------------------------------
 -- Public Functions
 ----------------------------------
+
+--- @TODOv2.1
+-- function ServerNetwork:BroadcastLuaToShards()
+
+-- end
 
 -- Called from server-side user command handlers.
 -- Sends a RPC to the client with the given userid.
@@ -40,7 +48,7 @@ function ServerNetwork:SendCommandResponse(userid, message, ...)
     end
 
     PEARL.info("ServerNetwork:SendCommandResponse<"..userid..">", message)
-    return PEARL.SendRPCToClient(PEARL.RPCS.SendDirectMessage, userid, message, ...)
+    return PEARL.SendRPCToClient(PEARL.RPCS.CommandResponse, userid, message)
 end
 
 function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
@@ -65,6 +73,72 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
     end)
 end
 
+function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
+    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, ...)
+    return PEARL.SendRPCToClient(PEARL.RPCS.ConnectionAllowed, userid, ...)
+end
+
+----------------------------------
+-- Getters
+----------------------------------
+
+function ServerNetwork:GetCachedCFDFor(userid)
+    return conn_data_cache[userid]
+end
+
+function ServerNetwork:GetCachedClientTableFor(userid)
+    return client_cache[userid]
+end
+
+----------------------------------
+-- Setters
+----------------------------------
+
+function ServerNetwork:AddClientConnectionFilter(filter)
+    PEARL.debug("ServerNetwork:AddClientConnectionFilter", filter)
+    if TheShard:IsSecondary() then
+        -- Only master does handle the external connections
+        return PEARL.error("Attempted to add a client connection filter on a secondary shard!")
+    end
+
+    self:SetServerRequiresCFD(true)
+
+    return table.insert(conn_filters, filter)
+end
+
+function ServerNetwork:SetServerRequiresCFD(requires)
+    PEARL.CONFIG.SERVER_REQUIRE_CFD = requires
+end
+
+----------------------------------
+-- Handlers
+----------------------------------
+
+function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
+    PEARL.warn("Invalid Mod RPC", rpc_name, "from client", userid)
+
+    PEARL.EventProcessor:HandleEvent("invalidrpc", rpc_name, userid)
+end
+
+function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
+    PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
+
+    -- Always keep the newest record since this can change quite frequently.
+    conn_data_cache[userid] = cfd
+
+    for _, filter in ipairs(conn_filters) do
+        local success, reason = filter(userid, cfd)
+        if success == false then -- Check for explicit false
+            return self:SendUserDisconnectFor(userid, reason)
+        end
+    end
+
+    PEARL.EventProcessor:HandleEvent("clientdatareceived", userid, cfd)
+
+    -- If all the filters have successfully passed, then the connection should be allowed.
+    self:SendUserConnectionAllowedFor(userid)
+end
+
 ----------------------------------
 -- Network Callbacks
 ----------------------------------
@@ -83,7 +157,7 @@ PEARL.AddGlobalFunctionPreCall("WorldRollbackFromSim", function(count)
         TheWorld:PushModEvent("world_rollback", count)
     end
 
-    PEARL.EventProcessor:HandleEvent("quit")
+    PEARL.ModShutdown()
 end)
 
 PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
@@ -91,7 +165,7 @@ PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
         TheWorld:PushModEvent("world_reset")
     end
 
-    PEARL.EventProcessor:HandleEvent("quit")
+    PEARL.ModShutdown()
 end)
 
 PEARL.AddGlobalFunctionPreCall("Shutdown", function(...)
@@ -99,10 +173,11 @@ PEARL.AddGlobalFunctionPreCall("Shutdown", function(...)
         TheWorld:PushModEvent("shard_shutdown")
     end
 
-    PEARL.EventProcessor:HandleEvent("quit")
+    PEARL.ModShutdown()
 end)
 
-PEARL.OverrideGlobal("ExecuteConsoleCommand", function(fnstr, guid, x, z)
+-- We want to have full control over this function.
+PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     local saved_ThePlayer
     if guid ~= nil then
         saved_ThePlayer = ThePlayer
@@ -136,14 +211,23 @@ PEARL.AddWorldPostInit(function(world)
     end
 
     world:SafeListenForEvent("ms_clientauthenticationcomplete", function(self, data)
+        if data.userid then
+            client_cache[data.userid] = TheNet:GetClientTableForUser(data.userid)
+        end
+
         PEARL.EventProcessor:HandleEvent("ms_clientauthenticationcomplete", data.userid)
     end)
 
     world:SafeListenForEvent("ms_clientdisconnected", function(self, data)
-        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid)
+        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid, data.expected)
     end)
 
-    world:SafeListenForEvent("clientconnectionclosed", function(self, data)
+    world:SafeListenForEvent("invalidrpc", function(self, data)
+        ServerNetwork:OnInvalidRPCFromClient(data.rpc_name, data.userid)
+    end)
+
+    -- Mod Events
+    world:ListenForModEvent("clientconnectionclosed", function(self, data)
         PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
 end)

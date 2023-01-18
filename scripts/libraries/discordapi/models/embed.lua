@@ -131,7 +131,7 @@ end
 function Embed:SetTimestamp(timestamp)
     if type(timestamp) == "number" then
         -- Discord accepts only ISO8601 formatted timestamps
-        self.timestamp = PEARL.ToISO8601(timestamp)
+        self.timestamp = PEARL.ToISO8601UTC(timestamp)
     else
         self.timestamp = timestamp
     end

@@ -17,11 +17,6 @@
     by localizer when waiting for a server response.
 --]]
 
-
--- In frontend, use staticScheduler for background tasks
--- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
-local staticScheduler = staticScheduler
-
 ---------------------------------
 -- [[ Declaration ]]
 ---------------------------------
@@ -33,108 +28,116 @@ local ClientLoader = {}
 -- [[ Private ]]
 ---------------------------------
 
-local _load_fn = Profile.Load
-local _load_fn_args = nil
-
-local _load_task = nil
-local _loaded = false
-local _load_delay = nil
-
--- Disabled by default
-local _disabled = true
+local load_fn = Profile.Load
+local load_fn_args = nil
+local loaded = false
 
 ---------------------------------
 -- [[ Public ]]
 ---------------------------------
 
 function ClientLoader:Load()
-    if type(_load_fn) ~= "function" then
+    if type(load_fn) ~= "function" then
         return PEARL.error("_load_fn is invalid!")
     end
 
-    if type(_load_fn_args) ~= "table" then
+    if type(load_fn_args) ~= "table" then
         return PEARL.error("Invalid _load_fn_args!")
     end
 
     if self:IsLoaded() then
-        return PEARL.warn("Client already loaded")
+        return PEARL.debug("Client already loaded")
     end
 
-    self:CancelDelayedLoad()
+    -- self:CancelDelayedLoad()
 
     PEARL.debug("Loading the client...")
 
-    --_loading = true
-    _load_fn(unpack(_load_fn_args))
-    --_loading = false
-
-    _loaded = true
+    loaded = true
+    load_fn(unpack(load_fn_args))
 end
 
-function ClientLoader:GetLoadDelay()
-    return _load_delay
+
+---------------------------------
+-- [[ Setters ]]
+---------------------------------
+
+function ClientLoader:SetLoadArgs(...)
+    load_fn_args = {...}
 end
 
-function ClientLoader:SetLoadDelay(delay)
-    _load_delay = delay
-end
-
-function ClientLoader:SetIsDisabled(disabled)
-    _disabled = disabled
-end
-
-function ClientLoader:StartLoadDelayTask()
-    if _load_delay and _load_fn and _load_fn_args and not self:HasLoadDelayStarted() then
-        _load_task = staticScheduler:ExecuteInTime(_load_delay, self.Load, nil, self)
-    end
-end
-
-function ClientLoader:CancelDelayedLoad()
-    if self:HasLoadDelayStarted() then
-        _load_task:Cancel()
-        _load_task = nil
-    end
-end
+---------------------------------
+-- [[ Getters ]]
+---------------------------------
 
 function ClientLoader:IsLoaded()
-    return _loaded == true
+    return loaded == true
 end
 
-function ClientLoader:IsDisabled()
-    return _disabled
-end
+-- function ClientLoader:GetLoadDelay()
+--     return _load_delay
+-- end
 
-function ClientLoader:IsEnabled()
-    return not _disabled
-end
+-- function ClientLoader:SetLoadDelay(delay)
+--     _load_delay = delay
+-- end
 
-function ClientLoader:HasLoadDelayStarted()
-    return _load_task ~= nil
-end
+-- function ClientLoader:SetIsDisabled(disabled)
+--     _disabled = disabled
+-- end
+
+-- function ClientLoader:StartLoadDelayTask()
+--     if _load_delay and _load_fn and _load_fn_args and not self:HasLoadDelayStarted() then
+--         _load_task = staticScheduler:ExecuteInTime(_load_delay, self.Load, nil, self)
+--     end
+-- end
+
+-- function ClientLoader:CancelDelayedLoad()
+--     if self:HasLoadDelayStarted() then
+--         _load_task:Cancel()
+--         _load_task = nil
+--     end
+-- end
+
+-- function ClientLoader:IsDisabled()
+--     return _disabled
+-- end
+
+-- function ClientLoader:IsEnabled()
+--     return not _disabled
+-- end
+
+-- function ClientLoader:HasLoadDelayStarted()
+--     return _load_task ~= nil
+-- end
 
 ---------------------------------
 -- [[ Setup ]]
 ---------------------------------
 
-Profile.Load = function(...)
-    if ClientLoader:IsEnabled() then
-        if not _load_fn_args then
-            _load_fn_args = {...}
-        end
+--- @TODO: Create some timeout for this so the client won't be stuck on a black screen.
+--- @TODO: Profile:Load seems to be the best option after quite a lot of testing.
+--- Use that so far and rework the ClientLoader a bit.
+--- Especially, make it so that we delay the load only if it's REALLY needed,
+--- otherwise it makes just an unnecessary lag.
+PEARL.OverrideVariable("Load", function(...)
+    ClientLoader:SetLoadArgs(...)
 
-        if _load_delay and not ClientLoader:IsLoaded() then
-            ClientLoader:StartLoadDelayTask()
-
-            -- Do not load yet
-            return false
-        end
+    -- If we are diconnected or we are waiting for a response from the server
+    -- we do not want to continue the loading now.
+    if PEARL.ClientNetwork:IsDisconnected() or PEARL.ClientNetwork:IsWaitingForResponse() then
+        return false
     end
 
-    return _load_fn(...)
-end
+    PEARL.debug("ClientLoader:Load")
+    return ClientLoader:Load()
+end, Profile)
 
-PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", function()
-    ClientLoader:CancelDelayedLoad()
-end)
+-- The global 'OnNetworkDisconnect' needs to be handled after FrontEnd is loaded because
+-- else we will crash the client since no widgets for the disconnection popup are loaded yet.
+-- So save the reason and other parameters and call the actual function when FE is ready.
+-- PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", function()
+--     ClientLoader:CancelDelayedLoad()
+-- end)
 
 return ClientLoader

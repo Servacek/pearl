@@ -14,9 +14,13 @@
 
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
-
+--- @TODO: Maybe some flags for each region?
 
 return {
+    X = "<:x_:1063767987456315472>",
+    CHECK = "<:check:998561107776122900>",
+    PING = "<:connection:1064114008698916864>",
+
     PLAYER_PREFABS = {
         -- DST
         wilson =            "<:Wilson:700037170785681479>",
@@ -114,7 +118,7 @@ return {
         -- Built in announcements
         ["default"]=            "<:announcement:997492667422351360>",
         ["join_game"]=          "<:join_game:997495868343193650>",
-        ["leave_game"]=         "<:leave_game:997495881882423378>",
+        ["leave_game"]=         "<:leave:1017873541556875264>",
         ["vote"]=               "<:vote:997496719170347090>",
         ["dice_roll"]=          "<:dice_roll:997498033493250168>",
         ["death"]=              "<:death:997497223111790762>",

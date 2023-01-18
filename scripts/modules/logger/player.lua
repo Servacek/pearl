@@ -196,7 +196,7 @@ local function onentitydeath(world, data)
     -- NOT RESPAWNABLE MOB
     local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
-        --- @TODO This is not ideal (also it works only for the current shard)
+        --- @TODOv2.1 This is not ideal (also it works only for the current shard)
         local remaining = c_countprefabs(target.prefab, false) - 1 or -1
         if remaining < 0 or remaining > pop_threshold then
             return

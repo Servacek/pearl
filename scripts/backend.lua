@@ -72,6 +72,8 @@ PEARL.SafeModTableExtend("CONSTS", {
     DISCONNECT_KICK_TIME        = 2 * 60,
     LOCALIZATION_TIMEOUT        = 30,
 
+    BAD_PING_THRESHOLD          = 300, -- This is what is used for server listing filters
+
     DEFAULT_PROPAGATOR_RADIUS   = 5,
     LARGE_PROPAGATOR_RADIUS     = 8,
     MAX_FIRE_ATTEMPTS           = 3,
@@ -88,6 +90,7 @@ PEARL.SafeModTableExtend("CONSTS", {
     WIKI_URL                    = "https://dontstarve.fandom.com/wiki/%s",
     FSLS_QUERY_URL              = "https://login.kleientertainment.com/login/FamilySharingLookup",
     STEAM_UP_TO_DATE_CHECK      = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v1/?appid=%s&version=%s",
+    STEAM_WORKSHOP              = "https://steamcommunity.com/sharedfiles/filedetails/?id=%s",
     ------------------------------------
 
     BASE_STRUCTURE_TAGS         = {"structure", "wall"},
@@ -118,51 +121,79 @@ PEARL.CONSTS.ENT_ONEOF_TAGS = ArrayUnion(
 --------------------------------
 
 PEARL.info("Loading Configuration...")
-PEARL.SafeModTableExtend("CONFIG", {
-    -- The discord module
-    DISCORD                     = {
-        ENABLED                 = PEARL.GetConfigData("DISCORD_LOGS"),
 
-        LHOOK                   = PEARL.GetConfigData("LOG_WEBHOOK"),
-        RHOOK                   = PEARL.GetConfigData("REPORT_WEBHOOK"),
+-- local CHECKS = {
+--     ["string"] = function(v) return type(v) == "string" and #v > 0 end,
+--     ["table"]  = function(v) return type(v) == "table" and next(v) ~= nil end,
+-- }
 
-        LHOOK_BUFFER_TIMEOUT    = PEARL.GetConfigData("LHOOK_BUFFER_TIMEOUT"),
-    },
+--- @TODO: rethink this a bit more.
+-- We expect option.checks to be a valid table here.
+-- local function RunOptionChecksRecursively(option, level, failed)
+--     -- By default all checks have failed.
+--     failed = failed or table.getkeys(option.checks)
+--     level = level or PEARL.CONFIG[option.name] or option.default
+--     if type(level) ~= "table" then
+--         return
+--     end
 
-    -- REST Client
-    REQUEST_FREQUENCY           = PEARL.GetConfigData("REQUEST_FREQUENCY"),
+--     for k, v in pairs(level) do
+--         print(k, v)
+--         if level.ENABLED == true and type(CHECKS[option.checks[k]]) == "function" and CHECKS[option.checks[k]](v) == false then
+--             failed[#failed+1] = k
+--             level.ENABLED = false
+--         elseif type(v) == "table" then
+--             RunOptionChecksRecursively(option, v, failed)
+--         end
+--     end
 
-    COMMAND_BLOCKLIST           = PEARL.GetConfigData("COMMAND_BLOCKLIST"),
-    CUSTOM_SERVER_TAGS          = PEARL.GetConfigData("CUSTOM_SERVER_TAGS"),
+--     return failed
+-- end
 
-    -- OPTIMIZED_SCHEDULER         = PEARL.GetConfigData("OPTIMIZED_SCHEDULER"),
+--- Push mod config warnings only for the server owner to see.
+local function LoadConfigOption(option)
+    -- Verify if the type matches.
+    if option.saved ~= nil and type(option.type) == "string" and option.type:match(type(option.saved)) == nil then
+        if not PEARL.CONFIG[option.name] then
+            PEARL.CONFIG[option.name] = option.default
+        end
 
-    ANNOUNCEMENTS               = PEARL.GetConfigData("ANNOUNCEMENTS"),
+        return PEARL.warn("Option", option.name, "has incorrect type!")
+    end
 
-    -- Version Checker
-    VERSION_CHECK_FREQUENCY     = PEARL.GetConfigData("VERSION_CHECK_FREQUENCY"), -- minutes
-    UPDATE_SERVER_AFTER         = PEARL.GetConfigData("UPDATE_SERVER_AFTER"), -- minutes
+    -- If it's a required option then check if we have configured it.
+    if option.warn == true and option.saved == nil then
+        PEARL.warn("Option", option.name, "is not configured! Some functionality may not work.")
+    end
 
-    -- Anti-Grief
-    --GRIEF_PROTECTION            = PEARL.GetConfigData("FIRE_PROTECTION"),
+    if option.experimental == true and (
+        option.saved == true or
+        (type(option.saved) == "table" and option.saved.ENABLED == true)
+    ) then
+        PEARL.warn("Experimental feature", option.name, "is enabled!")
+    end
 
-    TRUST_AGE                   = PEARL.GetConfigData("TRUST_AGE"),
-    TRUST_AGE_PERCENT           = PEARL.GetConfigData("TRUST_AGE_PERCENT"),
-    LOG_SUSPICIOUS_INVENTORIES  = PEARL.GetConfigData("LOG_SUSPICIOUS_INVENTORIES"),
-    ALLOWED_LOCALES             = PEARL.GetConfigData("ALLOWED_LOCALES"),
-    STRICT_WHITELIST            = PEARL.GetConfigData("STRICT_WHITELIST"),
-    INTRO_SCREEN                = PEARL.GetConfigData("INTRO_SCREEN"),
-    ALLOWLIST                   = PEARL.GetConfigData("ALLOWLIST"),
-    PROFANITY_FILTER            = PEARL.GetConfigData("PROFANITY_FILTER"),
-    CONSOLE_COMMANDS            = PEARL.GetConfigData("CONSOLE_COMMANDS"),
-    SLASH_COMMANDS              = PEARL.GetConfigData("SLASH_COMMANDS"),
-    CUSTOM_LOADING_TIPS         = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
-    CUSTOM_CONTROLS             = PEARL.GetConfigData("CUSTOM_CONTROLS"),
-    SHOW_PLAYER_ICONS           = PEARL.GetConfigData("SHOW_PLAYER_ICONS"),
-    BAN_ALT_ACCOUNTS            = PEARL.GetConfigData("BAN_ALT_ACCOUNTS"),
+    if not PEARL.CONFIG[option.name] then
+        -- Set this even for implicit configurations
+        -- since they will override it later.
+        PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+    end
 
-    CUSTOM_PREFABS              = PEARL.GetConfigData("CUSTOM_PREFABS"),
-})
+    -- if type(option.checks) == "table" and not IsTableEmpty(option.checks) then
+    --     local failed = RunOptionChecksRecursively(option)
+    --     if not IsTableEmpty(failed) then
+    --         PEARL.warn(
+    --             "Module", option.name, "is enabled. However, these parameters are required by it but not provided:", table.concat(failed, ", ")
+    --         )
+    --         PEARL.warn("In order for the module to function correctly, please add them to modoverrides.lua")
+    --     end
+    -- end
+end
+
+--- @TODOv2.1 Put this to servermodconfig.lua
+for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+    LoadConfigOption(option)
+end
 
 ----------------------------------------------------------------
 -- [[ Agreement/Welcome screen configurations ]]
@@ -224,6 +255,23 @@ PEARL.Scheduler = PEARL.loadfile("libraries/wallscheduler")
 PEARL.Scheduler:StartWallUpdate()
 
 --------------------------------
+-- [[ Network ]]
+--------------------------------
+PEARL.info("Loading network components...")
+
+--- @type RestClient
+PEARL.RestClient = PEARL.loadfile("libraries/restclient")()
+    :SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
+
+--- @type RestAPI
+PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")()
+
+PEARL.info("Loading server network...")
+
+--- @type ServerNetwork
+PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
+
+--------------------------------
 -- [[ Webhooks ]]
 --------------------------------
 
@@ -233,8 +281,14 @@ PEARL.info("Setting up the webhooks...")
 --- @type Logger
 PEARL.DiscordLogger = PEARL.loadfile("libraries/discordapi/webhooks/logger")()
 PEARL.DiscordLogger:SetBufferTimeout(
-    PEARL.CONFIG.DISCORD.LHOOK_BUFFER_TIMEOUT
+    PEARL.CONFIG.DISCORD.LHOOK.BUFFER_TIMEOUT
 )
+
+if not PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
+    PEARL.warn("Sending system logs to discord is disabled.")
+
+    PEARL.DiscordLogger:SetIsDisabled(true)
+end
 
 
 --- @type Reporter
@@ -250,7 +304,6 @@ PEARL.loadfile("extensions/components/workable")
 PEARL.loadfile("extensions/components/age")
 PEARL.loadfile("extensions/components/inventoryitem")
 PEARL.loadfile("extensions/components/container")
-PEARL.loadfile("extensions/components/stackable")
 PEARL.loadfile("extensions/components/edible")
 PEARL.loadfile("extensions/components/activable")
 
@@ -297,11 +350,11 @@ ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
 -- Master only modules
-if TheShard:IsMaster() then
-    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECK_FREQUENCY > 0 or PEARL.CONFIG.UPDATE_SERVER_AFTER > 0)
+if not TheShard:IsSecondary() then
     -- Master handles the connections
-    ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER)
+    ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
     ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
+    ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_PING)
 end
 
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
@@ -332,68 +385,13 @@ ModuleManager:LoadAllModules()
 -- [[ Anti-Grief ]]
 --------------------------------
 
--- PEARL.info("Loading other components...")
---- v2.1
+--- @TODOv2.1
 -- if PEARL.CONFIG.GRIEF_PROTECTION then
 --     PEARL.info("Enabling griefer protection...")
 --     modimport(PEARL.SOURCE_DIR_NAME.."/actions")
 --     modimport(PEARL.SOURCE_DIR_NAME.."/protector")
 --     modimport(PEARL.SOURCE_DIR_NAME.."/penalizer")
 -- end
-
---------------------------------
--- [[ Logging ]]
---------------------------------
-
--- modimport(PEARL.SOURCE_DIR_NAME.."/logger")
--- modimport(PEARL.SOURCE_DIR_NAME.."/maincallbacks")
--- modimport(PEARL.SOURCE_DIR_NAME.."/watcher")
-
---------------------------------
--- [[ Network ]]
---------------------------------
-PEARL.info("Loading network components...")
-
---- @type RestClient
-PEARL.RestClient = PEARL.loadfile("libraries/restclient")()
-    :SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
-
---- @type RestAPI
-PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")()
-
-PEARL.info("Loading server network...")
-
---- @type ServerNetwork
-PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
-
---------------------------------
--- [[ Error Handler ]]
---------------------------------
-
-if PEARL.DiscordReporter:IsEnabled() then
-    -- This should be loaded after the webhooks are set up.
-    PEARL.info("Loading mod error handler...")
-    PEARL.loadfile("error")
-end
-
---------------------------------
--- [[ Discord logs ]]
---------------------------------
-
-if PEARL.CONFIG.DISCORD.LHOOK.ENABLED
-    and (PEARL.CONFIG.DISCORD.LHOOK_TOKEN == "" or PEARL.CONFIG.DISCORD.LHOOK_ID == "")
-then
-    PEARL.warn("Logging to discord is enabled, however, not all required webhook indetifiers were specified.")
-
-    PEARL.CONFIG.DISCORD.LHOOK.ENABLED = false
-end
-
-if not PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
-    PEARL.info("Sending system logs to discord is disabled.")
-
-    PEARL.DiscordLogger:SetIsDisabled(true)
-    PEARL.DiscordRestAPI:SetIsDisabled(true)
-end
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -418,9 +416,9 @@ if PEARL.CONFIG.DEBUG_MODE then
         TheSim:ResetError()
     end)
 
-    PEARL.GenerateConfigFile = require("utils/configfilegenerator")
+    PEARL.GenerateConfigFile = PEARL.loadfile("utils/configfilegenerator")
 
-    PEARL.DataDumper = require("utils/datadumper")
+    PEARL.DataDumper = PEARL.loadfile("utils/datadumper")
 end
 
 --------------------------------

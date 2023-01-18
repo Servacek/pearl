@@ -127,7 +127,10 @@ local function OnPlayerEnteredGame()
 end
 
 PEARL.AddWorldPostInit(function(world)
-    world:ListenForEvent("playeractivated", OnPlayerEnteredGame)
+    -- None will ever read this while in the game.
+    -- So try to display the popup only when in the lobby.
+    -- Maybe display just the welcome screen?
+    -- world:ListenForEvent("playeractivated", OnPlayerEnteredGame)
 
     -- This is an lobby alternative for playeractivated
     world:ListenForEvent("entercharacterselect", OnPlayerEnteredGame)

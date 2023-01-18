@@ -63,6 +63,7 @@ AddGamePostInit(function()
         return
     end
 
+    --- @TODO: Add option to add custom filters.
     ProfanityFilter:AddDictionary("czech", PEARL.loadfile("languages/filters/czech"))
     OnGamePostInit(ProfanityFilter)
 

@@ -21,6 +21,8 @@ local mod_post_inits = {}
 local file_pre_loads = {}
 local client_pre_loads = {}
 local game_logic_preloads = {}
+local global_var_postassigns = {}
+local frontend_preinits = {}
 
 -- local UpValueHacker = PEARL.loadfile("utils/upvaluehacker")
 
@@ -31,6 +33,8 @@ local game_logic_preloads = {}
 -- Overrides the given func with a function that calls func first,
 -- stores it's result(s) and then calls postcb with the result as the first argument.
 -- This function returns the return value(s) of postcb.
+--- @return function origin
+--- @return function repl
 function PEARL.AddFunctionPostCall(name, postcb, tbl, noraw)
     if KnownModIndex:IsModInitPrintEnabled() then
         PEARL.info("AddFunctionPostCall", name, postcb, tbl)
@@ -51,6 +55,9 @@ function PEARL.AddFunctionPostCall(name, postcb, tbl, noraw)
     else
         postfn = function(...)
             local result = {_func(...)}
+            --- @TODO: Maybe create a version of this
+            --- post call where the result of the original function
+            --- will be provided as a parameter to the postcb.
             --return postcb({_func(...)}, ...)
             postcb(...)
 
@@ -66,6 +73,8 @@ function PEARL.AddFunctionPostCall(name, postcb, tbl, noraw)
             rawset(tbl, name, postfn)
         end
     end
+
+    return _func, postfn
 end
 
 -- Similiar to 'AddGlobalFunctionPostCall' but calls precb before func suppling
@@ -73,6 +82,8 @@ end
 -- the executioon of the original function by returning false.
 --
 -- Note: This function does not require the function to be declared in the given table.
+--- @return function origin
+--- @return function repl
 function PEARL.AddFunctionPreCall(name, precb, tbl, noraw)
     if KnownModIndex:IsModInitPrintEnabled() then
         PEARL.info("AddFunctionPreCall", name, precb, tbl)
@@ -108,19 +119,27 @@ function PEARL.AddFunctionPreCall(name, precb, tbl, noraw)
         end
     end
 
-    return _func
+    return _func, replfn
 end
 
 -- A wrapper function for AddFunctionPostCall for global functions
 function PEARL.AddGlobalFunctionPostCall(name, postcb)
-    -- Use _G instead of GLOBAL so this can override even mod specific globals
-    return PEARL.AddFunctionPostCall(name, postcb, _G)
+    -- Use _G override functions in the game's environment
+    local _, repl = PEARL.AddFunctionPostCall(name, postcb, _G)
+
+    -- Sync with mod's global environment since the reference there still refers to
+    -- the origin.
+    PEARL.OverrideVariable(name, repl)
 end
 
 -- A wrapper function for AddFunctionPreCall for global functions
 function PEARL.AddGlobalFunctionPreCall(name, precb)
-    -- Use _G instead of GLOBAL so this can override even mod specific globals
-    return PEARL.AddFunctionPreCall(name, precb, _G)
+    -- Use _G override functions in the game's environment
+    local _, repl = PEARL.AddFunctionPreCall(name, precb, _G)
+
+    -- Sync with mod's global environment since the reference there still refers to
+    -- the origin.
+    PEARL.OverrideVariable(name, repl)
 end
 
 -- function PEARL.AddUpValueFunctionPreCall(name, precb, filename)
@@ -200,16 +219,67 @@ function PEARL.AddFilePreLoad(filename, fn)
     table.insert(file_pre_loads[filename], fn)
 end
 
+function PEARL.DeferGameFileLoad(filename, seconds)
+    PEARL.AddFilePreLoad(filename, function() return false end)
+    PEARL.Scheduler:ExecuteInTime(seconds, require, nil, filename)
+end
+
+function PEARL.AddMetaMethodPostCall(name, tbl, postcb)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddMetaMethodPostCall", name, tbl, postcb)
+    end
+
+    -- Do not allow overriding the _G's metamethods because it will break strict.lua!
+    assert(tbl == _G, "Attempted to override metamethods of the global table!")
+
+    local metatable = getmetatable(tbl) or {}
+    local fn = rawget(metatable, name)
+    rawset(metatable, name, function(...)
+        fn(...)
+
+        postcb(...)
+    end)
+
+    setmetatable(tbl, metatable)
+end
+
 function PEARL.AddWorldPostInit(fn, ...)
     return PEARL.AddPrefabPostInit("world", fn, ...)
 end
 
-function PEARL.AddFrontEndPostInit(...)
-    return PEARL.AddGlobalClassPostConstruct("frontend", "FrontEnd", ...)
+-- TheFrontEnd is avaible when this is being called.
+function PEARL.AddFrontEndPostInit(postfn, ...)
+    return PEARL.AddGlobalClassPostConstruct("frontend", "FrontEnd", function(FE, ...)
+        if not TheFrontEnd then
+            PEARL.OverrideVariable("TheFrontEnd", FE, _G)
+        end
+
+        postfn(...)
+    end, ...)
 end
 
-function PEARL.AddFrontEndPreInit(...)
-    return PEARL.AddGlobalClassPreConstruct("frontend", "FrontEnd", ...)
+function PEARL.AddGlobalVariablePostAssign(name, postcb)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddGlobalVariablePostAssign", name, postcb)
+    end
+
+    if not global_var_postassigns[name] then
+        global_var_postassigns[name] = {}
+    end
+
+    table.insert(global_var_postassigns[name], postcb)
+end
+
+function PEARL.AddFrontEndPreInit(precb)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddFrontEndPreInit", precb)
+    end
+
+    if not frontend_preinits then
+        frontend_preinits = {}
+    end
+
+    table.insert(frontend_preinits, precb)
 end
 
 function PEARL.AddGlobalClassPreConstruct(filename, classname, precb)
@@ -230,15 +300,19 @@ end
 
 --- Overrides a global from the main game's environment.
 --- Use with care.
-function PEARL.OverrideGlobal(name, value)
-    if PEARL.CONFIG.DEBUG_MODE then
-        local old_v = rawget(_G, name)
-        if old_v ~= nil then
-            PEARL.debug("Overriding global "..name.." ("..tostring(old_v)..") with "..tostring(value))
-        end
+function PEARL.OverrideVariable(name, value, tbl, optional)
+    tbl = tbl or _G
+
+    local origin = rawget(tbl, name)
+    if origin ~= nil and optional then
+        return
     end
 
-    return rawset(_G, name, value)
+    if PEARL.CONFIG.DEBUG_MODE and origin ~= nil then
+        PEARL.debug("Overriding global "..name.." ("..tostring(origin)..") with "..tostring(value))
+    end
+
+    return rawset(tbl, name, value)
 end
 
 ----------------------------------
@@ -291,34 +365,71 @@ function PEARL.OnModPostInit(...)
     end
 end
 
-PEARL.AddClassFunctionPreCall("Load", function(...)
-    local result
-    for _, fn in ipairs(client_pre_loads) do
-        if fn(...) == false then
+-- PEARL.AddClassFunctionPreCall("Load", function(...)
+--     local result
+--     for _, fn in ipairs(client_pre_loads) do
+--         if fn(...) == false then
+--             result = false
+--         end
+--     end
+
+--     return result
+-- end, Profile)
+
+PEARL.AddGlobalFunctionPreCall("require", function(name)
+    if package.loaded[name] or not file_pre_loads[name] then
+        return
+    end
+
+    local result = true
+    for _, cb in ipairs(file_pre_loads[name]) do
+        if cb() == false then
             result = false
         end
     end
 
     return result
-end, Profile)
-
-PEARL.AddGlobalFunctionPreCall("require", function(name)
-    if package.loaded[name] then
-        return
-    end
-
-    if file_pre_loads[name] then
-        for _, cb in ipairs(file_pre_loads[name]) do
-            cb()
-        end
-    end
 end)
 
 PEARL.AddFilePreLoad("gamelogic", function()
+    local result = true
     for _, cb in ipairs(game_logic_preloads) do
-        cb()
+        if cb() == false then
+            result = false
+        end
     end
+
+    return result
 end)
+
+PEARL.AddGlobalClassPreConstruct("frontend", "FrontEnd", function(...)
+    if TheFrontEnd then
+        return false
+    end
+
+    local result = true
+    for _, cb in ipairs(frontend_preinits) do
+        if cb(...) == false then
+            result = false
+        end
+    end
+
+    return result
+end)
+
+--- Do not use because of strict.lua!
+-- Called when a value is assigned to the global table's field but only if the
+-- field had no value assigned before - referenced to nil.
+-- PEARL.AddMetaMethodPostCall("__newindex", _G, function(self, name, value)
+--     PEARL.info("NEW INDEX", name, value)
+--     if not global_var_postassigns or not global_var_postassigns[name] then
+--         return
+--     end
+
+--     for _, postcb in ipairs(global_var_postassigns[name]) do
+--         postcb(value)
+--     end
+-- end)
 
 --------------------------------
 -- [[ Frontend Stuff ]]
@@ -375,4 +486,24 @@ function PEARL.AnnounceWithType(message, tp, entity, ...)
     end
 
     PEARL.DiscordLogger:LogString(message, PEARL.ICONS.ANNOUNCEMENTS[tp])
+end
+
+--------------------------------
+-- [[ Mod's Internal State ]]
+--------------------------------
+
+function PEARL.IsShuttingDown()
+    return PEARL.__shutting_down == true
+end
+
+function PEARL.ModShutdown(...)
+    if PEARL.IsShuttingDown() then
+        return
+    end
+
+    PEARL.__shutting_down = true
+
+    PEARL.info("Shutting down the mod and all it's components...")
+
+    PEARL.EventProcessor:HandleEvent("quit", ...)
 end

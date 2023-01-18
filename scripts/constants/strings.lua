@@ -91,17 +91,18 @@ STRINGS.PEARL = {
         INV_REPORT_TITLE        = "%s %s's Inventory",
         INV_REPORT_EMPTY        = "*Loading failed or the inventory is empty.*",
         INV_REPORT_ITEM_RARE    = "**%dx\t%s (\"%s\")**",
-        INV_REPORT_ITEM         = MARKDOWN.codeline("%dx").." "..MARKDOWN.codeline("%s").." "..MARKDOWN.codeline("(\"%s\")"),
+        INV_REPORT_ITEM         = MARKDOWN.codeline("%dx").."\t%s\t\t\t\t"..MARKDOWN.codeline("%s"),
 
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
         SAY_WHISPER             = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..MARKDOWN.bold("%s")..": "..MARKDOWN.italic("%s"),
         CONNECTION_CLOSE        = "Connection for %s was closed -> %s",
-        CONSOLE_CMD             = "%s executed remote command:\n```lua\n%s```",
+        CONSOLE_CMD             = "`%s executed remote command:`\n```lua\n%s```",
         AUTH                    = "%s authenticated as %s",
-        DISCONNECT              = "%s was disconnected from shard %s.",
-        DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s.",
-        DISCONNECT_REASON       = "%s was disconnected from shard %s. %s",
+        DISCONNECT_GENERIC      = "%s was disconnected from shard %s.",
+        DISCONNECT              = "%s was disconnected from shard %s as %s.",
+        DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s as %s.",
+        DISCONNECT_REASON       = "%s was disconnected from shard %s as %s. %s",
         CAVES_STATE_UPDATE      = "Secondary shard Caves has been %s.",
         MIGRATING               = "%s is migrating to shard %s.",
         WARNED                  = "%s was warned for griefing!",
@@ -136,6 +137,8 @@ STRINGS.PEARL = {
         SERVER_REPORT           = MARKDOWN.bold("<@&%s> Server Report:\n")..MARKDOWN.codeblock("%s"),
         STATUS_CODE_REPORT      = "STATUS_CODE -> %d:\n%s",
 
+        HIGH_PING               = "**High latency (`%d ms`) was reported from client `%s`. Region: `%s`**",
+
         SERVER_AUTOPAUSE        = "Server was autopaused.",
         SERVER_PAUSE_BY         = "Server was paused by %s.",
         SERVER_PAUSE            = "Server was paused.",
@@ -146,8 +149,11 @@ STRINGS.PEARL = {
         SIM_UNPAUSED            = "Simulation was unpaused.",
 
         EXCEPTION_CATCHED       = "Catched exception on shard %s:\n%s",
-        EXCEPTION_UNCATCHED     = "Exception on shard %s:\n%s",
+        EXCEPTION_UNCATCHED     = "Uncatched exception on shard %s:\n%s",
+        EXCEPTION_UNCATCHED_CL  = "Uncatched exception on client %s:\n%s",
         HTTP_ERROR              = "HTTP Error status code on shard %s:\n%s",
+
+        INVALIDRPC              = "Received invalid RPC %s from client %s!",
 
         EXTINGUISH              = "Fires were extinguished!",
         EXTINGUISH_NEAR         = "Fire near %s were extinguished!",
@@ -172,8 +178,20 @@ STRINGS.PEARL = {
             PLAYSTYLE   = "Playstyle",
         },
 
+        --- @TODO: Add Translations
+        INV_EMBED_TITLE = "%s %s `%s`",
+        INV_EMBED_INVENTORY_TITLE = MARKDOWN.bold("Inventory"),
+        INV_EMBED_IVNENTORY_TITLE_EMPTY = "*Inventory Empty*",
+        INV_EMBED_SURVIVED_VALUE = "`%s/%s`",
+        INV_EMBED_FIELD_NAMES = {
+            SURVIVED        = "Days Survived",
+            SUSPICIOUSNESS  = "Suspiciousness",
+        },
+
+        MODS_EMBED_TITLE = "%s's Enabled Mods",
+
         SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
-        SUSPICIOUS_INVENTORY = "%s **%s (`%s`)**\n> Days survived: `%s`\n> Suspicioness: `%d%`",
+        SUSPICIOUS_INVENTORY = "**Suspicious Inventory Detected:**",
 
         PLAYER_REPORT         = "%s [@here] `%s` **%s**: %s",
         PLAYER_REPORT_EMPTY   = "%s [@here] `%s` **%s**",

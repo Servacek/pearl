@@ -17,11 +17,13 @@
 ]]
 
 local PEARL = PEARL
-if type(PEARL.CONFIG.DISCORD_INVITE) ~= "string" then
-    return PEARL.warn("Discord invite not configured in modoverrides.lua or invalid!")
+if type(PEARL.CONFIG.DISCORD_INVITE) ~= "string" or #PEARL.CONFIG.DISCORD_INVITE < 3 then
+    return
 end
 
 local ImageButton = require("widgets/imagebutton")
+
+--- @class PlayerStatusScreen
 local PlayerStatusScreen = require("screens/playerstatusscreen")
 
 -------------------------------

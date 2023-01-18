@@ -16,9 +16,9 @@
     This module adds a bunch of console commands (prefixed with c_) to the global environment.
 ]]
 
-PEARL.OverrideGlobal("c_inv", PEARL.LogInventoryFor)
-PEARL.OverrideGlobal("c_fire", PEARL.ExtinguishFiresNearAll)
-PEARL.OverrideGlobal("c_repair", PEARL.RepairStructuresNearAll)
-PEARL.OverrideGlobal("c_unban", PEARL.UnbanUserByID)
-PEARL.OverrideGlobal("c_daysback", PEARL.RollbackByDays)
-PEARL.OverrideGlobal("c_hasreedtrap", PEARL.CheckForReedTrap)
+PEARL.OverrideVariable("c_inv", PEARL.LogInventoryFor)
+PEARL.OverrideVariable("c_fire", PEARL.ExtinguishFiresNearAll)
+PEARL.OverrideVariable("c_repair", PEARL.RepairStructuresNearAll)
+PEARL.OverrideVariable("c_unban", PEARL.UnbanUserByID)
+PEARL.OverrideVariable("c_daysback", PEARL.RollbackByDays)
+PEARL.OverrideVariable("c_hasreedtrap", PEARL.CheckForReedTrap)

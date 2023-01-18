@@ -19,8 +19,8 @@
 
 local TheNet = TheNet
 
-local Message = require("libraries/discordapi/models/message")
-local MARKDOWN = require("libraries/markdown")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 --------------------------
 -- Initialization
@@ -28,13 +28,11 @@ local MARKDOWN = require("libraries/markdown")
 
 PEARL.RPCS = {}
 
+--- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
-    SendDirectMessage = function(message, ...)
-        if not (ChatHistory and type(message) == "string") then
-            return
-        end
-
-        ChatHistory:SendCommandResponse(message)
+    --- @TODOv2.1: Make this more generic.
+    CommandResponse = function(...)
+        return ChatHistory:SendCommandResponse(...)
     end,
 
     Disconnect = function(...)
@@ -47,34 +45,64 @@ local CLIENT_RPCS = {
     -- end,
 
     LocaleAllowed = function()
-        PEARL.EventProcessor:HandleEvent("locale_allowed")
-    end
+        PEARL.EventProcessor:HandleEvent("connection_allowed")
+    end,
+
+    ConnectionAllowed = function()
+        PEARL.ClientNetwork:SetIsWaitingForResponse(false)
+        PEARL.EventProcessor:HandleEvent("connection_allowed")
+    end,
 }
 
+--- These handlers should be called only from the server.
 local SHARD_RPCS = {
     -- Used by the VersionChecker for shutting down secondary shards
     -- to synchronize the shutdown process on version mismatch.
-    ExecuteBroadcast = function(shard_id, ...)
-        return ExecuteConsoleCommand(...)
+    BroadcastLua = function(shard_id, luastring)
+        PEARL.info("Executing lua chunk from Master...")
+
+        local status, err = pcall(loadstring(luastring))
+        if not status then
+            PEARL.error(err)
+        end
     end,
 }
 
--- local SERVER_RPCS = {}
-
+--- These RPCS are called from the clients so additional security checks are needed.
+--- userid is being supplied by the game's RPC manager so that should be safe.
 local SERVER_USERID_RPCS = {
-    ClientLocalizationCompleted = function(userid, locale)
-        PEARL.debug("RPC: ClientLocalizationCompleted")
+    -- ClientLocalizationCompleted = function(userid, locale)
+    --     if type(userid) ~= "string"
+    --     PEARL.debug("RPC: ClientLocalizationCompleted")
 
-        PEARL.EventProcessor:HandleEvent("ms_clientlocalizationcomplete", userid, locale)
+    --     PEARL.EventProcessor:HandleEvent("ms_clientlocalizationcomplete", userid, locale)
+    -- end,
+
+    ConnectionFilterData = function(userid, data)
+        if not checkstring(data) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+        end
+
+        local data_tbl = DecodeAndUnzipString(data)
+        PEARL.debug("Received CFD from server:", DataDumper(data_tbl))
+
+        PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
     end,
 
-    ClientForceDisconnected = function(userid, reason)
-        PEARL.debug("RPC: ClientForceDisconnected")
+    ClientDisconnected = function(userid, reason, force)
+        if not (optstring(reason) and optbool(force)) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
+        end
 
-        PEARL.ServerNetwork:SendUserDisconnectFor(userid, reason)
+        PEARL.debug("RPC: ClientDisconnected", reason, force)
+        PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
     end,
 
-    AFKStateChanged = function(userid, is_afk, kicked, ...)
+    AFKStateChanged = function(userid, is_afk, kicked)
+        if not (optbool(is_afk) and optbool(kicked)) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("AFKStateChanged", userid)
+        end
+
         local player = LookupPlayerInstByUserID(userid)
         local client = userid and TheNet:GetClientTableForUser(userid)
         if not (player or client) then
@@ -98,6 +126,10 @@ local SERVER_USERID_RPCS = {
 
     --- @TODO: Maybe move this somewhere else?
     PlayerReportMessage = function(userid, message)
+        if not optstring(message) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("PlayerReportMessage", userid)
+        end
+
         local client = userid and TheNet:GetClientTableForUser(userid)
         if not client then
             return
@@ -111,30 +143,28 @@ local SERVER_USERID_RPCS = {
         --- @TODO: Maybe use an embed instead.
         PEARL.DiscordReporter:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
             PEARL.ICONS.ANNOUNCEMENTS["default"], userid, MARKDOWN.escape(client.name), MARKDOWN.escape(message or "")
-        )):AllowMentionsForType(Message.MENTION_TYPES.EVERYONE))
-    end
+        )):SetAllowedMentionTypes({
+            Message.MENTION_TYPES.EVERYONE
+        }))
+    end,
+
+    ClientError = function(userid, data)
+        if not checkstring(data) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
+        end
+
+        local traceback = TheSim:DecodeAndUnzipString(data)
+        if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+            PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
+        end
+    end,
 }
 
--- For Debug
--- local CLIENT_RPCS_TO_NAME = {
---     [1] = "SendDirectMessage",
---     [2] = "Disconnect",
---     [3] = "SendLocalizationRequest",
---     [4] = "LocaleAllowed",
--- }
-
--- -- For Debug
--- local SERVER_RPCS_TO_NAME = {
---     -- [1] = "ClientModReady",
---     [2] = "ClientModNetworkReady",
---     [3] = "ClientLocalizationCompleted",
---     [4] = "AfkStateChanged",
--- }
-
 --------------------------
--- Helpers
+-- Wrappers
 --------------------------
 -- Note: Handle all shard RPCs in the backend
+--- @TODO: Maybe move these to servernetwork.lua and clientnetwork.lua
 
 function PEARL.GetClientRPC(name)
     return GetClientModRPC(PEARL.RPC_NAME, name)
@@ -148,20 +178,38 @@ function PEARL.GetServerRPC(name)
     return GetModRPC(PEARL.RPC_NAME, name)
 end
 
-function PEARL.SendRPCToClient(name, ...)
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param sender_list? table|string|number
+--- @param ... any Any additional data provided to the rpc handler.
+--- if sender_list is nil, all clients connected to the current shard will execute the RPC.
+--- if sender_list is a table, it will be iterated upon and send it to every client that is connected to the current shard thats UserID is in the table.
+--- if sender_list is a string, it will send the RPC to the specific client with that UserID, as long as they are connected to that shard.
+function PEARL.SendRPCToClient(rpc_id, sender_list, ...)
     -- print("SEND TO CLIENT", name, ...)
     --PEARL.debug("Sending rpc", CLIENT_RPCS_TO_NAME[name], "to the client")
-    return SendModRPCToClient(PEARL.GetClientRPC(name), ...)
+    return SendModRPCToClient(PEARL.GetClientRPC(rpc_id), sender_list, ...)
 end
 
-function PEARL.SendRPCToShard(name, ...)
-    return SendModRPCToShard(PEARL.GetShardRPC(name), ...)
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param sender_list? table|string|number
+--- @param ... any Any additional data provided to the rpc handler.
+--- if sender_list is nil, all connected shards(including the one this is called on) will have this RPC executed.
+--- if sender_list is a table, it will be iterated upon and send it to every shard that's ID is in the table.
+--- if sender_list is either a string or a number, it will send that RPC to the specific shard with that ID.
+function PEARL.SendRPCToShard(rpc_id, sender_list, ...)
+    return SendModRPCToShard(PEARL.GetShardRPC(rpc_id), sender_list, ...)
 end
 
-function PEARL.SendRPCToServer(name, ...)
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param ... any Any additional data provided to the rpc handler.
+function PEARL.SendRPCToServer(rpc_id, ...)
+    if not PEARL.ClientNetwork or PEARL.ClientNetwork:IsDisconnected() then
+        return
+    end
+
     -- print("SEND RPC TO SERVER", name, ...)
     --PEARL.debug("Sending rpc", SERVER_RPCS_TO_NAME[name], "to the server")
-    return SendModRPCToServer(PEARL.GetServerRPC(name), ...)
+    return SendModRPCToServer(PEARL.GetServerRPC(rpc_id), ...)
 end
 
 -- Note: All of these RPCs needs to be loaded

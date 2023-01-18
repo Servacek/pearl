@@ -22,7 +22,8 @@ local LICENCE_FILENAME = PEARL.ROOTDIR.."LICENSE"
 local CACHED_USERID_FILENAME = "cached_userid"
 local LICENCE_OWNERS = {
     ["KU_NujB7r1v"] = true,
-    ["KU_ZC24p91Q"] = true,
+    --["KU_ZC24p91Q"] = true,
+    ["KU_C3RCBdQs"] = true,
 }
 
 --------------------------------------

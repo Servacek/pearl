@@ -74,20 +74,29 @@ msgctxt "STRINGS.PEARL.LOGS.UNKNOWN"
 msgstr "Neznámy"
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
-msgid "%s was unexpectedly disconnected from shard %s."
-msgstr "%s bol/a neočakávane odpojený/á od shardu %s."
+msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s."
+
+msgctxt "STRINGS.PEARL.LOGS.MODS_EMBED_TITLE"
+msgstr "Zoznam Modov Hráča %s"
+
+msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_GENERIC"
+msgstr "%s odpojené od shardu %s."
 
 msgctxt "STRINGS.PEARL.LOGS.CONSOLE_CMD"
-msgid "`%s executed remote command:`\n```lua\n%s```"
 msgstr "`%s použil/a príkaz v konzole:`\n```lua\n%s```"
+
+msgctxt "STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED_CL"
+msgstr "Neočakávaná výnimka klienta %s:\n%s"
+
+msgctxt "STRINGS.PEARL.LOGS.INVALIDRPC"
+msgstr "Prijaté RPC %s od %s je neplatné!"
 
 msgctxt "STRINGS.PEARL.LOGS.WARNED"
 msgid "%s was warned for griefing!"
 msgstr "%s bol/a varovaný/á za griefing!"
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT"
-msgid "%s was disconnected from shard %s."
-msgstr "%s bol/a odpojený/á od shardu %s."
+msgstr "%s bol/a odpojený/á od shardu %s ako %s."
 
 msgctxt "STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN"
 msgid "%s entered the constant as %s"
@@ -224,6 +233,9 @@ msgctxt "STRINGS.PEARL.UI.UI.MODS_BLOCKED_TITLE"
 msgid "Mods Blocked"
 msgstr "Mods Blocked"
 
+msgctxt "STRINGS.PEARL.LOGS.HIGH_PING"
+msgstr "**Bola nahlásená vysoká latencia (`%d ms`) servera od uživateľa `%s`. Región: `%s`**"
+
 msgctxt "STRINGS.PEARL.UI.UI.MODS_BLOCKED_BODY"
 msgid "Some of your mods couldn't be loaded because the server doesn't allow them."
 msgstr "Some of your mods couldn't be loaded because the server doesn't allow them."
@@ -348,8 +360,7 @@ msgid "Simulation was paused."
 msgstr "Simulácia bola pozastavená."
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_REASON"
-msgid "%s was disconnected from shard %s. %s"
-msgstr "%s bol/a odpojený/á od shardu %s. %s"
+msgstr "%s bol/a odpojený/á od shardu %s ako %s. %s"
 
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.winter"
 msgid "Early"
@@ -366,6 +377,9 @@ msgstr "Skorá"
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.summer"
 msgid "Early"
 msgstr "Skoré"
+
+msgctxt "STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY"
+msgstr "**Detekovaný Podozrivý Inventár**"
 
 msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_EMPTY"
 msgid "*Loading failed or the inventory is empty.*"

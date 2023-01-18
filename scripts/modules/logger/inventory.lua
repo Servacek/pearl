@@ -11,14 +11,15 @@
 --]==]====================================================]]
 
 
---- @TODO: Create some kind of cache so we do not announce the same inventories
+--- @TODO v2.1: Create some kind of cache so we do not announce the same inventories
 -- again and again...
 --[[
     Checks the content of an inventory when it's owner despawns.
     Logs suspicious intentories to discord.
 --]]
 
-local Message = require("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local EMBEDS = PEARL.loadfile("utils/embeds")
 
 -------------------------------
 -- [[ Event Handlers ]]
@@ -29,23 +30,25 @@ local function CheckPlayersInventory(world, player)
         return
     end
 
+    -- There is no point in announcing the inventory if we drop everything anyway.
+    if (GetGameModeProperty("drop_everything_on_despawn") or TUNING.DROP_EVERYTHING_ON_DESPAWN) then
+        return
+    end
+
     local suspicioness = player.components.inventory:CalcSuspicioness()
     if suspicioness > .9 then
         PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
 
-        local age = player.components.age and player.components.age:GetAgeInDays() or STRINGS.PEARL.LOGS.UNKNOWN
+        local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+        local message = Message(STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY)
+        message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
 
-        local inventory, prefab, name = PEARL.GetInventoryTabelFor(player.userid, player)
-        local embed = PEARL.InventoryToEmbed(inventory, prefab, player.name or name, player.userid)
-        embed:SetTitle("")
-
-        local message = Message(STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY:format(
-            PEARL.ICONS.PLAYER_PREFABS[player.prefab], player:GetDisplayName(), player.userid, age, suspicioness * 100
-        ))
-        message:AddEmbed(embed)
-
-        PEARL.info("Sending inventory to discord...")
-        PEARL.DiscordReporter:SendRawReportMessage(message)
+        if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+            PEARL.info("Sending inventory to discord...")
+            PEARL.DiscordReporter:SendRawReportMessage(message)
+        else
+            PEARL.error("Discord Reporter is disabled! Failed to send the inventory...")
+        end
     end
 end
 
@@ -54,9 +57,10 @@ end
 -------------------------------
 
 PEARL.AddWorldPostInit(function(inst)
-    if not (inst and PEARL.CONFIG.DISCORD.LHOOK.ENABLED) then
+    if not inst then
         return
     end
 
+    -- Question is, if this is being called on migration or not.
     inst:SafeListenForEvent("ms_playerdespawn", CheckPlayersInventory)
 end)

@@ -18,7 +18,11 @@
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local UserCommands = require("usercommands")
-local EncodeBase64 = require('utils/base64encoder')
+local EncodeBase64 = PEARL.loadfile('utils/base64encoder')
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local EMBEDS = PEARL.loadfile("utils/embeds")
+
+local PlayerReference = PEARL.loadfile("models/playermetadata")
 
 --------------------------------
 
@@ -44,170 +48,58 @@ function PEARL.GetStackSize(item)
     end
 end
 
--- Returns a table with format {prefab=count}, owners prefab, name and age on success
--- otherwise -> nil
-function PEARL.GetInventoryTabelFor(ku_id, player)
-    if ku_id == nil and player == nil then return end
+function PEARL.GetPlayerMetadataFor(userid, cb)
+    local player_ref = PlayerReference(userid)
 
-    local target_prefab, target_name--, target_age
-    local inventory = {}
+    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
+    if client then
+        player_ref:SetName(client.name)
+        player_ref:SetAge(client.playerage)
+        player_ref:SetPrefab(client.prefab)
 
-    local function AddToInv(item)
-        if not item then return end
-
-        if item.prefab then
-            if not inventory[item.prefab] then
-                inventory[item.prefab] = 0
-            end
-
-            inventory[item.prefab] = inventory[item.prefab] + PEARL.GetStackSize(item)
-        end
-    end
-
-    local function ProcessInvItem(item)
-        if not item then return end
-
-        AddToInv(item)
-
-        -- for bundles and gifts
-        if item.components and item.components.unwrappable and item.components.unwrappable.itemdata then
-            for _, v in pairs(item.components.unwrappable.itemdata) do
-                AddToInv(v)
-            end
-        end
-    end
-
-    -- If the player is currently playing on the server
-    player = player or LookupPlayerInstByUserID(ku_id)
-    if player and player.components.inventory then
-        local inv = player.components.inventory
-
-        target_prefab = player.prefab
-        target_name = player:GetDisplayName() or player.name
-
-        -- we also want to check walter's woby
-        if player.woby and player.woby.components and player.woby.components.container then
-            player.woby.components.container:ForEachItem(ProcessInvItem)
+        -- If the player is playing in the server.
+        local player = LookupPlayerInstByUserID(userid)
+        if player and player.components and player.components.inventory then
+            player_ref:SetInventory(player.components.inventory)
         end
 
-        --- [[ Main inventory ]] ---
-        inv:ForEachItem(ProcessInvItem)
-
-        return inventory, target_prefab, target_name--, target_age
+        return player_ref
     end
 
-    -- The player is not online so we will try to get the saved inventory
-    --print("Selected player is currently not playing on the server.")
-    --print("Trying to load saved inventory for this player...")
     local sessionid = TheNet:GetSessionIdentifier()
-    local file = TheNet:GetUserSessionFile(sessionid, ku_id)
-    if file ~= nil then
-        TheNet:DeserializeUserSession(file, function(success, str)
-            if success and str then
-                local playerdata, _ = ParseUserSessionData(str)
-
-                if not playerdata or not playerdata.data or not playerdata.data.inventory then
-                    return
-                end
-
-                target_prefab = playerdata.prefab
-                -- target_age = playerdata.age
-                local inv_data = playerdata.data.inventory
-
-                -- we also want to check walter's woby
-                if playerdata.data.woby and playerdata.data.woby.data and playerdata.data.woby.data.container
-                and playerdata.data.woby.data.container.items then
-                    for _, v in pairs(playerdata.data.woby.data.container.items) do
-                        AddToInv(v)
-                    end
-                end
-
-                --- [[ Main Inventory ]] ---
-                if inv_data.items then
-                    for _, item in pairs(inv_data.items) do
-                        AddToInv(item)
-
-                        -- for bundles
-                        if item.data and item.data.unwrappable and item.data.unwrappable.items then
-                            for _, v in pairs(item.data.unwrappable.items) do
-                                AddToInv(v)
-                            end
-                        end
-                    end
-                end
-
-                if not inv_data.equip then return end
-
-                --- [[ Equip slots ]] ---
-                local body_slot_item = inv_data.equip.body
-                local hands_slot_item = inv_data.equip.hands
-                local head_slot_item = inv_data.equip.head
-
-                if hands_slot_item then
-                    AddToInv(hands_slot_item)
-                end
-
-                if body_slot_item then
-                    AddToInv(body_slot_item)
-
-                    -- In case of a backpack
-                    if body_slot_item.data and body_slot_item.data.container and body_slot_item.data.container.items then
-                        for _, item in pairs(body_slot_item.data.container.items) do
-                            AddToInv(item)
-
-                            -- for bundles inside the backpack
-                            if item.data and item.data.unwrappable and item.data.unwrappable.items then
-                                for _, v in pairs(item.data.unwrappable.items) do
-                                    AddToInv(v)
-                                end
-                            end
-                        end
-                    end
-                end
-
-                if head_slot_item then
-                    AddToInv(head_slot_item)
-                end
-            end
-        end)
-
-        return inventory, target_prefab, target_name
+    local file = TheNet:GetUserSessionFile(sessionid, userid)
+    if not file then
+        return player_ref
     end
+
+    -- This is some fake async function or something?
+    TheNet:DeserializeUserSession(file, function(success, str)
+        if not (success and str) then
+            return
+        end
+
+        local data, _ = ParseUserSessionData(str)
+        if not data then
+            return
+        end
+
+        player_ref:Load(data)
+    end)
+
+    return player_ref
 end
 
---- @TODO move this elsewhere + add some more info about the inv (age, item count, etc...)
---- @return Embed
-function PEARL.InventoryToEmbed(inventory, target_prefab, name, userid)
-    name = name or userid or string.capitalize(target_prefab) or STRINGS.PEARL.UNKNOWN
-    local icon = PEARL.ICONS.PLAYER_PREFABS[target_prefab] or PEARL.ICONS.PLAYER_PREFABS[""]
-    local title = STRINGS.PEARL.LOGS.INV_REPORT_TITLE:format(icon, name)
-
-    local description = ""
-    for prefab, count in pairs(inventory) do
-        local name = PEARL.PrefabToName(prefab)
-        local is_rare = PEARL.PREFABS.RARE_ITEMS[prefab]
-
-        -- If the item is rare we want to make it bold
-        if is_rare then
-            description = description..STRINGS.PEARL.LOGS.INV_REPORT_ITEM_RARE:format(
-                count, name, prefab
-            )
-        else
-            description = description..STRINGS.PEARL.LOGS.INV_REPORT_ITEM:format(
-                count, name, prefab
-            )
+function PEARL.GetMaxStringSize(string_list, key)
+    local max_size = 0
+    local size
+    for k, v in pairs(string_list) do
+        size = key and #tostring(k) or #tostring(v)
+        if size > max_size then
+            max_size = size
         end
-
-        description = description.."\n"
     end
 
-    if #description <= 0 then
-        description = STRINGS.PEARL.LOGS.INV_REPORT_EMPTY
-    end
-
-    return Embed()
-        :SetTitle(title)
-        :SetDescription(description)
+    return max_size
 end
 
 --------------------------------
@@ -303,11 +195,6 @@ function PEARL.RollbackByDays(days, handler, delay)
     end
 
     onsnapshotloaded()
-end
-
-function PEARL.SafeShutdownAllShards()
-    -- Send to all connected shards (including us)
-    PEARL.SendRPCToShard(PEARL.RPCS.ExecuteBroadcast, nil, "c_shutdown(true)")
 end
 
 --------------------------------
@@ -422,6 +309,17 @@ end
 
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
+end
+
+function PEARL.NameToPrefab(name)
+    name = string.lower(name)
+    for prefab, pname in pairs(STRINGS.NAMES) do
+        if string.lower(pname) == name then
+            return prefab
+        end
+    end
+
+    return name
 end
 
 function PEARL.FancyTableConcat(t)
@@ -555,8 +453,13 @@ function PEARL.RGBToDecimal(r, g, b)
     return bit.lshift(r, 16) + bit.lshift(g, 8) + b
 end
 
-function PEARL.ToISO8601(timestamp)
-    return os.date("%Y-%m-%dT%XZ", timestamp)
+function PEARL.ToISO8601UTC(timestamp)
+    -- This is used when sending timestamps to external services (like discord)
+    -- which require this format. Such services want the time in UTC so they can
+    -- display it for each client according to their timezone.
+    --
+    -- "!" for UTC time
+    return os.date("!%Y-%m-%dT%X", timestamp)
 end
 
 function PEARL.ExtinguishFiresNearAll()
@@ -614,16 +517,10 @@ function PEARL.LogInventoryFor(userid)
         return false
     end
 
-    local inventory, prefab, name = PEARL.GetInventoryTabelFor(userid)
-    if not inventory then
-        return false
-    end
-
-    PEARL.info(DataDumper(inventory))
-
-    local embed = PEARL.InventoryToEmbed(inventory, prefab, name, userid)
+    local player_meta = PEARL.GetPlayerMetadataFor(userid)
     local message = Message()
-    message:AddEmbed(embed)
+    -- Maybe even calculate the suspiciousness here?
+    message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta))
 
     PEARL.DiscordReporter:SendRawReportMessage(message)
 

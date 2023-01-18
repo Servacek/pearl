@@ -40,7 +40,7 @@ local QUERY_ERRORS        = {
     -- Getting this error in production usage most likely indicates
     -- some nasty formatting issues.
     INVALID_KU         = "E_INVALID_KU",
-    --OWNERSHIP_MISSING  = "E_OWNERSHIP_MISSING",
+    OWNERSHIP_MISSING  = "E_OWNERSHIP_MISSING",
 }
 
 local DO_NOT_RETRY_ERRORS = {

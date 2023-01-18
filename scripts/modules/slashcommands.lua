@@ -14,8 +14,9 @@
 
 local TheNet = TheNet
 
-local Message = require("libraries/discordapi/models/message")
-local MARKDOWN = require("libraries/markdown")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local EMBEDS = PEARL.loadfile("utils/embeds")
 
 -------------------------------------
 -- Contants
@@ -39,12 +40,18 @@ local function make_safe_cb(name, cb)
     return function(params, caller, ...)
         local result = {PEARL.SafeRun(cb, params, caller, ...)}
         if not result[1] then
-            PEARL.error("Failed to run command '/"..name.."'! Error:\n", result[2] or "unknown...")
+            local traceback = result[2] or "No Traceback"
+            PEARL.error("Failed to run command '/"..name.."'!\n", traceback)
 
-            if type(caller) == "table" and caller.userid then
+            if PEARL.ServerNetwork and type(caller) == "table" and caller.userid then
                 PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                     STRINGS.PEARL.UI.CMD_ERRORS.EXECUTION
                 )
+            end
+
+            -- Send the traceback to the server as well.
+            if PEARL.ClientNetwork then
+                PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
             end
 
             return
@@ -240,7 +247,7 @@ AddCommand("inv", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"player_id"}, -- Net/Klei ID
+    params = {"userid"}, -- Net/Klei ID
     params_optional= { false },
 
     serverfn = function(params, caller)
@@ -255,7 +262,7 @@ AddCommand("inv", {
             )
         end
 
-        if PEARL.LogInventoryFor(params.player_id) then
+        if PEARL.LogInventoryFor(params.userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
             )
@@ -268,16 +275,16 @@ AddCommand("inv", {
 })
 
 AddCommand("inv-find", {
-    aliases = {"item-find"},
+    aliases = {"item-find", "invf"},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"item_prefab"},
+    params = {"prefab"},
     params_optional = { false },
 
     serverfn = function(params, caller)
-        if not (params and caller and params.item_prefab) then
+        if not (params and caller and params.prefab) then
             return
         end
 
@@ -291,7 +298,7 @@ AddCommand("inv-find", {
         local item_owners = {}
         for _, player in ipairs(AllPlayers) do
             local items = player.components.inventory:FindItems(function(item)
-                return item.prefab == params.item_prefab
+                return item.prefab == params.prefab
             end)
 
             if items and #items > 0 then
@@ -306,22 +313,21 @@ AddCommand("inv-find", {
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE)
         end
 
-        table.sort(item_owners, function(k1, k2)
-            return item_owners[k1].item_count > item_owners[k2].item_count
-            and item_owners[k1].player.components.age:GetAge() < item_owners[k1].player.components.age:GetAge()
+        -- Sort by item count and player age
+        table.sort(item_owners, function(v1, v2)
+            return v1.item_count > v2.item_count
+            and v1.player.components.age:GetAge() < v2.player.components.age:GetAge()
         end)
 
         -- Anounce first 5 inventories reversed
         -- so the first one is on the bottom of the chat.
         --- @type Message
         local message = Message(STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR:format(
-            params.item_prefab, #item_owners
+            params.prefab, #item_owners
         ))
         for i = math.min(#item_owners, 5), 1, -1 do
-            local player = item_owners[i].player
-
-            local inventory, prefab, name = PEARL.GetInventoryTabelFor(player.userid, player)
-            local embed = PEARL.InventoryToEmbed(inventory, prefab, player.name or name, player.userid)
+            local player_reference = PEARL.GetPlayerMetadataFor(item_owners[i].player.userid)
+            local embed = EMBEDS.Inventory(player_reference, {params.prefab})
             if not message:AddEmbed(embed) then
                 break -- The message is full and doesn't accept any more embeds
             end

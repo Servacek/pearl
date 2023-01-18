@@ -125,12 +125,11 @@ if TheShard:IsMaster() then
     PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid)
         -- IsEnabled return value can be changed during runtime!
         -- TheNet:GetUserID returns the owner's ID on dedicated servers.
-        if (
-            AllowList:IsEnabled() and
+        if AllowList:IsEnabled() and not (
             PEARL.AdminList:Contains(userid) or
             userid == TheNet:GetUserID()
         ) and not AllowList:Contains(userid) then
-            PEARL.debug("Prohibiting connection for", userid)
+            PEARL.info("Client", userid, "not whitelisted.")
 
             if TheWorld then
                 TheWorld:PushModEvent("clientconnectionclosed", {

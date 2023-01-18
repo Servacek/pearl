@@ -34,16 +34,61 @@ all_clients_require_mod = true
 api_version = 10
 forumthread = ""
 
---- @TODO
--- icon_atlas = "statusannouncements.xml"
--- icon = "statusannouncements.tex"
+-------------------------------------
+-- [[ Mod Specific Server Tags ]]
+-------------------------------------
 
 server_filter_tags = {
     "antigrief", "anticheat", "community", "announcement", "discord",
     "logs", "management", "monitoring", "moderation", "autoupdate"
 }
 
+-------------------------------------
+-- [[ Configurations ]]
+-------------------------------------
+
+--- @TODO: Create the checks API.
 configuration_options = {
+
+    --------------------
+    -- Discord
+    --------------------
+
+    {
+        name = "DISCORD",
+        default = {
+            INVITE = nil,
+            -- The IDs NEEDS to be strings because they exceed the 32-bit range.
+            LHOOK = {
+                ID = "",
+                TOKEN = "",
+                ENABLED = true,
+                BUFFER_TIMEOUT = 4,
+            },
+            RHOOK = {
+                ID = "",
+                TOKEN = "",
+                ENABLED = true,
+            }
+        },
+        type = "table<string, any>",
+        public = "DISCORD.INVITE",
+        checks = {
+            ID = "string",
+            TOKEN = "string",
+            INVITE = "string",
+        }
+    },
+
+    --------------------
+    -- REST API
+    --------------------
+
+    {
+        name="REQUEST_FREQUENCY", -- In seconds
+        default=2,
+        type = "number",
+    },
 
     --------------------
     -- Languages
@@ -57,6 +102,8 @@ configuration_options = {
             "sk",
         },
         type = "string",
+        general = true,
+        public = true,
     },
 
     {
@@ -73,17 +120,23 @@ configuration_options = {
         name="COMMAND_BLOCKLIST",
         default={},
         type = "table<string, boolean>",
+        public = true,
     },
 
     --------------------
     -- Mod Blocker Module
     --------------------
-
     {
         name="MOD_BLACKLIST",
-        default={},
+        default={
+            strict = false,
+        }, -- Setting strict key to true will kick out all players who have such mods enabled.
         type = "table<string, boolean>",
+
+        warn = true,
+        public = true,
     },
+
 
     --------------------
     -- Server
@@ -103,6 +156,7 @@ configuration_options = {
             false,
         },
         type = "boolean",
+        public = true,
     },
 
     {
@@ -113,6 +167,7 @@ configuration_options = {
             false,
         },
         type = "boolean",
+        public = true,
     },
 
     --------------------
@@ -166,6 +221,16 @@ configuration_options = {
         type = "boolean",
     },
 
+    {
+        name="REPORT_BAD_PING",
+        default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
     --------------------
     -- Commands
     --------------------
@@ -178,6 +243,7 @@ configuration_options = {
             false,
         },
         type = "boolean",
+        public = true,
     },
 
     {
@@ -198,7 +264,8 @@ configuration_options = {
       -- Settings this to 0 or lower will disable afk state (so no announcement).
         name = "AFK_TIME",
         default = 1 * 60,
-        type = "number"
+        type = "number",
+        public = true,
     },
 
     { -- Total AFK time in seconds after which the player
@@ -206,28 +273,36 @@ configuration_options = {
       -- Setting this to 0 or lower will prevent kicking AFK players.
         name = "AFK_TIME_KICK",
         default = 5 * 60,
-        type = "number"
+        type = "number",
+        public = true,
     },
 
     --------------------
     -- Localizer Module
     --------------------
 
-    --> e.g.:
-    --[[
-        ALLOWED_LOCALES = {
-            ["SK"] = true,
-            ["CZ"] = true,
-            ...
-        },
-    --]]
     { -- This is an experimental feature.
-        name = "ALLOWED_LOCALES",
-        default = {},
-        type = "table<string, boolean>",
+        name = "LOCALIZER",
+        default = {
+            ENABLED = false,
+            --> e.g.:
+            --[[
+                ALLOWED_LOCALES = {
+                    ["SK"] = true,
+                    ["CZ"] = true,
+                    ...
+                },
+            --]]
+            ALLOWED_LOCALES = {},
+            CACHE = true,
+        },
+        type = "table<string, any>",
 
-        --- @TODO: Add logging for this
         experimental = true,
+
+        checks = {
+            ALLOWED_LOCALES = "table",
+        }
     },
 
     --------------------
@@ -264,6 +339,7 @@ configuration_options = {
         name = "MIN_VOTE_AGE",
         default = nil, -- When nil, uses the default built-in value
         type = "number|nil",
+        public = true,
     },
 
     --------------------
@@ -274,6 +350,7 @@ configuration_options = {
         name = "ADMIN_CALL_COOLDOWN",
         default = 5 * 60, -- When nil or 0, there is no cooldown
         type = "number|nil",
+        public = true,
     },
 
     --------------------
@@ -288,70 +365,7 @@ configuration_options = {
             false,
         },
         type = "boolean",
-    },
-
-    --------------------
-    -- Discord Module
-    --------------------
-
-    -- Note: The url should contain also the protocol prefix
-    {
-        name = "DISCORD_INVITE",
-        default = nil,
-        type = "string|nil",
-    },
-
-    -- Webhook Identifiers (required if DISCORD_LOGS option is enabled)
-    {
-        name="LOG_WEBHOOK",
-        default={
-            ID = "",
-            TOKEN = "",
-            ENABLED = true,
-        },
-        type = "table<string, any>",
-    },
-
-    {
-        name="REPORT_WEBHOOK",
-        default={
-            ID = "",
-            TOKEN = "",
-            ENABLED = true,
-        },
-        type = "table<string, any>",
-    },
-
-    {
-        name="LHOOK_BUFFER_TIMEOUT",
-        default = 4,
-        type = "number",
-    },
-
-    --------------------
-    -- REST API
-    --------------------
-
-    {
-        name="REQUEST_FREQUENCY", -- In seconds
-        default=2,
-        type = "number",
-    },
-
-    --------------------
-    -- Update Checker
-    --------------------
-
-    {
-        name="VERSION_CHECK_FREQUENCY", -- In minutes
-        default=30,
-        type = "number",
-    },
-
-    {
-        name="UPDATE_SERVER_AFTER", -- In minutes
-        default=5,
-        type = "number",
+        public = true,
     },
 
     --------------------
@@ -368,7 +382,10 @@ configuration_options = {
     --]]
     {
         name = "ANNOUNCEMENTS",
-        default = {},
+        default = {
+            all = true,
+            default = true,
+        },
         type = "table<string, boolean>",
     },
 
@@ -419,9 +436,41 @@ configuration_options = {
         name="DEBUG_MODE",
         default = false,
         type = "boolean",
+        public = true,
+        general = true,
         options = {
             true,
             false,
         },
+    },
+
+    --------------------
+    -- Implicit Configurations
+    --------------------
+    -- These are configurations that are not being explicitly set
+    -- by the user but are being configured implicitly by the mod instead.
+
+    {
+        name="AGREEMENT_SCREEN_CONTENT",
+        default = nil,
+        type = "table|nil",
+        public = true,
+        implicit = true,
+    },
+
+    {
+        name="WELCOME_POPUP_CONTENT",
+        default = nil,
+        type = "table|nil",
+        public = true,
+        implicit = true,
+    },
+
+    {
+        name="SERVER_REQUIRE_CFD",
+        default = false,
+        type = "boolean",
+        public = true,
+        implicit = true,
     },
 }

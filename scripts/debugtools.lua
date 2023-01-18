@@ -18,14 +18,11 @@
 
 local UserCommands = require("usercommands")
 
-local Embed = require('libraries/discordapi/models/embed')
-local Message = require('libraries/discordapi/models/message')
+local Embed = PEARL.loadfile('libraries/discordapi/models/embed')
+local Message = PEARL.loadfile('libraries/discordapi/models/message')
 
-local PEARL = PEARL
-local string = string
-local TheSim = TheSim
+local EMBEDS = PEARL.loadfile("utils/embeds")
 
-local json = json
 
 function PEARL.PrintTests()
     local i = 1
@@ -38,9 +35,11 @@ end
 
 PEARL.TESTS = setmetatable({}, {
     __index = function()
-        print("INDEX!")
-
         PEARL.PrintTests()
+    end,
+
+    __call = function(self, filename)
+        PEARL.execute_tests(filename)
     end
 })
 
@@ -344,7 +343,6 @@ local function GiveItemTo(inst, prefab, count)
         if item ~= nil then
             if item.components.finiteuses then
                 item.components.finiteuses:SetUses(math.random(item.components.finiteuses.total))
-                print(item.components.finiteuses:GetPercent())
             end
 
             --PEARL.debug("giving x"..tostring(count), item)
@@ -407,8 +405,6 @@ function PEARL.TESTS.SusInv()
 
             i = i + 1
         end
-
-        print(string.rep("-", 50))
     end
 
     wfile:write("\nSUSPICIOUS INVENTORIES DETECTED: ", count)
@@ -461,6 +457,15 @@ function _G.DebugGlobalFunction(name)
     PEARL.AddGlobalFunctionPreCall(name, function(...)
         PEARL.debug(tostring(name), "CALLED FROM:", debug.getinfo(3, "n").name.." ARGS:", ...)
     end)
+end
+
+-- https://stackoverflow.com/a/56891062
+function _G.GetFnParamsCount(fn)
+    local s = string.dump(fn)
+    local int_size = s:byte(8)
+    local ptr_size = s:byte(9)
+    local pos = 14 + ptr_size + (s:byte(7) > 0 and s:byte(13) or s:byte(12 + ptr_size)) + 2 * int_size
+    return s:byte(pos), s:byte(pos + 1) > 0
 end
 
 function _G.ListFunctions(name, tbl)
@@ -598,7 +603,14 @@ function PEARL.execute_tests(testset_name)
         PEARL.info("Failed to load the specified test set!")
     end
 
-    tests.test_all()
+    if tests.test_all then
+        return tests.test_all()
+    end
+
+    for name, test in pairs(tests) do
+        PEARL.info("Executing test", name)
+        test()
+    end
 end
 
 function PEARL.FakeRunSlashCommand(name, params)
@@ -693,6 +705,17 @@ function PEARL.TESTS.TestChatLogs()
 end
 
 --------------------------------
+-- [[ Embeds ]]
+--------------------------------
+
+function PEARL.TESTS.TestEmbeds()
+    local player_meta = PEARL.GetPlayerMetadataFor("KU_ZC24p91Q")
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.Inventory(player_meta))
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.SuspiciousInventory(player_meta, .9))
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
+end
+
+--------------------------------
 -- [[ Localizer ]]
 --------------------------------
 
@@ -754,4 +777,28 @@ function _G.tdump(t, i)
     end
 
     print(string.rep(" ", i * TAB_SIZE - TAB_SIZE).."},")
+end
+
+--------------------------------
+-- [[ Stack Debuging ]]
+--------------------------------
+
+local function getfiltersource(src)
+    return (src == nil and "[?]")
+        or (src:sub(1, 1) == "@" and src:sub(2))
+        or src
+end
+
+local function getformatinfo(info)
+    return info ~= nil
+        and string.format("@%s%s in %s",
+                getfiltersource(info.source),
+                info.currentline ~= nil and (":"..info.currentline) or "",
+                info.name or "?")
+        or "**error**"
+end
+
+function PEARL.CalledFrom(level)
+    local info = debug.getinfo(level or 3)
+    return getformatinfo(info)
 end

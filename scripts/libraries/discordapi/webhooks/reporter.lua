@@ -93,11 +93,16 @@ function Reporter:ReportFailedHTTPRequest(reason)
 end
 
 --- WARNING: Uses force sending to send the report. Use with caution!
+--- The reporter will be disabled after calling this for safety reasons.
+--- We expect that the server will shutdown after an uncatched error.
 --- @param traceback string
 function Reporter:ReportUncatchedLuaError(traceback)
     if type(traceback) ~= "string" or self:IsDisabled() then
         return
     end
+
+    -- Disable to prevent any looping since these reports are sent by force.
+    self:SetIsDisabled(true)
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED:format(
@@ -114,6 +119,19 @@ function Reporter:ReportCatchedLuaError(traceback)
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_CATCHED:format(
         MARKDOWN.codeline(PEARL.GetShardName()), traceback
+    )))
+end
+
+--- @param userid string The identifier of the client where the error happened on.
+--- @param traceback string
+function Reporter:ReportUncatchedClientLuaError(userid, traceback)
+    if type(traceback) ~= "string" or self:IsDisabled() then
+        return
+    end
+
+    traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED_CL:format(
+        MARKDOWN.codeline(userid), traceback
     )))
 end
 

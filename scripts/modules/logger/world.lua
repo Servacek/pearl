@@ -82,44 +82,50 @@ local function OnClientAuthenticationComplete(world, data)
     )), PEARL.ICONS.PLAYER_STATE.AUTH)
 end
 
-local function OnClientConnectionClosed(world, data)
-    if not (data and data.userid) then
+local function OnClientConnectionClosed(userid, reason)
+    PEARL.debug("OnClientConnectionClosed", userid)
+    if not userid then
         return
     end
 
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTION_CLOSE:format(
-        data.userid, data.reason or "?"
+        userid, reason or "?"
     ), PEARL.ICONS.PLAYER_STATE.FORCE_DISCONNECTED)
 end
 
-local function OnClientDisconnected(world, data)
-    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
-    if not (client and client.name) then
+local function OnClientDisconnected(userid, expected, reason)
+    -- The userid here can sometimes be an empty string
+    -- if we have failed to authenticate the client.
+    -- Do not announce such cases.
+    if type(userid) ~= "string" or #userid < 3 then
         return
     end
 
-    if data.expected == false then
+    local client = TheNet:GetClientTableForUser(userid)
+    local name = client and client.name
+
+    if type(name) ~= "string" or #name < 3 then
+        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_GENERIC:format(
+                userid, PEARL.GetShardName()
+        ))
+    end
+
+    if type(reason) == "string" and #reason > 1 then
+        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_REASON:format(
+                name, PEARL.GetShardName(), userid, reason
+        ))
+    end
+
+    if expected == false then
         return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
-                client.name, PEARL.GetShardName()
+                name, PEARL.GetShardName(), userid
         ))
     end
 
     return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
-            client.name, PEARL.GetShardName()
+            name, PEARL.GetShardName(), userid
     ))
 end
-
---- @deprecated: Now the allowlist is handled by the 'JoinServerFilter'.
---- So the not allowlisted connections are being filtered before the user
---- can even join the server.
--- local function OnClientNotWhitelisted(userid)
---     if not userid then return end
-
---     PEARL.DiscordLogger:LogString(
---         STRINGS.PEARL.NOT_WHITELISTED:format(userid),
---         PEARL.ICONS.ANNOUNCEMENTS['kicked_from_game']
---     )
--- end
 
 --- @TODO: v2.1
 -- local function Logger.OnPlayerWarnedForGriefing(name)
@@ -377,14 +383,15 @@ PEARL.AddGamePostInit(function()
             world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
         end
 
-        world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
 
         --> Mod Events
-        world:ListenForModEvent("clientconnectionclosed", OnClientConnectionClosed)
         world:ListenForModEvent("world_rollback", OnRollback)
         world:ListenForModEvent("world_reset", OnReset)
-
     end
 end)
+
+--> Mod Internal Events
+PEARL.EventProcessor:AddEventHandler("clientconnectionclosed", OnClientConnectionClosed)
+PEARL.EventProcessor:AddEventHandler("ms_clientdisconnected", OnClientDisconnected)

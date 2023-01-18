@@ -64,6 +64,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
             GetColorForItem(skin_name)
         )))
         :SetThumbnail(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
+            -- Looks like the database uses upper case for naming...
             string.upper(skin_name), "small"
         ))
         :SetTitle(

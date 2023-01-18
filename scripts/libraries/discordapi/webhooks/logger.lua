@@ -26,18 +26,6 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 
 -------------------------------------
--- [[ Handlers ]]
--------------------------------------
-
--- local function on_message_post_construct(message, force, self)
---     if force then
---         return self:_LogBufferedMessage()
---     end
-
---     self:_StartBufferTimeout()
--- end
-
--------------------------------------
 -- [[ Class Declarations ]]
 -------------------------------------
 
@@ -48,16 +36,19 @@ local Logger = Class(function(self)
         return
     end
 
+    --- @type Webhook
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.LHOOK.ID, PEARL.CONFIG.DISCORD.LHOOK.TOKEN)
 
+    --- @type Message
     self._buffered_message = Message()
-        -- :SetPostConstructFn(on_message_post_construct, self)
     --- @type Task
     self._buffer_timeout_task = nil
     self._buffer_timeout = 0
 
     PEARL.EventProcessor:AddEventHandler("quit", function()
-        self:_LogBufferedMessage()
+        if self:IsBufferring() then
+            self:_LogBufferedMessage()
+        end
     end)
 end)
 
@@ -67,11 +58,10 @@ end)
 
 function Logger:_LogBufferedMessage(force)
     --PEARL.debug("Logger:_LogBufferedMessage")
-
     self:_StopBufferTimeout()
 
     if not self._buffered_message or not self._buffered_message:IsValid() then
-        return
+        return PEARL.error("Attempted to send an invalid or non-existent buffered message!")
     end
 
     local _, json_data = self._buffered_message:ToJson()
@@ -137,6 +127,10 @@ end
 
 function Logger:IsEnabled()
     return not self._disabled
+end
+
+function Logger:IsBufferring()
+    return self._buffer_timeout_task ~= nil
 end
 
 -------------------------------------

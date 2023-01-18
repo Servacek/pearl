@@ -12,13 +12,12 @@
 
 
 
---local PEARL = PEARL
 local TheShard = TheShard
 
-local TEMPLATES = require("widgets/redux/templates")
-
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
+local EMBEDS = PEARL.loadfile("utils/embeds")
+
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 -------------------------------
 -- [[ Locals ]]
@@ -94,17 +93,7 @@ local function OnFirstLaunch()
         return
     end
 
-    PEARL.DiscordLogger:LogEmbed(Embed()
-        :SetTitle(STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE)
-        :SetColor(Embed.COLORS.GREEN)
-        :SetThumbnail(STRINGS.PEARL.LOGS.STARTUP_EMBED_THUMBNAIL_URL)
-
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLATFORM, MARKDOWN.codeline(PLATFORM), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.MOD_V, MARKDOWN.codeline(PEARL.MOD_INFO.version), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.SEED, MARKDOWN.codeline(TheWorld.meta.seed), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
-    )
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
 end
 
 local function OnModBackendPostInit()
@@ -112,6 +101,29 @@ local function OnModBackendPostInit()
     PEARL.DiscordLogger:LogStringHighlighted(
         STRINGS.PEARL.LOGS.SERVER_INITIALIZED, nil, true
     )
+end
+
+local function OnInvalidClientRPC(rpc_name, userid)
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.INVALIDRPC:format(
+        (rpc_name or "???"), userid or "UNKNOWN"
+    ), PEARL.ICONS.X)
+end
+
+--- @TODOv2.1: Move this to mod blocker.
+local function OnClientDataReceived(userid, data)
+    if not (data and data.enabled_mods and data.mods_prohibited == true) then
+        return
+    end
+
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    if not client or not client.name then
+        return
+    end
+
+    local message = Message()
+    message:AddEmbed(EMBEDS.ClientMods(data.enabled_mods, client.name))
+
+    PEARL.DiscordReporter:SendRawReportMessage(message)
 end
 
 -------------------------------
@@ -137,6 +149,9 @@ PEARL.AddGamePostInit(function()
         end
     end
 end)
+
+PEARL.EventProcessor:AddEventHandler("invalidrpc", OnInvalidClientRPC)
+PEARL.EventProcessor:AddEventHandler("clientdatareceived", OnClientDataReceived)
 
 -- PEARL.AddModPostInit(function()
 --     if TheShard:IsMaster() and TheSim:GetNumLaunches() > 1 then
