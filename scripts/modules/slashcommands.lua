@@ -363,23 +363,6 @@ AddCommand("daysback", {
     end,
 })
 
---- @temporary solution
-local ChatQueue
-AddCommand("toggle", {
-    prettyname = "Toggle the Chat Queue",
-    desc = "Turns on/off the chat queue when it becomes annoying.",
-    permission = COMMAND_PERMISSION.USER,
-    slash = true,
-
-    localfn = function()
-        if ChatQueue:Toggle() then
-            return ChatHistory:SendCommandResponse("The chat queue is hidden!")
-        end
-
-        return ChatHistory:SendCommandResponse("The chat queue is back!")
-    end,
-})
-
 AddCommand("admins", {
     aliases = {"staff", "sos"},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.PRETTYNAME,

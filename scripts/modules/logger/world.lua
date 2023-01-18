@@ -48,16 +48,16 @@ local function OnPhaseChanged(world, phase)
         return
     end
 
-    -- local moonphase_icon
-    -- if world.state.iswaxingmoon then
-    --     moonphase_icon = PEARL.ICONS.MOONPHASES.WAXING[world.state.moonphase]
-    -- else
-    --     moonphase_icon = PEARL.ICONS.MOONPHASES.WANNING[world.state.moonphase]
-    -- end
+    local moonphase_icon
+    if world.state.iswaxingmoon then
+        moonphase_icon = PEARL.ICONS.MOONPHASES.WAXING[world.state.moonphase]
+    else
+        moonphase_icon = PEARL.ICONS.MOONPHASES.WANNING[world.state.moonphase]
+    end
 
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PHASE:format(
-        STRINGS.UI.SERVERLISTINGSCREEN.PHASES[string.upper(phase)]
-    ))
+        STRINGS.PEARL.PHASES[string.upper(phase)]
+    ), moonphase_icon)
 end
 
 -------------------------------

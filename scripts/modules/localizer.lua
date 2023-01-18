@@ -162,7 +162,7 @@ end
 --------------------------------
 
 PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, cfd)
-    local locale = cfd and cfd.locale
+    local locale = cfd and string.upper(cfd.locale)
     if not locale then
         return
     end

@@ -221,7 +221,7 @@ function PEARL.GetSeasonFancyName()
     end
 
     local season_prefix
-    local season_name = STRINGS.UI.SERVERLISTINGSCREEN.SEASONS[string.upper(season_prefab)]
+    local season_name = STRINGS.PEARL.SEASONS[string.upper(season_prefab)]
     if remainingdaysinseason * 3 <= elapseddaysinseason then
         season_prefix = STRINGS.PEARL.SEASON_PREFIX_LATE[season_prefab]
     elseif elapseddaysinseason * 3 <= remainingdaysinseason then

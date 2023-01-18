@@ -71,14 +71,14 @@ return {
     },
 
     MOONPHASES = {
-        WAXING = {
+        WANNING = {
             ["new"]=            "🌕︎",
             ["quarter"]=        "🌔︎",
             ["half"]=           "🌓︎",
             ["threequarter"]=   "🌒︎",
             ["full"]=           "🌑︎",
         },
-        WANNING = {
+        WAXING = {
             ["new"]=            "🌕︎",
             ["quarter"]=        "🌖︎",
             ["half"]=           "🌗︎",

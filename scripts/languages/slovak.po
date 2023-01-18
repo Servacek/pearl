@@ -531,58 +531,33 @@ msgstr "Svet bude regenerovaný o 5 sekúnd..."
 msgctxt "STRINGS.MODS.VERSIONING.OUT_OF_DATE"
 msgstr "Mod \"%s\" je zastaralý a je potrebné ho aktualizovať aby sa mohli ostatní hráči pripojiť."
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.AUTUMN
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.AUTUMN"
+msgctxt "STRINGS.PEARL.SEASONS.AUTUMN"
 msgid "Autumn"
 msgstr "Jeseň"
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SPRING
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SPRING"
+msgctxt "STRINGS.PEARL.SEASONS.SPRING"
 msgid "Spring"
 msgstr "Jar"
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SUMMER
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.SUMMER"
+msgctxt "STRINGS.PEARL.SEASONS.SUMMER"
 msgid "Summer"
 msgstr "Leto"
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.WINTER
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.SEASONS.WINTER"
+msgctxt "STRINGS.PEARL.SEASONS.WINTER"
 msgid "Winter"
 msgstr "Zima"
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.DAY"
+msgctxt "STRINGS.PEARL.PHASES.DAY"
 msgid "Day"
 msgstr "Deň"
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.PHASES.DUSK
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.DUSK"
+msgctxt "STRINGS.PEARL.PHASES.DUSK"
 msgid "Dusk"
 msgstr "Podvečer"
 
-#. STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT
-msgctxt "STRINGS.UI.SERVERLISTINGSCREEN.PHASES.NIGHT"
+msgctxt "STRINGS.PEARL.PHASES.NIGHT"
 msgid "Night"
 msgstr "Noc"
-
-#  msgctxt "STRINGS.NAMES.NIL"
-#  msgstr "Temnota"
-
-#  msgctxt "STRINGS.NAMES.DARKNESS"
-#  msgstr "Temnota"
-
-#  msgctxt "STRINGS.NAMES.HUNGER"
-#  msgstr "Hladovanie"
-
-#  msgctxt "STRINGS.NAMES.COLD"
-#  msgstr "Mrznutie"
-
-#  msgctxt "STRINGS.NAMES.HOT"
-#  msgstr "Prehrievanie"
-
-#  msgctxt "STRINGS.NAMES.OLDAGER_COMPONENT"
-#  msgstr "plynutie času"
 
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE"
 msgstr "Server Spustený"

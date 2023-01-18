@@ -71,13 +71,6 @@ local SHARD_RPCS = {
 --- These RPCS are called from the clients so additional security checks are needed.
 --- userid is being supplied by the game's RPC manager so that should be safe.
 local SERVER_USERID_RPCS = {
-    -- ClientLocalizationCompleted = function(userid, locale)
-    --     if type(userid) ~= "string"
-    --     PEARL.debug("RPC: ClientLocalizationCompleted")
-
-    --     PEARL.EventProcessor:HandleEvent("ms_clientlocalizationcomplete", userid, locale)
-    -- end,
-
     ConnectionFilterData = function(userid, data)
         if not checkstring(data) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
@@ -214,13 +207,17 @@ end
 
 -- Note: All of these RPCs needs to be loaded
 -- on the server and client as well.
+
+-- WARNING: Use 'orderedPairs' for RPC ID assignment
+-- because the order of 'pairs' may be different on other platforms,
+-- which would cause some very annoying RPC desynchronization issues.
 --------------------------
 -- Client RPCs
 --------------------------
 
 do
     local i = 1
-    for name, cb in pairs(CLIENT_RPCS) do
+    for name, cb in orderedPairs(CLIENT_RPCS) do
         AddClientModRPCHandler(PEARL.RPC_NAME, i, cb)
 
         PEARL.RPCS[name] = i
@@ -234,14 +231,7 @@ end
 
 do
     local i = 1
-    -- for name, cb in pairs(SERVER_RPCS) do
-    --     AddModRPCHandler(PEARL.RPC_NAME, i, cb)
-
-    --     PEARL.RPCS[name] = i
-    --     i = i + 1
-    -- end
-
-    for name, cb in pairs(SERVER_USERID_RPCS) do
+    for name, cb in orderedPairs(SERVER_USERID_RPCS) do
         AddModRPCHandler(PEARL.RPC_NAME, i, cb)
         MarkUserIDRPC(PEARL.RPC_NAME, i)
 
@@ -255,7 +245,7 @@ end
 
 do
     local i = 0
-    for name, cb in pairs(SHARD_RPCS) do
+    for name, cb in orderedPairs(SHARD_RPCS) do
         AddShardModRPCHandler(PEARL.RPC_NAME, i, cb)
 
         PEARL.RPCS[name] = i

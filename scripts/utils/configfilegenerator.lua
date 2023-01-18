@@ -46,9 +46,9 @@ return function()
             option.default = string.raw(tostring(option.default))
         end
 
-        if table.contains(PEARL.CONFIG.PUBLIC, option.name) or PEARL.CONFIG.PUBLIC[option.name] ~= nil then
-            f:write("\n\n    --- @requires-reboot")
-        end
+        -- if table.contains(PEARL.CONFIG.PUBLIC, option.name) or PEARL.CONFIG.PUBLIC[option.name] ~= nil then
+        --     f:write("\n\n    --- @requires-reboot")
+        -- end
 
         if #option.name < max_spaces_num then
             option.name = option.name..string.rep(" ", max_spaces_num - #option.name)

@@ -168,10 +168,6 @@ GLOBAL.PEARL = setmetatable({
     IMAGES_DIR_NAME     = "images",
 
     DEFAULT_LANGUAGE    = "english",
-    SUPPORTED_LANGUAGES = {
-        ["sk"]          = "slovak",
-        ["en"]          = "english",
-    },
 
     -- Used for sending internal mod events.
     EventProcessor   = EventProcessor(),
@@ -314,20 +310,22 @@ end
 PEARL.info("Loading strings...")
 PEARL.loadfile("constants/strings")
 
+-- With this implementation we are not limited to a hard coded set of languages
+-- but we are able to add our own languages without changing the code instead.
 -- Load translations only after strings.lua else they will be overriden.
-local language = PEARL.SUPPORTED_LANGUAGES[PEARL.CONFIG.LANGUAGE]
-if type(language) ~= "string" then
-    PEARL.warn("Language", PEARL.CONFIG.LANGUAGE, "is not supported.")
-elseif language ~= PEARL.DEFAULT_LANGUAGE then
+local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
+if PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE and io.exists(path) then
     PEARL.info("Loading translations...")
-    LoadPOFile(PEARL.SOURCE_DIR_NAME.."/languages/"..language..".po", PEARL.CONFIG.LANGUAGE)
+    LoadPOFile(path, PEARL.CONFIG.LANGUAGE)
+else
+    PEARL.error("Language", PEARL.CONFIG.LANGUAGE, "not supported!")
 end
 
 --------------------------------
 -- [[ RPCS ]]
 --------------------------------
 
-PEARL.info("Loading client <-> server rpcs...")
+PEARL.info("Loading RPC handlers...")
 PEARL.loadfile("networkrpc")
 
 --------------------------------

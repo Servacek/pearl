@@ -15,6 +15,7 @@
 -- Note: Prefer %s over %d because sometimes we want to format
 -- the number variables as a codeline.
 --- @TODO: Maybe most of the markdown should be added here instead of dynamically.
+--- @TODO: Fix some incorrect translations on the UI.
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
@@ -127,7 +128,7 @@ STRINGS.PEARL = {
         AUTO_UPDATE_START       = "Updating the server to version %s...",
 
         GAME_LOADED             = "Shard %s was loaded.",
-        RESTART                 = "Rastarting the server...",
+        RESTART                 = "Restarting the server...",
         ROLLBACK                = "Rolling server %s snapshots back!",
         ROLLBACK_DAYS           = "Rolling server back to day %s!",
         RESET                   = "Regenerating the world on %s.",
@@ -215,6 +216,10 @@ STRINGS.PEARL = {
         ["autumn"] = "Early",
         ["winter"] = "Early",
     },
+
+    -- Create a copy of the game's seasons so we do not modify the actual table when translating
+    SEASONS = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.SEASONS),
+    PHASES  = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.PHASES),
 
     SEASON_UNKNOWN          = "Unknown Season",
 

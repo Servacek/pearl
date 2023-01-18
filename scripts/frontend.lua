@@ -139,7 +139,6 @@ end
 
 PEARL.info("Loading user interface extensions...")
 PEARL.loadfile("extensions/ui/consolescreen")
-PEARL.loadfile("extensions/ui/chatqueue")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 
 ----------------------------------
