@@ -139,5 +139,6 @@ return {
         ["hammer"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HAMMER],
         ["defeat"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.TROPHY],
         ["deploy"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.EYEPLANT],
+        ["welcome"]=    PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.WAVE]
     },
 }

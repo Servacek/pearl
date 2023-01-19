@@ -26,6 +26,7 @@ local TheNet, TheInput = TheNet, TheInput
 local conn_filters = {}
 local conn_data_cache = {}
 local client_cache = {}
+local sim_paused = false
 
 --- @class ServerNetwork
 local ServerNetwork = {}
@@ -61,9 +62,9 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
         })
     end
 
-    -- Give a tick to the RPC queue to handle the Disconnect RPC first
+    -- Give a few ticks to the RPC queue to handle the Disconnect RPC first
     -- This makes sure that the connection is removed in case of errors.
-    PEARL.Scheduler:ExecuteInTime(0, function()
+    PEARL.Scheduler:ExecuteInTime(1, function()
         -- Kick out the connection from this user,
         -- so it doesn't block other incoming connections.
         --
@@ -110,6 +111,12 @@ function ServerNetwork:SetServerRequiresCFD(requires)
     PEARL.CONFIG.SERVER_REQUIRE_CFD = requires
 end
 
+function ServerNetwork:CacheClientTableFor(userid)
+    if type(userid) == "string" then
+        client_cache[userid] = TheNet:GetClientTableForUser(userid)
+    end
+end
+
 ----------------------------------
 -- Handlers
 ----------------------------------
@@ -137,6 +144,10 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
 
     -- If all the filters have successfully passed, then the connection should be allowed.
     self:SendUserConnectionAllowedFor(userid)
+end
+
+function ServerNetwork:IsPaused()
+    return sim_paused or TheNet:IsServerPaused()
 end
 
 ----------------------------------
@@ -176,6 +187,14 @@ PEARL.AddGlobalFunctionPreCall("Shutdown", function(...)
     PEARL.ModShutdown()
 end)
 
+PEARL.AddGlobalFunctionPreCall("OnSimPaused", function(...)
+    sim_paused = true
+end)
+
+PEARL.AddGlobalFunctionPreCall("OnSimUnpaused", function(...)
+    sim_paused = false
+end)
+
 -- We want to have full control over this function.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     local saved_ThePlayer
@@ -210,9 +229,15 @@ PEARL.AddWorldPostInit(function(world)
         return
     end
 
+    world:SafeListenForEvent("ms_playerjoined", function(self, player)
+        if player and player.userid then
+            PEARL.ServerNetwork:CacheClientTableFor(player.userid)
+        end
+    end)
+
     world:SafeListenForEvent("ms_clientauthenticationcomplete", function(self, data)
-        if data.userid then
-            client_cache[data.userid] = TheNet:GetClientTableForUser(data.userid)
+        if data and data.userid then
+            PEARL.ServerNetwork:CacheClientTableFor(data.userid)
         end
 
         PEARL.EventProcessor:HandleEvent("ms_clientauthenticationcomplete", data.userid)

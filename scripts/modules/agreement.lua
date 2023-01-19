@@ -61,8 +61,11 @@ end
 local function OnPlayerFinishedAgreement(self, agreed)
     self:Close()
 
+    PEARL.ClientNetwork:SendAgreementDataToServer(agreed, not _agr_file_exists)
+
     if not agreed then
-        return DoRestart(true)
+        -- Give a frame to the RPC queue
+        return PEARL.Scheduler:ExecuteInTime(0, DoRestart, nil, true)
     end
 
     CreateAgreementCacheFile()

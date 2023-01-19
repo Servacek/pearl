@@ -16,6 +16,8 @@
 --- @TODO: Write some tests for this thing
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local EMBEDS = PEARL.loadfile("utils/embeds")
+
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
@@ -130,9 +132,17 @@ function Reporter:ReportUncatchedClientLuaError(userid, traceback)
     end
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED_CL:format(
+    local message = Message(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED_CL:format(
         MARKDOWN.codeline(userid), traceback
     )))
+
+    -- If the client has some mods enabled, send that info to the server as well.
+    local client_cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
+    if type(client_cfd) == "table" and not IsTableEmpty(client_cfd) then
+        message:AddEmbed(EMBEDS.ClientMods(client_cfd.enabled_mods, client_cfd.username))
+    end
+
+    return self:SendRawReportMessage(message)
 end
 
 -------------------------------------

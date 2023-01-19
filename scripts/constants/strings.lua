@@ -304,7 +304,7 @@ STRINGS.PEARL = {
 
             DAYSBACK = {
                 PRETTYNAME = "Rollback by Days",
-                DESC       = "Roll the server back by actual days instead of snapshots.",
+                DESC       = "Roll the server back by actual days instead of snapshots.\nChanges in the current snapshot will be lost!",
             },
 
             SOS = {
@@ -342,6 +342,8 @@ STRINGS.PEARL = {
 
         BAN = "There we go again...",
     },
+
+    NOVICE_ANNOUNCEMENT = "Say welcome to %s! It's their first time on the server!"
 }
 
 ------------------------------------

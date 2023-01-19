@@ -34,9 +34,8 @@ local function RemoveLinePrefix(line, prefix)
     return line:rtake(#line - #prefix)
 end
 
-local function EnsureInputFile(filename)
-    local wfile = io.open(PATH_TEMPLATE:format(filename), "w")
-    return wfile and wfile:close()
+local function EnsureInputFile(fp)
+    return io.create(fp)
 end
 
 local function AddSection(tbl, title, description)
@@ -81,15 +80,18 @@ local function ParseLine(tbl, raw_line, subtitles)
     end
 end
 
-return function(filename, create_if_needed, subtitles)
-    local rfile = io.open(PATH_TEMPLATE:format(filename), "r")
+return function(fp, create_if_needed, subtitles)
+    local abs_path = PATH_TEMPLATE:format(fp)
+    local rfile, errmsg = io.open(abs_path, "r")
     if not rfile then
-        if create_if_needed then
-            EnsureInputFile()
+        if create_if_needed == true then
+            PEARL.info("Creating file", fp)
+
+            EnsureInputFile(abs_path)
             return ""
         end
 
-        return PEARL.error("File not found!")
+        return PEARL.error("File not found!", errmsg)
     end
 
     --- @type table<string, string>

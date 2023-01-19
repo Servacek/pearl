@@ -51,11 +51,13 @@ end
 function PEARL.GetPlayerMetadataFor(userid, cb)
     local player_ref = PlayerReference(userid)
 
-    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
+    -- Do not prefer the cached client table since it doesn't have to be up-to-date.
+    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
     if client then
         player_ref:SetName(client.name)
         player_ref:SetAge(client.playerage)
         player_ref:SetPrefab(client.prefab)
+        player_ref:SetNetID(client.netid)
 
         -- If the player is playing in the server.
         local player = LookupPlayerInstByUserID(userid)
@@ -134,67 +136,84 @@ function PEARL.ExtinguishFiresNear(x, y, z, all)
     end
 end
 
+function PEARL.RawRollbackByID(snapshot_id)
+    -- Using raw low-level 'TheNet:TruncateSnapshots' instead of
+    -- the default 'WorldRollbackFromSim' because of the 30 seconds limit.
+    TheNet:TruncateSnapshots(TheNet:GetSessionIdentifier(), -snapshot_id)
+
+    -- Restart the server after truncating the snapshots
+    -- to apply the changes
+    return WorldRollbackFromSim(0)
+end
+
 --- @param days number The number of cycles to go back. (cycle = day - 1)
 --- @param handler function<boolean, string>? The handler function for error messages.
 --- @param delay number?
 function PEARL.RollbackByDays(days, handler, delay)
-    handler = handler or function(...) end
+    handler = handler or function(success, message)
+        if success == false then
+            return PEARL.error(message)
+        end
+
+        return PEARL.info(message)
+    end
 
     -- Note: This returns an array where the snapshots are sorted by the newest
     -- So the snapshot on index 1 is the latest, etc...
     local snapshots = TheNet:ListSnapshots(TheNet:GetSessionIdentifier(), true)
+    print(DataDumper(snapshots))
     if type(snapshots) ~= "table" then
-        handler(false, STRINGS.PEARL.UI.CMD_ERRORS.FAILED_SNAPHOTS_LOAD)
-        return PEARL.error("Failed to load the list of snapshots!")
+        return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.FAILED_SNAPHOTS_LOAD)
     end
 
     local target_cycle = math.max((TheWorld.state.cycles or 1) - days, 1)
     local target_day = target_cycle + 1 -- day = cycle + 1 (we are starting from 0)
-    local function onsnapshotloaded(str, id)
-        id = id or 1
 
-        if str then
-            local noerror, metadata = RunInSandbox(str)
-            if noerror and metadata.clock and metadata.clock.cycles then
-                if metadata.clock.cycles < target_cycle then
-                    handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
-                    return PEARL.info("No snapshot found for day", target_cycle)
-                end
-
-                if metadata.clock.cycles == target_cycle then
-                    PEARL.Scheduler:ExecuteInTime(delay or 0, function()
-                        handler(true, STRINGS.PEARL.LOGS.ROLLBACK_DAYS:format(target_day))
-                        PEARL.info("Rolling server back to cycle", target_cycle)
-
-                        -- Using raw low-level 'TheNet:TruncateSnapshots' instead of
-                        -- the default 'WorldRollbackFromSim' because of the 30 seconds limit.
-                        TheNet:TruncateSnapshots(
-                            TheNet:GetSessionIdentifier(), -id
-                        )
-
-                        -- Restart the server after truncating the snapshots
-                        -- to apply the changes
-                        return WorldRollbackFromSim(0)
-                    end)
-                end
-            end
+    local function getsnapshotcycle(data)
+        if type(data) ~= "string" then
+            return
         end
 
-        local nextid = id + 1
-        local nextsnapshot = snapshots[nextid]
-        if not nextsnapshot then
-            handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
-            return PEARL.info("No snapshot found for day", target_day)
+        local success, metadata = RunInSandbox(data)
+        if not (success and metadata and metadata.clock) then
+            return
         end
 
-        return TheSim:GetPersistentString(nextsnapshot.world_file..".meta", function(success, str)
-            if success then
-                onsnapshotloaded(str, nextid)
+        return metadata.clock.cycles
+    end
+
+    local function tryloadsnapshot(index)
+        local snapshot = snapshots[index]
+        if type(snapshot) ~= "table" then
+            return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
+        end
+
+        return TheSim:GetPersistentString(tostring(snapshot.world_file)..".meta", function(success, data)
+            local cycle = getsnapshotcycle(data)
+            if type(cycle) ~= "number" then
+                return
             end
+
+            if cycle == target_cycle and snapshot.snapshot_id ~= nil then
+                handler(true, STRINGS.PEARL.LOGS.ROLLBACK_DAYS:format(target_day))
+                return PEARL.Scheduler:ExecuteInTime(
+                    delay or 0, PEARL.RawRollbackByID, nil, snapshot.snapshot_id
+                )
+            end
+
+            -- The snapshots are being saved in order.
+            if cycle > target_cycle then
+                -- Looks like this snapshot isn't the target one...
+                -- Try to load the next snapshot
+                return tryloadsnapshot(index + 1)
+            end
+
+            return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
         end)
     end
 
-    onsnapshotloaded()
+    -- We are starting from snapshot at index 1 which should be the newest.
+    tryloadsnapshot(1)
 end
 
 --------------------------------

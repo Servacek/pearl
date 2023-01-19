@@ -217,12 +217,12 @@ function Logger:LogStringRaw(str, icon, ...)
     return self:LogLine(logline, ...)
 end
 
-function Logger:LogString(str, ...)
-    return self:LogStringRaw(MARKDOWN.codeline(str), ...)
+function Logger:LogString(str, icon, ...)
+    return self:LogStringRaw(MARKDOWN.codeline(str), icon, ...)
 end
 
-function Logger:LogStringHighlighted(str, ...)
-    return self:LogStringRaw(MARKDOWN.bold(str), ...)
+function Logger:LogStringHighlighted(str, icon, ...)
+    return self:LogStringRaw(MARKDOWN.bold(str), icon, ...)
 end
 
 -------------------------------------

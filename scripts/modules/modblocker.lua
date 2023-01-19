@@ -46,7 +46,7 @@ PEARL.ClientNetwork:SetCFDField("enabled_mods", mods_report)
 
 local function IsClientOnlyMod(modname)
     local modinfo = KnownModIndex:GetModInfo(modname)
-    return modinfo and modinfo.client_only_mod
+    return modinfo and modinfo.client_only_mod == true
 end
 
 local function IsModBlacklisted(modname)
@@ -58,7 +58,8 @@ local function IsModPrivate(modname)
 end
 
 local function IsModAllowed(modname)
-    return not IsClientOnlyMod(modname) and not IsModBlacklisted(modname) and not IsModPrivate(modname)
+    -- If the mod is not client_only then it's allowed without any further checks.
+    return not IsClientOnlyMod(modname) or (not IsModBlacklisted(modname) and not IsModPrivate(modname))
 end
 
 local function SaveModIndex()
@@ -85,7 +86,7 @@ local function AddReportForMod(modname)
         fancyname   = GetModFancyName(modname)
     }
 
-    if not mods_report.prohibited and blocked then
+    if blocked then
         PEARL.ClientNetwork:SetCFDField("mods_prohibited", true)
     end
 end
@@ -178,7 +179,7 @@ PEARL.AddFrontEndPreInit(function()
         end
     end
 
-    if prohibited_mods then
+    if prohibited_mods == true then
         -- Save the changes made to the mod configurations
         SaveModIndex()
 

@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.0"
+version = "2.0rev"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -426,6 +426,12 @@ configuration_options = {
         name = "CUSTOM_PREFABS",
         default = {},
         type = "table",
+    },
+
+    {
+        name = "NO_HEATROCK_DURABILITY",
+        default = false,
+        type = "boolean",
     },
 
     --------------------

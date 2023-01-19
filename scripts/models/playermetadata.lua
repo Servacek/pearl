@@ -17,13 +17,14 @@
 -------------------------------------
 
 --- @class PlayerMetadata
-local PlayerMetadata = Class(function(self, userid)
+local PlayerMetadata = Class(function(self, userid, netid)
     --- @type number
     self._age = -1
     --- @type string
     self._prefab = ""
     --- @type string
     self._userid = userid
+    self._netid = netid
     --- @type string
     self._name = nil
 
@@ -47,6 +48,10 @@ end
 
 function PlayerMetadata:SetName(name)
     self._name = name
+end
+
+function PlayerMetadata:SetNetID(netid)
+    self._netid = netid
 end
 
 function PlayerMetadata:AddInventoryItem(item)
@@ -95,12 +100,16 @@ function PlayerMetadata:GetName()
     return self._name
 end
 
-function PlayerMetadata:GetAgeInDays()
+function PlayerMetadata:GetAge()
     return (self._age or -1) + 1
 end
 
 function PlayerMetadata:GetUserID()
     return self._userid
+end
+
+function PlayerMetadata:GetNetID()
+    return self._netid
 end
 
 -------------------------------------

@@ -33,28 +33,6 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     end
 end
 
--- PEARL.SafeModTableExtend("CONFIG", {
---     DISCORD_INVITE           = PEARL.GetConfigData("DISCORD_INVITE"),
---     MOD_BLACKLIST            = PEARL.GetConfigData("MOD_BLACKLIST"),
---     AFK_TIME                 = PEARL.GetConfigData("AFK_TIME"),
---     AFK_TIME_KICK            = PEARL.GetConfigData("AFK_TIME_KICK"),
---     CZSK_ONLY                = PEARL.GetConfigData("CZSK_ONLY"),
---     DEBUG_MODE               = PEARL.GetConfigData("DEBUG_MODE"),
---     LANGUAGE                 = PEARL.GetConfigData("LANGUAGE"),
---     SLASH_COMMANDS           = PEARL.GetConfigData("SLASH_COMMANDS"),
---     CUSTOM_LOADING_TIPS      = PEARL.GetConfigData("CUSTOM_LOADING_TIPS"),
---     CUSTOM_CONTROLS          = PEARL.GetConfigData("CUSTOM_CONTROLS"),
---     COMMAND_BLOCKLIST        = PEARL.GetConfigData("COMMAND_BLOCKLIST"),
---     MIN_VOTE_AGE             = PEARL.GetConfigData("MIN_VOTE_AGE"),
---     ADMIN_CALL_COOLDOWN      = PEARL.GetConfigData("ADMIN_CALL_COOLDOWN"),
-
---     -- Frontend Specific configuration
---     SERVER_REQUIRE_CFD       = PEARL.GetConfigData("SERVER_REQUIRE_CFD"),
-
---     WELCOME_POPUP_CONTENT    = PEARL.GetConfigData("WELCOME_POPUP_CONTENT"),
---     AGREEMENT_SCREEN_CONTENT = PEARL.GetConfigData("AGREEMENT_SCREEN_CONTENT"),
--- }, true)
-
 PEARL.SafeModTableExtend("CONTROLS", {
     TOGGLE_CHAT = KEY_F1 -- 282
 })
@@ -152,7 +130,6 @@ local ModuleManager = PEARL.loadfile("libraries/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
-ModuleManager:AddModule("keybinds", PEARL.CONFIG.CUSTOM_CONTROLS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then

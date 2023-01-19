@@ -571,6 +571,9 @@ msgstr "%s **%s (`%s`)**\n> Počet prežitých dní: `%s`\n> Podozrenie: `%d%%`"
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLATFORM"
 msgstr "Platforma"
 
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENT"
+msgstr "Privítajme %s! Je tu prvý krát!"
+
 msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.GAME_V"
 msgstr "Verzia Hry"
 

@@ -1,13 +1,3 @@
-// Works exactly the same as 'agreement.txt' except that this doesn't support subtitles.
-// The message from here is displayed to the client
-//
-// When you are done, do not forget to enable the 'INTRO_SCREEN' option in the config file!
-//
-// EXAMPLE:
-//
-// # Československá komunita
-// Vitaj v Československej komunite hry Don't Starve.
-// Moc radi ťa tu vidíme!
+# Agreement Title
 
-# Welcome!
-Welcome to the server!
+Agreement text

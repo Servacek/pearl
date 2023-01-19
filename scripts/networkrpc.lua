@@ -105,6 +105,9 @@ local SERVER_USERID_RPCS = {
         local name = player and player:GetDisplayName() or client.name
         local entity = player and player.entity or nil
         if kicked then
+            -- Make sure we close the connection
+            PEARL.ServerNetwork:SendUserDisconnectFor(userid, "ID_DST_USER_INACTIVE")
+
             return TheNet:Announce(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
             ), entity, nil, "kicked_from_game")
@@ -151,6 +154,38 @@ local SERVER_USERID_RPCS = {
             PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
         end
     end,
+
+    AgreementData = function(userid, agreed, novice)
+        PEARL.debug("AgreementData")
+        if not optbool(agreed) and optbool(novice) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementData", userid)
+        end
+
+        if agreed == false then
+            return PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, "ID_DST_USER_DISAGREED")
+        end
+
+        local client = userid and TheNet:GetClientTableForUser(userid)
+        if not (client and type(client.name) == "string" and #client.name > 0) then
+            return PEARL.warn("Got AgreementData RPC from invalid client!")
+        end
+
+        if not novice then
+            return
+        end
+
+        -- Send a nice welcome message for novices.
+        local welcome_msg = STRINGS.PEARL.NOVICE_ANNOUNCEMENT:format(client.name)
+        if not PEARL.ServerNetwork:IsPaused() and #AllPlayers > 1 then
+            return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
+        end
+
+        if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
+            return PEARL.DiscordLogger:LogString(
+                welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
+            )
+        end
+    end
 }
 
 --------------------------

@@ -56,9 +56,11 @@ local _tracking_task = nil
 
 -- Notify the server that our AFK state changed so it can announce it, for example.
 local function UpdateAFKState(afk, kicked)
-    _is_afk = afk
+    if _is_afk ~= afk or kicked then
+        _is_afk = afk
 
-    PEARL.SendRPCToServer(PEARL.RPCS.AFKStateChanged, afk, kicked)
+        PEARL.SendRPCToServer(PEARL.RPCS.AFKStateChanged, afk, kicked)
+    end
 end
 
 local function OnPlayerRespawnedFromGhost()
@@ -75,6 +77,7 @@ local function OnBecomeInactive()
             ThePlayer.Network:AddUserFlag(USERFLAGS.IS_AFK)
         end
 
+        -- Kick ghosts faster.
         if not ThePlayer:HasTag("playerghost") and ThePlayer.sg and not ThePlayer.sg:HasStateTag("busy") then
             UserCommands.RunUserCommand(
                 "sit", {}, ThePlayer, false
@@ -128,7 +131,7 @@ local function CleanUp()
 end
 
 local function OnUpdate()
-    if TheNet:IsServerPaused() then
+    if PEARL.ClientNetwork and PEARL.ClientNetwork:IsPaused() then
         return
     end
 
@@ -196,19 +199,16 @@ PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", CleanUp)
 --------------------------------------
 
 local function OnPlayerEnteredGame()
-    if ThePlayer then
-        if ThePlayer.Network then
-            -- Just in case it was added by something.
-            ThePlayer.Network:RemoveUserFlag(USERFLAGS.IS_AFK)
-        end
-
-        if _is_ghost_sanity_drain_enabled then
-            ThePlayer:ListenForEvent("ms_becameghost", OnPlayerBecameGhost)
-            ThePlayer:ListenForEvent("ms_respawnedfromghost", OnPlayerRespawnedFromGhost)
-        end
-    end
-
+    -- Just to make sure the afk state is properly cleaned up
+    -- And we begin with the initial join delay.
+    CleanUp()
+    OnBecomeActive()
     RestartTrackingTask()
+
+    if ThePlayer ~= nil and _is_ghost_sanity_drain_enabled then
+        ThePlayer:ListenForEvent("ms_becameghost", OnPlayerBecameGhost)
+        ThePlayer:ListenForEvent("ms_respawnedfromghost", OnPlayerRespawnedFromGhost)
+    end
 end
 
 local function OnPlayerLeftGame()

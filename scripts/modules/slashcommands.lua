@@ -15,7 +15,6 @@
 local TheNet = TheNet
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 -------------------------------------
@@ -145,18 +144,19 @@ AddCommand("unban", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"player_id"}, -- Net/Klei ID
+    params = {"userid"}, -- Net/Klei ID
     params_optional= { false },
 
     -- This is executed on the local shard
     serverfn = function(params, caller)
-        if params == nil or caller == nil then
+        if not (params and caller and params.userid) then
             return
         end
 
-        if PEARL.UnbanUserByID(params.player_id) then
+        local userid = UserToClientID(params.userid) or params.userid
+        if PEARL.UnbanUserByID(userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
-                STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, params.player_id
+                STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS, userid
             ))
         end
 
@@ -170,37 +170,38 @@ AddCommand("allowlist-add", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"player_id"}, -- Net/Klei ID
+    params = {"userid"}, -- Net/Klei ID
     params_optional= { false },
 
     serverfn = function(params, caller)
-        if not (params and caller and params.player_id) then
+        if not (params and caller and params.userid) then
             return
         end
 
-        if PEARL.BlackList:Contains(params.player_id) then
+        local userid = UserToClientID(params.userid) or params.userid
+        if PEARL.BlackList:Contains(userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED
             )
         end
 
-        if PEARL.AllowList:Contains(params.player_id) then
+        if PEARL.AllowList:Contains(userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED
             )
         end
 
-        PEARL.AllowList:Add(params.player_id)
+        PEARL.AllowList:Add(userid)
         if PEARL.AllowList:Save() then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS,
-                params.player_id
+                userid
             ))
         end
 
         PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
             STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_FAILURE,
-            params.player_id
+            userid
         ))
     end,
 })
@@ -211,27 +212,28 @@ AddCommand("allowlist-remove", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"player_id"}, -- Net/Klei ID
+    params = {"userid"}, -- Net/Klei ID
     params_optional= { false },
 
     serverfn = function(params, caller)
-        if not (params and caller and params.player_id) then
+        if not (params and caller and params.userid) then
             return
         end
 
-        if not PEARL.AllowList:Contains(params.player_id) then
+        local userid = UserToClientID(params.userid) or params.userid
+        if not PEARL.AllowList:Contains(userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
             )
         end
 
-        PEARL.AllowList:Remove(params.player_id)
-        TheNet:Kick(params.player_id)
+        PEARL.AllowList:Remove(userid)
+        TheNet:Kick(userid)
 
         if PEARL.AllowList:Save() then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
                     STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS,
-                    params.player_id
+                    userid
                 )
             )
         end
@@ -262,7 +264,8 @@ AddCommand("inv", {
             )
         end
 
-        if PEARL.LogInventoryFor(params.userid) then
+        local userid = UserToClientID(params.userid) or params.userid
+        if PEARL.LogInventoryFor(userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
             )
@@ -340,11 +343,13 @@ AddCommand("inv-find", {
     end,
 })
 
+--- @DEBUG a bit
 AddCommand("daysback", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
+    confirm = true,
     params = { "days" },
     params_optional= { false },
 
@@ -385,6 +390,7 @@ AddCommand("admins", {
 
     -- Handle's the cooldown locally
     localfn = function(params, caller)
+        print(DataDumper(params))
         local curr_time = GetTime()
         if curr_time <= (caller.__soscall_cd_time or 0) then
             return -- This should not happen
@@ -392,7 +398,8 @@ AddCommand("admins", {
 
         caller.__soscall_cd_time = curr_time + (PEARL.CONFIG.ADMIN_CALL_COOLDOWN or 0)
 
-        PEARL.ClientNetwork:SendPlayerReportToServer(params.message)
+        -- Send all the input strings...
+        PEARL.ClientNetwork:SendPlayerReportToServer(tostring(params.message or "").." "..(tostring(params.rest or "")))
         ChatHistory:SendCommandResponse(STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.ON_SUCCESS)
     end,
 
@@ -431,12 +438,4 @@ AddClassPostConstruct("screens/chatinputscreen", function(self)
         delim = KLEI_ID_DELIM,
         words = userids,
     })
-end)
-
--------------------------------------------
--- Chat Queue
--------------------------------------------
-
-PEARL.AddClassPostConstruct("widgets/redux/chatqueue", function(self)
-    ChatQueue = self
 end)

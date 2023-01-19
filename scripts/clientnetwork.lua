@@ -15,7 +15,7 @@
 -- Constants
 ----------------------------------
 
-local TIMEOUT = 10 -- seconds
+local TIMEOUT = 15 -- seconds
 
 
 --- @TODO: Load the RPCs somewhere here.
@@ -28,6 +28,8 @@ local disconnecting = false
 local disconnect_data = {}
 local disconnected_by_server = false
 local force_disconnected = false
+
+local sim_paused = false
 
 local cfd = {
     locale      = TheNet:GetCountryCode(),
@@ -56,7 +58,7 @@ function ClientNetwork:Disconnect(reason, from_server)
         return PEARL.debug("Already disconnected...")
     end
 
-    disconnected_by_server = from_server or false
+    disconnected_by_server = from_server == true or false
     force_disconnected = true
 
     if PEARL.CONFIG.SERVER_REQUIRE_CFD and not self:HasSentCFD() then
@@ -70,8 +72,11 @@ function ClientNetwork:Disconnect(reason, from_server)
     -- It should be safe to call it here because missing FE should be handled at this point.
     OnNetworkDisconnect(reason, true, false)
 
+    -- Give a tick to the RPCs in case the frontend was already loaded and we
+    --PEARL.Scheduler:ExecuteInTime(0, function()
     TheNet:JoinServerResponse(true) -- true when disconnecting...
     TheNet:Disconnect(false)
+    --end)
 
     disconnecting = true
 end
@@ -84,6 +89,12 @@ function ClientNetwork:SendErrorTracebackToServer(traceback, ...)
     PEARL.info("Sending the error traceback to the server...")
 
     PEARL.SendRPCToServer(PEARL.RPCS.ClientError, TheSim:ZipAndEncodeString(traceback), ...)
+end
+
+function ClientNetwork:SendAgreementDataToServer(agreed, novice)
+    PEARL.info("Sending agreement data to the server...")
+
+    PEARL.SendRPCToServer(PEARL.RPCS.AgreementData, agreed, novice)
 end
 
 --- CFD = Connection Filter Data = Client Filter Data
@@ -173,13 +184,18 @@ function ClientNetwork:WasForceDisconnected()
     return force_disconnected
 end
 
+function ClientNetwork:IsPaused()
+    return sim_paused or TheNet:IsServerPaused()
+end
+
 ----------------------------------
 -- Handlers
 ----------------------------------
 
 function ClientNetwork:OnTimeout()
+    PEARL.info("Server response timed out! Disconnecting...")
     -- Disconnect the client if we didn't get the response from the server in time.
-    self:Disconnect() -- "ID_DST_NETWORK_TIMEOUT"
+    self:Disconnect("ID_DISCONNECTION_NOTIFICATION") -- "ID_DST_NETWORK_TIMEOUT"
 end
 
 ----------------------------------
@@ -230,6 +246,16 @@ PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", function(reason, ...)
 
     PEARL.debug("Deffering OnNetworkDisconnect")
     return false
+end)
+
+PEARL.AddGlobalFunctionPreCall("OnSimPaused", function()
+    PEARL.debug("OnSimPaused")
+    sim_paused = true
+end)
+
+PEARL.AddGlobalFunctionPreCall("OnSimUnpaused", function()
+    PEARL.debug("OnSimUnpaused")
+    sim_paused = false
 end)
 
 ----------------------------------

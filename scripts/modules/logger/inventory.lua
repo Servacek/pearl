@@ -40,7 +40,7 @@ local function CheckPlayersInventory(world, player)
         PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
 
         local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
-        local message = Message(STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY)
+        local message = Message()
         message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
 
         if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then

@@ -53,9 +53,7 @@ luac.out
 
 # User Data Folder
 data/*
-!data/allowlist.txt
-!data/agreement.txt
-!data/welcome.txt
+!data/README
 
 # TODO Folder
 .todo

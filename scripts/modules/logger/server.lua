@@ -116,12 +116,10 @@ local function OnClientDataReceived(userid, data)
     end
 
     local client = userid and TheNet:GetClientTableForUser(userid)
-    if not client or not client.name then
-        return
-    end
+    local name = client and client.name or userid
 
     local message = Message()
-    message:AddEmbed(EMBEDS.ClientMods(data.enabled_mods, client.name))
+    message:AddEmbed(EMBEDS.ClientMods(data.enabled_mods, name))
 
     PEARL.DiscordReporter:SendRawReportMessage(message)
 end

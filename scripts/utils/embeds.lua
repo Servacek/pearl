@@ -35,10 +35,10 @@ function EMBEDS.Inventory(pmd, highlighted)
     local name      = pmd:GetName() or ""
     local inventory = pmd:GetInventory()
     local prefab    = pmd:GetPrefab()
-    local age       = pmd:GetAgeInDays()
+    local age       = pmd:GetAge()
+    local netid     = pmd:GetNetID()
+    local url       = netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
 
-    local client    = userid and (PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid))
-    local url       = client and client.netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(client.netid)
 
     local description = ""
     local max_prefab_size = PEARL.GetMaxStringSize(inventory, true)
@@ -73,13 +73,10 @@ function EMBEDS.Inventory(pmd, highlighted)
     embed:SetDescription(description)
     embed:SetTimestamp(os.time())
 
+    -- The age field seems to be a bit weird here...
     embed:AddField(STRINGS.PEARL.LOGS.INV_EMBED_FIELD_NAMES.SURVIVED, STRINGS.PEARL.LOGS.INV_EMBED_SURVIVED_VALUE:format(
         age and age or "?", TheWorld and TheWorld.state.cycles + 1 or "?"
     ))
-
-    if client ~= nil and client.color then
-        embed:SetColor(PEARL.RGBToDecimal(PEARL.PercentToRGB(client.color)))
-    end
 
     return embed
 end
@@ -128,11 +125,11 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
                 fancyname, PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
             )
         else
-            description = description..fancyname.."[LOCAL MOD]"
+            description = description..fancyname.." [LOCAL MOD]"
         end
 
         if mod.temp == true then
-            description = description.."[TEMP]"
+            description = description.." [TEMP]"
         end
 
         description = description.."\n"

@@ -85,6 +85,7 @@
 local GLOBAL = GLOBAL
 local setmetable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
+--- LINK TESTS
 --------------------------------
 -- [[ Local Constants ]]
 --------------------------------
@@ -340,11 +341,13 @@ PEARL.AddAnnouncementCategory("hammer", "hammer.tex")
 PEARL.AddAnnouncementCategory("kill", "hambat.tex")
 PEARL.AddAnnouncementCategory("defeat", "trophy.tex")
 PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
+PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
 
 --- @TODO: add custom icon for these...
 PEARL.AddAnnouncementCategory("activate")
 PEARL.AddAnnouncementCategory("teach")
 PEARL.AddAnnouncementCategory("read")
+PEARL.AddAnnouncementCategory("welcome")
 
 --------------------------------
 -- [[ Custom Error Handler ]]
