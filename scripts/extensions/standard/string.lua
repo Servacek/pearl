@@ -1,10 +1,10 @@
 --[[====================================================[==[
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
-    
+
     Copyright (c) 2023 Fi7iP
     All rights reserved.
-    
+
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
@@ -12,11 +12,24 @@
 
 
 
+-------------------------------------
+-- [[ Global Localization ]]
+-------------------------------------
+
+local pairs = pairs
+
+local rep = string.rep
+local upper = string.utf8upper
+
+-------------------------------------
+-- [[ Public Functions ]]
+-------------------------------------
+
 function string:center(count, char)
     if not count then return self end
     char = char or " "
 
-    return string.rep(char, count)..self..string.rep(char, count)
+    return rep(char, count)..self..rep(char, count)
 end
 
 --- Removes leading space characters from a string.
@@ -88,7 +101,11 @@ end
 --- Converts the first letter of the given string to uppercase
 --- @return string result The formatted result string
 function string:capitalize()
-    return self and (self:gsub("^%l", string.upper)) or self
+    return self and (self:gsub("^%l", upper)) or self
+end
+
+function string:escape(char)
+    return self:gsub(char, "\\%1")
 end
 
 function string:raw()

@@ -121,31 +121,21 @@ end
 --------------------------------------
 
 -- Master does handle all the connections.
-if TheShard:IsMaster() then
-    PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid)
+if TheShard:IsMaster() and PEARL.ServerNetwork then
+    PEARL.ServerNetwork:AddJoinServerFilter(function(userid)
         -- IsEnabled return value can be changed during runtime!
         -- TheNet:GetUserID returns the owner's ID on dedicated servers.
         if AllowList:IsEnabled() and not (
             PEARL.AdminList:Contains(userid) or
             userid == TheNet:GetUserID()
         ) and not AllowList:Contains(userid) then
-            PEARL.info("Client", userid, "not whitelisted.")
-
-            if TheWorld then
-                TheWorld:PushModEvent("clientconnectionclosed", {
-                    userid = userid, reason = "ID_DST_SLOT_RESERVATION"
-                })
-            end
-
-            return false
+            PEARL.info("Client", userid, "not allowlisted.")
+            return false, "ID_DST_SLOT_RESERVATION"
         end
-
-        -- Else let the the default callback execute.
-        -- It should return always true.
     end)
 end
 
--- PEARL.EventProcessor:AddEventHandler("quit", function()
+-- PEARL.EventProcessor:AddSafeEventHandler("quit", function()
 --     AllowList:Save()
 -- end)
 

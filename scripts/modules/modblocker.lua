@@ -16,11 +16,9 @@
     Blocks some hacky mods from loading on the client.
 
     TODOS:
-        - If blocked mods are detected after loading,
-          send the mod list to the server...
+        - Make the detection of non-workshop mods better. TheSim:GetWorkshopVersion?
+        - Debug allowlist
 --]]
-
-local IsWorkshopMod = IsWorkshopMod
 
 -- Use the redux version instead of the default on since this is newer
 local PopupDialogScreen = require("screens/redux/popupdialog")
@@ -29,16 +27,21 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 -- [[ Constants ]]
 --------------------------------------
 
-local MOD_BLACKLIST = PEARL.CONFIG.MOD_BLACKLIST
+local MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST
+local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST
+local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST and not IsTableEmpty(PEARL.CONFIG.MOD_ALLOWLIST)
+local MAX_REPORT_COUNT = 10
 
 --------------------------------------
 -- [[ Private ]]
 --------------------------------------
 
-local were_mods_blocked = false
+local show_popup = true
 
-local mods_report = {}
-PEARL.ClientNetwork:SetCFDField("enabled_mods", mods_report)
+local mods_report = {
+    count = #ModManager:GetEnabledModNames(),
+    prohibited = false,
+}
 
 --------------------------------------
 -- [[ Helper Wrappers ]]
@@ -49,17 +52,32 @@ local function IsClientOnlyMod(modname)
     return modinfo and modinfo.client_only_mod == true
 end
 
-local function IsModBlacklisted(modname)
-    return MOD_BLACKLIST[modname] == true
+local function IsModAllowlisted(modname)
+    return table.contains(MOD_ALLOWLIST, GetWorkshopIdNumber(modname))
+end
+
+local function IsModBlocklisted(modname)
+    return table.contains(MOD_BLOCKLIST, GetWorkshopIdNumber(modname))
 end
 
 local function IsModPrivate(modname)
-    return not IsWorkshopMod(modname)
+    -- return IsWorkshopMod(modname)
+    --- @EXPERIMENTAL
+    return TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == ""
 end
 
 local function IsModAllowed(modname)
-    -- If the mod is not client_only then it's allowed without any further checks.
-    return not IsClientOnlyMod(modname) or (not IsModBlacklisted(modname) and not IsModPrivate(modname))
+    local allowlisted = IsModAllowlisted(modname)
+    -- ALWAYS block private mods since all the other checks can be bypassed
+    return (not IsModPrivate(modname) and not IsClientOnlyMod(modname)) or (
+        not IsModBlocklisted(modname) and (
+            not ALLOWLISTING or IsModAllowlisted(modname)
+        )
+    )
+end
+
+local function IsModReportable(modname)
+    return (KnownModIndex:IsModEnabled(modname) and not KnownModIndex:IsModTempEnabled(modname)) or KnownModIndex:IsModBlocked(modname)
 end
 
 local function SaveModIndex()
@@ -75,19 +93,23 @@ local function SaveModIndex()
     end
 end
 
-local function AddReportForMod(modname)
-    local blocked = IsModBlacklisted(modname)
-    mods_report[modname] = {
-        client_only = IsClientOnlyMod(modname),
+local function CreateReportForMod(modname)
+    return {
         private     = IsModPrivate(modname),
-        blocked     = blocked,
+        allowed     = IsModAllowed(modname),
         id          = GetWorkshopIdNumber(modname),
-        temp        = KnownModIndex:IsModTempEnabled(modname),
         fancyname   = GetModFancyName(modname)
     }
+end
 
-    if blocked then
-        PEARL.ClientNetwork:SetCFDField("mods_prohibited", true)
+local function AddReportForMod(modname)
+    local mod_report = CreateReportForMod(modname)
+    if not mod_report.allowed then
+        -- Show blocked mods at the top.
+        table.insert(mods_report, 1, mod_report)
+        mods_report.prohibited = true
+    else
+        mods_report[#mods_report + 1] = mod_report
     end
 end
 
@@ -98,27 +120,19 @@ end
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
     -- If we are in the strict mode leave the blocked mod's for the post mods load handler,
     -- so clients with blocked mods enabled will be disconnected from the server.
-    if MOD_BLACKLIST.strict == true then
+    if PEARL.CONFIG.MOD_BLOCKER.STRICT == true or IsModAllowed(modname) then
         return
     end
 
-    if not mods_report[modname] then
-        AddReportForMod(modname)
+    if KnownModIndex:IsModEnabled(modname) then
+        PEARL.debug("Blocking mod "..modname)
+        -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
+        table.removearrayvalue(self.enabledmods, modname)
+
+        -- Disable permanently so the popup does not show each time during shard migration or reset
+        KnownModIndex:Block(modname)
+        SaveModIndex()
     end
-
-    if IsModAllowed(modname) then
-        return true
-    end
-
-    PEARL.debug("Blocking mod "..modname)
-    -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
-    table.removearrayvalue(self.enabledmods, modname)
-
-    -- Disable permanently so the popup does not show each time during shard migration or reset
-    KnownModIndex:Disable(modname)
-    SaveModIndex()
-
-    were_mods_blocked = true
 
     -- Stop further execution
     return false
@@ -130,7 +144,7 @@ end, ModManager)
 
 -- This is when the game loads for the client and we can start playing
 local function OnPlayerActivated()
-    if were_mods_blocked then
+    if KnownModIndex:AreAnyModsBlocked() and show_popup then
         -- Inform the player that some of his mods were blocked by the server
         TheFrontEnd:PushScreen(
             PopupDialogScreen(
@@ -146,8 +160,7 @@ local function OnPlayerActivated()
             )
         )
 
-        -- We do not want multiple popup windows.
-        were_mods_blocked = false
+        show_popup = false
     end
 end
 
@@ -155,31 +168,39 @@ end
 -- [[ Initialization ]]
 --------------------------------------
 
-PEARL.AddPlayerPostInit(function(inst)
-    inst:ListenForEvent("playeractivated", OnPlayerActivated)
+PEARL.AddWorldPostInit(function(world)
+    if not world then
+        return
+    end
+
+    world:ListenForEvent("playeractivated", OnPlayerActivated)
     -- Show the popup in lobby as well.
-    inst:ListenForEvent("entercharacterselect", OnPlayerActivated)
+    world:ListenForEvent("entercharacterselect", OnPlayerActivated)
 end)
 
+-- This is being called before we send the CFD to server.
+--
 -- So far the best place where to drop this check I guess
 -- Load this before frontend since on FE post init we send the CFD data.
 PEARL.AddFrontEndPreInit(function()
-    local prohibited_mods = false
-    for _, modname in ipairs(ModManager:GetEnabledModNames() or {}) do
-        if not mods_report[modname] then
+    local disconnect = false
+    for _, modname in ipairs(KnownModIndex:GetModNames()) do
+        if #mods_report < MAX_REPORT_COUNT and IsModReportable(modname) then
             AddReportForMod(modname)
         end
 
-        if not IsModAllowed(modname) and KnownModIndex:IsModEnabled(modname) then
-            prohibited_mods = true
+        if KnownModIndex:IsModEnabled(modname) and not IsModAllowed(modname) then
+            disconnect = true
 
             -- Even though we are being disconnected,
             -- disable the mods in case of re-join.
-            KnownModIndex:Disable(modname)
+            KnownModIndex:Block(modname)
         end
     end
 
-    if prohibited_mods == true then
+    PEARL.ClientNetwork:SetCFDField("enabled_mods", mods_report)
+
+    if disconnect == true then
         -- Save the changes made to the mod configurations
         SaveModIndex()
 

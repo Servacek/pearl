@@ -19,7 +19,7 @@ PEARL.info("Loading Mod FE...")
 
 PEARL.SafeModTableExtend("CONSTS", {
     -- Create the file in game's data directory which is more persistent on clients
-    AGREEMENT_FILE_PATH = "AGREEMENT"
+    AGREEMENT_FILE_PATH = "AGREEMENT",
 })
 
 ----------------------------------
@@ -38,6 +38,14 @@ PEARL.SafeModTableExtend("CONTROLS", {
 })
 
 ----------------------------------
+-- Agreement Manager
+----------------------------------
+
+--- @type AgreementManager
+PEARL.AgreementManager = PEARL.loadfile("libraries/agreementmanager")
+PEARL.AgreementManager:Load()
+
+----------------------------------
 -- Client Network
 ----------------------------------
 
@@ -45,6 +53,7 @@ PEARL.info("Loading client network...")
 
 --- @type ClientNetwork
 PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
+PEARL.ClientNetwork:LoadDefaultCFD()
 
 --- @type ClientLoader
 PEARL.ClientLoader = PEARL.loadfile("clientloader")
@@ -71,15 +80,6 @@ Assets = {
     Asset("ATLAS", "images/dcbutton.xml"),
     Asset("ATLAS", "images/announcements.xml"),
 }
-
-----------------------------------
--- Scheduler
-----------------------------------
-
--- In frontend, use staticScheduler for background tasks
--- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
-PEARL.info("Loading static scheduler...")
-PEARL.Scheduler = staticScheduler
 
 ----------------------------------
 -- User Interface
@@ -112,6 +112,13 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then
 end
 
 ----------------------------------
+-- Game Extensions
+----------------------------------
+
+PEARL.info("Loading game extensions...")
+PEARL.loadfile("extensions/modindex")
+
+----------------------------------
 -- UI Extensions
 ----------------------------------
 
@@ -131,19 +138,18 @@ ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
-ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
-        "modblocker", not IsTableEmpty(PEARL.CONFIG.MOD_BLACKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
+        "modblocker", PEARL.CONFIG.MOD_BLOCKER.ENABLED
     )
     ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
     ModuleManager:AddModule(
-        "agreement", PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil or PEARL.CONFIG.WELCOME_POPUP_CONTENT ~= nil
+        "agreement", type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" or type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table"
     )
     ModuleManager:AddModule(
-        "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {})
+        "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
     )
 end
 

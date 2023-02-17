@@ -16,6 +16,18 @@
 Temporary solution for logging.
 --]]
 
+------------------------
+-- [[ Global Localization ]]
+------------------------
+
+local TheSim = TheSim
+
+local removearrayvalue = table.removearrayvalue
+
+------------------------
+-- [[ Constants ]]
+------------------------
+
 local MAX_COMMAND_LENGTH = 500
 
 ------------------------
@@ -26,12 +38,20 @@ local function structuresearchfn(index, entity)
     return entity and entity:HasTag("structure")
 end
 
+local function burnablestructuresearchfn(index, entity)
+    return entity and entity:HasTag("structure") and entity:HasTag("canlight")
+end
+
 local function defaultactioncheck(doer, target, item, pos)
     return (target ~= nil or item ~= nil)
 end
 
 local function playeractioncheck(doer, target, item, pos)
     return defaultactioncheck(doer, target, item, pos) and doer ~= nil and doer:HasTag("player")
+end
+
+local function playeritemactioncheck(doer, target, item, pos)
+    return playeractioncheck(doer, target, item, pos) and item ~= nil
 end
 
 ------------------------
@@ -47,7 +67,7 @@ local function RegisterActionHandler(action, handler, checkfn)
             local result, was_successfull
             if checkfn(doer, target, item, pos) then
                 was_successfull, result = PEARL.SafeRun(handler,
-                    act.doer, act.target, (act.invobject or act.recipe), act:GetActionPoint()
+                    doer, target, item, pos
                 )
             end
 
@@ -69,6 +89,10 @@ local function RegisterPlayerActionHandler(action, handler)
     return RegisterActionHandler(action, handler, playeractioncheck)
 end
 
+local function RegisterPlayerItemActionHandler(action, handler)
+    return RegisterActionHandler(action, handler, playeritemactioncheck)
+end
+
 ------------------------
 -- [[ Action Handler ]]
 ------------------------
@@ -78,8 +102,9 @@ end
 RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
     local near = target:GetPropagableEntities(
         PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
-        PEARL.CONSTS.ENT_CANT_HAVE_TAGS,
-        PEARL.CONSTS.ENT_ONEOF_TAGS
+        PEARL.CONSTS.ENT_CANT_HAVE_TAGS
+        -- Announce EVERYTHING burnably nearby.
+        --PEARL.CONSTS.ENT_ONEOF_TAGS
     )
 
     if not ((
@@ -94,7 +119,7 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
 
     if near and #near > 0 then
         return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
-            doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.GroupEntitiesByPrefab(near)
+            doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)
         }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE, doer.entity)
     end
 
@@ -166,6 +191,147 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
     end
 end)
 
+RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, target, item)
+    if PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil then
+        return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.COOK:format(
+            doer:GetDisplayName(), item:GetBasicDisplayName()
+        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)
+    end
+end)
+
+local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
+    if not entities or #entities <= 0 then
+        return
+    end
+
+    local silent = not nosilent and #entities < 3
+    local ents_str = PEARL.BuildFancyStringForEntities(entities)
+
+    if target then
+        if not noowner and target.components.workable and target.components.workable:HasBuilder() then
+            return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON_OWN_NEAR, {
+                doer = doer:GetDisplayName(),
+                item = item:GetBasicDisplayName(),
+                target = target:GetBasicDisplayName(),
+                near = ents_str,
+                owner = target.components.workable:GetBuilderName(),
+            }), tp, doer.entity, silent)
+        end
+
+        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON_NEAR, {
+            doer = doer:GetDisplayName(),
+            item = item:GetBasicDisplayName(),
+            target = target:GetBasicDisplayName(),
+            near = ents_str
+        }), tp, doer.entity, silent)
+    end
+
+    return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.NEAR, {
+        doer = doer:GetBasicDisplayName(),
+        item = item:GetBasicDisplayName(),
+        near = ents_str
+    }), tp, doer.entity, silent)
+end
+
+local function OnCast(doer, item, target, type, nosilent, noowner)
+    if not target then
+        return
+    end
+
+    local has_owner = target.components.workable and target.components.workable:HasBuilder() or false
+    local silent = not nosilent and (not has_owner or target.components.workable:IsBuildBy(doer.userid))
+
+    if not noowner and has_owner then
+        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON_OWNERED, {
+            doer = doer:GetDisplayName(),
+            item = item:GetBasicDisplayName(),
+            target = target:GetBasicDisplayName(),
+            owner = target.components.workable:GetBuilderName(),
+        }), type, doer.entity, silent)
+    end
+
+    return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON, {
+        doer = doer:GetDisplayName(),
+        item = item:GetBasicDisplayName(),
+        target = target:GetBasicDisplayName(),
+    }), type, doer.entity, silent)
+end
+
+local function OnCastDestruction(doer, item, target)
+    return OnCast(
+        doer, item, target,
+        PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER
+    )
+end
+
+local function OnCastFire(doer, item, target, pos, radius)
+    local entities = target and target:GetPropagableEntities(
+        PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
+        PEARL.CONSTS.ENT_CANT_HAVE_TAGS,
+        PEARL.CONSTS.ENT_ONEOF_TAGS,
+        nil, radius
+    ) or PEARL.GetBurnableEntitiesNearPos(pos, radius)
+
+    removearrayvalue(entities, target)
+
+    if #entities > 0 then
+        return OnAreaCast(
+            doer, item, target, entities,
+            PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN
+        )
+    end
+
+    OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN, true, true)
+end
+
+local function OnCastAreaDestruction(doer, item, target, pos, radius)
+    local entities = TheSim:FindEntities(pos.x, pos.y, pos.z, radius,
+        -- Do not care about plants here since they are not heavily affected by destruction.
+        nil, nil, PEARL.CONSTS.BASE_STRUCTURE_TAGS
+    )
+
+    removearrayvalue(entities, target)
+
+    if #entities > 0 then
+        return OnAreaCast(
+            doer, item, target, entities,
+            PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER, true
+        )
+    end
+
+    return OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER)
+end
+
+RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
+    -- Green Staff
+    if PEARL.PREFABS.DESTRUCTION_ITEMS[item.prefab] then
+        return OnCastDestruction(doer, item, target)
+    end
+
+    pos = pos or target:GetPosition()
+
+    local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
+    if ign_radius > 0 then
+        return OnCastFire(doer, item, target, pos, ign_radius)
+    end
+
+    -- Tornado Staff
+    local des_radius = PEARL.PREFABS.AREA_DESTRUCTIVE_STAFFS[item.prefab] or 0
+    if des_radius > 0 then
+        return OnCastAreaDestruction(doer, item, target, pos, des_radius)
+    end
+end)
+
+RegisterPlayerItemActionHandler(ACTIONS.ATTACK, function(doer, target, item, pos)
+    pos = pos or target:GetPosition()
+
+    -- Fire Staff - Using it counts as attacking not casting.
+    local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
+    if ign_radius > 0 then
+        return OnCastFire(doer, item, target, pos, ign_radius)
+    end
+end)
+
 -------------------
 -- KILLS --
 -------------------
@@ -186,7 +352,7 @@ local function onentitydeath(world, data)
         local doer_name = (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans"
         return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.BOSS, {
             doer = doer_name, target = target:GetFancyName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT, doer.entity)
+        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT, doer and doer.entity)
     end
 
     if not (doer and doer:HasTag("player")) then
@@ -241,7 +407,8 @@ end)
 
 local onburntup
 onburntup = function(target)
-    if not target then
+    -- Use InGamePlay() check to prevent spam when loading...
+    if not target or not InGamePlay() then
         return
     end
 
@@ -249,16 +416,12 @@ onburntup = function(target)
     target:RemoveEventCallback("burntup", onburntup)
 
     local workable = target.components and target.components.workable or nil
+    -- Only announce when a player creation burns up.
     if workable and workable:HasBuilder() then
         PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED, {
             target = target:GetFancyName(), owner = workable:GetBuilderName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, target.entity)
+        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN, target.entity)
     end
-
-    -- Only announce when a player creation burns up.
-    -- PEARL.AnnounceWithType(ANNOUNCEMENTS.BURNTUP:format(
-    --     target:GetDisplayName()
-    -- ))
 end
 
 --- @param inst EntityScript
@@ -275,9 +438,18 @@ end)
 -- THIEFS --
 -------------------
 
+-- Note: This causes quite a lot of spam when using some mods
+-- like Too Many Items etc...
 local function oncommandexecuted(doer, fnstr)
-    if not doer or doer.admin or not (type(fnstr) == "string" and #fnstr > 0) then
-        return PEARL.warn("Called oncommandexecuted with invalid arguments!")
+    -- It's totally normal when the command is just an empty string.
+    -- This happens for example when you just open and then close the console.
+    if not doer or not (type(fnstr) == "string" and #fnstr > 0) then
+        return
+    end
+
+    -- Ignore commands from the server owner.
+    if TheNet:GetUserID() == doer.userid then
+        return
     end
 
     if #fnstr > MAX_COMMAND_LENGTH then
@@ -289,6 +461,7 @@ local function oncommandexecuted(doer, fnstr)
     ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
 end
 
+--- @TODO: Announce these to the game only if the rarity is equal to 1.
 local function ontookrareitem(doer, item)
     if not (doer and item) then
         return PEARL.warn("Called ontookrareitem with invalid arguments!")
@@ -298,9 +471,10 @@ local function ontookrareitem(doer, item)
         return
     end
 
+    local silent = not item.components.inventoryitem:IsVeryRare()
     PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, {
         doer = doer:GetDisplayName(), item = item:GetFancyName()
-    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
+    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity, silent)
 end
 
 local function ontookrarecontainer(doer, data)
@@ -308,7 +482,7 @@ local function ontookrarecontainer(doer, data)
         return PEARL.warn("Called ontookrarecontainer with invalid arguments!")
     end
 
-    local items_str = PEARL.GroupEntitiesByPrefab(data.items)
+    local items_str = PEARL.BuildFancyStringForEntities(data.items)
     PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH, {
         doer = doer:GetDisplayName(), item = data.container:GetFancyName(), with = items_str
     }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
@@ -322,7 +496,7 @@ local function onfinishedlooting(doer, data)
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
     PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM, {
         doer = doer:GetDisplayName(), items = loot_string, target = data.container:GetFancyName()
-    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
+    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity, not data.items.rare)
 end
 
 -------------------------------

@@ -92,9 +92,8 @@ end
 
 function Embed:SetDescription(description)
     if not (type(description) == "string" and #description < Embed.MAX_DESCRIPTION_LENGTH) then
-        PEARL.warn("Attempted to set an invalid description!")
-
-        return self
+        PEARL.warn("Attempted to set an invalid description! Cropping...")
+        description = tostring(description):ltake(Embed.MAX_DESCRIPTION_LENGTH)
     end
 
     self.description = description

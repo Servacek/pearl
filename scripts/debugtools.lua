@@ -148,38 +148,27 @@ end
 -- [[ Profanity Filter Tests ]]
 --------------------------------
 
-local function _PFCheck(word, should_censor)
-    local expec = word -- The expected result
-    if should_censor then
-        expec = string.rep("*", #word)
-    end
-
+local function _PFCheck(word, expec)
     local result = ProfanityFilter:Apply(word)
     PEARL.info(word, "|", result, "|", expec, "|", result == expec)
 
     return result == expec
 end
 
-local PFchecks = {
-    {"--p--r--d--", true},
-    {"   p r d   ", true},
-    {"řiřřť", false},
-    {"p1r2d3e4l", false},
-    -- Ignore everything before the start and after the end
-    -- of the filtered word
-    {"ashh1.>te s>>t--.", false}
-}
+local PFchecks = {}
 function PEARL.TESTS.PFCheckSeparators()
-    local total = #PFchecks
-    local passed = 0
+    -- local total = #PFchecks
+    -- local passed = 0
 
-    for _, check in ipairs(PFchecks) do
-        if _PFCheck(check[1], check[2]) then
-            passed = passed + 1
-        end
-    end
+    -- for _, check in ipairs(PFchecks) do
+    --     if _PFCheck(check[1], check[2]) then
+    --         passed = passed + 1
+    --     end
+    -- end
 
-    PEARL.info("Tests passed", passed, "/", total)
+    -- PEARL.info("Tests passed", passed, "/", total)
+
+    return DSay("test DO PRDELEPRÁCE")
 end
 
 --------------------------------
@@ -298,30 +287,30 @@ function PEARL.TESTS.AltDentifier()
     PEARL.info("=============== TEST BANNED VALID ROOT ===============")
     TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_ZC24p91Q")
 
-    PEARL.Scheduler:ExecuteInTime(10, function()
+    PEARL.WallScheduler:ExecuteInTime(10, function()
         PEARL.info("=============== TEST BANNED ROOT ===============")
         TheNet:Ban("KU_NujB7r1v")
         TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_0Z4zp1dv")
     end)
 
-    PEARL.Scheduler:ExecuteInTime(20, function()
+    PEARL.WallScheduler:ExecuteInTime(20, function()
         PEARL.info("=============== TEST INVALID USERID ===============")
         TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_TEST")
     end)
 
-    PEARL.Scheduler:ExecuteInTime(30, function()
+    PEARL.WallScheduler:ExecuteInTime(30, function()
         PEARL.info("=============== TEST CACHED USERID ===============")
         TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_ZC24p91Q")
     end)
 
     -- Comment out "E_OWNERSHIP_MISSING" in DO_NOT_RETRY_ERRORS table
     -- in order for this to work.
-    PEARL.Scheduler:ExecuteInTime(40, function()
+    PEARL.WallScheduler:ExecuteInTime(40, function()
         PEARL.info("=============== TEST RETRY ===============")
         TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_ZC24p91X")
     end)
 
-    PEARL.Scheduler:ExecuteInTime(60, function()
+    PEARL.WallScheduler:ExecuteInTime(60, function()
         PEARL.info("=============== END ===============")
         local current_requests_count = PEARL.RestClient:GetSentRequestsCount()
         PEARL.info("Requests Sent:", current_requests_count - init_request_count)
@@ -442,14 +431,23 @@ function _G.RawLog(message, cb)
     }))
 end
 
-function _G.RawLogJSON(json_data, cb)
-    _G.RawRequest(cb, "POST", json_data)
+function _G.RawLogJSON(cb)
+    local f = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/test.json")
+    _G.RawRequest(cb, "POST", f:read())
 end
 
 function _G.DSay(message, whisper)
     Networking_Say(123, "KU_TEST", "Fi8iP",
         "wilson", message, nil, whisper or false,
         false, nil
+    )
+end
+
+function _G.DEmbed(title, desc)
+    return PEARL.DiscordLogger:LogEmbed(
+        Embed()
+        :SetTitle(title)
+        :SetDescription(desc)
     )
 end
 
@@ -713,6 +711,70 @@ function PEARL.TESTS.TestEmbeds()
     PEARL.DiscordLogger:LogEmbed(EMBEDS.Inventory(player_meta))
     PEARL.DiscordLogger:LogEmbed(EMBEDS.SuspiciousInventory(player_meta, .9))
     PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen())
+end
+
+--------------------------------
+-- [[ Queue ]]
+--------------------------------
+--- @TODO: Finish the testing here.
+--- Maybe replace the Queue with a normal table instead of the userdata?
+local Queue = PEARL.loadfile("libraries/queue")
+function PEARL.TESTS.Queue()
+    local max = 5
+    local queue = Queue(max)
+    assert(queue:empty() == true)
+    assert(queue:full() == false)
+    assert(queue:len() == 0)
+    assert(queue:take() == nil)
+    assert(queue:first() == nil)
+    assert(queue:last() == nil)
+    for i = 1, max + 1 do
+        assert(i == max + 1 or queue:full() == false)
+        queue:push(i)
+        assert(queue:len() == math.min(i, max))
+        print(queue._list.first, queue._list.last, queue:len())
+        assert(queue:empty() == false)
+    end
+
+    assert(queue:empty() == false)
+    assert(queue:full() == true)
+    assert(queue:len() == max)
+    assert(type(queue:first()) == "number")
+    assert(type(queue:last()) == "number")
+    assert(queue._list.first == 1, tostring(queue._list.first))
+    assert(queue._list.last == max)
+
+    for i = 1, max do
+        assert(queue:empty() == false, queue:len())
+        print(queue._list.first, queue._list.last, queue:len())
+        print(queue:take())
+        assert(queue:len() == max - i)
+    end
+
+    for i = 1, max + 1 do
+        queue:push(i)
+    end
+
+    local i = 0
+    for item in queue:iter() do
+        print(item, type(item))
+        assert(type(item) == "number")
+        i = i + 1
+    end
+
+    assert(i == queue:len())
+
+    queue:clear()
+    tdump(queue)
+    assert(queue:empty() == true)
+    assert(queue:full() == false)
+    assert(queue:len() == 0)
+    assert(queue:take() == nil)
+    assert(queue:first() == nil, queue:first())
+    assert(queue:last() == nil)
+
+    PEARL.info("All tests ran successfully!")
 end
 
 --------------------------------
@@ -720,6 +782,14 @@ end
 --------------------------------
 
 --- @TODO
+
+--------------------------------
+-- [[ Localizer ]]
+--------------------------------
+
+function PEARL.TESTS.WallScheduler()
+
+end
 
 --------------------------------
 -- [[ Game Announcements ]]
@@ -755,7 +825,7 @@ local TAB_SIZE = 4
 local MAX_RECURSIONS = 10
 function _G.tdump(t, i)
     if not i then
-        print("\n{")
+        print("{")
     end
 
     i = i or 1

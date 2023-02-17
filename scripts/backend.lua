@@ -12,6 +12,20 @@
 
 
 
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     Server specific stuff. Needs to be loaded only on the server.
 --]]
@@ -69,8 +83,7 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     -----------------------------------------
 
-    DISCONNECT_KICK_TIME        = 2 * 60,
-    LOCALIZATION_TIMEOUT        = 30,
+    DISCONNECT_KICK_TIME        = 0, -- No delay here.
 
     BAD_PING_THRESHOLD          = 300, -- This is what is used for server listing filters
 
@@ -81,6 +94,10 @@ PEARL.SafeModTableExtend("CONSTS", {
     EXTINGUISH_RADIUS           = 40,
     EXTINGUISH_AFTER            = 5,
     MONITORED_POPULATION_LIMIT  = 5,
+
+    SHARD_ID = {
+        MASTER = 1,
+    }
 
     ------------------------------------
     SKINS_PREVIEW_URL           = "https://items.kleientertainment.com/images/DST/%s/%s", -- .../DST/<skin prefab>/<size>
@@ -218,6 +235,21 @@ if PEARL.CONFIG.INTRO_SCREEN then
     end
 end
 
+
+if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
+    PEARL.info("Loading mod blocker configurations...")
+    io.ensure(PEARL.DATADIR.."modblacklist.txt")
+    io.ensure(PEARL.DATADIR.."modallowlist.txt")
+
+    PEARL.CONFIG.MOD_BLOCKLIST = io.strippedlines(PEARL.DATADIR.."modblacklist.txt")
+    PEARL.CONFIG.MOD_ALLOWLIST = io.strippedlines(PEARL.DATADIR.."modallowlist.txt")
+
+    if IsTableEmpty(PEARL.CONFIG.MOD_BLOCKLIST) and IsTableEmpty(PEARL.CONFIG.MOD_ALLOWLIST) then
+        PEARL.info("Mod blocker is enabled by the mod allowlist and blocklist are empty!")
+        PEARL.CONFIG.MOD_BLOCKER.ENABLED = false
+    end
+end
+
 --------------------------------
 -- [[ Server Tags ]]
 --------------------------------
@@ -245,14 +277,14 @@ PEARL.EMOTES = PEARL.loadfile("constants/emotes")
 PEARL.ICONS = PEARL.loadfile("constants/icons")
 
 --------------------------------
--- [[ Scheduler ]]
+-- [[ Wall Scheduler ]]
 --------------------------------
 
 PEARL.info("Setting up the wall-scheduler...")
 
 --- @type WallScheduler
-PEARL.Scheduler = PEARL.loadfile("libraries/wallscheduler")
-PEARL.Scheduler:StartWallUpdate()
+PEARL.WallScheduler = PEARL.loadfile("libraries/wallscheduler")
+PEARL.WallScheduler:StartWallUpdate()
 
 --------------------------------
 -- [[ Network ]]
@@ -307,9 +339,19 @@ PEARL.loadfile("extensions/components/container")
 PEARL.loadfile("extensions/components/edible")
 PEARL.loadfile("extensions/components/activable")
 
+--- @TODO: Create some extension manager. (maybe just extend the module manager)
+-- Performance testing
+if PEARL.CONFIG.PERFORMANCE_MODE then
+    PEARL.loadfile("extensions/components/updatelooper")
+    PEARL.loadfile("extensions/components/timer")
+end
+
 PEARL.info("Loading game script extensions...")
 PEARL.loadfile("extensions/scripts/entityscript")
 PEARL.loadfile("extensions/scripts/playercommon")
+
+PEARL.info("Loading mob brain extensions...")
+PEARL.loadfile("extensions/brains/pigbrain")
 
 if PEARL.CONFIG.NO_HEATROCK_DURABILITY then
     PEARL.info("Loading prefab extensions...")
@@ -354,20 +396,16 @@ local ModuleManager = PEARL.loadfile("libraries/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
--- Master only modules
-if not TheShard:IsSecondary() then
-    -- Master handles the connections
-    ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
-    ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
-    ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_PING)
-end
-
+ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
+ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
+ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_PING)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
-ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTER)
+ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enabled)
 -- This should not be called in backend I guess
 --ModuleManager:AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
 ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
+ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

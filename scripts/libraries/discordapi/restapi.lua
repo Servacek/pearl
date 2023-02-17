@@ -76,18 +76,18 @@ function RestAPI:_OnErrorStatusCode(status_code, result, request)
     end
 
     if status_code == DISCORD_STATUS_CODES.NOT_FOUND then
-        PEARL.error("RestAPI", "Invalid endpoint url.")
+        PEARL.error("Invalid endpoint url.")
         return self:SetIsDisabled(true)
     end
 
     if status_code == DISCORD_STATUS_CODES.GATEWAY_UNAVAILABLE then
         local retry_seconds = RETRY_SECONDS + math.random(RETRY_SECONDS)
-        PEARL.error("RestAPI", "Gateway Unavailable.")
+        PEARL.error("Gateway Unavailable.")
         PEARL.RestClient:RetryRequestAfter(request, retry_seconds)
     end
 
     if status_code > 500 then
-        return PEARL.error("RestAPI", "Server failed to proccess the request.")
+        return PEARL.error("Server failed to proccess the request.")
     end
 end
 
@@ -121,11 +121,11 @@ function RestAPI:RateLimitForTime(seconds)
             return
         end
 
-        self._rate_limit_task = PEARL.Scheduler:ExecuteInTime(seconds, function()
+        self._rate_limit_task = PEARL.WallScheduler:ExecuteInTime(seconds, function()
             PEARL.info("RestAPI", "Reanabling...")
             self:SetIsDisabled(false)
 
-            self._rate_limit_task:Cancel()
+            self._rate_limit_task:cancel()
             self._rate_limit_task = nil
         end)
     else

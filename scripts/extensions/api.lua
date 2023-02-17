@@ -17,6 +17,16 @@
     an extension to modindex.lua's environment functions.
 --]]
 
+----------------------------------
+-- Global Localization
+----------------------------------
+
+local unpack = unpack
+
+----------------------------------
+-- Locals
+----------------------------------
+
 local mod_post_inits = {}
 local file_pre_loads = {}
 local client_pre_loads = {}
@@ -133,13 +143,15 @@ function PEARL.AddGlobalFunctionPostCall(name, postcb)
 end
 
 -- A wrapper function for AddFunctionPreCall for global functions
-function PEARL.AddGlobalFunctionPreCall(name, precb)
+function PEARL.AddGlobalFunctionPreCall(name, precb, ignoremodenv)
     -- Use _G override functions in the game's environment
     local _, repl = PEARL.AddFunctionPreCall(name, precb, _G)
 
     -- Sync with mod's global environment since the reference there still refers to
     -- the origin.
-    PEARL.OverrideVariable(name, repl)
+    if not ignoremodenv then
+        PEARL.OverrideVariable(name, repl)
+    end
 end
 
 -- function PEARL.AddUpValueFunctionPreCall(name, precb, filename)
@@ -163,6 +175,21 @@ function PEARL.AddClassFunctionPostCall(name, postcb, class)
 
     return PEARL.AddFunctionPostCall(name, postcb, class, true)
 end
+
+function PEARL.AddUserDataFunctionPreCall(name, precb, userdata)
+    local mt = getmetatable(userdata)
+    assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
+
+    return PEARL.AddFunctionPreCall(name, precb, mt.__index)
+end
+
+function PEARL.AddUserDataFunctionPostCall(name, postcb, userdata)
+    local mt = getmetatable(userdata)
+    assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
+
+    return PEARL.AddFunctionPostCall(name, postcb, mt.__index)
+end
+
 
 function PEARL.AddModPostInit(fn)
     if KnownModIndex:IsModInitPrintEnabled() then
@@ -217,11 +244,6 @@ function PEARL.AddFilePreLoad(filename, fn)
     end
 
     table.insert(file_pre_loads[filename], fn)
-end
-
-function PEARL.DeferGameFileLoad(filename, seconds)
-    PEARL.AddFilePreLoad(filename, function() return false end)
-    PEARL.Scheduler:ExecuteInTime(seconds, require, nil, filename)
 end
 
 function PEARL.AddMetaMethodPostCall(name, tbl, postcb)
@@ -313,6 +335,10 @@ function PEARL.OverrideVariable(name, value, tbl, optional)
     end
 
     return rawset(tbl, name, value)
+end
+
+function PEARL.GetGlobal(name)
+    return rawget(_G, name)
 end
 
 ----------------------------------
@@ -462,8 +488,9 @@ end
 ---@param message string The content text of the announcement (supports multiline).
 ---@param tp string? The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
 ---@param entity? unknown The entity the announcement is about.
+---@param silent? boolean Whether the announcement should be sent to game or not.
 ---@param ... any Additional arguments to the TheNet:Announce function.
-function PEARL.AnnounceWithType(message, tp, entity, ...)
+function PEARL.AnnounceWithType(message, tp, entity, silent, ...)
     local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
     -- Everything overrides the default value
     if type(PEARL.CONFIG.ANNOUNCEMENTS[tp]) == "boolean" then
@@ -480,7 +507,7 @@ function PEARL.AnnounceWithType(message, tp, entity, ...)
     end
 
     -- Check for explicit false so by default is everything enabled.
-    if enabled ~= false then
+    if enabled ~= false and silent ~= true then
         -- When we announce the message it will be logged to discord implicitly.
         return TheNet:Announce(message, entity, nil, tp, ...)
     end

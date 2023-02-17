@@ -1,31 +1,57 @@
--- Credits to KoreanWaffles for this
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+---------------------------------
+-- [[ Global Localization ]]
+---------------------------------
+
+local debug = debug
+
+---------------------------------
+-- [[ Class Declaration ]]
+---------------------------------
 
 local UpvalueHacker = {}
-local function GetUpvalueHelper(fn, name)
-	local i = 1
-	while debug.getupvalue(fn, i) ~= name do
-		i = i + 1
+
+---------------------------------
+-- [[ Static Methods ]]
+---------------------------------
+
+function UpvalueHacker.ListUpvalues(fn)
+	local info = debug.getinfo(fn, "u")
+	for i = 1, (info and info.nups or 0) do
+		print(debug.getupvalue(fn, i))
 	end
-	local name, value = debug.getupvalue(fn, i)
-	return value, i
 end
 
-function UpvalueHacker.GetUpvalue(fn, ...)
-	local prv, i, prv_var = nil, nil, "(the starting point)"
-	for j,var in ipairs({...}) do
-		assert(type(fn) == "function", "We were looking for "..var..", but the value before it, "
-			..prv_var..", wasn't a function (it was a "..type(fn)
-			.."). Here's the full chain: "..table.concat({"(the starting point)", ...}, ", "))
-		prv = fn
-		prv_var = var
-		fn, i = GetUpvalueHelper(fn, var)
+function UpvalueHacker.GetUpvalue(fn, name)
+	local info = debug.getinfo(fn, "u")
+	for i = 1, (info and info.nups or 0) do
+		local n, v = debug.getupvalue(fn, i)
+		if n == name then
+			return v, i
+		end
 	end
-	return fn, i, prv
+
+	error("Upvalue '"..tostring(name).."' not found!")
 end
 
 function UpvalueHacker.SetUpvalue(start_fn, new_fn, ...)
-	local _fn, _fn_i, scope_fn = UpvalueHacker.GetUpvalue(start_fn, ...)
-	debug.setupvalue(scope_fn, _fn_i, new_fn)
+	local fn, i = UpvalueHacker.GetUpvalue(start_fn, ...)
+	debug.setupvalue(fn, i, new_fn)
 end
+
+---------------------------------
+-- [[ Return ]]
+---------------------------------
 
 return UpvalueHacker

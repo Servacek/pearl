@@ -160,7 +160,9 @@ return Class(function(self, inst)
     --------------------------------
 
     GetStolenItems = function(container)
-        local stolen_items = {}
+        local stolen_items = {
+            rare = false
+        }
 
         -- Items can be invalid here
         for _, cached_item in ipairs(self._ac_items_cache) do
@@ -170,8 +172,11 @@ return Class(function(self, inst)
             then
                 cached_item.components.inventoryitem:SetLastPicker(self._inst)
 
-                -- Make sure we still own the item
                 stolen_items[#stolen_items + 1] = cached_item
+
+                if cached_item.components.inventoryitem:IsVeryRare() then
+                    stolen_items.rare = true
+                end
             end
         end
 

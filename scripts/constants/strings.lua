@@ -31,6 +31,7 @@ STRINGS.PEARL = {
         TEACH                   = "%s learnt %s!",
         READ                    = "%s read %s!",
         ACTIVATE                = "%s activated %s!",
+        COOK                    = "%s cooked %s!",
         --DEFEAT                  = "%s defeated %s!",
 
         TAKE_ITEM = {
@@ -56,7 +57,9 @@ STRINGS.PEARL = {
         CAST = {
             NEAR        = "{doer} used {item} near {near}!",
             ON          = "{doer} used {item} on {target}!",
+            ON_OWNERED  = "{doer} used {item} on {target}! Owner: {owner}",
             ON_NEAR     = "{doer} used {item} on {target} near {near}!",
+            ON_OWN_NEAR = "{doer} used {item} on {target} near {near}! Owner: {owner}"
         },
 
         BUILD = {
@@ -80,6 +83,55 @@ STRINGS.PEARL = {
         }
     },
 
+    SHARDS = {
+        MASTER      = "Master",
+        SECONDARY   = "Caves",
+        UNKNOWN     = "Unknown",
+    },
+
+    EMBEDS = {
+        STARTUP = {
+            THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
+            TITLE = "Server Launched",
+            FD_NAMES = {
+                PLATFORM    = "Plaform",
+                GAME_V      = "Game Version",
+                MOD_V       = "Mod Version",
+                SEED        = "World Seed",
+                PLAYSTYLE   = "Playstyle",
+                EVENT       = "Event",
+            },
+        },
+
+        REGEN = {
+            TITLE = "Shard `%s` Regenerated",
+            THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066443002630918236/world.png",
+            FD_NAMES = {
+                SEED            = "New World Seed",
+                SESSION_ID      = "World ID",
+                SAVE_VERSION    = "Save Version",
+                --- @TODO
+                REED_TRAP       = "Reed Trap",
+                WALRUS_CAMPS    = "Walrus Camps",
+            },
+        },
+
+        INV = {
+            TITLE = "%s %s `%s`",
+            INVENTORY = MARKDOWN.bold("Inventory"),
+            INVENTORY_EMPTY = MARKDOWN.italic("*Inventory Empty*"),
+            SURVIVED = "`%s/%s`",
+            FD_NAMES = {
+                SURVIVED        = "Days Survived",
+                SUSPICIOUSNESS  = "Suspiciousness",
+            },
+        },
+
+        MODS = {
+            TITLE = "%s's Enabled Mods"
+        }
+    },
+
     LOGS        = {
         --PLAYER_COUNT            = "%s Total players: %d/%d", -- Not needed currently
         OWNER                   = "%s Owner: %s",
@@ -88,6 +140,7 @@ STRINGS.PEARL = {
         TAG                     = "[%s]",
         ANNOUNCEMENT            = "Announcement",
         UNKNOWN                 = "Unknown",
+        NONE_EVENT              = "No Event",
 
         INV_REPORT_TITLE        = "%s %s's Inventory",
         INV_REPORT_EMPTY        = "*Loading failed or the inventory is empty.*",
@@ -104,11 +157,14 @@ STRINGS.PEARL = {
         DISCONNECT              = "%s was disconnected from shard %s as %s.",
         DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s as %s.",
         DISCONNECT_REASON       = "%s was disconnected from shard %s as %s. %s",
+        CONNECTED_TO_SHARD      = "%s was connected to shard %s as %s.",
         CAVES_STATE_UPDATE      = "Secondary shard Caves has been %s.",
+        LOCALIZATION_TIMEOUT    = "Localization process for client %s has timed out!",
         MIGRATING               = "%s is migrating to shard %s.",
         WARNED                  = "%s was warned for griefing!",
+        STAFF_CALLED            = "Admins and server moderators were notified.",
         SKIN_RECEIVED           = "%s received %s!",
-        DAY                     = "Day %d - %s (%s °C)",
+        DAY                     = "Day %d - %s (%s °C) - %d/%d Players",
         PHASE                   = "%s",
 
         START_VOTE              = "%s started %s.",
@@ -121,6 +177,8 @@ STRINGS.PEARL = {
         RESET_COUNTDOWN_STOP    = "World reset countdown has stopped.",
 
         SERVER_INITIALIZED      = "The system has been initialized. Loading the server...",
+        SHARD_LOADED_MASTER     = "Shard `%s` was loaded.",
+        SHARD_LOADED_SECONDARY  = "Shard `%s` was loaded. Connecting to shard `%s`...",
 
         AUTO_UPDATE_FIRST       = "Server's version is outdated, new players aren't able to connect. It will be automatically updated in %s seconds.",
         AUTO_UPDATE_FIRST_DIS   = "Server's version is outdated, new players aren't able to connect.",
@@ -131,6 +189,7 @@ STRINGS.PEARL = {
         RESTART                 = "Restarting the server...",
         ROLLBACK                = "Rolling server %s snapshots back!",
         ROLLBACK_DAYS           = "Rolling server back to day %s!",
+        SAVE                    = "Saving world on shard %s...",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
         SHUTDOWN_ERROR          = "Shard %s has crashed!",
@@ -169,28 +228,6 @@ STRINGS.PEARL = {
         USER_INACTIVE           = "%s went away...",
         USER_INACTIVE_KICKED    = "%s was kicked for inactivity.",
 
-        STARTUP_EMBED_THUMBNAIL_URL = "https://cdn.discordapp.com/attachments/662636816091971604/1038563863282581584/dedicated.png",
-        STARTUP_EMBED_TITLE     = "Server Launched",
-        STARTUP_EMBED_FIELD_NAMES = {
-            PLATFORM    = "Plaform",
-            GAME_V      = "Game Version",
-            MOD_V       = "Mod Version",
-            SEED        = "World Seed",
-            PLAYSTYLE   = "Playstyle",
-        },
-
-        --- @TODO: Add Translations
-        INV_EMBED_TITLE = "%s %s `%s`",
-        INV_EMBED_INVENTORY_TITLE = MARKDOWN.bold("Inventory"),
-        INV_EMBED_IVNENTORY_TITLE_EMPTY = "*Inventory Empty*",
-        INV_EMBED_SURVIVED_VALUE = "`%s/%s`",
-        INV_EMBED_FIELD_NAMES = {
-            SURVIVED        = "Days Survived",
-            SUSPICIOUSNESS  = "Suspiciousness",
-        },
-
-        MODS_EMBED_TITLE = "%s's Enabled Mods",
-
         SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
         SUSPICIOUS_INVENTORY = "**Suspicious Inventory Detected:**",
 
@@ -224,8 +261,10 @@ STRINGS.PEARL = {
     SEASON_UNKNOWN          = "Unknown Season",
 
     UI = {
+        CONSOLE_DISABLED = "Disabled :)",
+
         -- Mod blocker popup
-        MODS_BLOCKED_TITLE = "Mods Blocked",
+        MODS_BLOCKED_TITLE = "Mods Disabled",
         MODS_BLOCKED_BODY  = "Some of the mods you are using were blocked by the server.",
 
         TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
@@ -310,8 +349,6 @@ STRINGS.PEARL = {
             SOS = {
                 PRETTYNAME = "Call the Admins",
                 DESC       = "If you find yourself in a hopeless situation... call the admins!",
-
-                ON_SUCCESS = "Admins and server moderators were notified.",
             }
         },
 
@@ -321,6 +358,15 @@ STRINGS.PEARL = {
         AGREEMENT_SCREEN_BUTTON_FINISH = "Finish",
         AGREEMENT_SCREEN_BUTTON_AGREE = "I agree",
         AGREEMENT_SCREEN_BUTTON_DISAGREE = "I disagree",
+
+        AGREEMENT_UPDATED_POPUP_TITLE = "Server Agreement Update",
+        AGREEMENT_UPDATED_POPUP_BODY = "The server agreement has been updated and needs your review.",
+        AGREEMENT_UPDATED_POPUP_CONTINUE = "Continue",
+
+        AGREEMENT_DECLINE_POPUP_TITLE = "Decline the Server Agreement?",
+        AGREEMENT_DECLINE_POPUP_BODY = "You will not be able to play on the server. Are you sure?",
+        AGREEMENT_DECLINE_BUTTON_YES = "Yes",
+        AGREEMENT_DECLINE_BUTTON_NO  = "No",
     },
 
     GRIEFER_WARNINGS        = {
@@ -343,7 +389,16 @@ STRINGS.PEARL = {
         BAN = "There we go again...",
     },
 
-    NOVICE_ANNOUNCEMENT = "Say welcome to %s! It's their first time on the server!"
+    --- @TODO: Add a bit more strings here.
+    NOVICE_ANNOUNCEMENTS = {
+        "Say welcome to %s! It's their first time on the server!",
+        "Say hi to %s! He is new here!",
+        "For the first time! It's %s!",
+        "Let's welcome %s!",
+        "%s joined for the first time! Welcome!",
+        "Glad you are here %s!",
+        "Finaly %s has arrived! Welcome!"
+    }--"Say welcome to %s! It's their first time on the server!"
 }
 
 ------------------------------------
@@ -367,4 +422,9 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_MODS_PROHIBITED",
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_LOCALE_BLOCKED",
     "Community Server",
     "This server currently only accepts connections\nfrom the Czech Republic and Slovakia."
+)
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_SERVER_RESPONSE_TIMEOUT",
+    "Server Not Responding",
+    "The server is not responding. Please try again."
 )

@@ -9,13 +9,13 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
-
+--- @TODO: Periodically check server's performance and report that as well.
 
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 
-PEARL.EventProcessor:AddEventHandler("clientdatareceived", function(userid, data)
+PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", function(userid, data)
     if not (userid and data and data.ping) then
         return
     end

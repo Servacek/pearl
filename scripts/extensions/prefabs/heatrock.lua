@@ -10,7 +10,9 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
+--[[
+    A very lightweight module for removing thermal stone durability.
+--]]
 
 PEARL.AddPrefabPostInit("heatrock", function(inst)
     if not (inst and inst.components and inst.components.fueled) then

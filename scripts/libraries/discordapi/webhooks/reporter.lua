@@ -82,6 +82,12 @@ function Reporter:SendRawReportMessage(message, force)
     )
 end
 
+--- @param str string
+--- @param force boolean?
+function Reporter:SendRawReportString(str, force)
+    return self:SendRawReportMessage(Message(str), force)
+end
+
 --- @param reason string A short description of the issue that has occured.
 function Reporter:ReportFailedHTTPRequest(reason)
     if type(reason) ~= "string" or self:IsDisabled() then
@@ -90,7 +96,7 @@ function Reporter:ReportFailedHTTPRequest(reason)
 
     reason = MARKDOWN.codeblock(reason:ltake(MAX_TRACEBACK_LENGHT, nil, "..."))
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.HTTP_ERROR:format(
-        MARKDOWN.codeline(PEARL.GetShardName()), reason
+        MARKDOWN.codeline(PEARL.GetShardFancyName()), reason
     )))
 end
 
@@ -108,7 +114,7 @@ function Reporter:ReportUncatchedLuaError(traceback)
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED:format(
-        MARKDOWN.codeline(PEARL.GetShardName()), traceback
+        MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
     )), true) -- Force-send uncatched errors.
 end
 
@@ -120,7 +126,7 @@ function Reporter:ReportCatchedLuaError(traceback)
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_CATCHED:format(
-        MARKDOWN.codeline(PEARL.GetShardName()), traceback
+        MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
     )))
 end
 

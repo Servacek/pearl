@@ -57,14 +57,14 @@ function EntityScript:IsResourcePlant()
         and self:HasOneOfTags(PEARL.CONSTS.RESOURCE_PLANT_TAGS)
 end
 
-function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, checkfn)
+function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, checkfn, rad)
     local x, y, z = self.Transform:GetWorldPosition()
     if not (x and y and z) then
         return {}
     end
 
     local radius = self.components.propagator and self.components.propagator.propagaterange
-        or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
+        or rad or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
 
     if TheWorld and TheWorld.state and TheWorld.state.isspring then
         radius = radius * TUNING.SPRING_FIRE_RANGE_MOD
@@ -138,4 +138,21 @@ end
 
 function EntityScript:RemoveModEventCallback(event, ...)
     return self:RemoveEventCallback(PEARL.CONSTS.EVENT_PREFIX..event, ...)
+end
+
+-----------------------------------
+-- [[ Scheduler Extensions ]]
+-----------------------------------
+
+if PEARL.CONFIG.PERFORMANCE_MODE then
+    --- Do not do this for DoTaskInTime since that's used for growable component.
+    --- @TODO: A better aproach to this would be to make tasks sleepable.
+    local _DoPeriodicTask = EntityScript.DoPeriodicTask
+    function EntityScript:DoPeriodicTask(time, fn, ...)
+        return _DoPeriodicTask(self, time, function(...)
+            if self.entity:IsAwake() then
+                fn(...)
+            end
+        end, ...)
+    end
 end

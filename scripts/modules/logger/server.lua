@@ -38,12 +38,12 @@ local function OnShutdown(world, error)
 
     PEARL.DiscordLogger:LogStringHighlighted(
         STRINGS.PEARL.LOGS[error and "SHUTDOWN_ERROR" or "SHUTDOWN"]:format(
-            MARKDOWN.codeline(PEARL.GetShardName())
+            MARKDOWN.codeline(PEARL.GetShardFancyName())
         ), PEARL.ICONS.SERVER_STATE.STOP, true
     )
 end
 
-local function OnShardStateUpdate(world, state)
+local function OnShardStateUpdate(world, world_id, state)
     if not state then
         return
     end
@@ -80,13 +80,6 @@ local function OnPauseDirty(world, data)
     paused = data.pause
 end
 
--- This is being called only for Master shard
--- function Logger.OnGamePostInit()
---     SUB.Lhook:SendNotifyImportant(SUB.STRINGS.GAME_LOADED:format(
---         MARKDOWN.codeline(SUB.GetShardName())
---     ))
--- end
-
 local function OnFirstLaunch()
     -- TheWorld should exist at this point
     if not (TheWorld and TheWorld.meta) or _is_shutting_down then
@@ -96,8 +89,14 @@ local function OnFirstLaunch()
     PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
 end
 
+local function OnShardLoaded(master)
+    local template = master and STRINGS.PEARL.LOGS.SHARD_LOADED_MASTER or STRINGS.PEARL.LOGS.SHARD_LOADED_SECONDARY
+    PEARL.DiscordLogger:LogStringHighlighted(
+        template:format(PEARL.GetShardFancyName(), STRINGS.PEARL.SHARDS.MASTER), PEARL.ICONS.CHECK
+    )
+end
+
 local function OnModBackendPostInit()
-    -- This is being sent before FrontEnd so the translations are not applied.
     PEARL.DiscordLogger:LogStringHighlighted(
         STRINGS.PEARL.LOGS.SERVER_INITIALIZED, nil, true
     )
@@ -109,29 +108,16 @@ local function OnInvalidClientRPC(rpc_name, userid)
     ), PEARL.ICONS.X)
 end
 
---- @TODOv2.1: Move this to mod blocker.
-local function OnClientDataReceived(userid, data)
-    if not (data and data.enabled_mods and data.mods_prohibited == true) then
-        return
-    end
-
-    local client = userid and TheNet:GetClientTableForUser(userid)
-    local name = client and client.name or userid
-
-    local message = Message()
-    message:AddEmbed(EMBEDS.ClientMods(data.enabled_mods, name))
-
-    PEARL.DiscordReporter:SendRawReportMessage(message)
-end
-
 -------------------------------
 -- [[ Listeners ]]
 -------------------------------
 
-PEARL.AddGamePostInit(function()
-    if not (TheWorld and PEARL.CONFIG.DISCORD.LHOOK.ENABLED) then
+PEARL.AddSimPostInit(function()
+    if not (TheWorld and PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled()) then
         return
     end
+
+    OnShardLoaded(TheWorld.ismastershard)
 
     TheWorld:ListenForModEvent("shard_shutdown", OnShutdown)
 
@@ -148,15 +134,6 @@ PEARL.AddGamePostInit(function()
     end
 end)
 
-PEARL.EventProcessor:AddEventHandler("invalidrpc", OnInvalidClientRPC)
-PEARL.EventProcessor:AddEventHandler("clientdatareceived", OnClientDataReceived)
-
--- PEARL.AddModPostInit(function()
---     if TheShard:IsMaster() and TheSim:GetNumLaunches() > 1 then
---         OnModBackendPostInit()
---     end
--- end)
-
 --- This is actually the point where most of the mod's stuff is loaded.
 --- (translations, rpcs, ...)
 PEARL.AddFrontEndPostInit(function(fe)
@@ -165,5 +142,4 @@ PEARL.AddFrontEndPostInit(function(fe)
     end
 end)
 
--- This is being called on regens and resets as well
--- PEARL.EventProcessor:AddEventHandler("quit", OnShutdown)
+PEARL.EventProcessor:AddSafeEventHandler("invalidrpc", OnInvalidClientRPC)

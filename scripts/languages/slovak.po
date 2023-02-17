@@ -56,6 +56,9 @@ msgstr "%s zjedol/la %s!"
 msgctxt "STRINGS.PEARL.ACTIONS.ACTIVATE"
 msgstr "%s aktivoval/a %s!"
 
+msgctxt "STRINGS.PEARL.ACTIONS.COOK"
+msgstr "%s uvaril/a %s!"
+
 msgctxt "STRINGS.PEARL.ACTIONS.READ"
 msgstr "%s prečítal/a %s!"
 
@@ -65,6 +68,9 @@ msgstr "%s použil/a %s!"
 msgctxt "STRINGS.PEARL.LOGS.ROLLBACK"
 msgid "Rolling server %s snapshots back!"
 msgstr "Server bude vrátený o %s záznam/y/ov späť."
+
+msgctxt "STRINGS.PEARL.LOGS.SAVE"
+msgstr "Ukládanie sveta shardu %s..."
 
 msgctxt "STRINGS.PEARL.LOGS.START"
 msgid "Starting the server..."
@@ -76,8 +82,8 @@ msgstr "Neznámy"
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
 msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s."
 
-msgctxt "STRINGS.PEARL.LOGS.MODS_EMBED_TITLE"
-msgstr "Zoznam Modov Hráča %s"
+msgctxt "STRINGS.PEARL.EMBEDS.MODS.TITLE"
+msgstr "Zoznam Aktívnych Modov Hráča %s"
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_GENERIC"
 msgstr "%s odpojené od shardu %s."
@@ -122,7 +128,7 @@ msgstr "**%s**: %s"
 
 msgctxt "STRINGS.PEARL.LOGS.AUTH"
 msgid "%s authenticated as %s"
-msgstr "%s autentifikované ako %s"
+msgstr "%s autentifikovaný/á ako %s"
 
 msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_TITLE"
 msgid "%s %s's Inventory"
@@ -142,7 +148,7 @@ msgstr "[W] **%s**: *%s*"
 
 msgctxt "STRINGS.PEARL.LOGS.DAY"
 msgid "Day %d - %s (%s °C)"
-msgstr "Deň %d - %s (%s °C)"
+msgstr "Deň %d - %s (%s °C) - %d/%d Hráčov"
 
 msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH"
 msgid "Fires were extinguished!"
@@ -178,6 +184,9 @@ msgstr "{doer} použil/a {item} na {target} pri {near}!"
 msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON"
 msgid "{doer} used {item} on {target}!"
 msgstr "{doer} použil/a {item} na {target}!"
+
+msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON_OWNERED"
+msgstr "{doer} použil/a {item} na {target}! Majiteľ: {owner}"
 
 msgctxt "STRINGS.PEARL.ACTIONS.CAST.NEAR"
 msgid "{doer} used {item} near {near}!"
@@ -559,34 +568,94 @@ msgctxt "STRINGS.PEARL.PHASES.NIGHT"
 msgid "Night"
 msgstr "Noc"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE"
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.TITLE"
 msgstr "Server Spustený"
+
+msgctxt "STRINGS.PEARL.EMBEDS.INV.INVENTORY"
+msgstr "**Inventár**"
+
+msgctxt "STRINGS.PEARL.EMBEDS.INV.INVENTORY_EMPTY"
+msgstr "*Inventár je prázdny...*"
+
+msgctxt "STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SURVIVED"
+msgstr "Prežité dni"
+
+msgctxt "STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SUSPICIOUSNESS"
+msgstr "Podozrenie"
+
+msgctxt "STRINGS.PEARL.EMBEDS.REGEN.TITLE"
+msgstr "Shard `%s` Regenerovaný"
+
+msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED"
+msgstr "Nový Seed Sveta"
+
+msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SESSION_ID"
+msgstr "ID Sveta"
+
+msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION"
+msgstr "Verzia Uloženia"
 
 msgctxt "STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR"
 msgstr "**Výsledky vyhľadávania pre `%s` (`%d`):**"
 
+msgctxt "STRINGS.PEARL.LOGS.NONE_EVENT"
+msgstr "Žiaden Event"
+
 msgctxt "STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY"
 msgstr "%s **%s (`%s`)**\n> Počet prežitých dní: `%s`\n> Podozrenie: `%d%%`"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLATFORM"
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.PLATFORM"
 msgstr "Platforma"
 
-msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENT"
-msgstr "Privítajme %s! Je tu prvý krát!"
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"
+msgstr "Privítajme %s! Je tu po prvý krát!"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.GAME_V"
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.2"
+msgstr "Po prvý krát prišiel/a %s! Radi ťa tu vidíme."
+
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.3"
+msgstr "Tak nakoniec si predsa dorazil/a, %s."
+
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4"
+msgstr "%s sa po prvý raz podarilo dostať sem! Vitaj!"
+
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.5"
+msgstr "%s vstúpil/a do konštanty nášho servera!"
+
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.6"
+msgstr "Privítajme %s! Je tu po prvý krát!"
+
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.7"
+msgstr "Po prvý krát je tu %s!"
+
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.GAME_V"
 msgstr "Verzia Hry"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.MOD_V"
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.MOD_V"
 msgstr "Verzia Modu"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.SEED"
+msgctxt "STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT"
+msgstr "Hráč %s sa nelokalizoval včas."
+
+msgctxt "STRINGS.PEARL.LOGS.CONNECTED_TO_SHARD"
+msgstr "%s bol/a pripojený/á k shardu %s ako %s."
+
+msgctxt "STRINGS.PEARL.LOGS.SHARD_LOADED_MASTER"
+msgstr "Shard `%s` bol načítaný."
+
+msgctxt "STRINGS.PEARL.SHARDS.UNKNOWN"
+msgstr "Neznámy"
+
+msgctxt "STRINGS.PEARL.LOGS.SHARD_LOADED_SECONDARY"
+msgstr "Shard `%s` bol načítaný. Pripájanie k shardu `%s`..."
+
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.SEED"
 msgstr "Seed Sveta"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLAYSTYLE"
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLAYSTYLE"
 msgstr "Herný Režim"
 
-msgctxt "STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.LOCALE"
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.LOCALE"
 msgstr "Sídlo Servera"
 
 msgctxt "STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE"
@@ -605,7 +674,7 @@ msgctxt "STRINGS.PEARL.LOGS.SHARD_EXCEPTION"
 msgstr "Výnimka na sharde %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.SERVER_INITIALIZED"
-msgstr "Systém Inicializovaný. Načítavanie servera..."
+msgstr "Systém inicializovaný. Načítavanie servera..."
 
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.EXECUTION"
 msgstr "Vyskytla sa chyba pri spracúvaní príkazu!",

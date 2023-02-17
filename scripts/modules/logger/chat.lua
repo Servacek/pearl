@@ -81,6 +81,8 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
     )
 end)
 
+--- @TODO: Handle unicode characters properly here since JSON doesn't accept it.
+--- Normalize it before sending to discord.
 PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, prefab, message, colour, whisper)
     if not (message and name and userid and prefab) then
         return
@@ -91,7 +93,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         return
     end
 
-    if PEARL.CONFIG.PROFANITY_FILTER and ProfanityFilter then
+    if ProfanityFilter and PEARL.CONFIG.PROFANITY_FILTERS.enabled then
         message = ProfanityFilter:Apply(message)
     end
 
@@ -105,7 +107,8 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
-    if not message then
+    -- This is being broadcasted to all shards as well.
+    if not message or TheShard:IsSecondary() then
         return
     end
 

@@ -20,6 +20,8 @@ return {
     X = "<:x_:1063767987456315472>",
     CHECK = "<:check:998561107776122900>",
     PING = "<:connection:1064114008698916864>",
+    ENABLED = "<:enabled:1071821645427261450>",
+    DISABLED = "<:disabled:1071821625470746686>",
 
     PLAYER_PREFABS = {
         -- DST
@@ -42,7 +44,7 @@ return {
         walter =            "<:Walter:722146045735469187>",
         wanda =             "<:wanda:885865311105089536>",
 
-        wonkey =            "<:wonkey:988082378541002802>",
+        wonkey =            "<:wonkey:1069314072941695106>",
 
         ---------------------------------------------------------
         -- Support for mods that add characters from the DLCS
@@ -93,12 +95,13 @@ return {
         PAUSE       = "<:pause:998561335463907459>",
         --RESUME      = "▶️",
         ROLLBACK    = "<:rollback:998561230799253614>",
+        SAVE        = "<:save:1071499100752711801>",
         RESTART     = "<:refresh:997496890625118250>",
-        CMD_RECV    = "<:cmd:997498213940604928>",
+        CMD_RECV    = "<:clip:1071796523140120577>",
     },
 
     PLAYER_STATE = {
-        CMD_SEND            = "<:cmd:997498213940604928>",
+        CMD_SEND            = "<:clip:1071796523140120577>",
         AUTH                = "<:auth:997498156617056341>",
         CAVE_ENTER          = "<:cave_enter:998568774519230494>",
         CAVE_LEAVE          = "<:cave_leave:998568758647988244>",

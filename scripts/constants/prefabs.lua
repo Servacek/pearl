@@ -57,14 +57,14 @@ return {
 		["minotaurhorn"]	 	= 1,
 		["atrium_key"] 			= 1,
 		["shroom_skin"] 		= 1,
-		--["waxwelljournal"] 	= 1,
-		["skeletonhat"] 		= 1,
-		["armorskeleton"] 		= 1,
-		["krampus_sack"] 		= 1,
+		["skeletonhat"] 		= .9,
+		["armorskeleton"] 		= .9,
+		["krampus_sack"] 		= .9,
 		["eyeturret_item"] 		= 1,
 
 		["moonrockseed"] 		= 0,
 		["mandrake"]	 		= .7,
+		["cookedmandrake"]		= .5,
 		["yellowstaff"] 		= .7,
 		["chester_eyebone"] 	= 0,
 		["glommerflower"] 		= 0,
@@ -87,10 +87,22 @@ return {
 		["walrus_tusk"]			= .3,
 	},
 
-	AREA_RANGED_STAFFS = {
-		["staff_tornado"] = true,
-		["yellowstaff"] = true,
-		["firestaff"] = true,
+	--- table<prefab, radius>
+	AREA_DESTRUCTIVE_STAFFS = {
+		["staff_tornado"] = 6,
+	},
+
+	-- The radius here is taken from the propagator component of the target if possible.
+	-- The value here is used as a fallback.
+	--- table<prefab, radius>
+	AREA_IGNITE_STAFFS = {
+		["yellowstaff"] = 4,
+		["firestaff"] = 6,
+	},
+
+	-- These only affect the target.
+	DESTRUCTION_ITEMS = {
+		["greenstaff"] = true,
 	},
 
 	FIRE_SOURCES = {

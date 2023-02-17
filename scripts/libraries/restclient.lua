@@ -27,10 +27,9 @@
         - The discord REST API rate limit is 16 requests/second.
 --]]
 
-local Queue = PEARL.loadfile("models/queue")
+local Queue = PEARL.loadfile("libraries/queue")
 local Request = PEARL.loadfile("models/request")
 
-local PEARL = PEARL
 local Class = Class
 local TheSim = TheSim
 
@@ -81,16 +80,14 @@ _SendRequest = function(self, request, force)
 end
 
 _ProcessQueue = function(self)
-    local next_request = self._queue and self._queue:Take()
+    local next_request = self._queue and self._queue:take()
     if next_request then
         _SendRequest(self, next_request)
     end
 end
 
 _FinishCooldown = function(self)
-    -- Allow garbage-collection for the cooldown task
-    -- Would be better if the task could be recycled.... @TODO
-    self._cooldown_task = nil
+    self._cooldown_task:stop()
 
     _ProcessQueue(self)
 end
@@ -121,7 +118,7 @@ local RestClient = Class(function(self)
     --self._ready = false
 
     -- [[ Events ]]
-    PEARL.EventProcessor:AddEventHandler("quit", function()
+    PEARL.EventProcessor:AddSafeEventHandler("quit", function()
         self:OnShutdown()
     end)
 end)
@@ -179,7 +176,7 @@ function RestClient:IsWaiting()
 end
 
 function RestClient:IsOnCooldown()
-    return self._cooldown_task ~= nil and not self._cooldown_task.finished
+    return self._cooldown_task ~= nil and self._cooldown_task.running
 end
 
 -- function RestClient:IsReady()
@@ -205,20 +202,20 @@ function RestClient:StartCooldown(force)
     end
 
     -- Do not allow overriding except when the last request was force executed.
-    -- In this case we want to reset the cooldown task.
-    if not force and self._cooldown_task and not self._cooldown_task.finished then
-        return PEARL.warn("Attempted to override an unfinished cooldown task!")
+    -- In this case we want to restart the cooldown task.
+    if not force and self:IsOnCooldown() then
+        return PEARL.warn("Attempted to override the cooldown task!")
     end
 
-    if not self._cooldown_task then
-        --PEARL.debug("Cooling down...")
+    if self._cooldown_task then
+        PEARL.debug("Restarting the cooldown task...")
+        self._cooldown_task:restart()
     else
-        PEARL.debug("Resetting the cooldown...")
+        PEARL.debug("Starting the cooldown task...")
+        self._cooldown_task = PEARL.WallScheduler:ExecutePeriodic(
+            self._frequency, _FinishCooldown, nil, nil, nil, self
+        )
     end
-
-    self._cooldown_task = PEARL.Scheduler:ExecuteInTime(
-        self._frequency, _FinishCooldown, nil, self
-    )
 end
 
 function RestClient:ProcessRequest(request)
@@ -234,7 +231,9 @@ function RestClient:ProcessRequest(request)
     end
 
     PEARL.debug("Adding request to the queue...")
-    self._queue:Push(request)
+    if not self._queue:push(request) then
+        return PEARL.error("Failed to push the request to the queue!", request)
+    end
 end
 
 function RestClient:ForceSend(request)
@@ -242,12 +241,9 @@ function RestClient:ForceSend(request)
         return false
     end
 
-    -- Clear the cooldown task for now and reset it when the forced request completes
-    if self._cooldown_task then
-        PEARL.debug("Clearing the task because of the forced request!")
-
-        self._cooldown_task:Cancel()
-        self._cooldown_task = nil
+    if self._cooldown_task and self._cooldown_task.running then
+        PEARL.debug("Stopping the cooldown task...")
+        self._cooldown_task:stop()
     end
 
     self._force_threshold = self._force_threshold - 1
@@ -280,7 +276,7 @@ end
 function RestClient:RetryRequestAfter(request, seconds)
     PEARL.info("Retrying request in", seconds, "seconds...")
 
-    return PEARL.Scheduler:ExecuteInTime(seconds, function()
+    return PEARL.WallScheduler:ExecuteInTime(seconds, function()
         RestClient:ProcessRequest(request)
     end)
 end
@@ -307,18 +303,18 @@ function RestClient:OnShutdown()
     self._shutting_down = true
 
     if self._cooldown_task then
-        self._cooldown_task:Cancel()
+        self._cooldown_task:cancel()
         self._cooldown_task = nil
     end
 
-    if not self._queue or self._queue:IsEmpty() then
+    if not self._queue or self._queue:empty() then
         -- We are done here.
         return
     end
 
     PEARL.info("Processing queued requests...")
 
-    for request in self._queue:Iter() do
+    for request in self._queue:iter() do
         if request and not request:CanSkipOnDeadline() then
             if not self:ForceSend(request) then
                 PEARL.info("Force-sent requests limit reached! Skipping the remaining requests...")
@@ -327,7 +323,7 @@ function RestClient:OnShutdown()
         end
     end
 
-    self._queue:Clear()
+    self._queue:clear()
 end
 
 --------------------------------

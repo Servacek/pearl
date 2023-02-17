@@ -10,131 +10,158 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category FrontEnd
-
-
---- @TODO: Check out also 'kleifileexists' as a possible alternative
--- We have already agreed to the agreement and the version of the agreement is the same as
--- the version of the newest released agreement.
-local _agr_file_exists = io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH)
-local _agr_file_version = io.line(PEARL.CONSTS.AGREEMENT_FILE_PATH)
-if _agr_file_exists and type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) ~= "table" then
-    return
-end
-
-if type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" and
-    PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version and
-    PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version == _agr_file_version
-then
-    return
-end
+--- @TODO: Add a popup that will notify the client that the agreement has
+--- been updated and needs his review.
+--- @TODO: Display the modification time on the agreement.
+--- @TODO: Refactor this + add support for borrowed accounts.
+--- Since multiple accounts can play the same game.
 
 local AgreementScreen = PEARL.loadfile("screens/agreementscreen")
+
 local PopupDialogScreen = require("screens/redux/popupdialog")
+
+--------------------------------------
+-- [[ Function Declarations ]]
+--------------------------------------
+
+local OnPlayerEnteredGame
+local ShowAgreement
 
 --------------------------------------
 -- [[ Locals ]]
 --------------------------------------
 
-local _agreement_displayed = false
+-- This module should have only one screen displayed at a time.
+local active_screen
 
-local function IsAgreementScreenEnabled()
-    return type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" and #PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT > 0
+--------------------------------------
+-- [[ Local Functions ]]
+--------------------------------------
+
+local function CloseActiveScreen()
+    if active_screen then
+        TheFrontEnd:PopScreen(active_screen)
+        active_screen = nil
+    end
 end
 
-local function IsWelcomeScreenEnabled()
-    return type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table" and #PEARL.CONFIG.WELCOME_POPUP_CONTENT > 0
+local function ShowScreen(screen)
+    CloseActiveScreen()
+
+    active_screen = screen
+    return TheFrontEnd:PushScreen(active_screen)
 end
 
-local function CreateAgreementCacheFile()
-    local agr_file = io.open(PEARL.CONSTS.AGREEMENT_FILE_PATH, "w")
-    if not agr_file then
-        return PEARL.error("Failed to create the agreement cache file!")
-    end
+local function WarnOnDecline()
+    return ShowScreen(PopupDialogScreen(
+        STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_TITLE,
+        STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_BODY,
+        {
+            {
+                text = STRINGS.PEARL.UI.AGREEMENT_DECLINE_BUTTON_YES,
+                cb = function()
+                    PEARL.StaticScheduler:ExecuteInTime(
+                        0, PEARL.ClientNetwork.Disconnect, nil, PEARL.ClientNetwork, "ID_DST_USER_DISAGREED", false, true
+                    )
+                end,
+            },
+            {
+                text = STRINGS.PEARL.UI.AGREEMENT_DECLINE_BUTTON_NO,
+                cb = function()
+                    -- Go back!
+                    ShowAgreement()
+                end,
+            }
 
-    if IsAgreementScreenEnabled() and PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version ~= nil then
-        agr_file:write(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version)
-    end
-
-    agr_file:close()
+        }
+    ))
 end
 
 local function OnPlayerFinishedAgreement(self, agreed)
-    self:Close()
-
-    PEARL.ClientNetwork:SendAgreementDataToServer(agreed, not _agr_file_exists)
+    CloseActiveScreen()
 
     if not agreed then
-        -- Give a frame to the RPC queue
-        return PEARL.Scheduler:ExecuteInTime(0, DoRestart, nil, true)
+        return WarnOnDecline()
     end
 
-    CreateAgreementCacheFile()
+    -- Only save the record when we have agreed.
+    PEARL.AgreementManager:UpdateFile()
 end
 
-local function ShowAgreement()
-    -- The Agreement Screen has no content so do not show it
-    if not IsAgreementScreenEnabled() then
-        return
-    end
+ShowAgreement = function()
+    CloseActiveScreen()
 
     local agreement_screen = AgreementScreen()
     agreement_screen:SetOnContinue(OnPlayerFinishedAgreement)
 
-    TheFrontEnd:PushScreen(agreement_screen)
+    return ShowScreen(agreement_screen)
 end
 
-local function OnWelcomeScreenContinue()
-    TheFrontEnd:PopScreen()
+local function NotifyAgreementUpdate()
+    return ShowScreen(PopupDialogScreen(
+        STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE,
+        STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_BODY,
+        {{
+            text = STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_CONTINUE,
+            cb = ShowAgreement,
+        }}
+    ))
+end
 
-    if IsAgreementScreenEnabled() then
-        return ShowAgreement()
+local function OnContinue(self)
+    CloseActiveScreen()
+
+    if not PEARL.AgreementManager:IsAgreementScreenEnabled() then
+        return
     end
 
-    -- Even though agreement screen is disable we still want to create the agreement file
-    -- so the next join the welcome screen doesn't pop-up again.
-    -- Note: This file will not have any version - it will be empty.
-    CreateAgreementCacheFile()
+    if PEARL.AgreementManager:AgreementDisplayed() then
+        return NotifyAgreementUpdate()
+    end
+
+    return ShowAgreement()
 end
 
 local function ShowWelcomeScreen()
-    if not IsWelcomeScreenEnabled() then
-        return
-    end
-
     -- Welcome Popup has only one section, so index it directly.
-    TheFrontEnd:PushScreen(PopupDialogScreen(PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].title, PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].description, {
-        {text = STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE, cb = OnWelcomeScreenContinue}
-    }))
+    return ShowScreen(PopupDialogScreen(
+        PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].title,
+        PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].description,
+        {{
+            text = STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE,
+            cb = OnContinue
+        }}
+    ))
 end
 
-local function OnPlayerEnteredGame()
-    if _agreement_displayed then
-        return
-    end
-
-    _agreement_displayed = true
-
-    -- We have already accepted the agreement but it was updated
-    if _agr_file_exists then
-        return ShowAgreement()
-    end
-
-    -- We are on the server for the first time.
-
-    if IsWelcomeScreenEnabled() then
-        -- Welcome screen should display the agreement on continue
-        ShowWelcomeScreen()
-    else
-        ShowAgreement()
-    end
+local function ClearWorldCallbacks(world)
+    world:RemoveEventCallback("playeractivated", OnPlayerEnteredGame)
+    world:RemoveEventCallback("entercharacterselect", OnPlayerEnteredGame)
 end
 
-PEARL.AddWorldPostInit(function(world)
-    -- None will ever read this while in the game.
-    -- So try to display the popup only when in the lobby.
-    -- Maybe display just the welcome screen?
-    -- world:ListenForEvent("playeractivated", OnPlayerEnteredGame)
+OnPlayerEnteredGame = function(world)
+    -- So we do not display this multiple times per one instance.
+    ClearWorldCallbacks(world)
 
-    -- This is an lobby alternative for playeractivated
-    world:ListenForEvent("entercharacterselect", OnPlayerEnteredGame)
-end)
+    if PEARL.AgreementManager:IsIntroPopupEnabled() and not PEARL.AgreementManager:AgreementDisplayed() then
+        return ShowWelcomeScreen()
+    end
+
+    return OnContinue()
+end
+
+--------------------------------------
+-- [[ Setup ]]
+--------------------------------------
+
+-- If we have already accepted the agreement and the version was the same as the newest one.
+if PEARL.AgreementManager:IsEnabled() and not PEARL.AgreementManager:IsUpToDate() then
+    PEARL.AddWorldPostInit(function(world)
+        -- None will ever read this while in the game.
+        -- So try to display the popup only when in the lobby.
+        -- world:ListenForEvent("playeractivated", OnPlayerEnteredGame)
+
+        -- This is an lobby alternative for playeractivated
+        world:ListenForEvent("entercharacterselect", OnPlayerEnteredGame)
+    end)
+end

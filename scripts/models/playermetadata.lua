@@ -92,10 +92,6 @@ function PlayerMetadata:GetPrefab()
     return self._prefab
 end
 
-function PlayerMetadata:GetAge()
-    return self._age
-end
-
 function PlayerMetadata:GetName()
     return self._name
 end

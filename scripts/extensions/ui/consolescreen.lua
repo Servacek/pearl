@@ -17,30 +17,33 @@
     for non-admins.
 --]]
 
-if not (TheNet and TheInput and not TheNet:GetIsServerAdmin()) then
+if TheNet:GetIsServerAdmin() or not PEARL.CONFIG.CONSOLE_DISABLED then
 	return
 end
+
+PEARL.OverrideVariable("CONSOLE_ENABLED", false, _G)
+PEARL.OverrideVariable("ExecuteConsoleCommand", function() end, _G)
 
 --- @class ConsoleScreen
 local ConsoleScreen = require("screens/consolescreen")
 
 -----------------------------------------
 
--- Just in case this is called from some other place
-ConsoleScreen.Run = function(self)
-    self:Close()
-end
+-- ConsoleScreen.DoInit = function() end
+-- ConsoleScreen.Run = function() end
+
+-- -- Just in case this is called from some other place
+-- ConsoleScreen.Run = function(self)
+--     self:Close()
+-- end
 
 ConsoleScreen.OnBecomeActive = function(self)
-    if TheFrontEnd ~= nil then
-        TheFrontEnd:ShowConsoleLog()
-    end
+    return self:Close()
+    -- if TheFrontEnd ~= nil then
+    --     TheFrontEnd:ShowConsoleLog()
+    -- end
 
-    if self.console_edit ~= nil then
-        self.console_edit:SetString("Disabled :)")
-    end
+    -- if self.console_edit ~= nil then
+    --     self.console_edit:SetString(STRINGS.PEARL.UI.CONSOLE_DISABLED)
+    -- end
 end
-
------------------------------------------
-
-return ConsoleScreen

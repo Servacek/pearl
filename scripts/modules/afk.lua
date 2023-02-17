@@ -130,8 +130,12 @@ local function CleanUp()
     end
 end
 
+local function IsPaused()
+    return TheNet:IsServerPaused() or #AllPlayers <= 1
+end
+
 local function OnUpdate()
-    if PEARL.ClientNetwork and PEARL.ClientNetwork:IsPaused() then
+    if IsPaused() then
         return
     end
 
@@ -163,7 +167,8 @@ local function RestartTrackingTask()
 
         -- Associate this task with the world object since it's more stable
         -- and avaiable even in lobby.
-        _tracking_task = TheWorld:DoStaticPeriodicTask(AFK_TIME_INCREMENT, OnUpdate, INIT_DELAY)
+        -- Maybe try to use normal periodic task so when sim is paused this is paused as well?
+        _tracking_task = TheWorld:DoPeriodicTask(AFK_TIME_INCREMENT, OnUpdate, INIT_DELAY)
     end
 end
 

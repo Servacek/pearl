@@ -83,14 +83,14 @@
 --]]
 
 local GLOBAL = GLOBAL
-local setmetable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
+local setmetatable, rawget, rawset = GLOBAL.setmetatable, GLOBAL.rawget, GLOBAL.rawset
 
 --- LINK TESTS
 --------------------------------
 -- [[ Local Constants ]]
 --------------------------------
 
-local ENV = GLOBAL.getfenv(1)
+local ENV = GLOBAL.getfenv()
 
 --------------------------------
 -- [[ Local Functions ]]
@@ -101,11 +101,12 @@ local ENV = GLOBAL.getfenv(1)
 --- @return table
 local function setupenv()
     -- Modify the metatable of the current safe separated mod environment.
-    return setmetable(ENV, {
+    return setmetatable(ENV, {
         -- Called when lua is not able to find the field in our environment table.
         -- This allows implicit access to fields of the GLOBAL table.
+        -- This is beign called... a lot.
         __index = function(env, index)
-            return rawget(GLOBAL, index) or rawget(env, index)
+            return rawget(GLOBAL, index)
         end,
     })
 end
@@ -125,6 +126,7 @@ GLOBAL.PEARL = setmetatable({
 
     ROOTDIR             = MODROOT,
     SRCDIR              = MODROOT.."scripts/",
+    DATADIR             = MODROOT.."data/",
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
@@ -169,6 +171,8 @@ GLOBAL.PEARL = setmetatable({
     IMAGES_DIR_NAME     = "images",
 
     DEFAULT_LANGUAGE    = "english",
+
+    FRONTEND            = TheNet:GetIsClient(),
 
     -- Used for sending internal mod events.
     EventProcessor   = EventProcessor(),
@@ -242,6 +246,12 @@ end
 PEARL.loadfile("extensions/logging")
 
 --------------------------------
+-- [[ Event Processor ]]
+--------------------------------
+
+PEARL.loadfile("extensions/eventprocessor")
+
+--------------------------------
 -- [[ Standard Libs ]]
 --------------------------------
 
@@ -250,6 +260,16 @@ PEARL.loadfile("extensions/standard/table")
 PEARL.loadfile("extensions/standard/math")
 PEARL.loadfile("extensions/standard/io")
 PEARL.loadfile("extensions/standard/string")
+
+----------------------------------
+-- [[ Static Scheduler ]]
+----------------------------------
+
+-- In frontend, use staticScheduler for background tasks
+-- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
+PEARL.info("Loading static scheduler...")
+--- @type Scheduler
+PEARL.StaticScheduler = staticScheduler
 
 --------------------------------
 -- [[ Helpers ]]
@@ -357,6 +377,14 @@ PEARL.info("Loading mod error handler...")
 PEARL.loadfile("error")
 
 --------------------------------
+-- [[ Instance Param Manager]]
+--------------------------------
+
+PEARL.info("Loading game instance parameters manager...")
+--- @class GameInstParams
+PEARL.GameInstParams = PEARL.loadfile("instanceparams")
+
+--------------------------------
 -- [[ Backend ]]
 --------------------------------
 
@@ -387,3 +415,29 @@ end
 
 PEARL.OnModPostInit()
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
+
+-- Some performance testing garbage...
+-- PEARL.OverrideVariable("WallUpdate", function() end, _G)
+-- PEARL.OverrideVariable("PostUpdate", function() end, _G)
+-- PEARL.OverrideVariable("PostPhysicsWallUpdate", function() end, _G)
+-- PEARL.OverrideVariable("StaticUpdate", function() end, _G)
+-- PEARL.OverrideVariable("Update", function() end, _G)
+
+-- local _FindEntities = TheSim.FindEntities
+-- getmetatable(TheSim).__index.FindEntities = function(...)
+--     print("FIND")
+--     TheSim:ProfilerPush("TheSim:FindEntities")
+--     local result = _FindEntities(...)
+--     TheSim:ProfilerPop()
+
+--     --getmetatable(TheSim).__index.FindEntities = _FindEntities
+
+--     return result
+-- end
+PEARL.AddUserDataFunctionPreCall("FindEntities", function(self, x, y, z, radius)
+    TheSim:ProfilerPush("TheSim:FindEntities")
+end, TheSim)
+
+PEARL.AddUserDataFunctionPostCall("FindEntities", function()
+    TheSim:ProfilerPop()
+end, TheSim)

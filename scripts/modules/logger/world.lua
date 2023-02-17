@@ -17,11 +17,11 @@
 --]]
 
 
---local PEARL = PEARL
 local TheShard, TheNet = TheShard, TheNet
 local string, math = string, math
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local UserCommands = require("usercommands")
 
@@ -30,7 +30,7 @@ local UserCommands = require("usercommands")
 -------------------------------
 
 local function OnCyclesChanged(world, cycle)
-    if not world then
+    if not world or not InGamePlay() then
         return
     end
 
@@ -38,8 +38,12 @@ local function OnCyclesChanged(world, cycle)
         STRINGS.PEARL.LOGS.DAY:format(
             ((cycle or 0)+ 1),
             PEARL.GetSeasonFancyName(),
-            math.floor((world.state.temperature or 0) / 2 + 0.5)
-        ):center(30)
+            math.floor((world.state.temperature or 0) / 2 + 0.5),
+
+            --- @TEMPORARY until catcoon is finished.
+            TheNet:GetPlayerCount(),
+            TheNet:GetDefaultMaxPlayers()
+        ):center(20)
     )))
 end
 
@@ -67,7 +71,7 @@ end
 local function OnClientAuthenticationComplete(world, data)
     -- TheNet:GetClientTableForUser crashes for nil values
     local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
-    if not client or PEARL.IsClientMigrating(client) then
+    if not client then --or PEARL.IsClientMigrating(client) then
         return
     end
 
@@ -83,7 +87,6 @@ local function OnClientAuthenticationComplete(world, data)
 end
 
 local function OnClientConnectionClosed(userid, reason)
-    PEARL.debug("OnClientConnectionClosed", userid)
     if not userid then
         return
     end
@@ -106,24 +109,24 @@ local function OnClientDisconnected(userid, expected, reason)
 
     if type(name) ~= "string" or #name < 3 then
         return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_GENERIC:format(
-                userid, PEARL.GetShardName()
+                userid, PEARL.GetShardFancyName()
         ))
     end
 
     if type(reason) == "string" and #reason > 1 then
         return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_REASON:format(
-                name, PEARL.GetShardName(), userid, reason
+                name, PEARL.GetShardFancyName(), userid, reason
         ))
     end
 
     if expected == false then
         return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
-                name, PEARL.GetShardName(), userid
+                name, PEARL.GetShardFancyName(), userid
         ))
     end
 
     return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
-            name, PEARL.GetShardName(), userid
+            name, PEARL.GetShardFancyName(), userid
     ))
 end
 
@@ -144,8 +147,22 @@ local function OnPlayerMigrating(self, data)
     end
 
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
-        data.player:GetDisplayName(), self.ismastershard and "Caves" or "Master"
+        data.player:GetDisplayName(), self.ismastershard and STRINGS.PEARL.SHARDS.SECONDARY or STRINGS.PEARL.SHARDS.MASTER
     ), self.ismastershard and PEARL.ICONS.PLAYER_STATE.CAVE_ENTER or PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE)
+end
+
+local function OnPlayerSpawnedInCaves(self, player)
+    if not player then
+        return
+    end
+
+    -- Give a tick to the player's instance so it can load all the needed data.
+    PEARL.WallScheduler:ExecuteInTime(0, function()
+        print("OnPlayerSpawnedInCaves", player, player.name, PEARL.GetShardFancyName(), player.userid)
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTED_TO_SHARD:format(
+            player.name, PEARL.GetShardFancyName(), player.userid
+        ))
+    end)
 end
 
 -------------------------------
@@ -155,12 +172,11 @@ end
 -- Vote passed and vote failed is being announced by Networking.
 -- So handle only the start and the cancelation of it.
 local function OnStartVote(self, data)
-    local target, doer = {}, {}
-    -- local doer = data and data.starteruserid and TheNet:GetClientTableForUser(data.starteruserid)
-    -- local target = data and data.targetuserid and TheNet:GetClientTableForUser(data.targetuserid)
-    -- if not (doer and target) then
-    --     return
-    -- end
+    local doer = data and data.starteruserid and TheNet:GetClientTableForUser(data.starteruserid)
+    local target = data and data.targetuserid and TheNet:GetClientTableForUser(data.targetuserid)
+    if not (doer and target) then
+        return
+    end
 
     local command = UserCommands.GetCommandFromHash(data.commandhash)
     local votefmt = ResolveCommandStringProperty(command, "votenamefmt", STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT)
@@ -189,10 +205,30 @@ local function OnNewPlayerSpawn(self, player)
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN:format(
         player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab])
+
+    local cfd = PEARL.ServerNetwork:GetCachedCFDFor(player.userid)
+    if not cfd or not cfd.novice == true then
+        return
+    end
+
+    -- Send a nice welcome message for novices.
+    local welcome_msg_template = STRINGS.PEARL.NOVICE_ANNOUNCEMENTS[math.random(1, #STRINGS.PEARL.NOVICE_ANNOUNCEMENTS)]
+    local welcome_msg = welcome_msg_template:format(player:GetDisplayName())
+    if #AllPlayers > 1 then
+        return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
+    end
+
+    if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
+        return PEARL.DiscordLogger:LogString(
+            welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
+        )
+    end
 end
 
+--- Note: This seems to be a bit spammy.
+local _countdown_started = false
 local function OnResetCountDownStart(self)
-    if not InGamePlay() then
+    if not InGamePlay() or _countdown_started then
         return
     end
 
@@ -207,20 +243,23 @@ local function OnResetCountDownStart(self)
         return
     end
 
+    _countdown_started = true
+
     PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START:format(
         MARKDOWN.codeline(tostring(resettime.time or 0))
     ), PEARL.ICONS.ANNOUNCEMENTS["default"])
 end
 
+--- Note: Sometimes this is being called even when the countdown hasn't started yet.
 local function OnResetCountDownStop(self)
-    if InGamePlay() then
+    if _countdown_started and InGamePlay() then
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_STOP)
     end
 end
 
 local function OnReset(self)
     PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESET:format(
-        MARKDOWN.codeline(PEARL.GetShardName())
+        MARKDOWN.codeline(PEARL.GetShardFancyName())
     ), PEARL.ICONS.SIM_STATE.REGENERATE)
 end
 
@@ -235,12 +274,26 @@ local function OnRollback(self, count)
         icon = PEARL.ICONS.SERVER_STATE.ROLLBACK
     else
         message = STRINGS.PEARL.LOGS.RESTART:format(
-            MARKDOWN.codeline(PEARL.GetShardName())
+            MARKDOWN.codeline(PEARL.GetShardFancyName())
         )
         icon = PEARL.ICONS.SERVER_STATE.RESTART
     end
 
     PEARL.DiscordLogger:LogStringHighlighted(message, icon)
+end
+
+local function OnWorldGenComplete(world)
+    if not world then
+        return
+    end
+
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen(world))
+end
+
+local function OnSaved(world)
+    return PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.SAVE:format(
+        MARKDOWN.codeline(PEARL.GetShardFancyName())
+    ), PEARL.ICONS.SERVER_STATE.SAVE)
 end
 
 -------------------------------
@@ -354,10 +407,8 @@ end
 -- [[ Listeners ]]
 -------------------------------
 
--- Using game post init instead of world post init to prevent duplicate day announcements
--- between instance starts
-PEARL.AddGamePostInit(function()
-    local world = TheWorld
+-- TheWorld is not provided here.
+PEARL.AddWorldPostInit(function(world)
     if not world then
         return
     end
@@ -365,8 +416,9 @@ PEARL.AddGamePostInit(function()
     --- @TODO: Debug
     -- world:SafeListenForEvent("entity_death", OnEntityDeath)
 
-    if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
+    if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
         if world.ismastershard then
+
             -- We care about these event's only on the master shard
             world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
             world:SafeListenForEvent("phasechanged", OnPhaseChanged)
@@ -376,22 +428,22 @@ PEARL.AddGamePostInit(function()
 
             world:SafeListenForEvent("ms_startvote", OnStartVote)
             world:SafeListenForEvent("ms_stopvote", OnStopVote)
-
-            -- Note:
-            -- When joining a server, this is being called always on Master.
-            -- In caves this can be pushed during migration for example.
-            world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
+        else
+            world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawnedInCaves)
         end
 
+        world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
+        world:SafeListenForEvent("ms_save", OnSaved)
 
         --> Mod Events
         world:ListenForModEvent("world_rollback", OnRollback)
         world:ListenForModEvent("world_reset", OnReset)
+        world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
     end
 end)
 
 --> Mod Internal Events
-PEARL.EventProcessor:AddEventHandler("clientconnectionclosed", OnClientConnectionClosed)
-PEARL.EventProcessor:AddEventHandler("ms_clientdisconnected", OnClientDisconnected)
+PEARL.EventProcessor:AddSafeEventHandler("clientconnectionclosed", OnClientConnectionClosed)
+PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)

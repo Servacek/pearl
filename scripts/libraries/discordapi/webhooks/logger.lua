@@ -45,8 +45,10 @@ local Logger = Class(function(self)
     self._buffer_timeout_task = nil
     self._buffer_timeout = 0
 
-    PEARL.EventProcessor:AddEventHandler("quit", function()
+    PEARL.EventProcessor:AddSafeEventHandler("quit", function()
         if self:IsBufferring() then
+            PEARL.debug("Shutting down logger webhook...")
+
             self:_LogBufferedMessage()
         end
     end)
@@ -76,19 +78,20 @@ function Logger:_LogBufferedMessage(force)
 end
 
 function Logger:_StartBufferTimeout()
-    if not self._buffer_timeout_task then
-        --PEARL.debug("Wrap timeout has started!")
-
-        self._buffer_timeout_task = PEARL.Scheduler:ExecuteInTime(
-            self._buffer_timeout, self._OnBufferTimeout, nil, self
+    if self._buffer_timeout_task then
+        PEARL.debug("Restarting the wrap timeout task!")
+        self._buffer_timeout_task:restart()
+    else
+        PEARL.debug("Wrap timeout has started!")
+        self._buffer_timeout_task = PEARL.WallScheduler:ExecutePeriodic(
+            self._buffer_timeout, self._OnBufferTimeout, nil, nil, nil, self
         )
     end
 end
 
 function Logger:_StopBufferTimeout()
-    if self._buffer_timeout_task then
-        self._buffer_timeout_task:Cancel()
-        self._buffer_timeout_task = nil
+    if self._buffer_timeout_task and self._buffer_timeout_task.running then
+        self._buffer_timeout_task:stop()
     end
 end
 
@@ -130,7 +133,7 @@ function Logger:IsEnabled()
 end
 
 function Logger:IsBufferring()
-    return self._buffer_timeout_task ~= nil
+    return self._buffer_timeout_task and self._buffer_timeout_task.running
 end
 
 -------------------------------------

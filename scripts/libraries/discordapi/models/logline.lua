@@ -12,7 +12,6 @@
 
 
 
-local PEARL = PEARL
 local os, string = os, string
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
@@ -33,7 +32,7 @@ local MAX_TIMESTAMP_LENGTH = 12
 local TIMESTAMP_TEMPLATE = MARKDOWN.bold(MARKDOWN.codeline("[%H:%M:%S]:"))
 -- timestamp and content
 local TEMPLATE = (PEARL.CONFIG.DEBUG_MODE and
-    "%s ["..MARKDOWN.codeline(string.upper(PEARL.GetShardName())).."] %s" or "%s %s"
+    "%s ["..MARKDOWN.codeline(string.upper(PEARL.GetShardFancyName())).."] %s" or "%s %s"
 )
 -- timestamp, (icon OR tag) and content
 local TEMPLATE_HEADER_HALF = TEMPLATE.." %s"
@@ -145,7 +144,7 @@ function LogLine:Build()
     -- We do not have a header
     if not (self._icon or self._tag) then
         if PEARL.CONFIG.DEBUG_MODE then
-            TEMPLATE = "%s ["..MARKDOWN.codeline(string.upper(PEARL.GetShardName())).."] %s"
+            TEMPLATE = "%s ["..MARKDOWN.codeline(string.utf8upper(PEARL.GetShardFancyName())).."] %s"
         end
 
         return TEMPLATE:format(

@@ -26,7 +26,11 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 -------------------------------
 
 local function CheckPlayersInventory(world, player)
-    if not PEARL.CONFIG.DEBUG_MODE and (player.admin or player.components.age and player.components.age:IsTrustworthy()) then
+    if type(player) ~= "table" then
+        return
+    end
+
+    if not PEARL.CONFIG.DEBUG_MODE and (PEARL.IsAdminUserid(player.userid) or (player.components.age and player.components.age:IsTrustworthy())) then
         return
     end
 
@@ -57,7 +61,7 @@ end
 -------------------------------
 
 PEARL.AddWorldPostInit(function(inst)
-    if not inst then
+    if not (inst and PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled()) then
         return
     end
 

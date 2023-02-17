@@ -11,11 +11,15 @@
 --]==]====================================================]]
 
 
+-------------------------------------
+-- [[ Global Localization ]]
+-------------------------------------
 
 local PEARL = PEARL
 local Class = Class
 local string = string
 local unpack = unpack
+local tonumber = tonumber
 
 -------------------------------------
 -- [[ Constants ]]
@@ -23,7 +27,7 @@ local unpack = unpack
 
 local DEFAULT_REQUEST_TIMEOUT   = 10
 local URL_HOST_PATTERN          = "%w+://([%w.]+)/?"
-local REQUEST_FAILED_HEADER  = "(%s) [%d] Request Failed! Reason: %s"
+local REQUEST_FAILED_HEADER     = "(%s) [%d] Request Failed! Reason: %s"
 
 -------------------------------------
 -- [[ Class Declarations ]]
@@ -61,7 +65,7 @@ end)
 -------------------------------------
 
 function Request:__tostring()
-    return string.format("Request(%s)", tostring(self.url))
+    return string.format("Request(%s)", tostring(self.host))
 end
 
 -------------------------------------

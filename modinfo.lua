@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.0rev"
+version = "2.0.b-rev"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -107,13 +107,13 @@ configuration_options = {
     },
 
     {
-        name="PROFANITY_FILTER",
-        default=true,
-        options = {
-            true,
-            false,
+        name="PROFANITY_FILTERS",
+        default= {
+            default = true,
+            enabled = true,
+            ["czech"] = true,
         },
-        type = "boolean",
+        type = "table<string, boolean>",
     },
 
     { -- regenerate, rollback, kick...
@@ -126,17 +126,19 @@ configuration_options = {
     --------------------
     -- Mod Blocker Module
     --------------------
+
     {
-        name="MOD_BLACKLIST",
+        name="MOD_BLOCKER",
         default={
-            strict = false,
+            STRICT = false,
+            ENABLED = true,
+            ALLOWLIST = false,
         }, -- Setting strict key to true will kick out all players who have such mods enabled.
         type = "table<string, boolean>",
 
         warn = true,
         public = true,
     },
-
 
     --------------------
     -- Server
@@ -256,6 +258,17 @@ configuration_options = {
         type = "boolean",
     },
 
+    {
+        name="DISABLE_CONSOLE",
+        default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+        public = true,
+    },
+
     --------------------
     -- Anti-AFK Module
     --------------------
@@ -295,10 +308,9 @@ configuration_options = {
             --]]
             ALLOWED_LOCALES = {},
             CACHE = true,
+            TIMEOUT = 60,
         },
         type = "table<string, any>",
-
-        experimental = true,
 
         checks = {
             ALLOWED_LOCALES = "table",
@@ -369,6 +381,21 @@ configuration_options = {
     },
 
     --------------------
+    -- Network
+    --------------------
+
+    {
+        name = "FAIL_SAFE_NETWORK",
+        default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+        public = true,
+    },
+
+    --------------------
     -- Announcements
     --------------------
 
@@ -409,7 +436,7 @@ configuration_options = {
     {
         name = "REQUIRED_WORLDGEN_TASKS",
         default = {},
-        type = "table",
+        type = "table<string>",
     },
 
     {
@@ -451,6 +478,28 @@ configuration_options = {
     },
 
     --------------------
+    -- Performance
+    --------------------
+
+    {
+        name = "PERFORMANCE_MODE",
+        default = false,
+        type = "boolean",
+        experimental = true,
+    },
+
+
+    {
+        name = "SELF_STACKER",
+        default = {
+            PREFABS = {},
+            ENABLED = false,
+            RADIUS = 20, -- Taken from selfstacker.lua
+        },
+        type = "table",
+    },
+
+    --------------------
     -- Implicit Configurations
     --------------------
     -- These are configurations that are not being explicitly set
@@ -474,8 +523,24 @@ configuration_options = {
 
     {
         name="SERVER_REQUIRE_CFD",
-        default = false,
+        default = true, -- Let this be always true because a lot of systems depend on these.
         type = "boolean",
+        public = true,
+        implicit = true,
+    },
+
+    {
+        name="MOD_BLOCKLIST",
+        default = {},
+        type = "table",
+        public = true,
+        implicit = true,
+    },
+
+    {
+        name="MOD_ALLOWLIST",
+        default = {},
+        type = "table",
         public = true,
         implicit = true,
     },

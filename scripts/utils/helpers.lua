@@ -150,6 +150,10 @@ end
 --- @param handler function<boolean, string>? The handler function for error messages.
 --- @param delay number?
 function PEARL.RollbackByDays(days, handler, delay)
+    if not TheNet:GetIsServer() then
+        return PEARL.error("RollbackByDays works only on the server!")
+    end
+
     handler = handler or function(success, message)
         if success == false then
             return PEARL.error(message)
@@ -161,7 +165,6 @@ function PEARL.RollbackByDays(days, handler, delay)
     -- Note: This returns an array where the snapshots are sorted by the newest
     -- So the snapshot on index 1 is the latest, etc...
     local snapshots = TheNet:ListSnapshots(TheNet:GetSessionIdentifier(), true)
-    print(DataDumper(snapshots))
     if type(snapshots) ~= "table" then
         return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.FAILED_SNAPHOTS_LOAD)
     end
@@ -196,7 +199,7 @@ function PEARL.RollbackByDays(days, handler, delay)
 
             if cycle == target_cycle and snapshot.snapshot_id ~= nil then
                 handler(true, STRINGS.PEARL.LOGS.ROLLBACK_DAYS:format(target_day))
-                return PEARL.Scheduler:ExecuteInTime(
+                return PEARL.WallScheduler:ExecuteInTime(
                     delay or 0, PEARL.RawRollbackByID, nil, snapshot.snapshot_id
                 )
             end
@@ -220,10 +223,10 @@ end
 -- [[ Getters/Checks ]]
 --------------------------------
 
-function PEARL.GetShardName()
-    return (TheShard:IsMaster() and "Master")
-    or (TheShard:IsSecondary() and "Caves")
-    or "Unknown"
+function PEARL.GetShardFancyName()
+    return (TheShard:IsMaster() and STRINGS.PEARL.SHARDS.MASTER)
+        or (TheShard:IsSecondary() and STRINGS.PEARL.SHARDS.SECONDARY)
+        or STRINGS.PEARL.SHARDS.UNKNOWN
 end
 
 function PEARL.GetSeasonFancyName()
@@ -297,12 +300,14 @@ end
 -- Used to determine wheter the client is connecting to the server for the first time
 -- or just migrating between the server shards.
 function PEARL.IsClientMigrating(client)
-    return client.prefab ~= "" and client.lobbycharacter == "" and client.playerage > 0
+    client = (type(client) == "table" and client) or (type(client) == "string" and TheNet:GetClientTableForUser(client))
+
+    return client and client.prefab ~= "" and client.lobbycharacter == ""
 end
 
 function PEARL.IsAdminUserid(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
-    return client and client.admin
+    return client and client.admin == true
 end
 
 --- @TODO
@@ -348,9 +353,12 @@ function PEARL.FancyTableConcat(t)
 end
 
 function PEARL.BuildFancyStringForEntities(entities)
+    local grouped = PEARL.GroupEntitiesByPrefab(entities)
     local fancy_names = {}
-    for _, entity in ipairs(entities) do
-        fancy_names[#fancy_names+1] = entity:GetFancyName()
+    for name, count in pairs(grouped) do
+        fancy_names[#fancy_names+1] = STRINGS.PEARL.LOGS.ITEM:format(
+            count, name
+        )
     end
 
     return PEARL.FancyTableConcat(fancy_names)
@@ -427,7 +435,15 @@ function PEARL.GroupEntitiesByPrefab(entities)
         grouped[name] = (grouped[name] or 0) + PEARL.GetStackSize(ent)
     end
 
-    return format_grouped(grouped)
+    return grouped
+end
+
+function PEARL.GetBurnableEntitiesNearPos(pos, radius)
+    return TheSim:FindEntities(pos.x, pos.y, pos.z, radius,
+        PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
+        PEARL.CONSTS.ENT_CANT_HAVE_TAGS,
+        PEARL.CONSTS.ENT_ONEOF_TAGS
+    )
 end
 
 function PEARL.GetFuncSrcStr(func)

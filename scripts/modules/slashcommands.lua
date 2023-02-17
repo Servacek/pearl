@@ -343,7 +343,6 @@ AddCommand("inv-find", {
     end,
 })
 
---- @DEBUG a bit
 AddCommand("daysback", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
@@ -399,8 +398,8 @@ AddCommand("admins", {
         caller.__soscall_cd_time = curr_time + (PEARL.CONFIG.ADMIN_CALL_COOLDOWN or 0)
 
         -- Send all the input strings...
+        -- The server will answer at this point.
         PEARL.ClientNetwork:SendPlayerReportToServer(tostring(params.message or "").." "..(tostring(params.rest or "")))
-        ChatHistory:SendCommandResponse(STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.ON_SUCCESS)
     end,
 
     -- For server handling we use RPCs so the command is not being sent to the server.

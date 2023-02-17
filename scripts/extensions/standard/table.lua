@@ -44,3 +44,7 @@ end
 function table:empty()
     return self and next(self) == nil
 end
+
+function table.create(size, narr)
+    return createTable(size, narr)
+end

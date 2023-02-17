@@ -19,6 +19,13 @@ local TEMPLATES = require("widgets/redux/templates")
 
 
 -------------------------------------
+-- [[ Constants ]]
+-------------------------------------
+
+local MAX_MODNAME_LEN = 32
+local MAX_MODID_LEN = 16
+
+-------------------------------------
 -- [[ Declaration ]]
 -------------------------------------
 
@@ -58,23 +65,23 @@ function EMBEDS.Inventory(pmd, highlighted)
     end
 
     if #description <= 0 then
-        description = STRINGS.PEARL.LOGS.INV_EMBED_IVNENTORY_TITLE_EMPTY
+        description = STRINGS.PEARL.EMBEDS.INV.INVENTORY_EMPTY
     else
-        description = STRINGS.PEARL.LOGS.INV_EMBED_INVENTORY_TITLE.."\n"..description
+        description = STRINGS.PEARL.EMBEDS.INV.INVENTORY.."\n"..description
     end
 
     local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or PEARL.ICONS.PLAYER_PREFABS[""]
 
     --- @type Embed
     local embed = Embed()
-    embed:SetTitle(STRINGS.PEARL.LOGS.INV_EMBED_TITLE:format(
+    embed:SetTitle(STRINGS.PEARL.EMBEDS.INV.TITLE:format(
         icon, name, userid
     ), url)
     embed:SetDescription(description)
     embed:SetTimestamp(os.time())
 
     -- The age field seems to be a bit weird here...
-    embed:AddField(STRINGS.PEARL.LOGS.INV_EMBED_FIELD_NAMES.SURVIVED, STRINGS.PEARL.LOGS.INV_EMBED_SURVIVED_VALUE:format(
+    embed:AddField(STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SURVIVED, STRINGS.PEARL.EMBEDS.INV.SURVIVED:format(
         age and age or "?", TheWorld and TheWorld.state.cycles + 1 or "?"
     ))
 
@@ -86,7 +93,7 @@ function EMBEDS.SuspiciousInventory(pwd, suspiciousness)
     local embed = EMBEDS.Inventory(pwd, PEARL.PREFABS.RARE_ITEMS)
     if type(suspiciousness) == "number" then
         embed:AddField(
-            STRINGS.PEARL.LOGS.INV_EMBED_FIELD_NAMES.SUSPICIOUSNESS,
+            STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SUSPICIOUSNESS,
             MARKDOWN.codeline(tostring(math.floor(suspiciousness * 100)).."%")
         )
     end
@@ -96,30 +103,57 @@ end
 
 --- @return Embed
 function EMBEDS.ServerBoot()
+    local seed = TheWorld and TheWorld.meta and TheWorld.meta.seed or "???"
+    local active_event = GetFirstActiveSpecialEvent() or "none"
+
     return Embed()
-        :SetTitle(STRINGS.PEARL.LOGS.STARTUP_EMBED_TITLE)
+        :SetTitle(STRINGS.PEARL.EMBEDS.STARTUP.TITLE)
         :SetColor(Embed.COLORS.GREEN)
-        :SetThumbnail(STRINGS.PEARL.LOGS.STARTUP_EMBED_THUMBNAIL_URL)
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.STARTUP.THMB_URL)
         :SetTimestamp(os.time())
 
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLATFORM, MARKDOWN.codeline(PLATFORM), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.MOD_V, MARKDOWN.codeline(PEARL.MOD_INFO.version), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.SEED, MARKDOWN.codeline(TheWorld.meta.seed), true)
-        :AddField(STRINGS.PEARL.LOGS.STARTUP_EMBED_FIELD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLATFORM, MARKDOWN.codeline(PLATFORM), true)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.MOD_V, MARKDOWN.codeline(PEARL.MOD_INFO.version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT)
 end
 
+--- @return Embed
+function EMBEDS.WorldRegen(world, session_id)
+    world = world or TheWorld
+    session_id = session_id or TheNet:GetSessionIdentifier() or "???"
+    local seed = world and world.meta and world.meta.seed or "???"
+    local save_version = world and world.meta and world.meta.generated_on_saveversion or "???"
+
+    return Embed()
+        :SetTitle(STRINGS.PEARL.EMBEDS.REGEN.TITLE)
+        :SetColor(Embed.COLORS.GREEN)
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.REGEN.THMB_URL)
+        :SetTimestamp(os.time())
+
+        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
+        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
+        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
+end
+
+--- @TODO: Handle too many mods.
 --- @TODO: Create embed for mod list.
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, owner_name)
     local description = ""
 
-    local index = 1
-    for _, mod in pairs(enabled_mods) do
+    for i, mod in ipairs(enabled_mods) do
         local icon = mod.blocked and PEARL.ICONS.X or PEARL.ICONS.CHECK
-        local fancyname = MARKDOWN.bold(mod.fancyname)
+        local fancyname = MARKDOWN.bold(mod.fancyname:ltake(MAX_MODNAME_LEN))
+        local modid = MARKDOWN.codeblock(
+            mod.private and "[LOCAL]" or MARKDOWN.hlink(
+                mod.id:ltake(MAX_MODID_LEN), PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
+            )
+        )
 
-        description = description..MARKDOWN.codeline(tostring(index)..". ")..icon.." "
+        description = description..icon.." "
         if not mod.private or mod.temp then
             description = description..MARKDOWN.hlink(
                 fancyname, PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
@@ -133,11 +167,10 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         end
 
         description = description.."\n"
-        index = index + 1
     end
 
     return Embed()
-        :SetTitle(STRINGS.PEARL.LOGS.MODS_EMBED_TITLE:format(owner_name))
+        :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
         :SetColor(Embed.COLORS.RED)
         :SetTimestamp(os.time())
         :SetDescription(description)

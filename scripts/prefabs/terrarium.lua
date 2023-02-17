@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
 Note:
     Reimplements the terrarium with some changes to the spawn function.
@@ -5,7 +19,10 @@ Note:
     who activated it.
 
     Keep in sync with the original version from Klei.
+
 --]]
+
+--- @TODO: Create an extension from this instead of overriding the whole file!
 
 require "prefabutil"
 
@@ -500,7 +517,7 @@ local function OnPlayerDespawn(inst, player)
             CancelSummoning(inst)
         end
 
-        if inst.components.timer:TimeExists("summon_delay") or (
+        if inst.components.timer:TimerExists("summon_delay") or (
             inst.is_on and not inst.eyeofterror
         ) then
             TurnOff(inst)

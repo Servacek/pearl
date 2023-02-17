@@ -17,7 +17,7 @@
 ]]
 
 local PEARL = PEARL
-if type(PEARL.CONFIG.DISCORD_INVITE) ~= "string" or #PEARL.CONFIG.DISCORD_INVITE < 3 then
+if type(PEARL.CONFIG.DISCORD.INVITE) ~= "string" or #PEARL.CONFIG.DISCORD.INVITE < 3 then
     return
 end
 
@@ -71,6 +71,6 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
         colour = VIEWDC_BUTTON_HOVER_FCOLOR,
     })
     self.viewdiscord_button:SetOnClick(function()
-        VisitURL(PEARL.CONFIG.DISCORD_INVITE)
+        VisitURL(PEARL.CONFIG.DISCORD.INVITE)
     end)
 end, PlayerStatusScreen)

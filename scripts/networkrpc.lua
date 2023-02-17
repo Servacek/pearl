@@ -17,10 +17,14 @@
     client side. So we do not have access to the SUB table here.
 --]]
 
+--- @TODO: Allow adding RPCs dinamically during runtime.
+--- Also create some simple API for it of course.
 local TheNet = TheNet
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
+
+local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
 --------------------------
 -- Initialization
@@ -30,27 +34,22 @@ PEARL.RPCS = {}
 
 --- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
-    --- @TODOv2.1: Make this more generic.
     CommandResponse = function(...)
-        return ChatHistory:SendCommandResponse(...)
+        if ChatHistory then
+            return ChatHistory:SendCommandResponse(...)
+        end
     end,
 
     Disconnect = function(...)
-        PEARL.EventProcessor:HandleEvent("force_disconnected", ...)
-        PEARL.ClientNetwork:Disconnect(..., true)
-    end,
-
-    -- SendLocalizationRequest = function()
-    --     PEARL.EventProcessor:HandleEvent("localization_request_received")
-    -- end,
-
-    LocaleAllowed = function()
-        PEARL.EventProcessor:HandleEvent("connection_allowed")
+        if PEARL.ClientNetwork then
+            PEARL.ClientNetwork:Disconnect(..., true)
+        end
     end,
 
     ConnectionAllowed = function()
-        PEARL.ClientNetwork:SetIsWaitingForResponse(false)
-        PEARL.EventProcessor:HandleEvent("connection_allowed")
+        if PEARL.ClientNetwork then
+            PEARL.ClientNetwork:OnConnectionAllowed()
+        end
     end,
 }
 
@@ -66,6 +65,15 @@ local SHARD_RPCS = {
             PEARL.error(err)
         end
     end,
+
+    SyncModConfig = function(shard_id, modconfig)
+        if shard_id ~= PEARL.CONSTS.SHARD_ID.MASTER then
+            return PEARL.error("Received mod configuration from a secondary shard!")
+        end
+
+        local config = RunInSandboxSafe(modconfig)
+
+    end,
 }
 
 --- These RPCS are called from the clients so additional security checks are needed.
@@ -76,8 +84,13 @@ local SERVER_USERID_RPCS = {
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
         end
 
+        -- All the data is untrusted in this case.
         local data_tbl = DecodeAndUnzipString(data)
-        PEARL.debug("Received CFD from server:", DataDumper(data_tbl))
+        if not data_tbl or IsTableEmpty(data_tbl) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+        end
+
+        --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
 
         PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
     end,
@@ -91,6 +104,8 @@ local SERVER_USERID_RPCS = {
         PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
     end,
 
+    --- @TODO: Maybe this should use PEARL.AnnounceWithType as well
+    --- so the announcement can be disabled in the settings.
     AFKStateChanged = function(userid, is_afk, kicked)
         if not (optbool(is_afk) and optbool(kicked)) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("AFKStateChanged", userid)
@@ -142,6 +157,9 @@ local SERVER_USERID_RPCS = {
         )):SetAllowedMentionTypes({
             Message.MENTION_TYPES.EVERYONE
         }))
+
+        -- Anounce it so it logs the message and also other players can see it as well.
+        PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
 
     ClientError = function(userid, data)
@@ -154,38 +172,6 @@ local SERVER_USERID_RPCS = {
             PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
         end
     end,
-
-    AgreementData = function(userid, agreed, novice)
-        PEARL.debug("AgreementData")
-        if not optbool(agreed) and optbool(novice) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementData", userid)
-        end
-
-        if agreed == false then
-            return PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, "ID_DST_USER_DISAGREED")
-        end
-
-        local client = userid and TheNet:GetClientTableForUser(userid)
-        if not (client and type(client.name) == "string" and #client.name > 0) then
-            return PEARL.warn("Got AgreementData RPC from invalid client!")
-        end
-
-        if not novice then
-            return
-        end
-
-        -- Send a nice welcome message for novices.
-        local welcome_msg = STRINGS.PEARL.NOVICE_ANNOUNCEMENT:format(client.name)
-        if not PEARL.ServerNetwork:IsPaused() and #AllPlayers > 1 then
-            return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
-        end
-
-        if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
-            return PEARL.DiscordLogger:LogString(
-                welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
-            )
-        end
-    end
 }
 
 --------------------------
@@ -231,12 +217,6 @@ end
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.SendRPCToServer(rpc_id, ...)
-    if not PEARL.ClientNetwork or PEARL.ClientNetwork:IsDisconnected() then
-        return
-    end
-
-    -- print("SEND RPC TO SERVER", name, ...)
-    --PEARL.debug("Sending rpc", SERVER_RPCS_TO_NAME[name], "to the server")
     return SendModRPCToServer(PEARL.GetServerRPC(rpc_id), ...)
 end
 
@@ -274,6 +254,7 @@ do
         i = i + 1
     end
 end
+
 --------------------------
 -- Shard RPCs
 --------------------------
@@ -287,3 +268,46 @@ do
         i = i + 1
     end
 end
+
+--------------------------
+-- Handler
+--------------------------
+-- Custom handler for server RPCs since the built-in one does only work when staticUpdate
+-- gets called, and that is only when the simulation is running.
+
+local RPC_QUEUE_RATE_LIMIT = UpvalueHacker.GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
+
+local RPC_Queue_Limiter = UpvalueHacker.GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
+
+--- @TODO: There are two main aproaches to this. One is using a PreCall, where
+--- we handle the server mod rpcs all ourselves. The second one is using a PostCall
+--- and if the rpc handled was ours, call TickRPCQueue afterwards. This however, can how
+--- some side effects since the tick will not just call our RPCs but also the game's.
+
+-- This one is only called on the server.
+PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace, code, data)
+    -- This is not our RPC so we do not care. How selfish...
+    if namespace ~= PEARL.RPC_NAME then
+        return -- Leave the game handle it.
+    end
+
+    local handler = MOD_RPC_HANDLERS[namespace][code]
+    if type(handler) ~= "function" then
+        return
+    end
+
+    local userid = type(sender) == "table" and sender.userid or sender
+    if type(userid) ~= "string" then
+        return
+    end
+
+    local limit = (RPC_Queue_Limiter[userid] or 0) + 1
+    RPC_Queue_Limiter[userid] = limit
+    if limit >= RPC_QUEUE_RATE_LIMIT then
+        return -- Let the game handle Rate limits
+    end
+
+    PEARL.SafeRun(TheNet.CallRPC, TheNet, handler, userid, data)
+
+    return false
+end)

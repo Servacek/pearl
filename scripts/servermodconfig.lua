@@ -16,12 +16,16 @@
 --- in this file and since it's being loaded via 'require' we need to set it manually.
 setfenv(1, PEARL.ENV)
 
+--- @TODO: Make configuration options marked with shard_sync flag to be broadcasted to all
+--- connected shards.
+
 -------------------------------------
 -- [[ Private Functions ]]
 -------------------------------------
 
 local function GetGenericConfigData(opt_name, ...)
-    return PEARL.GetConfigData(opt_name, ...) or PEARL.CONFIG[opt_name]
+    -- Prioritize the CONFIG table because some configs can be changed during boot.
+    return PEARL.CONFIG[opt_name] or PEARL.GetConfigData(opt_name, ...)
 end
 
 local function ParseFoldedConfigName(name, tbl)
@@ -88,12 +92,8 @@ end
 
 rawset(_G, "GetEnabledServerModsConfigData", function()
     local mods_config_data = {}
-
 	for _, modname in ipairs(ModManager:GetEnabledServerModNames()) do
-		local modinfo = KnownModIndex:GetModInfo(modname)
-		if modinfo ~= nil and modinfo.all_clients_require_mod then
-			mods_config_data[modname] = GetAllConfigDataForMod(modname)
-		end
+		mods_config_data[modname] = GetAllConfigDataForMod(modname)
 	end
 
     if PEARL.CONFIG.DEBUG_MODE then
@@ -127,3 +127,39 @@ end)
 
 --     return modinfo_details
 -- end)
+
+-------------------------------------
+-- [[ Handlers ]]
+-------------------------------------
+
+local function GetShardPublicModConfig()
+    local config = {}
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.shard_sync == true then
+            table.insert(config, option)
+        end
+    end
+
+    return config
+end
+
+local function SyncModConfigWithShard(shardid)
+    return PEARL.RPCS.SyncModConfig(shardid, GetShardPublicModConfig())
+end
+
+local function OnShardStateUpdate(shardid, state)
+    if state == REMOTESHARDSTATE.READY then
+        SyncModConfigWithShard(shardid)
+    end
+end
+
+if TheShard:IsMaster() then
+    PEARL.AddGamePostInit(function()
+        local world = TheWorld
+        if not world then
+            return
+        end
+
+        world:ListenForModEvent("shard_stateupdate", OnShardStateUpdate)
+    end)
+end

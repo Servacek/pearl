@@ -12,9 +12,6 @@
 --- @category BackEnd
 
 
--- NOTE: All of this on the client's side needs to be executed in one tick!
-
-
 local TheSim = TheSim
 local table = table
 
@@ -23,7 +20,7 @@ local table = table
 --------------------------------
 
 local CACHE_FILE_NAME = "loc_uids_cache"
-local CACHE_MAX_SIZE = 2^4
+local CACHE_MAX_SIZE = 2^6
 local CACHE_ENCODE = false
 local ID_SEPARATOR = "|"
 
@@ -34,51 +31,10 @@ local ID_SEPARATOR = "|"
 --- @type table<string>
 local client_userid_cache = {}
 
---- @type table<string, Task>
-local timeouts = {}
-
---------- TIMEOUT ------------
-
-local function CancelTimeoutFor(userid)
-    --PEARL.debug("_CancelTimeoutFor", userid)
-
-    if timeouts[userid] ~= nil then
-        timeouts[userid]:Cancel()
-        timeouts[userid] = nil
-    end
-end
-
-local function OnTimeout(userid)
-    --PEARL.debug("_OnTimeout", userid)
-
-    CancelTimeoutFor(userid)
-
-    --- @TODO: Maybe send this info to discord as well?
-    PEARL.warn("The localization process for client ", userid, "has timed out.")
-
-    --- @TODO:
-    -- Safe-Fall - do nothing for now, but in the future it would
-    -- be a good idea to disconnect such connections
-    --PEARL.ServerNetwork:SendUserDisconnectFor(userid, "ID_DISCONNECTION_NOTIFICATION")
-end
-
-local function StartTimeoutFor(userid)
-    --PEARL.debug("_StartTimeoutFor", userid)
-
-    -- If there is already an timeout task scheduled do not reset it
-    if timeouts[userid] then
-        return
-    end
-
-    timeouts[userid] = PEARL.Scheduler:ExecuteInTime(
-        PEARL.CONSTS.LOCALIZATION_TIMEOUT, OnTimeout, nil, userid
-    )
-end
-
 --------- CACHE ------------
 
 local function IsClientCached(userid)
-    if not client_userid_cache or not PEARL.CONFIG.LOCALIZER_CACHE then
+    if not client_userid_cache or not PEARL.CONFIG.LOCALIZER.CACHE then
         return false
     end
 
@@ -109,9 +65,6 @@ end
 -- Should be called just once - on start
 local function LoadPersistentCache()
     SavePersistentCache()
-    if not kleifileexists(CACHE_FILE_NAME) then
-        return PEARL.debug("Missing the cache file.")
-    end
 
     TheSim:GetPersistentString(CACHE_FILE_NAME, function(success, data)
         if not success or not data then
@@ -136,22 +89,6 @@ end
 
 --------- HANDLERS ------------
 
-local function OnClientDisconnected(userid)
-    -- PEARL.debug("OnClientDisconnected")
-
-    CancelTimeoutFor(userid)
-end
-
-local function OnClientAuthenticationComplete(userid)
-    if type(userid) ~= "string" then
-        return
-    end
-
-    -- PEARL.debug("OnClientAuthenticationComplete")
-
-    StartTimeoutFor(userid)
-end
-
 -- Save the cache when we are shutting down
 local function OnShutdown()
     SavePersistentCache()
@@ -162,13 +99,12 @@ end
 --------------------------------
 
 PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, cfd)
-    local locale = cfd and string.upper(cfd.locale)
+    local locale = cfd.locale and string.upper(cfd.locale)
     if not locale then
-        return
+        return PEARL.warn("Invalid locale!")
     end
 
     PEARL.info("Client", userid, "localized as", cfd.locale)
-    CancelTimeoutFor(userid)
 
     -- If the player was already loaded we do not care about localization.
     -- This happens for example during migration.
@@ -188,7 +124,7 @@ PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, cfd)
     if PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES[locale] == true or table.contains(PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES, locale) then
         PEARL.info("Locale allowed.")
 
-        if PEARL.CONFIG.LOCALIZER_CACHE then
+        if PEARL.CONFIG.LOCALIZER.CACHE then
             PEARL.info("Caching localized userid...")
             CacheLocalizedClient(userid)
         end
@@ -201,24 +137,14 @@ PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, cfd)
     return false, "ID_DST_LOCALE_BLOCKED"
 end)
 
-LoadPersistentCache()
+if PEARL.CONFIG.LOCALIZER.CACHE then
+    LoadPersistentCache()
+end
 
 --------------------------------
 -- [[ Event Listeners ]]
 --------------------------------
 
-PEARL.EventProcessor:AddEventHandler(
-    "ms_clientdisconnected", OnClientDisconnected
-)
-
-PEARL.EventProcessor:AddEventHandler(
-    "clientconnectionclosed", OnClientDisconnected
-)
-
-PEARL.EventProcessor:AddEventHandler(
-    "ms_clientauthenticationcomplete", OnClientAuthenticationComplete
-)
-
-PEARL.EventProcessor:AddEventHandler(
+PEARL.EventProcessor:AddSafeEventHandler(
     "quit", OnShutdown
 )

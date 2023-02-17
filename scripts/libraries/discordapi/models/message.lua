@@ -22,10 +22,22 @@
         - Looks like files are not able to be sent using the default request body.
 --]]
 
+-------------------------------------
+-- [[ Global Localization ]]
+-------------------------------------
+
 local PEARL = PEARL
 local table = table
 local json, bit = json, bit
 local pcall = pcall
+local type = type
+
+local shallowcopy = shallowcopy
+local cleartable = cleartable
+
+-------------------------------------
+-- [[ Class Declarations ]]
+-------------------------------------
 
 -- A message object can contain multiple log lines
 --- @param content string? The content of the message

@@ -1,3 +1,26 @@
-# Agreement Title
+@v1.3
+#Důležité informace
+Server je komunitní proto očekávám, že se lidi takto budou chovat a doporučuji vytvářet jednu společnou bázi.
+Prosím o dodržování následujících pravidel:
 
-Agreement text
+#Pravidla
+Je zakázano:
+1. Trolit a to jakýmkoliv způsobem
+2. Pálit bázi, ničit struktury atd.
+3. Vařit a jíst Mandragory, Deerclops Eye, Guardian rohy a celkově věci považující se za vzácne a jedlé
+4. Vytvářet různé báze po světě, je cílem mít jednu bázi společnou a spolupracovat. (Nepočítájí se přechodné báze v Oaze a jeskyni atd.)
+5. Záměrně se odpojovat se vzácnymi předměty: panflute, koruna, mandragory atd.
+(Pokud s tímto bude problém, tak zapneme funkci:"drop inventory" při odpojení ze serveru)
+6. Je povolené votování o rollback a podobně. Je však zakázano votovat o regeneraci a kick.
+7. Celkově se stačí nechovat jako trouba
+
+
+#Závěrem
+Máme nástroje pro vyhledávání předmětů a dokonce i u odpojených hráčů, takže to budeme banovat, když lidi budou záměrně věci sbírat a odpojovat se s nimi.
+Jednoduše pokud se budeš chovat jako trouba a kazit zábavu ostatním, tak se s tím štvát nebudeme. Server je teď veřejný, takže nebudeme plýtvat naším časem.
+Pokud narazíte na problém či nějakého troubu, můžete použít příkaz /sos, který nám pošle zprávu a my server zkontrolujeme. Zneužití se trestá.
+Možná se ti také objevila hláška, že se ti po připojení vyply nějaké módy. Na serveru máme záměrně nějaké clientské módy zakázané a seznam zakázaných módů se může časem rozšířit.
+Mod vytvořil jeden z členů naší komunity. Pokud budete mít nápady o co server rozšířit, případně byste chtěli nějaké módy navíc.
+Napište nám to na discordu: https://discord.gg/RHzJxut
+
+Děkuji za přečtení a příjmenou zábavu 󰀮
