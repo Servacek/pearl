@@ -428,3 +428,8 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_SERVER_RESPONSE_TIMEOUT",
     "Server Not Responding",
     "The server is not responding. Please try again."
 )
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_USERNAME_BLOCKED",
+    "Inappropiate User Name",
+    "To continue playing on this server, please change your Steam user name."
+)

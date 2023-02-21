@@ -13,8 +13,7 @@
 
 
 --[[
-    Capable of delaying the client loading process via Profile:Load. Used
-    by localizer when waiting for a server response.
+    Capable of deffering the client's loading process when waiting for a server's response.
 --]]
 
 ---------------------------------
@@ -31,6 +30,36 @@ local ClientLoader = {}
 local load_fn = Profile.Load
 local load_fn_args = nil
 local loaded = false
+local load_deffered = false
+
+local function LoadOverride(...)
+    -- Always save these args for the future.
+    ClientLoader:SetLoadArgs(...)
+
+    if ClientLoader:IsLoadDeffered() then
+        PEARL.debug("Deffering further loading of the client...")
+        return false
+    end
+
+    PEARL.debug("ClientLoader:Load")
+    return ClientLoader:Load()
+end
+
+local function OverrideLoader()
+    if Profile.Load == LoadOverride then
+        return PEARL.warn("Loader already overriden!")
+    end
+
+    return PEARL.OverrideVariable("Load", LoadOverride, Profile)
+end
+
+local function RestoreLoader()
+    if Profile.Load == load_fn then
+        return PEARL.warn("Loader wasn't changed!")
+    end
+
+    return PEARL.OverrideVariable("Load", load_fn, Profile)
+end
 
 ---------------------------------
 -- [[ Public ]]
@@ -59,12 +88,38 @@ function ClientLoader:ForceLoad()
     return self:Load()
 end
 
+-- Loading is only being deffered if ClientNetwork requests so. Else nothing is being overriden or
+-- changed in any way.
+function ClientLoader:DefferLoad()
+    PEARL.debug("ClientLoader:DefferLoad")
+
+    if self:IsLoadDeffered() then
+        return --PEARL.warn("Loading of the client was already deffered!")
+    end
+
+    self:SetLoadDeffered(true)
+    OverrideLoader()
+end
+
+function ClientLoader:CancelDeffer()
+    if not self:IsLoadDeffered() then
+        return PEARL.warn("The loading is not deffered!")
+    end
+
+    RestoreLoader()
+    self:SetLoadDeffered(false)
+end
+
 ---------------------------------
 -- [[ Setters ]]
 ---------------------------------
 
 function ClientLoader:SetLoadArgs(...)
     load_fn_args = {...}
+end
+
+function ClientLoader:SetLoadDeffered(deffered)
+    load_deffered = deffered
 end
 
 ---------------------------------
@@ -75,28 +130,8 @@ function ClientLoader:IsLoaded()
     return loaded == true
 end
 
----------------------------------
--- [[ Setup ]]
----------------------------------
-
---- Use that so far and rework the ClientLoader a bit.
---- Especially, make it so that we delay the load only if it's REALLY needed,
---- otherwise it makes just an unnecessary lag.
-if (not TheNet:GetIsServerAdmin() or PEARL.CONFIG.DEBUG_MODE) and PEARL.ClientNetwork:IsJoiningServer() then
-    PEARL.OverrideVariable("Load", function(...)
-        -- Always save these args for the future.
-        ClientLoader:SetLoadArgs(...)
-
-        -- If we are diconnected or we are waiting for a response from the server
-        -- we do not want to continue the loading now.
-        if PEARL.ClientNetwork:IsDisconnecting() or PEARL.ClientNetwork:IsWaitingForResponse() then
-            PEARL.debug("Deffering further loading of the client...")
-            return false
-        end
-
-        PEARL.debug("ClientLoader:Load")
-        return ClientLoader:Load()
-    end, Profile)
+function ClientLoader:IsLoadDeffered()
+    return load_deffered == true
 end
 
 ---------------------------------

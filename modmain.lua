@@ -388,8 +388,9 @@ PEARL.GameInstParams = PEARL.loadfile("instanceparams")
 -- [[ Backend ]]
 --------------------------------
 
---- TheNet:GetIsClient return's false when the we disconnect.
-if not TheNet:GetIsClient() then
+--- TheNet:GetIsClient return's false when we disconnect.
+--- Looks like TheNet:IsDedicated works even without the network!
+if TheNet:IsDedicated() then
     PEARL.info("Loading mod BE...")
     PEARL.loadfile("backend")
 

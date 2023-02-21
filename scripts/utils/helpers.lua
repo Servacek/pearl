@@ -15,11 +15,9 @@
 --- @TODO: Sort this a bit (v2.1)
 
 
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local UserCommands = require("usercommands")
 local EncodeBase64 = PEARL.loadfile('utils/base64encoder')
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local PlayerReference = PEARL.loadfile("models/playermetadata")
@@ -297,7 +295,7 @@ end
 --     return base_structs_count > 3, base_structs_count
 -- end
 
--- Used to determine wheter the client is connecting to the server for the first time
+-- Used to determine whether the client is connecting to the server for the first time
 -- or just migrating between the server shards.
 function PEARL.IsClientMigrating(client)
     client = (type(client) == "table" and client) or (type(client) == "string" and TheNet:GetClientTableForUser(client))
@@ -309,11 +307,6 @@ function PEARL.IsAdminUserid(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
     return client and client.admin == true
 end
-
---- @TODO
--- function PEARL.IsBurnable(inst)
---     return inst ~= nil and inst.components ~= nil and inst.components.burnable ~= nil
--- end
 
 --------------------------------
 -- [[ Klei Data ]]

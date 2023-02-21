@@ -29,7 +29,7 @@ local _is_shutting_down = false
 -- [[ Server State Handlers ]]
 -------------------------------
 
-local function OnShutdown(world, error)
+local function OnShutdown(error)
     if _is_shutting_down then
         return
     end
@@ -39,12 +39,12 @@ local function OnShutdown(world, error)
     PEARL.DiscordLogger:LogStringHighlighted(
         STRINGS.PEARL.LOGS[error and "SHUTDOWN_ERROR" or "SHUTDOWN"]:format(
             MARKDOWN.codeline(PEARL.GetShardFancyName())
-        ), PEARL.ICONS.SERVER_STATE.STOP, true
+        ), PEARL.ICONS.SERVER_STATE[error and "CRASH" or "STOP"], true
     )
 end
 
-local function OnShardStateUpdate(world, world_id, state)
-    if not state then
+local function OnShardStateUpdate(world_id, state, ...)
+    if not (state and TheWorld and TheWorld.state._loaded) then
         return
     end
 
@@ -54,13 +54,14 @@ local function OnShardStateUpdate(world, world_id, state)
 end
 
 --- Too spammy...
--- local function OnSimPaused()
---     PEARL.Logger:LogString(STRINGS.PEARL.LOGS.SIM_PAUSED, PEARL.ICONS.SIM_STATE.PAUSE)
--- end
+--- 18.02.2023: Or maybe not?
+local function OnSimPaused()
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SIM_PAUSED)
+end
 
--- local function OnSimUnpaused()
---     PEARL.Logger:LogString(STRINGS.PEARL.LOGS.SIM_UNPAUSED, PEARL.ICONS.SIM_STATE.RESUME)
--- end
+local function OnSimUnpaused()
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SIM_UNPAUSED)
+end
 
 local paused = false
 local function OnPauseDirty(world, data)
@@ -82,7 +83,7 @@ end
 
 local function OnFirstLaunch()
     -- TheWorld should exist at this point
-    if not (TheWorld and TheWorld.meta) or _is_shutting_down then
+    if _is_shutting_down then
         return
     end
 
@@ -92,7 +93,7 @@ end
 local function OnShardLoaded(master)
     local template = master and STRINGS.PEARL.LOGS.SHARD_LOADED_MASTER or STRINGS.PEARL.LOGS.SHARD_LOADED_SECONDARY
     PEARL.DiscordLogger:LogStringHighlighted(
-        template:format(PEARL.GetShardFancyName(), STRINGS.PEARL.SHARDS.MASTER), PEARL.ICONS.CHECK
+        template:format(PEARL.GetShardFancyName(), STRINGS.PEARL.SHARDS.MASTER), PEARL.ICONS.CHECK, true
     )
 end
 
@@ -119,13 +120,12 @@ PEARL.AddSimPostInit(function()
 
     OnShardLoaded(TheWorld.ismastershard)
 
-    TheWorld:ListenForModEvent("shard_shutdown", OnShutdown)
-
     if TheWorld.ismastershard then
         TheWorld:SafeListenForEvent("serverpauseddirty", OnPauseDirty)
+        TheWorld:SafeListenForEvent("ms_simunpaused", OnSimUnpaused)
+        TheWorld:ListenForModEvent("simpaused", OnSimPaused)
 
-        -- Shard Networking
-        TheWorld:ListenForModEvent("shard_stateupdate", OnShardStateUpdate)
+        PEARL.EventProcessor:AddSafeEventHandler("shard_stateupdate", OnShardStateUpdate)
 
         -- initial + current
         if PEARL.IsFirstLaunch() then
@@ -143,3 +143,4 @@ PEARL.AddFrontEndPostInit(function(fe)
 end)
 
 PEARL.EventProcessor:AddSafeEventHandler("invalidrpc", OnInvalidClientRPC)
+PEARL.EventProcessor:AddSafeEventHandler("shard_shutdown", OnShutdown)

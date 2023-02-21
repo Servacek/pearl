@@ -58,7 +58,7 @@ configuration_options = {
         name = "DISCORD",
         default = {
             INVITE = nil,
-            -- The IDs NEEDS to be strings because they exceed the 32-bit range.
+            -- The IDs NEEDS to be strings because they could overflow
             LHOOK = {
                 ID = "",
                 TOKEN = "",
@@ -116,6 +116,16 @@ configuration_options = {
         type = "table<string, boolean>",
     },
 
+    {
+        name = "FILTER_USERNAMES",
+        default = true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
     { -- regenerate, rollback, kick...
         name="COMMAND_BLOCKLIST",
         default={},
@@ -133,6 +143,7 @@ configuration_options = {
             STRICT = false,
             ENABLED = true,
             ALLOWLIST = false,
+            REPORT_MODS = true,
         }, -- Setting strict key to true will kick out all players who have such mods enabled.
         type = "table<string, boolean>",
 
@@ -372,6 +383,7 @@ configuration_options = {
     {
         name = "INTRO_SCREEN",
         default = false,
+        master_only = true,
         options = {
             true,
             false,

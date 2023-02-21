@@ -37,3 +37,14 @@ end
 function KnownModIndex:AreAnyModsBlocked()
     return self._mods_blocked == true
 end
+
+function KnownModIndex:GetAllEnabledModsCount()
+    local count = 0
+    for modname, _ in pairs(KnownModIndex.savedata.known_mods) do
+        if KnownModIndex:IsModEnabledAny(modname) then
+            count = count + 1
+        end
+    end
+
+    return count
+end

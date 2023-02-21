@@ -26,4 +26,27 @@ local Webhook = Class(function(self, id, token)
     )
 end)
 
+-------------------------------------
+-- [[ Getters ]]
+-------------------------------------
+
+function Webhook:GetID()
+    return self._id
+end
+
+function Webhook:GetToken()
+    return self._token
+end
+
+function Webhook:IsValid()
+    return (
+        type(self._token) == "string" and #self._token > 0 and
+        type(self._id) == "string" and #self._id > 0
+    )
+end
+
+-------------------------------------
+-- [[ Return ]]
+-------------------------------------
+
 return Webhook

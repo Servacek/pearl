@@ -84,6 +84,24 @@ function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
     return PEARL.SendRPCToClient(PEARL.RPCS.ConnectionAllowed, userid, ...)
 end
 
+-- Returns a boolean representing whether the client is allowed
+-- to join according the filters or not.
+function ServerNetwork:RunClientConnectionFiltersFor(userid, cfd)
+    cfd = cfd or self:GetCachedCFDFor(userid)
+
+    for _, filter in ipairs(conn_filters) do
+        local success, allowed, reason = PEARL.SafeRun(filter, userid, cfd)
+        if success == false then
+            -- Allowed should be the error message in this case.
+            PEARL.error("Failed to execute a connection data filter!", allowed)
+        elseif allowed == false then -- Check for explicit false
+            return allowed, reason
+        end
+    end
+
+    return true
+end
+
 ----------------------------------
 -- Getters
 ----------------------------------
@@ -96,15 +114,33 @@ function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
 end
 
+function ServerNetwork:UserSessionExists(userid)
+    return TheNet:GetUserSessionFile(TheNet:GetSessionIdentifier(), userid) ~= nil
+end
+
 function ServerNetwork:IsClientJoining(userid)
     local client = self:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    return client and (client.playerage or 0) == 0 or false
+    return client and (
+        client.playerage == 0 and
+        client.prefab == "" and
+        client.lobbycharacter == ""
+    ) or false
+end
+
+function ServerNetwork:IsAdmin(userid)
+    local client = self:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
+    return client.admin == true
+end
+
+function ServerNetwork:IsClientTrusted(userid)
+    return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid)
 end
 
 ----------------------------------
 -- Setters
 ----------------------------------
 
+--- @param filter function<userid, data>
 function ServerNetwork:AddClientConnectionFilter(filter)
     PEARL.debug("ServerNetwork:AddClientConnectionFilter", filter)
 
@@ -127,6 +163,8 @@ function ServerNetwork:CacheClientTableFor(userid)
     if type(userid) == "string" then
         client_cache[userid] = TheNet:GetClientTableForUser(userid)
     end
+
+    return client_cache[userid]
 end
 
 function ServerNetwork:StartTimeoutFor(userid)
@@ -157,7 +195,7 @@ end
 function ServerNetwork:OnClientConnectionTimeout(userid)
     self:CancelTimeoutFor(userid)
 
-    PEARL.warn("Client", userid, "didn't send connection data on time! Disconnecting...")
+    PEARL.warn("Client", userid, "didn't send connection data on time!")
     if PEARL.DiscordReporter then
         PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT:format(
             userid
@@ -178,9 +216,9 @@ end
 
 function ServerNetwork:OnClientAuthenticationComplete(userid)
     -- Keep the newest data cached.
-    self:CacheClientTableFor(userid)
+    local client = self:CacheClientTableFor(userid)
 
-    if self:IsClientJoining(userid) then
+    if self:IsClientJoining(userid) and (not client.admin or PEARL.CONFIG.DEBUG_MODE) then
         -- Starting the timeout only makes sense if the client is joining the server.
         self:StartTimeoutFor(userid)
     end
@@ -194,32 +232,42 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     -- Always keep just the newest record
     conn_data_cache[userid] = cfd
 
-    -- Run the filters only when we are connecting for the first time.
-    if cfd.joining == true then
-        for _, filter in ipairs(conn_filters) do
-            local success, allowed, reason = PEARL.SafeRun(filter, userid, cfd)
-            if success == false then
-                -- Allowed should be the error message in this case.
-                PEARL.error("Failed to execute a connection data filter!", allowed)
-            end
-            if allowed == false then -- Check for explicit false
-                return self:SendUserDisconnectFor(userid, reason)
-            end
-        end
-
-        -- If all the filters have successfully passed, then the connection should be allowed.
-        PEARL.debug("Allowing connection...")
-        self:SendUserConnectionAllowedFor(userid)
-    end
-
     -- This is being called just for some logging and stuff, to actually
     -- control the connection use the connection filters.
     PEARL.EventProcessor:HandleEvent("clientdatareceived", userid, cfd)
+
+    -- Run the filters only when the client is waiting for our response.
+    if cfd.waiting ~= true then
+        return
+    end
+
+    -- Skip already trusted clients
+    if not self:IsClientTrusted(userid) or PEARL.CONFIG.DEBUG_MODE then
+        local allowed, reason = self:RunClientConnectionFiltersFor(userid)
+        if allowed == false then
+            return self:SendUserDisconnectFor(userid, reason)
+        end
+    end
+
+    -- If all the filters have successfully passed, then the connection should be allowed.
+    PEARL.debug("Allowing connection...")
+    self:SendUserConnectionAllowedFor(userid)
 end
 
 ----------------------------------
 -- Network Callbacks
 ----------------------------------
+--- @TODO: I guess this should be moved somewhere else.
+
+local function OnShardCrashed()
+    PEARL.EventProcessor:HandleEvent("shard_shutdown", true)
+    PEARL.ModShutdown()
+end
+
+local function OnShardShutdown()
+    PEARL.EventProcessor:HandleEvent("shard_shutdown")
+    PEARL.ModShutdown()
+end
 
 -- Returning false here will cause the client to be disconnected immediately.
 -- The "Slots Reserved" popup will be displayed.
@@ -248,9 +296,7 @@ end)
 -- Used by the engine to notify lua on the master shard
 -- that a secondary shard has changed it's state. This also notifies the shard itself.
 PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(...)
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("shard_stateupdate", ...)
-    end
+    PEARL.EventProcessor:HandleEvent("shard_stateupdate", ...)
 end)
 
 -- Looks like this is pushed only on the Master shard
@@ -260,7 +306,13 @@ PEARL.AddGlobalFunctionPreCall("WorldRollbackFromSim", function(count)
     end
 end)
 
-PEARL.AddUserDataFunctionPreCall("Reset", function(count)
+PEARL.AddGlobalFunctionPreCall("OnSimPaused", function()
+    if TheWorld ~= nil then
+        TheWorld:PushModEvent("simpaused")
+    end
+end)
+
+PEARL.AddUserDataFunctionPreCall("Reset", function()
     if TheWorld ~= nil then
         TheWorld:PushModEvent("world_restart")
     end
@@ -277,13 +329,9 @@ PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
     PEARL.ModShutdown()
 end)
 
-PEARL.AddGlobalFunctionPreCall("Shutdown", function(...)
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("shard_shutdown")
-    end
-
-    PEARL.ModShutdown()
-end)
+PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
+PEARL.AddUserDataFunctionPreCall("Crash", OnShardCrashed, TheSim)
+PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
 
 -- We want to have full control over this function.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)

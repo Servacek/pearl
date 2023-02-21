@@ -199,6 +199,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, target, item)
     end
 end)
 
+--- @TODO: DEBUG!
 local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
     if not entities or #entities <= 0 then
         return

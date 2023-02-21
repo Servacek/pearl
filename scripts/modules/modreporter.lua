@@ -13,21 +13,28 @@
 
 
 
+--[[
+    Receives the mod report from the client and verifies
+    whether the mods the client is using are allowed or not.
+    If the mod blocker's strict mode is enabled,
+--]]
+
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 
 --- @TODO:
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", function(userid, data)
-    -- if not (data and data.enabled_mods and data.enabled_mods.prohibited == true) then
-    --     return
-    -- end
+    tdump(data)
+    if not (data and data.enabled_mods and data.enabled_mods.prohibited == true) then
+        return
+    end
 
-    -- local client = userid and TheNet:GetClientTableForUser(userid)
-    -- local name = client and client.name or userid
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    local name = client and client.name or userid
 
-    -- local message = Message()
-    -- message:AddEmbed(EMBEDS.ClientMods(data.enabled_mods, name))
+    local message = Message()
+    message:AddEmbed(EMBEDS.ClientMods(data.enabled_mods, name))
 
-    -- PEARL.DiscordReporter:SendRawReportMessage(message)
+    PEARL.DiscordReporter:SendRawReportMessage(message)
 end)

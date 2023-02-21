@@ -11,7 +11,6 @@
 --]==]====================================================]]
 
 
---- @TODO: Write some debug tests for this.
 --[[
     Efficient strict queue implementation.
 --]]

@@ -14,7 +14,6 @@
 
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
---- @TODO: Maybe some flags for each region?
 
 return {
     X = "<:x_:1063767987456315472>",
@@ -22,6 +21,8 @@ return {
     PING = "<:connection:1064114008698916864>",
     ENABLED = "<:enabled:1071821645427261450>",
     DISABLED = "<:disabled:1071821625470746686>",
+    STEAM = "<:steam:1076608091656814643>",
+    LOCAL = "<:local:1076609330905878588>",
 
     PLAYER_PREFABS = {
         -- DST
@@ -74,24 +75,25 @@ return {
 
     MOONPHASES = {
         WANNING = {
-            ["new"]=            "🌕︎",
-            ["quarter"]=        "🌔︎",
-            ["half"]=           "🌓︎",
-            ["threequarter"]=   "🌒︎",
-            ["full"]=           "🌑︎",
+            ["new"]=            "<:new:1076473832963068017>", --"🌕︎",
+            ["quarter"]=        "<:wanning_quarter:1076473860427350097>", --"🌔︎",
+            ["half"]=           "<:wanning_half:1076473846959456356>", --"🌓︎",
+            ["threequarter"]=   "<:wanning_threequarter:1076473873681358869>", --"🌒︎",
+            ["full"]=           "<:full:1076473817087610900>", --"🌑︎",
         },
         WAXING = {
-            ["new"]=            "🌕︎",
-            ["quarter"]=        "🌖︎",
-            ["half"]=           "🌗︎",
-            ["threequarter"]=   "🌘︎",
-            ["full"]=           "🌑︎",
+            ["new"]=            "<:new:1076473832963068017>", --"🌕︎",
+            ["quarter"]=        "<:waxing_quarter:1076473913174917150>", --"🌖︎",
+            ["half"]=           "<:waxing_half:1076473898494869504>", --"🌗︎",
+            ["threequarter"]=   "<:waxing_threequarter:1076473928710623364>", --"🌘︎",
+            ["full"]=           "<:full:1076473817087610900>", --"🌑︎",
         },
     },
 
     SERVER_STATE = {
         START       = "<:check:998561107776122900>",
         STOP        = "<:save:998561362710110328>",
+        CRASH       = "<:warn:1076451075126734878>",
         PAUSE       = "<:pause:998561335463907459>",
         --RESUME      = "▶️",
         ROLLBACK    = "<:rollback:998561230799253614>",

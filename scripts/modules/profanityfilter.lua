@@ -10,6 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category BackEnd
+--- @TODO: Filter usernames containing profanity.
 
 require("util/profanityfilter")
 
@@ -60,23 +61,39 @@ end
 -------------------------------------
 
 function ProfanityFilter:Apply(text)
-    if type(text) ~= "string" or not self.patterns then
-        return text
+    if type(text) ~= "string" or #text <= 1 then
+        return
     end
 
     -- Replace profanity with asterisks
-    local n
     text = text:gsub(WORD_PATTERN, function(word)
         word = lower(word)
-        n = len(word)
         for i = 1, #self.patterns do
-            if word:find(self.patterns[i]) then
-                return string.rep(REPL_CHAR, n)
+            if word:find(self.patterns[i]) ~= nil then
+                return string.rep(REPL_CHAR, len(word))
             end
         end
     end)
 
     return text
+end
+
+-- We use our custom function for this since the default one doesn't support patterns.
+function ProfanityFilter:Detect(text)
+    PEARL.debug("ProfanityFilter:Detect", text)
+
+    if type(text) ~= "string" or #text <= 1 then
+        return
+    end
+
+    text = lower(text)
+    for i = 1, #self.patterns do
+        if text:find(self.patterns[i]) ~= nil then
+            return true
+        end
+    end
+
+    return false
 end
 
 -------------------------------------
@@ -99,6 +116,12 @@ PEARL.AddSimPostInit(function()
             PEARL.error("Filter", pf, "wasn't found!")
         else
             PEARL.debug("ProfanityFilter:AddDictionary", pf)
+            local filter = PEARL.loadfile(FILTER_RPATH:format(pf))
+
+            -- Ensure that the required fields are provided.
+            filter.loose_match = filter.loose_match or {}
+            filter.exact_match = filter.exact_match or {}
+
             ProfanityFilter:AddDictionary(
                 pf, PEARL.loadfile(FILTER_RPATH:format(pf))
             )
@@ -106,3 +129,18 @@ PEARL.AddSimPostInit(function()
         end
     end
 end)
+
+
+-------------------------------------
+-- [[ Username Profanity Filter ]]
+-------------------------------------
+
+if PEARL.CONFIG.FILTER_USERNAMES then
+    PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, data)
+        if type(data.username) ~= "string" then
+            return
+        end
+
+        return not ProfanityFilter:Detect(data.username), "ID_DST_USERNAME_BLOCKED"
+    end)
+end

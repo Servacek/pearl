@@ -1,10 +1,10 @@
 --[[====================================================[==[
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
-    
+
     Copyright (c) 2023 Fi7iP
     All rights reserved.
-    
+
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
@@ -34,7 +34,7 @@ return function(ifile, ofile)
         return PEARL.error("File not found!")
     end
 
-    local wfile = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..ofile, "w")
+    local wfile = io.open(PEARL.SRCDIR.."languages/filters/"..ofile, "w")
     if wfile == nil then
         return PEARL.error("File not found!")
     end

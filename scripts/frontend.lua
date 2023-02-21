@@ -55,9 +55,6 @@ PEARL.info("Loading client network...")
 PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 PEARL.ClientNetwork:LoadDefaultCFD()
 
---- @type ClientLoader
-PEARL.ClientLoader = PEARL.loadfile("clientloader")
-
 ----------------------------------
 -- FrontEnd Debug Mode
 ----------------------------------

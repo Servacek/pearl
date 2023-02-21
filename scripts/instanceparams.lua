@@ -48,6 +48,10 @@ function GameInstParams:GetParam(name)
     return old_params[name]
 end
 
+function GameInstParams:GetCurrentModParam(name)
+    return new_params[name]
+end
+
 --------------------------------------
 -- [[ Handlers ]]
 --------------------------------------

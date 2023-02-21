@@ -21,29 +21,21 @@ if TheNet:GetIsServerAdmin() or not PEARL.CONFIG.CONSOLE_DISABLED then
 	return
 end
 
-PEARL.OverrideVariable("CONSOLE_ENABLED", false, _G)
-PEARL.OverrideVariable("ExecuteConsoleCommand", function() end, _G)
+-------------------------------
+-- [[ Class Declaration ]]
+-------------------------------
 
 --- @class ConsoleScreen
 local ConsoleScreen = require("screens/consolescreen")
 
------------------------------------------
+-------------------------------
+-- [[ Function Overrides ]]
+-------------------------------
 
--- ConsoleScreen.DoInit = function() end
--- ConsoleScreen.Run = function() end
+PEARL.OverrideVariable("OnBecomeActive", function(self)
+    self:Close()
+end, ConsoleScreen)
 
--- -- Just in case this is called from some other place
--- ConsoleScreen.Run = function(self)
---     self:Close()
--- end
-
-ConsoleScreen.OnBecomeActive = function(self)
-    return self:Close()
-    -- if TheFrontEnd ~= nil then
-    --     TheFrontEnd:ShowConsoleLog()
-    -- end
-
-    -- if self.console_edit ~= nil then
-    --     self.console_edit:SetString(STRINGS.PEARL.UI.CONSOLE_DISABLED)
-    -- end
-end
+PEARL.OverrideVariable("CONSOLE_ENABLED", false, _G)
+-- Disable this function so even input from stdout won't be executed.
+PEARL.OverrideVariable("ExecuteConsoleCommand", function() end, _G)

@@ -11,14 +11,13 @@
 --]==]====================================================]]
 
 
+
 ----------------------------------
 -- Constants
 ----------------------------------
 
 local TIMEOUT = 15 -- seconds
 
-
---- @TODO: Load the RPCs somewhere here.
 ----------------------------------
 -- Locals
 ----------------------------------
@@ -32,8 +31,6 @@ local disconnected_by_server = false
 local force_disconnected = false
 
 local cfd = {}
-
-local waiting_for_response = false
 local cfd_sent = false
 --- @type Task?
 local timeout_task = nil
@@ -43,7 +40,10 @@ local timeout_task = nil
 ----------------------------------
 
 --- @class ClientNetwork
-local ClientNetwork = {}
+local ClientNetwork = {
+    --- @type ClientLoader
+    loader = PEARL.loadfile("clientloader")
+}
 
 ----------------------------------
 -- Public
@@ -51,8 +51,6 @@ local ClientNetwork = {}
 
 function ClientNetwork:Disconnect(reason, from_server, immediate)
     PEARL.info("ClientNetwork:Disconnect", reason, from_server)
-
-    self:CancelTimeout()
 
     if self:IsDisconnected() then
         return PEARL.debug("Already disconnected...")
@@ -64,19 +62,23 @@ function ClientNetwork:Disconnect(reason, from_server, immediate)
     if PEARL.CONFIG.SERVER_REQUIRE_CFD and not self:HasSentCFD() then
         -- In case we have been disconnected for invalid mods
         -- we still want to inform the server what mods did we used.
-        -- This should be improved I guess
+        -- We can't wait for FE here.
         self:SendCFDToServer()
     end
+
+    self:CancelTimeout()
+    self:SetIsWaitingForResponse(false)
+    self.loader:DefferLoad()
 
     -- Call this before the actual disconnecting so the RPCs can be sent.
     -- It should be safe to call it here because missing FE should be handled at this point.
     OnNetworkDisconnect(reason, true, immediate)
 
-    -- Give a tick to the RPCs in case the frontend was already loaded and we
-    PEARL.StaticScheduler:ExecuteInTime(1, function()
-        TheNet:JoinServerResponse(true) -- true when disconnecting...
-        TheNet:Disconnect(false)
-    end)
+    TheNet:JoinServerResponse(true) -- true when disconnecting...
+    TheNet:Disconnect(false)
+
+    DisableRPCSending()
+    SetPause(true)
 
     disconnecting = true
 end
@@ -92,6 +94,7 @@ function ClientNetwork:SendErrorTracebackToServer(traceback, ...)
 end
 
 --- CFD = Connection Filter Data = Client Filter Data
+--- We are sending this data after every FE post init.
 function ClientNetwork:SendCFDToServer()
     if TheNet:GetIsServer() or type(cfd) ~= "table" or IsTableEmpty(cfd) then
         return
@@ -101,8 +104,8 @@ function ClientNetwork:SendCFDToServer()
     PEARL.SendRPCToServer(PEARL.RPCS.ConnectionFilterData, ZipAndEncodeString(cfd))
     self:SetCFDSent(true)
 
-    if self:IsJoiningServer() then
-        self:SetIsWaitingForResponse(true)
+    if self:IsWaitingForResponse() then
+        self.loader:DefferLoad()
         self:StartTimeout()
     end
 end
@@ -113,16 +116,19 @@ function ClientNetwork:LoadDefaultCFD()
     cfd.username    = TheNet:GetLocalUserName()
 
     cfd.novice      = self:IsNovice()
-    cfd.joining     = self:IsJoiningServer()
+    cfd.waiting     = self:IsWaitingForResponse()
 
     return cfd
 end
 
 function ClientNetwork:NotifyNetworkDisconnect()
-    disconnection_notified = true
+    PEARL.debug("ClientNetwork:NotifyNetworkDisconnect")
+    if not disconnection_notified then
+        disconnection_notified = true
 
-    -- Call the original non-hooked function to prevent any loops.
-    return _OnNetworkDisconnect(unpack(disconnect_data))
+        -- Call the original non-hooked function to prevent any loops.
+        return _OnNetworkDisconnect(unpack(disconnect_data))
+    end
 end
 
 ----------------------------------
@@ -130,7 +136,7 @@ end
 ----------------------------------
 
 function ClientNetwork:SetIsWaitingForResponse(waiting)
-    waiting_for_response = waiting
+    PEARL.GameInstParams:SetModParam("waiting_for_response", waiting)
 end
 
 function ClientNetwork:SetCFDSent(sent)
@@ -182,7 +188,7 @@ function ClientNetwork:GetCFD()
 end
 
 function ClientNetwork:IsWaitingForResponse()
-    return waiting_for_response
+    return PEARL.GameInstParams:GetCurrentModParam("waiting_for_response") == true
 end
 
 function ClientNetwork:IsDisconnected()
@@ -206,13 +212,17 @@ function ClientNetwork:IsPaused()
     return TheNet:IsServerPaused()
 end
 
-function ClientNetwork:IsJoiningServer()
-    -- last_reset_action should be nil only if we are joining the server for the first time.
-    return PEARL.GameInstParams:GetParam("last_reset_action") == nil
-end
-
 function ClientNetwork:IsNovice()
-    return not io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH)
+    if PEARL.AgreementManager:FileExists() then
+        if PEARL.AgreementManager:HasAnyRecords() then
+            return not PEARL.AgreementManager:HasRecord()
+        end
+
+        -- If the file exists but it's empty, this is most likely not a novice.
+        return false
+    end
+
+    return true
 end
 
 ----------------------------------
@@ -221,26 +231,28 @@ end
 
 function ClientNetwork:OnTimeout()
     PEARL.info("Server response timed out!")
-    self:CancelTimeout()
-    self:SetIsWaitingForResponse(false)
-
-    if PEARL.CONFIG.FAIL_SAFE_NETWORK then
-        return PEARL.ClientLoader:ForceLoad()
-    end
-
     -- Disconnect the client if we didn't get the response from the server in time.
-    self:Disconnect("ID_DST_SERVER_RESPONSE_TIMEOUT")
+    return self:OnResponse(
+        false, PEARL.CONFIG.FAIL_SAFE_NETWORK, "ID_DST_SERVER_RESPONSE_TIMEOUT"
+    )
 end
 
-function ClientNetwork:OnConnectionAllowed()
-    if self:IsWaitingForResponse() then
-        PEARL.info("Got connection allowed from the server!")
-
-        self:SetIsWaitingForResponse(false)
-
-        self:CancelTimeout()
-        PEARL.ClientLoader:ForceLoad()
+function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
+    if not self:IsWaitingForResponse() then
+        return -- Ignore
     end
+
+    PEARL.info("ClientNetwork:OnResponse", allowed)
+    self:SetIsWaitingForResponse(false)
+    self:CancelTimeout()
+
+    if allowed == true then
+        -- If the connection is allowed, then load the client I guess.
+        self.loader:CancelDeffer()
+        return self.loader:ForceLoad()
+    end
+
+    self:Disconnect(reason, from_server, ...)
 end
 
 function ClientNetwork:OnConnectionClosed(reason)
@@ -267,7 +279,7 @@ end)
 -- Also try to let the server known why we have been disconnected.
 -- In the tick this is being called, we should be able to still send some rpcs
 -- if the server didn't kick our connetion already.
-PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", function(reason, should_reset, immediate, ...)
+PEARL.OverrideVariable("OnNetworkDisconnect", function(reason, should_reset, immediate, ...)
     ClientNetwork:CancelTimeout()
 
     -- We have already showed a disconnection popup to the user
@@ -288,28 +300,25 @@ PEARL.AddGlobalFunctionPreCall("OnNetworkDisconnect", function(reason, should_re
 
     -- If we have FE already loaded, there is nothing to wait for.
     -- Or if the restart should be immediate in which case we do not touch the FE at all.
-    if TheFrontEnd ~= nil or immediate then
-        PEARL.debug("Calling OnNetworkDisconnect")
-        ClientNetwork:NotifyNetworkDisconnect()
-        return
+    -- Show only the first popup.
+    if (TheFrontEnd ~= nil or immediate) then
+        return ClientNetwork:NotifyNetworkDisconnect()
     end
 
     -- If we have no FE then do not execute this yet.
     -- It would cause a crash...
     PEARL.debug("Deffering OnNetworkDisconnect")
-    return false
-end)
+end, _G)
 
--- These do not work on client
--- PEARL.AddGlobalFunctionPreCall("OnSimPaused", function()
---     PEARL.debug("OnSimPaused")
---     sim_paused = true
--- end)
+----------------------------------
+-- Game Instance Parameters
+----------------------------------
 
--- PEARL.AddGlobalFunctionPreCall("OnSimUnpaused", function()
---     PEARL.debug("OnSimUnpaused")
---     sim_paused = false
--- end)
+-- Make the "waiting_for_response" flag persistent between instances,
+-- in case the server restarts when someone just connects to it.
+if PEARL.GameInstParams:GetModParam("waiting_for_response") ~= false then
+    ClientNetwork:SetIsWaitingForResponse(true)
+end
 
 ----------------------------------
 -- Return

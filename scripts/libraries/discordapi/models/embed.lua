@@ -138,14 +138,20 @@ function Embed:SetTimestamp(timestamp)
     return self
 end
 
-function Embed:SetFooter(footer)
-    if not (type(footer) == "string" and #footer < Embed.MAX_FOOTER_LENGTH) then
-        PEARL.warn("Attempted to set an invalid footer!")
+function Embed:SetFooter(text, icon_url, proxy_icon_url)
+    if not (type(text) == "string" and #text < Embed.MAX_FOOTER_LENGTH) then
+        PEARL.warn("Attempted to set an invalid footer text!")
 
         return self
     end
 
-    self.footer = footer
+    if not self.footer then
+        self.footer = {}
+    end
+
+    self.footer.text = text
+    self.footer.icon_url = icon_url
+    self.footer.proxy_icon_url = proxy_icon_url
 
     return self
 end
@@ -206,6 +212,10 @@ end
 
 function Embed:HasTimestamp()
     return self.timestamp ~= nil
+end
+
+function Embed:HasFooter()
+    return self.footer ~= nil and self.footer.text ~= nil
 end
 
 function Embed:ToTable()

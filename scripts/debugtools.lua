@@ -155,8 +155,8 @@ local function _PFCheck(word, expec)
     return result == expec
 end
 
-local PFchecks = {}
-function PEARL.TESTS.PFCheckSeparators()
+local words = {}
+function PEARL.TESTS.ProfanityFilter()
     -- local total = #PFchecks
     -- local passed = 0
 
@@ -168,7 +168,9 @@ function PEARL.TESTS.PFCheckSeparators()
 
     -- PEARL.info("Tests passed", passed, "/", total)
 
-    return DSay("test DO PRDELEPRÁCE")
+    for _, word in ipairs(words) do
+        PEARL.info(ProfanityFilter:Apply(word), ProfanityFilter:Detect(word))
+    end
 end
 
 --------------------------------
@@ -717,7 +719,6 @@ end
 --------------------------------
 -- [[ Queue ]]
 --------------------------------
---- @TODO: Finish the testing here.
 --- Maybe replace the Queue with a normal table instead of the userdata?
 local Queue = PEARL.loadfile("libraries/queue")
 function PEARL.TESTS.Queue()

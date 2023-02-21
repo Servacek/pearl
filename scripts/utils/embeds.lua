@@ -128,7 +128,7 @@ function EMBEDS.WorldRegen(world, session_id)
     local save_version = world and world.meta and world.meta.generated_on_saveversion or "???"
 
     return Embed()
-        :SetTitle(STRINGS.PEARL.EMBEDS.REGEN.TITLE)
+        :SetTitle(STRINGS.PEARL.EMBEDS.REGEN.TITLE:format(PEARL.GetShardFancyName()))
         :SetColor(Embed.COLORS.GREEN)
         :SetThumbnail(STRINGS.PEARL.EMBEDS.REGEN.THMB_URL)
         :SetTimestamp(os.time())
@@ -144,27 +144,19 @@ end
 function EMBEDS.ClientMods(enabled_mods, owner_name)
     local description = ""
 
-    for i, mod in ipairs(enabled_mods) do
-        local icon = mod.blocked and PEARL.ICONS.X or PEARL.ICONS.CHECK
-        local fancyname = MARKDOWN.bold(mod.fancyname:ltake(MAX_MODNAME_LEN))
-        local modid = MARKDOWN.codeblock(
-            mod.private and "[LOCAL]" or MARKDOWN.hlink(
-                mod.id:ltake(MAX_MODID_LEN), PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
-            )
+    -- Data processed here are untrusted.
+    for _, mod in ipairs(enabled_mods) do
+        local type_icon = mod.private and PEARL.ICONS.LOCAL or PEARL.ICONS.STEAM
+        local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
+        local fancyname = type(mod.fancyname) == "string" and MARKDOWN.bold(mod.fancyname:ltake(MAX_MODNAME_LEN)) or "???"
+        local modid = mod.private and "" or (type(mod.id) == "string" and MARKDOWN.hlink(
+            MARKDOWN.codeline(mod.id:ltake(MAX_MODID_LEN)), PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
+        ).." " or "???")
+
+        local header = modid..fancyname
+        description = description..type_icon.." "..state_icon.." "..(
+            mod.allowed and header or MARKDOWN.strikethrough(header)
         )
-
-        description = description..icon.." "
-        if not mod.private or mod.temp then
-            description = description..MARKDOWN.hlink(
-                fancyname, PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
-            )
-        else
-            description = description..fancyname.." [LOCAL MOD]"
-        end
-
-        if mod.temp == true then
-            description = description.." [TEMP]"
-        end
 
         description = description.."\n"
     end
@@ -174,6 +166,7 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         :SetColor(Embed.COLORS.RED)
         :SetTimestamp(os.time())
         :SetDescription(description)
+        :SetFooter(string.format("%s/%s", #enabled_mods, tostring(enabled_mods.count)))
 end
 
 

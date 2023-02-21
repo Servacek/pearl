@@ -39,6 +39,11 @@ local Reporter = Class(function(self)
     end
 
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.RHOOK.ID, PEARL.CONFIG.DISCORD.RHOOK.TOKEN)
+
+    if not self._webhook:IsValid() then
+        self:SetIsDisabled(true)
+        return PEARL.error("Token and/or ID is not configured for the reporter webhook correctly!")
+    end
 end)
 
 -------------------------------------

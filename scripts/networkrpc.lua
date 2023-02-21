@@ -17,8 +17,6 @@
     client side. So we do not have access to the SUB table here.
 --]]
 
---- @TODO: Allow adding RPCs dinamically during runtime.
---- Also create some simple API for it of course.
 local TheNet = TheNet
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
@@ -40,16 +38,16 @@ local CLIENT_RPCS = {
         end
     end,
 
-    Disconnect = function(...)
-        if PEARL.ClientNetwork then
-            PEARL.ClientNetwork:Disconnect(..., true)
+    Disconnect = function(reason, ...)
+        if PEARL.ClientNetwork:IsWaitingForResponse() then
+            return PEARL.ClientNetwork:OnResponse(true, false, reason, ...)
         end
+
+        return PEARL.ClientNetwork:Disconnect(reason, true, ...)
     end,
 
-    ConnectionAllowed = function()
-        if PEARL.ClientNetwork then
-            PEARL.ClientNetwork:OnConnectionAllowed()
-        end
+    ConnectionAllowed = function(...)
+        return PEARL.ClientNetwork:OnResponse(true, true, ...)
     end,
 }
 
@@ -220,6 +218,21 @@ function PEARL.SendRPCToServer(rpc_id, ...)
     return SendModRPCToServer(PEARL.GetServerRPC(rpc_id), ...)
 end
 
+function PEARL.AddServerRPCHandler(name, handler)
+    PEARL.RPCS[name] = name
+    return AddModRPCHandler(PEARL.RPC_NAME, name, handler)
+end
+
+function PEARL.AddShardRPCHandler(name, handler)
+    PEARL.RPCS[name] = name
+    return AddShardModRPCHandler(PEARL.RPC_NAME, name, handler)
+end
+
+function PEARL.AddClientRPCHandler(name, handler)
+    PEARL.RPCS[name] = name
+    return AddClientModRPCHandler(PEARL.RPC_NAME, name, handler)
+end
+
 -- Note: All of these RPCs needs to be loaded
 -- on the server and client as well.
 
@@ -272,6 +285,13 @@ end
 --------------------------
 -- Handler
 --------------------------
+
+-- This is redundant on the client because there the staticUpdate works even when
+-- the simulation is paused on the server because of the UI.
+if TheNet:GetIsClient() then
+    return
+end
+
 -- Custom handler for server RPCs since the built-in one does only work when staticUpdate
 -- gets called, and that is only when the simulation is running.
 

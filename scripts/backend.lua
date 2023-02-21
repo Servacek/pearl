@@ -97,7 +97,7 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     SHARD_ID = {
         MASTER = 1,
-    }
+    },
 
     ------------------------------------
     SKINS_PREVIEW_URL           = "https://items.kleientertainment.com/images/DST/%s/%s", -- .../DST/<skin prefab>/<size>
@@ -169,13 +169,26 @@ PEARL.info("Loading Configuration...")
 
 --- Push mod config warnings only for the server owner to see.
 local function LoadConfigOption(option)
-    -- Verify if the type matches.
-    if option.saved ~= nil and type(option.type) == "string" and option.type:match(type(option.saved)) == nil then
-        if not PEARL.CONFIG[option.name] then
-            PEARL.CONFIG[option.name] = option.default
+    if PEARL.CONFIG[option.name] then
+        return PEARL.warn("Config option already loaded!")
+    end
+
+    local failed = false
+    if option.saved ~= nil then
+        if option.master_only and TheShard:IsSecondary() then
+            PEARL.warn("Option", option.name, "is only available for the master shard!")
+            failed = true
         end
 
-        return PEARL.warn("Option", option.name, "has incorrect type!")
+        if option.caves_only and TheShard:IsMaster() then
+            PEARL.warn("Option", option.name, "is only available for the secondary shard!")
+            failed = true
+        end
+
+        if type(option.type) == "string" and option.type:match(type(option.saved)) == nil then
+            PEARL.warn("Option", option.name, "has incorrect type!")
+            failed = true
+        end
     end
 
     -- If it's a required option then check if we have configured it.
@@ -190,11 +203,9 @@ local function LoadConfigOption(option)
         PEARL.warn("Experimental feature", option.name, "is enabled!")
     end
 
-    if not PEARL.CONFIG[option.name] then
-        -- Set this even for implicit configurations
-        -- since they will override it later.
-        PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
-    end
+    -- Set this even for implicit configurations
+    -- since they will override it later.
+    PEARL.CONFIG[option.name] = failed and option.default or PEARL.GetConfigData(option.name)
 
     -- if type(option.checks) == "table" and not IsTableEmpty(option.checks) then
     --     local failed = RunOptionChecksRecursively(option)
@@ -386,6 +397,35 @@ PEARL.AdminList = PEARL.loadfile("libraries/wrappers/adminlist")
 PEARL.AdminList:Load()
 
 --------------------------------
+-- [[ Debug Mode ]]
+--------------------------------
+
+if PEARL.CONFIG.DEBUG_MODE then
+    PEARL.warn("Debug mode enabled! This is not recommended for production use.")
+    PEARL.loadfile("debugtools")
+
+    PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
+    PEARL.CreateWordFilterFile("czech.txt", "czech.lua")
+
+    require("profiler")
+    PEARL.Profiler = newProfiler("time", 10^6)
+
+    require("debugcommands")
+    require("debugkeys")
+    -- Fix for a broken debug handler
+    handlers[KEY_D] = nil
+
+    -- Better c_reset
+    PEARL.AddGlobalFunctionPreCall("c_reset", function()
+        TheSim:ResetError()
+    end)
+
+    PEARL.GenerateConfigFile = PEARL.loadfile("utils/configfilegenerator")
+
+    PEARL.DataDumper = PEARL.loadfile("utils/datadumper")
+end
+
+--------------------------------
 -- [[ Modules ]]
 --------------------------------
 
@@ -399,6 +439,7 @@ ModuleManager:SetModuleDirectory("modules")
 ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
 ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_PING)
+ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
 ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enabled)
 -- This should not be called in backend I guess
@@ -435,34 +476,6 @@ ModuleManager:LoadAllModules()
 --     modimport(PEARL.SOURCE_DIR_NAME.."/protector")
 --     modimport(PEARL.SOURCE_DIR_NAME.."/penalizer")
 -- end
-
---------------------------------
--- [[ Debug Mode ]]
---------------------------------
-
-if PEARL.CONFIG.DEBUG_MODE then
-    PEARL.warn("Debug mode enabled! This is not recommended for production use.")
-    PEARL.loadfile("debugtools")
-
-    -- PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
-
-    require("profiler")
-    PEARL.Profiler = newProfiler("time", 10^6)
-
-    require("debugcommands")
-    require("debugkeys")
-    -- Fix for a broken debug handler
-    handlers[KEY_D] = nil
-
-    -- Better c_reset
-    PEARL.AddGlobalFunctionPreCall("c_reset", function()
-        TheSim:ResetError()
-    end)
-
-    PEARL.GenerateConfigFile = PEARL.loadfile("utils/configfilegenerator")
-
-    PEARL.DataDumper = PEARL.loadfile("utils/datadumper")
-end
 
 --------------------------------
 -- [[ Custom Prefabs ]]

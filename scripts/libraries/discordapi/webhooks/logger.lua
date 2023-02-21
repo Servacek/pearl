@@ -39,6 +39,11 @@ local Logger = Class(function(self)
     --- @type Webhook
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.LHOOK.ID, PEARL.CONFIG.DISCORD.LHOOK.TOKEN)
 
+    if not self._webhook:IsValid() then
+        self:SetIsDisabled(true)
+        return PEARL.error("Token and/or ID is not configured for the logger webhook correctly!")
+    end
+
     --- @type Message
     self._buffered_message = Message()
     --- @type Task

@@ -10,11 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category FrontEnd
---- @TODO: Add a popup that will notify the client that the agreement has
---- been updated and needs his review.
 --- @TODO: Display the modification time on the agreement.
---- @TODO: Refactor this + add support for borrowed accounts.
---- Since multiple accounts can play the same game.
 
 local AgreementScreen = PEARL.loadfile("screens/agreementscreen")
 

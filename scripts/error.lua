@@ -35,12 +35,10 @@ local function OnServerError(traceback)
         PEARL.error("DiscordReporter disabled or not initialized yet!")
     end
 
-    --- @TODO: Maybe some internal "error" event would be better?
-    if TheWorld then
-        TheWorld:PushModEvent("shard_shutdown", true)
-    end
+    PEARL.EventProcessor:HandleEvent("shard_shutdown", true)
 
     PEARL.ModShutdown()
+    -- We want to try save the game before shutting down here.
     SaveAndShutdown()
 end
 

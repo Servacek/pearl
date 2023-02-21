@@ -16,9 +16,6 @@
 --- in this file and since it's being loaded via 'require' we need to set it manually.
 setfenv(1, PEARL.ENV)
 
---- @TODO: Make configuration options marked with shard_sync flag to be broadcasted to all
---- connected shards.
-
 -------------------------------------
 -- [[ Private Functions ]]
 -------------------------------------
@@ -28,11 +25,12 @@ local function GetGenericConfigData(opt_name, ...)
     return PEARL.CONFIG[opt_name] or PEARL.GetConfigData(opt_name, ...)
 end
 
+--- @TODO: Does not handle cases where the configuration doesn't exist.
 local function ParseFoldedConfigName(name, tbl)
     local level = PEARL.CONFIG
     local keys = name:split(".")
     for _, key in ipairs(keys) do
-        level = level[key]
+        level = level and level[key]
         if not tbl[key] then
             tbl[key] = type(level) == "table" and {} or level
             tbl = tbl[key]
@@ -127,40 +125,3 @@ end)
 
 --     return modinfo_details
 -- end)
-
--------------------------------------
--- [[ Handlers ]]
--------------------------------------
-
-local function GetShardPublicModConfig()
-    local config = {}
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        if option.shard_sync == true then
-            table.insert(config, option)
-        end
-    end
-
-    return config
-end
-
-local function SyncModConfigWithShard(shardid)
-    return PEARL.RPCS.SyncModConfig(shardid, GetShardPublicModConfig())
-end
-
-local function OnShardStateUpdate(shardid, state)
-    if state == REMOTESHARDSTATE.READY then
-        SyncModConfigWithShard(shardid)
-    end
-end
-
-if TheShard:IsMaster() then
-    PEARL.AddGamePostInit(function()
-        local world = TheWorld
-        if not world then
-            return
-        end
-
-        -- Listen for new shards connecting.
-        world:ListenForModEvent("shard_stateupdate", OnShardStateUpdate)
-    end)
-end

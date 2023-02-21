@@ -29,14 +29,17 @@ local UserCommands = require("usercommands")
 -- [[ World State Handlers ]]
 -------------------------------
 
+local last_cycle
 local function OnCyclesChanged(world, cycle)
-    if not world or not InGamePlay() then
+    if last_cycle == cycle then
         return
     end
 
+    last_cycle = cycle
+
     PEARL.DiscordLogger:LogStringRaw(MARKDOWN.bold(MARKDOWN.codeline(
         STRINGS.PEARL.LOGS.DAY:format(
-            ((cycle or 0)+ 1),
+            ((cycle or 0) + 1),
             PEARL.GetSeasonFancyName(),
             math.floor((world.state.temperature or 0) / 2 + 0.5),
 
@@ -48,9 +51,11 @@ local function OnCyclesChanged(world, cycle)
 end
 
 local function OnPhaseChanged(world, phase)
-    if not (world and phase and phase ~= "day") then
+    if phase == "day" or not InGamePlay() then
         return
     end
+
+    world.state._loaded = true
 
     local moonphase_icon
     if world.state.iswaxingmoon then
@@ -158,9 +163,13 @@ local function OnPlayerSpawnedInCaves(self, player)
 
     -- Give a tick to the player's instance so it can load all the needed data.
     PEARL.WallScheduler:ExecuteInTime(0, function()
-        print("OnPlayerSpawnedInCaves", player, player.name, PEARL.GetShardFancyName(), player.userid)
+        local client = player.userid and TheNet:GetClientTableForUser(player.userid)
+        if not client then
+            return
+        end
+
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTED_TO_SHARD:format(
-            player.name, PEARL.GetShardFancyName(), player.userid
+            client.name, PEARL.GetShardFancyName(), client.userid
         ))
     end)
 end
@@ -264,22 +273,19 @@ local function OnReset(self)
 end
 
 local function OnRollback(self, count)
-    local message
-    local icon
-
-    if count ~= nil and count > 0 then
-        message = STRINGS.PEARL.LOGS.ROLLBACK:format(
-            MARKDOWN.codeline(tostring(count))
-        )
-        icon = PEARL.ICONS.SERVER_STATE.ROLLBACK
-    else
-        message = STRINGS.PEARL.LOGS.RESTART:format(
-            MARKDOWN.codeline(PEARL.GetShardFancyName())
-        )
-        icon = PEARL.ICONS.SERVER_STATE.RESTART
+    if not count or count <= 0 then
+        return
     end
 
-    PEARL.DiscordLogger:LogStringHighlighted(message, icon)
+    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.ROLLBACK:format(
+        MARKDOWN.codeline(tostring(count))
+    ), PEARL.ICONS.SERVER_STATE.ROLLBACK)
+end
+
+local function OnRestart()
+    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESTART:format(
+        MARKDOWN.codeline(PEARL.GetShardFancyName())
+    ), PEARL.ICONS.SERVER_STATE.RESTART)
 end
 
 local function OnWorldGenComplete(world)
@@ -297,113 +303,6 @@ local function OnSaved(world)
 end
 
 -------------------------------
--- [[ Entity State Handlers ]]
--------------------------------
-
-local function OnFireSpreaderKilled(doer, target)
-    local x, y, z = target.Transform:GetWorldPosition()
-    local entities = TheSim:FindEntities(x, y, z,
-        -- The flames have bigger radius in this case
-        PEARL.CONSTS.LARGE_PROPAGATOR_RADIUS,
-        PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
-        PEARL.CONSTS.ENT_CANTHAVE_TAGS,
-        PEARL.CONSTS.ENT_ONEOF_TAGS
-    )
-
-    if #entities >= 4 or PEARL.ArrayContainsEntityWithTag(entities, "structure") then
-        local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.NEAR, {
-            doer = doer:GetDisplayName(), target = target:GetDisplayName(), near = PEARL.FormatSortedPrefabs(entities)
-        })
-
-        PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES, doer.entity)
-    end
-end
-
-local function OnNonRenewableMobKilled(doer, target)
-    --- @TODO This is not ideal (also it works only for the current shard)
-    local count = c_countprefabs(target.prefab, false) or -1
-    if count <= 0 or count > PEARL.CONSTS.MONITORED_POPULATION_LIMIT then
-        return
-    end
-
-    local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.REMAINING, {
-        doer = doer:GetDisplayName(), target = target:GetDisplayName()
-    })
-
-    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
-end
-
-local function OnBossDefeated(doer, target)
-    local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.BOSS, {
-        doer = doer:GetDisplayName(), target = target:GetDisplayName()
-    })
-
-    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT, doer.entity)
-end
-
-local function OnCompanionKilled(doer, target)
-    local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.GENERIC, {
-        doer = doer:GetDisplayName(), target = target:GetDisplayName()
-    })
-
-    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
-end
-
-local function OnFollowerKilled(doer, target, leader)
-    local message = subfmt(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, {
-        doer = doer:GetDisplayName(), target = target:GetDisplayName(), owner = leader:GetDisplayName()
-    })
-
-    PEARL.AnnounceWithType(message, PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
-end
-
-local function OnEntityDeath(self, data)
-    if not data then
-        return
-    end
-
-    local inst, afflicter = data.inst, data.afflicter
-    if not (afflicter ~= nil and inst ~= nil and afflicter:IsValid() and inst:IsValid()) then
-        return
-    end
-
-    -- BOSS, this should be announced even if the afflicter isn't a player
-    if inst:HasTag("epic") then
-        return OnBossDefeated(afflicter, inst)
-    end
-
-    if not afflicter:HasTag("player") then
-        return
-    end
-
-    -- MOB SPREADING FIRE AFTER DEATH
-    if PEARL.PREFABS.MOBS.FIRE_SPREADERS[inst.prefab] then
-        return OnFireSpreaderKilled(afflicter, inst)
-    end
-
-    -- NOT RESPAWNABLE MOB
-    if PEARL.PREFABS.MOBS.MONITOR_POPULATION[inst.prefab] then
-        return OnNonRenewableMobKilled(afflicter, inst)
-    end
-
-    -- BOSS, this should be announced even if the afflicter isn't a player
-    if inst:HasTag("epic") then
-        return OnBossDefeated(afflicter, inst)
-    end
-
-    -- COMPANION
-    if PEARL.PREFABS.MOBS.COMPANIONS[inst.prefab] then
-        return OnCompanionKilled(afflicter, inst)
-    end
-
-    -- FOLLOWER
-    local leader = inst.components.follower and inst.components.follower:GetLeader() or nil
-    if leader and leader:HasTag("player") and leader ~= afflicter then
-        return OnFollowerKilled(afflicter, inst)
-    end
-end
-
--------------------------------
 -- [[ Listeners ]]
 -------------------------------
 
@@ -412,9 +311,6 @@ PEARL.AddWorldPostInit(function(world)
     if not world then
         return
     end
-
-    --- @TODO: Debug
-    -- world:SafeListenForEvent("entity_death", OnEntityDeath)
 
     if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
         if world.ismastershard then
@@ -439,6 +335,7 @@ PEARL.AddWorldPostInit(function(world)
 
         --> Mod Events
         world:ListenForModEvent("world_rollback", OnRollback)
+        world:ListenForModEvent("world_restart", OnRestart)
         world:ListenForModEvent("world_reset", OnReset)
         world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
     end

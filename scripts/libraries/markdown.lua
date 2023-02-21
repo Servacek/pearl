@@ -124,6 +124,10 @@ function MARKDOWN.bold(s)
     return MARKDOWN.PATTERNS.BOLD:format(s)
 end
 
+function MARKDOWN.strikethrough(s)
+    return MARKDOWN.PATTERNS.STRYKETHROUGH:format(s)
+end
+
 -- Do not use this with user's input
 -- Note: The link parameter can be nil.
 function MARKDOWN.hlink(s, link)

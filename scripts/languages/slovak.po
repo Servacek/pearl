@@ -35,8 +35,7 @@ msgid "%s turned off %s!"
 msgstr "%s odstavil/a %s!"
 
 msgctxt "STRINGS.PEARL.LOGS.RESTART"
-msgid "Rastarting the server..."
-msgstr "Reštartovanie servera..."
+msgstr "Reštartovanie shardu `%s`..."
 
 msgctxt "STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC"
 msgid "{doer} took {item}!"

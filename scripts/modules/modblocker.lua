@@ -14,11 +14,10 @@
 
 --[[
     Blocks some hacky mods from loading on the client.
-
-    TODOS:
-        - Make the detection of non-workshop mods better. TheSim:GetWorkshopVersion?
-        - Debug allowlist
 --]]
+
+-- Maybe a better approach would be to send all the mods to the server and let it decide.
+-- But in that case we would loose the option to disable the prohibited mods.
 
 -- Use the redux version instead of the default on since this is newer
 local PopupDialogScreen = require("screens/redux/popupdialog")
@@ -39,7 +38,7 @@ local MAX_REPORT_COUNT = 10
 local show_popup = true
 
 local mods_report = {
-    count = #ModManager:GetEnabledModNames(),
+    count = KnownModIndex:GetAllEnabledModsCount(),
     prohibited = false,
 }
 
@@ -63,15 +62,16 @@ end
 local function IsModPrivate(modname)
     -- return IsWorkshopMod(modname)
     --- @EXPERIMENTAL
-    return TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == ""
+    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
 end
 
 local function IsModAllowed(modname)
-    local allowlisted = IsModAllowlisted(modname)
     -- ALWAYS block private mods since all the other checks can be bypassed
-    return (not IsModPrivate(modname) and not IsClientOnlyMod(modname)) or (
-        not IsModBlocklisted(modname) and (
-            not ALLOWLISTING or IsModAllowlisted(modname)
+    return not IsModPrivate(modname) and (
+        not IsClientOnlyMod(modname) or (
+            not IsModBlocklisted(modname) and (
+                not ALLOWLISTING or IsModAllowlisted(modname)
+            )
         )
     )
 end

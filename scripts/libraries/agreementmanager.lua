@@ -19,30 +19,33 @@
 local SEP = ";"
 local REPL = ","
 local FILE_HEADER_PATTERN = "%s"..SEP.."%s"..SEP.."%s\n"
-local DECODE_PATTERN = "[^"..SEP.."%s]*"
+local DECODE_PATTERN = "(.-)"..SEP
 
-local RECORD_LEN = 3
 local RECORD = {
     VERSION = 1,
     USERID = 2,
     NETID = 3,
+
+    MIN_SIZE = 2,
 }
 
 --------------------------------
 -- [[ Local Functions ]]
 --------------------------------
 
-local function stripline(s)
-    return s and s:gsub("%s", "") or ""
-end
-
 local function normalize(s)
-    return s and s:gsub(SEP, REPL) or ""
+    return s and s:strip():gsub(SEP, REPL) or ""
 end
 
 local function decodeline(line)
+    line = line and line..SEP or "" -- Add the separator for the pattern to work properly.
     local fields = {}
-    stripline(line):gsub(DECODE_PATTERN, function(match) fields[#fields+1] = match end)
+
+    if #line > 1 then
+        line:gsub(DECODE_PATTERN, function(match)
+            fields[#fields+1] = normalize(match)
+        end)
+    end
 
     return fields
 end
@@ -69,6 +72,11 @@ AgreementManager.RECORD = RECORD
 --- @return boolean exists Whether the agreement file exists on the disk or not.
 function AgreementManager:FileExists()
     return io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH)
+end
+
+-- Support for older version of the agreement screen.
+function AgreementManager:HasAnyRecords()
+    return #self.records > 0 and self.records[1] and #self.records[1] >= RECORD.MIN_SIZE
 end
 
 function AgreementManager:AgreementDisplayed()
@@ -110,7 +118,8 @@ end
 
 function AgreementManager:GetRecord(userid, netid)
     for _, record in ipairs(self.records) do
-        if record[RECORD.USERID] == userid or record[RECORD.NETID] == netid then
+        -- Both needs to be equal to the saved version
+        if record[RECORD.USERID] == userid and record[RECORD.NETID] == netid then
             return record
         end
     end
@@ -124,18 +133,28 @@ function AgreementManager:HasRecord()
     ) ~= nil
 end
 
+function AgreementManager:CreateRecord(tbl)
+    local record = tbl or {}
+    table.insert(self.records, record)
+
+    return record
+end
+
 --------------------------------
 -- [[ Setters ]]
 --------------------------------
 
 function AgreementManager:UpdateRecord()
     local userid = TheNet:GetUserID()
-    local record = self:GetRecord(userid) or {}
+    local netid = TheNet:GetNetIdForUser(userid)
+    local record = self:GetRecord(userid, netid) or self:CreateRecord()
 
     -- This data here will be only used for verifying the client and version of the agreement.
     record[RECORD.VERSION] = normalize(self:GetGlobalVersion()) or ""
     record[RECORD.USERID] = userid or ""
-    record[RECORD.NETID] = TheNet:GetNetIdForUser(userid) or ""
+    record[RECORD.NETID] = netid or ""
+
+    return record
 end
 
 --------------------------------
@@ -150,8 +169,7 @@ function AgreementManager:Load()
 
     for line in rf:lines() do
         local record = decodeline(line)
-        if type(record) == "table" and #record == RECORD_LEN then
-            print(record, #record)
+        if type(record) == "table" and #record >= #RECORD then
             table.foreach(record, print)
 
             table.insert(self.records, record)
@@ -177,7 +195,9 @@ function AgreementManager:BuildFileHeader()
 
     local header = ""
     for _, record in ipairs(self.records) do
-        header = header..FILE_HEADER_PATTERN:format(unpack(record))
+        if #record >= RECORD.MIN_SIZE then
+            header = header..FILE_HEADER_PATTERN:format(unpack(record))
+        end
     end
 
     return header
