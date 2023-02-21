@@ -160,6 +160,7 @@ if TheShard:IsMaster() then
             return
         end
 
+        -- Listen for new shards connecting.
         world:ListenForModEvent("shard_stateupdate", OnShardStateUpdate)
     end)
 end
