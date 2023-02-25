@@ -14,6 +14,8 @@
 
 --- @TODO: Sort this a bit (v2.1)
 
+-- This is really required!
+require("stacktrace")
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local UserCommands = require("usercommands")
@@ -449,26 +451,39 @@ function PEARL.GetFuncSrcStr(func)
 end
 
 -- Runs a function and catches errors during the call.
--- Return values are the same as for calling it via pcall function.
+-- Return values are the same as for calling it via xpcall function.
+--
+-- Note: This is not the most efficient thing so run it only
+-- on places where we do not care about time.
 function PEARL.SafeRun(func, ...)
     if type(func) ~= "function" then
         PEARL.warn("Tryed to run a non existing function!")
         return false
     end
 
+    local args = toarrayornil(...)
     -- #1 is status code
     -- #2 is error message in case the status is false
-    local result = {pcall(func, ...)}
-    if not result[1] then
-        PEARL.error(
-            "Error in function call:", result[2] or "Unknown"
-        )
+    local result = {xpcall(
+        function()
+            if args then
+                return func(unpack(args))
+            end
 
-        -- This function is being used in frontend as well!
-        if PEARL.DiscordReporter then
-            PEARL.DiscordReporter:ReportCatchedLuaError(result[2])
+            return func()
+        end,
+        function(err)
+            local stacktrace = StackTrace(err)
+            PEARL.error(
+                "Error in function call:", stacktrace or "Unknown"
+            )
+
+            -- This function is being used in frontend as well!
+            if PEARL.DiscordReporter and stacktrace then
+                PEARL.DiscordReporter:ReportCatchedLuaError(stacktrace)
+            end
         end
-    end
+    ), }
 
     return unpack(result)
 end

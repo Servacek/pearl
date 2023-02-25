@@ -138,8 +138,6 @@ function EMBEDS.WorldRegen(world, session_id)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
 end
 
---- @TODO: Handle too many mods.
---- @TODO: Create embed for mod list.
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, owner_name)
     local description = ""

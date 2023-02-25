@@ -99,9 +99,11 @@ return function(fp, create_if_needed, subtitles)
     end
 
     result.version = version
+
+    --- @TODO: looks like this doesn't work correctly on Linux
     -- TheSim:GetFileModificationTime returns a hexadecimal string representing the timestamp
     --- @type number
-    result.lmt = tonumber(TheSim:GetFileModificationTime(abs_path), 16)
+    result.lmt = tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
 
     return result
 end

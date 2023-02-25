@@ -235,7 +235,17 @@ configuration_options = {
     },
 
     {
-        name="REPORT_BAD_PING",
+        name="REPORT_BAD_CLIENT_LATENCY",
+        default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    {
+        name="REPORT_BAD_SERVER_LATENCY",
         default=true,
         options = {
             true,

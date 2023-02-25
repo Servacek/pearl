@@ -75,7 +75,7 @@ Embed.COLORS = {
 -- ALWAYS return self in these
 
 function Embed:SetTitle(title, url)
-    if not (type(title) == "string" and #title < Embed.MAX_TITLE_LENGTH) then
+    if not (type(title) == "string" and string.utf8len(title) < Embed.MAX_TITLE_LENGTH) then
         PEARL.warn("Attempted to set an invalid title!")
 
         return self
@@ -91,9 +91,9 @@ function Embed:SetTitle(title, url)
 end
 
 function Embed:SetDescription(description)
-    if not (type(description) == "string" and #description < Embed.MAX_DESCRIPTION_LENGTH) then
+    if not (type(description) == "string" and string.utf8len(description) < Embed.MAX_DESCRIPTION_LENGTH) then
         PEARL.warn("Attempted to set an invalid description! Cropping...")
-        description = tostring(description):ltake(Embed.MAX_DESCRIPTION_LENGTH)
+        description = tostring(description):ltake(Embed.MAX_DESCRIPTION_LENGTH, nil, "...")
     end
 
     self.description = description
@@ -139,7 +139,7 @@ function Embed:SetTimestamp(timestamp)
 end
 
 function Embed:SetFooter(text, icon_url, proxy_icon_url)
-    if not (type(text) == "string" and #text < Embed.MAX_FOOTER_LENGTH) then
+    if not (type(text) == "string" and string.utf8len(text) < Embed.MAX_FOOTER_LENGTH) then
         PEARL.warn("Attempted to set an invalid footer text!")
 
         return self
@@ -163,13 +163,13 @@ function Embed:SetUrl(url)
 end
 
 function Embed:AddField(name, value, inline)
-    if not (type(name) == "string" and #name < Embed.MAX_FIELD_NAME_LENGTH) then
+    if not (type(name) == "string" and string.utf8len(name) < Embed.MAX_FIELD_NAME_LENGTH) then
         PEARL.warn("Attempted to set an invalid field name!")
 
         return self
     end
 
-    if not (type(value) == "string" and #value < Embed.MAX_FIELD_VALUE_LENGTH) then
+    if not (type(value) == "string" and string.utf8len(value) < Embed.MAX_FIELD_VALUE_LENGTH) then
         PEARL.warn("Attempted to set an invalid field value!")
 
         return self

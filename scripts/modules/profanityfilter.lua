@@ -38,21 +38,28 @@ local FILTER_PATH = PEARL.SRCDIR.."languages/filters/%s.lua"
 local FILTER_RPATH = "languages/filters/%s"
 
 -------------------------------------
+-- [[ Private ]]
+-------------------------------------
+
+local patterns = {}
+
+-------------------------------------
 -- [[ Local Functions ]]
 -------------------------------------
 
-local function AddPatternsFromDict(self, name)
-    if type(self.patterns) ~= "table" then
-        self.patterns = {}
-    end
+local function normalize(s)
+    return s:gsub("[%p%s]", "")
+end
 
+local function addpattern(self, name)
     local dict = self.dictionaries[name]
     if type(dict) ~= "table" or type(dict.loose_match) ~= "table" then
         return PEARL.error("Dictionary is invalid or not existent!")
     end
 
     for i = 1, #dict.loose_match do
-        self.patterns[#self.patterns + 1] = dict.loose_match[i]
+        -- Just to make sure all alphanumeric characters in the pattern are lower case.
+        patterns[#patterns + 1] = lower(dict.loose_match[i])
     end
 end
 
@@ -62,14 +69,15 @@ end
 
 function ProfanityFilter:Apply(text)
     if type(text) ~= "string" or #text <= 1 then
-        return
+        return text
     end
 
     -- Replace profanity with asterisks
     text = text:gsub(WORD_PATTERN, function(word)
+        -- Plase no changes to the strings here except of censoring it.
         word = lower(word)
-        for i = 1, #self.patterns do
-            if word:find(self.patterns[i]) ~= nil then
+        for i = 1, #patterns do
+            if word:find(patterns[i]) ~= nil then
                 return string.rep(REPL_CHAR, len(word))
             end
         end
@@ -86,9 +94,9 @@ function ProfanityFilter:Detect(text)
         return
     end
 
-    text = lower(text)
-    for i = 1, #self.patterns do
-        if text:find(self.patterns[i]) ~= nil then
+    text = normalize(lower(text))
+    for i = 1, #patterns do
+        if text:find(patterns[i]) ~= nil then
             return true
         end
     end
@@ -104,7 +112,7 @@ end
 -- Also some dictionaries can be added by other mods, ignore them.
 PEARL.AddSimPostInit(function()
     if PEARL.CONFIG.PROFANITY_FILTERS.default == true then
-        AddPatternsFromDict(ProfanityFilter, "default")
+        addpattern(ProfanityFilter, "default")
     else
         ProfanityFilter:RemoveDictionary("default")
     end
@@ -125,7 +133,7 @@ PEARL.AddSimPostInit(function()
             ProfanityFilter:AddDictionary(
                 pf, PEARL.loadfile(FILTER_RPATH:format(pf))
             )
-            AddPatternsFromDict(ProfanityFilter, pf)
+            addpattern(ProfanityFilter, pf)
         end
     end
 end)

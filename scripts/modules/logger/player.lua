@@ -199,7 +199,6 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, target, item)
     end
 end)
 
---- @TODO: DEBUG!
 local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
     if not entities or #entities <= 0 then
         return
@@ -282,7 +281,11 @@ local function OnCastFire(doer, item, target, pos, radius)
         )
     end
 
-    OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN, true, true)
+    if not target:HasOneOfTags(PEARL.CONSTS.ENT_ONEOF_TAGS) then
+        return -- Something we do not really care about away from anything we care.
+    end
+
+    OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN, false, true)
 end
 
 local function OnCastAreaDestruction(doer, item, target, pos, radius)
@@ -454,7 +457,7 @@ local function oncommandexecuted(doer, fnstr)
     end
 
     if #fnstr > MAX_COMMAND_LENGTH then
-        fnstr = fnstr:ltake(MAX_COMMAND_LENGTH).."..."
+        fnstr = fnstr:ltake(MAX_COMMAND_LENGTH, nil, "...")
     end
 
     PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
@@ -462,7 +465,6 @@ local function oncommandexecuted(doer, fnstr)
     ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
 end
 
---- @TODO: Announce these to the game only if the rarity is equal to 1.
 local function ontookrareitem(doer, item)
     if not (doer and item) then
         return PEARL.warn("Called ontookrareitem with invalid arguments!")

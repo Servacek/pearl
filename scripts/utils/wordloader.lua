@@ -42,7 +42,6 @@ return function(ifile, ofile)
     wfile:write("return {\n    loose_match = {\n")
     for word in rfile:lines() do
         word = word:gsub("%s", "")
-        print(word)
 
         local _, errmsg = wfile:write(
             "        \""..PEARL.EncodeKleiData(word), "\",\n"

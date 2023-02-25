@@ -389,7 +389,6 @@ AddCommand("admins", {
 
     -- Handle's the cooldown locally
     localfn = function(params, caller)
-        print(DataDumper(params))
         local curr_time = GetTime()
         if curr_time <= (caller.__soscall_cd_time or 0) then
             return -- This should not happen

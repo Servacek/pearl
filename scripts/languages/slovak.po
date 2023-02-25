@@ -244,6 +244,9 @@ msgstr "Mods Blocked"
 msgctxt "STRINGS.PEARL.LOGS.HIGH_PING"
 msgstr "**Bola nahlásená vysoká latencia (`%d ms`) servera od uživateľa `%s`. Región: `%s`**"
 
+msgctxt "STRINGS.PEARL.LOGS.LOW_PERFORMANCE"
+msgstr "**Boli nahlasené problémy z vysokou odozvou servera.**"
+
 msgctxt "STRINGS.PEARL.UI.UI.MODS_BLOCKED_BODY"
 msgid "Some of your mods couldn't be loaded because the server doesn't allow them."
 msgstr "Some of your mods couldn't be loaded because the server doesn't allow them."

@@ -113,6 +113,7 @@ end
 function ClientNetwork:LoadDefaultCFD()
     cfd.locale      = TheNet:GetCountryCode()
     cfd.ping        = TheNet:GetPing()
+    cfd.performance = self:GetHostPerformance()
     cfd.username    = TheNet:GetLocalUserName()
 
     cfd.novice      = self:IsNovice()
@@ -178,6 +179,11 @@ end
 ----------------------------------
 -- Getters
 ----------------------------------
+
+function ClientNetwork:GetHostPerformance()
+    -- For dedicated servers the first index is reserved for the "host" machine.
+    return TheNet:GetClientTable()[1].performance
+end
 
 function ClientNetwork:HasSentCFD()
     return cfd_sent

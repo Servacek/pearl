@@ -44,7 +44,7 @@ local function OnShutdown(error)
 end
 
 local function OnShardStateUpdate(world_id, state, ...)
-    if not (state and TheWorld and TheWorld.state._loaded) then
+    if not (state and TheWorld) then
         return
     end
 

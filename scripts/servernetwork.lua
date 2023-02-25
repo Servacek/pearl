@@ -114,6 +114,11 @@ function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
 end
 
+function ServerNetwork:GetHostTable()
+    -- For dedicated servers the first index is reserved for the "host" machine.
+    return TheNet:GetClientTable()[1]
+end
+
 function ServerNetwork:UserSessionExists(userid)
     return TheNet:GetUserSessionFile(TheNet:GetSessionIdentifier(), userid) ~= nil
 end

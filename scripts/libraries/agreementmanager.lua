@@ -170,8 +170,6 @@ function AgreementManager:Load()
     for line in rf:lines() do
         local record = decodeline(line)
         if type(record) == "table" and #record >= #RECORD then
-            table.foreach(record, print)
-
             table.insert(self.records, record)
         end
     end

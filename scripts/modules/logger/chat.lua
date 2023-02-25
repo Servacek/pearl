@@ -99,6 +99,8 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
 
     local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..string.capitalize(prefab).."]")
     message = (whisper and STRINGS.PEARL.LOGS.SAY_WHISPER or STRINGS.PEARL.LOGS.SAY):format(
+        -- This is all user input so it can contain some encoded stuff.
+        -- This should be handled when we encode the message as JSON string.
         MARKDOWN.escape(name),
         MARKDOWN.escape(message):emojify()
     )

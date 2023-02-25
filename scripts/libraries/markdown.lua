@@ -80,18 +80,6 @@ function MARKDOWN.escape_link_embeds(s)
     return s:gsub(":", "\\%1")
 end
 
---- @deprecated
--- Checks whether the given sub-string/character is changing the markdown
--- formatting of the string. In other words, this checks if the given characters
--- are on the start and the end of the string.
--- @param o_char string The opening markdown character.
--- @param c_char string? The closing markdown character.
--- If not supplied, it uses the value of the o_char argument.
--- @return boolean result True when markdown is applied, false otherwise.
--- function MARKDOWN.applied(o_char, c_char)
---     return self:startswith(o_char) and self:endswith(c_char or o_char)
--- end
-
 --- Formats a string to the codeline format using the discord markdown characters
 --- @return string|stringlib result The formatted string
 function MARKDOWN.codeline(s)

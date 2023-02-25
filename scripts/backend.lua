@@ -86,6 +86,7 @@ PEARL.SafeModTableExtend("CONSTS", {
     DISCONNECT_KICK_TIME        = 0, -- No delay here.
 
     BAD_PING_THRESHOLD          = 300, -- This is what is used for server listing filters
+    BAD_PERFORMANCE_THRESHOLD   = 2, -- These are just logical values (0 - GOOD, 1 - OK, 2 - BAD)
 
     DEFAULT_PROPAGATOR_RADIUS   = 5,
     LARGE_PROPAGATOR_RADIUS     = 8,
@@ -438,7 +439,7 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
 ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
-ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_PING)
+ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
 ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enabled)

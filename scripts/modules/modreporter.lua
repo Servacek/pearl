@@ -25,7 +25,6 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 
 --- @TODO:
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", function(userid, data)
-    tdump(data)
     if not (data and data.enabled_mods and data.enabled_mods.prohibited == true) then
         return
     end

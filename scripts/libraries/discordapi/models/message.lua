@@ -22,6 +22,10 @@
         - Looks like files are not able to be sent using the default request body.
 --]]
 
+
+--- @type utf8
+local utf8 = PEARL.loadfile("libraries/utf8")
+
 -------------------------------------
 -- [[ Global Localization ]]
 -------------------------------------
@@ -75,7 +79,8 @@ end)
 ------------------------------------------
 -- [[ Constants ]]
 ------------------------------------------
-
+-- Note: Discord's limit is based on characters not bytes.
+-- So use utf8len to determine the actual number of characters.
 Message.CONTENT_LENGHT_LIMIT    = 2000
 Message.EMBED_COUNT_LIMIT       = 10
 Message.JSON_STRING             = [[
@@ -116,9 +121,9 @@ function Message:GetLength()
         return 0
     end
 
-    local length = self._content and #self._content or 0
-    for _, logline in ipairs(self._loglines) do
-        length = #logline
+    local length = self._content and string.utf8len(self._content) or 0
+    for i = 1, #self._loglines do
+        length = string.utf8len(self._loglines[i])
     end
 
     return length
@@ -286,8 +291,8 @@ end
 --- @return boolean success true on success otherwise false
 --- @return any result the json result on success otherwise the error message
 function Message:ToJson()
-    -- Use encode_compliant for discord compatible json strings
-    return pcall(json.encode_compliant, self:ToTable())
+    local success, result = pcall(json.encode_compliant, self:ToTable())
+    return success, success and utf8.decode_string(result) or result
 end
 
 -- function Message:Construct(force)

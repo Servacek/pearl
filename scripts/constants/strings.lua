@@ -198,6 +198,7 @@ STRINGS.PEARL = {
         STATUS_CODE_REPORT      = "STATUS_CODE -> %d:\n%s",
 
         HIGH_PING               = "**High latency (`%d ms`) was reported from client `%s`. Region: `%s`**",
+        LOW_PERFORMANCE         = "Received bad server performance reports.",
 
         SERVER_AUTOPAUSE        = "Server was autopaused.",
         SERVER_PAUSE_BY         = "Server was paused by %s.",

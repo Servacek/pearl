@@ -80,6 +80,13 @@
 
     - Do not use raw RPCs! Use the built-in mod API. They are being registered
       after TheFrontEnd.
+
+    - Built-in utf8 library:
+        string.utf8char = utf8char -- decode a codepoint
+        string.utf8sub = utf8substr -- "byte-aware" string.sub
+        string.utf8len = utf8strlen -- "byte-awate" string.len
+        string.utf8upper = utf8strtoupper
+        string.utf8lower = utf8strtolower
 --]]
 
 local GLOBAL = GLOBAL
@@ -435,10 +442,10 @@ PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
 
 --     return result
 -- end
-PEARL.AddUserDataFunctionPreCall("FindEntities", function(self, x, y, z, radius)
-    TheSim:ProfilerPush("TheSim:FindEntities")
-end, TheSim)
+-- PEARL.AddUserDataFunctionPreCall("FindEntities", function(self, x, y, z, radius)
+--     TheSim:ProfilerPush("TheSim:FindEntities")
+-- end, TheSim)
 
-PEARL.AddUserDataFunctionPostCall("FindEntities", function()
-    TheSim:ProfilerPop()
-end, TheSim)
+-- PEARL.AddUserDataFunctionPostCall("FindEntities", function()
+--     TheSim:ProfilerPop()
+-- end, TheSim)

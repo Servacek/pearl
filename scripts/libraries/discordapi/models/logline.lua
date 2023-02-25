@@ -22,6 +22,7 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 -- A text representation of an discord emoji, ex. '<:refresh:997496890625118250>'
 -- 32 characters reserved for ID and prefix/postfix stuff
+-- Note: Icons contain only ASCII characters. So 1 character == 1 byte.
 local MAX_ICON_LENGTH = PEARL.CONSTS.DISCORD.MAX_EMOJI_NAME_LENGTH + 32
 local MAX_CONTENT_LENGTH = 1800
 local MAX_TAG_LENGTH = 32
@@ -76,11 +77,11 @@ end
 ------------------------------------------
 
 function LogLine:GetHeaderLength()
-    return (self._tag and #self._tag + 1 or 0) + (self._icon and #self._icon + 1 or 0) + 1
+    return (self._tag and string.utf8len(self._tag) + 1 or 0) + (self._icon and #self._icon + 1 or 0) + 1
 end
 
 function LogLine:GetLength()
-    return MAX_TIMESTAMP_LENGTH + self:GetHeaderLength() + #self._content
+    return MAX_TIMESTAMP_LENGTH + self:GetHeaderLength() + string.utf8len(self._content)
 end
 
 function LogLine:GetReadableTimestamp()
@@ -110,17 +111,18 @@ end
 --- @TODO: The max length of the content should be calculated dynamically
 function LogLine:SetContent(content)
     if type(content) == "string" and #content > 0 then
-        self._content = content:ltake(MAX_CONTENT_LENGTH)
+        self._content = content:ltake(MAX_CONTENT_LENGTH, nil, "...")
     end
 
     return self
 end
 
 function LogLine:SetHeader(tag, icon)
-    if type(tag) == "string" and #tag < MAX_TAG_LENGTH then
-        self._tag = STRINGS.PEARL.LOGS.TAG:format(tag)
+    if type(tag) == "string" then
+        self._tag = STRINGS.PEARL.LOGS.TAG:format(tag:ltake(MAX_TAG_LENGTH, nil, "..."))
     end
 
+    -- Do not crop the icon if it's too big since it would break it anyway.
     if type(icon) == "string" and #icon < MAX_ICON_LENGTH then
         self._icon = icon
     end

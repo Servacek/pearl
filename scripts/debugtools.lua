@@ -420,7 +420,7 @@ function _G.DLog(message, ...)
 end
 
 function _G.RawRequest(cb, ...)
-    cb = cb or function(result, is_successful, http_code)
+    cb = type(cb) == "function" or function(result, is_successful, http_code)
         PEARL.info("Request Executed!", result)
     end
 
@@ -702,6 +702,17 @@ function PEARL.TESTS.TestChatLogs()
 
     -- SYSTEM
     Networking_SystemMessage("Správa servera")
+end
+
+function PEARL.TESTS.UTF8()
+    DSay("Príjemný dobrý večer!") -- basic messages
+    DSay("jsou poblíž pavouci") -- basic messages
+
+    DSay("读写汉字 - 学中文") -- Some chinese characters
+    DSay("\176") -- Degree symbol
+    DSay("38 \176C") -- Degree symbol used by "Status Announcements" mod
+    DSay("\176\186") -- Some invalid sequence
+    DSay("\226\132\162") -- TM
 end
 
 --------------------------------
