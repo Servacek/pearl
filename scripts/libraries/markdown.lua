@@ -81,7 +81,7 @@ function MARKDOWN.escape_link_embeds(s)
 end
 
 --- Formats a string to the codeline format using the discord markdown characters
---- @return string|stringlib result The formatted string
+--- @return string result The formatted string
 function MARKDOWN.codeline(s)
     s = tostring(s):gsub("`", "ˋ")
 

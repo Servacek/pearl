@@ -141,19 +141,28 @@ end
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, owner_name)
     local description = ""
+    local max_id_size = PEARL.GetMaxStringSize(enabled_mods, false, "id")
 
     -- Data processed here are untrusted.
     for _, mod in ipairs(enabled_mods) do
         local type_icon = mod.private and PEARL.ICONS.LOCAL or PEARL.ICONS.STEAM
         local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
-        local fancyname = type(mod.fancyname) == "string" and MARKDOWN.bold(mod.fancyname:ltake(MAX_MODNAME_LEN)) or "???"
-        local modid = mod.private and "" or (type(mod.id) == "string" and MARKDOWN.hlink(
-            MARKDOWN.codeline(mod.id:ltake(MAX_MODID_LEN)), PEARL.CONSTS.STEAM_WORKSHOP:format(mod.id)
-        ).." " or "???")
+        local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN) or "???")
 
-        local header = modid..fancyname
-        description = description..type_icon.." "..state_icon.." "..(
-            mod.allowed and header or MARKDOWN.strikethrough(header)
+        local modid = ""
+        if not mod.private then
+            modid = type(mod.id) == "string" and mod.id:ltake(MAX_MODID_LEN) or "???"
+            local modid_spac = string.rep(" ", max_id_size - #mod.id)
+            modid = MARKDOWN.codeline(modid..modid_spac)
+            modid = (MARKDOWN.hlink(
+                modid, PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):ltake(MAX_MODID_LEN))
+            ).." ")
+        else
+            modid = MARKDOWN.codeline(string.rep(" ", max_id_size)).." "
+        end
+
+        description = description..type_icon.." "..state_icon.." "..modid..(
+            mod.allowed and fancyname or MARKDOWN.strikethrough(fancyname)
         )
 
         description = description.."\n"

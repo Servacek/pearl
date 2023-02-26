@@ -368,7 +368,6 @@ PEARL.AddAnnouncementCategory("hammer", "hammer.tex")
 PEARL.AddAnnouncementCategory("kill", "hambat.tex")
 PEARL.AddAnnouncementCategory("defeat", "trophy.tex")
 PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
-PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
 
 --- @TODO: add custom icon for these...
 PEARL.AddAnnouncementCategory("activate")

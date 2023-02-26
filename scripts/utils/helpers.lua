@@ -91,13 +91,17 @@ function PEARL.GetPlayerMetadataFor(userid, cb)
     return player_ref
 end
 
-function PEARL.GetMaxStringSize(string_list, key)
+function PEARL.GetMaxStringSize(string_list, key, keyname)
     local max_size = 0
     local size
     for k, v in pairs(string_list) do
-        size = key and #tostring(k) or #tostring(v)
-        if size > max_size then
-            max_size = size
+        if not keyname or k == keyname or v[keyname] ~= nil then
+            size = key and string.utf8len(tostring(k)) or (
+                v[keyname] and string.utf8len(v[keyname])
+            ) or string.utf8len(tostring(v))
+            if size > max_size then
+                max_size = size
+            end
         end
     end
 
