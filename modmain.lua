@@ -423,7 +423,6 @@ end
 PEARL.OnModPostInit()
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
 
--- Some performance testing garbage...
 -- PEARL.OverrideVariable("WallUpdate", function() end, _G)
 -- PEARL.OverrideVariable("PostUpdate", function() end, _G)
 -- PEARL.OverrideVariable("PostPhysicsWallUpdate", function() end, _G)

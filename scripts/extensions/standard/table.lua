@@ -35,3 +35,9 @@ end
 function table.create(size, narr)
     return createTable(size, narr)
 end
+
+function table.iclear(t)
+    for i = #t, 1, -1 do
+        t[i] = nil
+    end
+end

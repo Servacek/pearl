@@ -482,12 +482,16 @@ function PEARL.SafeRun(func, ...)
                 "Error in function call:", stacktrace or "Unknown"
             )
 
-            -- This function is being used in frontend as well!
-            if PEARL.DiscordReporter and stacktrace then
-                PEARL.DiscordReporter:ReportCatchedLuaError(stacktrace)
+            if stacktrace then
+                -- This function is being used in frontend as well!
+                if PEARL.DiscordReporter then
+                    PEARL.DiscordReporter:ReportCatchedLuaError(stacktrace)
+                elseif PEARL.ClientNetwork then
+                    PEARL.ClientNetwork:SendErrorTracebackToServer(stacktrace)
+                end
             end
         end
-    ), }
+    )}
 
     return unpack(result)
 end

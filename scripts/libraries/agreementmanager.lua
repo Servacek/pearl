@@ -164,7 +164,8 @@ end
 function AgreementManager:Load()
     local rf, err = io.open(PEARL.CONSTS.AGREEMENT_FILE_PATH, "r")
     if not rf then
-        return PEARL.error("Failed to load the agremeent file!", err)
+        -- It's ok to not a have an agreement file
+        return PEARL.debug("Failed to load the agremeent file!", err)
     end
 
     for line in rf:lines() do

@@ -34,7 +34,9 @@ local join_filters = {}
 local client_cache = {}
 
 --- @class ServerNetwork
-local ServerNetwork = {}
+local ServerNetwork = {
+    listing = TheNet:GetServerListing()
+}
 
 ----------------------------------
 -- Public Functions
@@ -112,6 +114,10 @@ end
 
 function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
+end
+
+function ServerNetwork:GetServerIP()
+    return self.listing.ip
 end
 
 function ServerNetwork:GetHostTable()

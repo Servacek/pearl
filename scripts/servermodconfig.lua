@@ -41,6 +41,19 @@ end
 local function ParsePublicConfigOption(option, tbl)
     if option.public == true then
         tbl[option.name] = GetGenericConfigData(option.name, true)
+
+        --- @TODO: Add zip support for more specific public options.
+        if option.zip then
+            local type = type(tbl[option.name])
+            if type == "string" then
+                tbl[option.name] = TheNet:ZipAndEncodeString(tbl[option.name])
+            elseif type == "table" then
+                tbl[option.name] = ZipAndEncodeString(tbl[option.name])
+            else
+                return print("[PEARL] [Error] Failed to zip and encode type", type)
+            end
+        end
+
         return
     end
 

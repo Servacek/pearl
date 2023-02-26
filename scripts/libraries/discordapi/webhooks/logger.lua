@@ -22,7 +22,7 @@
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local MessageBuffer = PEARL.loadfile("libraries/discordapi/models/messagebuffer")
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 
 -------------------------------------
@@ -44,17 +44,16 @@ local Logger = Class(function(self)
         return PEARL.error("Token and/or ID is not configured for the logger webhook correctly!")
     end
 
-    --- @type Message
-    self._buffered_message = Message()
-    --- @type Task
-    self._buffer_timeout_task = nil
-    self._buffer_timeout = 0
+    --- @type MessageBuffer
+    self._buffer = MessageBuffer()
+    self._buffer:SetTimeout(PEARL.CONFIG.DISCORD.LHOOK.BUFFER_TIMEOUT)
+    self._buffer:SetOnTimeout(self._LogBufferedMessage, self)
 
     PEARL.EventProcessor:AddSafeEventHandler("quit", function()
-        if self:IsBufferring() then
+        if self._buffer:IsBuffering() then
             PEARL.debug("Shutting down logger webhook...")
 
-            self:_LogBufferedMessage()
+            self:_ForceLogBuffer()
         end
     end)
 end)
@@ -64,56 +63,39 @@ end)
 -------------------------------------
 
 function Logger:_LogBufferedMessage(force)
-    --PEARL.debug("Logger:_LogBufferedMessage")
-    self:_StopBufferTimeout()
-
-    if not self._buffered_message or not self._buffered_message:IsValid() then
+    if not self._buffer or not self._buffer:IsValid() then
         return PEARL.error("Attempted to send an invalid or non-existent buffered message!")
     end
 
-    local _, json_data = self._buffered_message:ToJson()
+    local _, json_data = self._buffer:ToJson()
     if not json_data then
         return PEARL.error("JSON failed to encode the message!")
     end
 
-    PEARL.DiscordRestAPI:ExecuteWebhook(self._webhook, json_data, force)
-
-    -- Clear the buffer when we are done
-    self._buffered_message:Clear()
+    return PEARL.DiscordRestAPI:ExecuteWebhook(
+        self._webhook, json_data, force
+    )
 end
 
-function Logger:_StartBufferTimeout()
-    if self._buffer_timeout_task then
-        PEARL.debug("Restarting the wrap timeout task!")
-        self._buffer_timeout_task:restart()
-    else
-        PEARL.debug("Wrap timeout has started!")
-        self._buffer_timeout_task = PEARL.WallScheduler:ExecutePeriodic(
-            self._buffer_timeout, self._OnBufferTimeout, nil, nil, nil, self
-        )
+function Logger:_ForceLogBuffer()
+    self._buffer:Stop()
+    self:_LogBufferedMessage(true)
+    self._buffer:Clear()
+end
+
+function Logger:_OnNewLog(force)
+    -- Skip the buffering process when forcing a message
+    if force then
+        return self:_ForceLogBuffer()
     end
-end
 
-function Logger:_StopBufferTimeout()
-    if self._buffer_timeout_task and self._buffer_timeout_task.running then
-        self._buffer_timeout_task:stop()
-    end
-end
-
-function Logger:_OnBufferTimeout()
-    --PEARL.debug("Wrap timeout has ended!")
-    self:_LogBufferedMessage()
+    self._buffer:Start()
+    return self._buffer
 end
 
 -------------------------------------
 -- [[ Setters ]]
 -------------------------------------
-
-function Logger:SetBufferTimeout(buffer_timeout)
-    self._buffer_timeout = buffer_timeout
-
-    return self
-end
 
 function Logger:SetIsDisabled(disabled)
     self._disabled = disabled
@@ -124,9 +106,10 @@ end
 -------------------------------------
 -- [[ Getters ]]
 -------------------------------------
+
 -- Warning: This can be nil if we are disabled!
 function Logger:GetBufferedMessage()
-    return self._buffered_message
+    return self._buffer
 end
 
 function Logger:IsDisabled()
@@ -135,10 +118,6 @@ end
 
 function Logger:IsEnabled()
     return not self._disabled
-end
-
-function Logger:IsBufferring()
-    return self._buffer_timeout_task and self._buffer_timeout_task.running
 end
 
 -------------------------------------
@@ -159,22 +138,17 @@ function Logger:LogEmbed(embed, force)
 
     -- Returns nil if adding the embed has failed.
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
-    if not self._buffered_message:AddEmbed(embed) then
-        self:_LogBufferedMessage()
+    if not self._buffer:AddEmbed(embed) then
+        self._buffer:Timeout()
 
         -- Retry with a cleared buffered message
-        if not self._buffered_message:AddEmbed(embed) then
+        if not self._buffer:AddEmbed(embed) then
             -- If still no success, the embed is most likely invalid.
             return PEARL.error("Attempted to add an invalid embed!", embed)
         end
     end
 
-    if force then
-        return self:_LogBufferedMessage(force)
-    end
-
-    self:_StartBufferTimeout()
-    return self._buffered_message
+    return self:_OnNewLog(force)
 end
 
 --- @param logline LogLine The embed to be logged.
@@ -191,22 +165,17 @@ function Logger:LogLine(logline, force)
 
     -- Returns nil if adding the embed has failed.
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
-    if not self._buffered_message:AddLogLine(logline) then
-        self:_LogBufferedMessage()
+    if not self._buffer:AddLogLine(logline) then
+        self._buffer:Timeout()
 
         -- Retry with a cleared buffered message
-        if not self._buffered_message:AddLogLine(logline) then
+        if not self._buffer:AddLogLine(logline) then
             -- If still no success, the embed is most likely invalid.
             return PEARL.error("Attempted to add an invalid logline!", logline)
         end
     end
 
-    if force then
-        return self:_LogBufferedMessage(force)
-    end
-
-    self:_StartBufferTimeout()
-    return self._buffered_message
+    return self:_OnNewLog(force)
 end
 
 --- @param str string The string to be logged.
@@ -233,6 +202,8 @@ function Logger:LogStringHighlighted(str, icon, ...)
     return self:LogStringRaw(MARKDOWN.bold(str), icon, ...)
 end
 
+-------------------------------------
+-- [[ Return ]]
 -------------------------------------
 
 return Logger

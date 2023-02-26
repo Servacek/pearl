@@ -51,12 +51,7 @@ PEARL.SafeModTableExtend("CONSTS", {
 
         MAX_EMOJI_NAME_LENGTH = 32,
         MAX_MESSAGE_CONTENT_LENGTH = 2000,
-        MAX_LOGLINE_COUNT = 16,
         MAX_EMBED_COUNT = 10,
-        --- @TODO: Calculate this according to the message's space.
-        --- So the first logline would have max ~2000 characters.
-        --- The second would have 2000 - prev.length, etc...
-        MAX_LOGLINE_CONTENT_LENGTH = 400,
 
         MAX_USER_MENTIONS = 100,
         MAX_ROLE_MENTIONS = 100,
@@ -324,9 +319,6 @@ PEARL.info("Setting up the webhooks...")
 
 --- @type Logger
 PEARL.DiscordLogger = PEARL.loadfile("libraries/discordapi/webhooks/logger")()
-PEARL.DiscordLogger:SetBufferTimeout(
-    PEARL.CONFIG.DISCORD.LHOOK.BUFFER_TIMEOUT
-)
 
 if not PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
     PEARL.warn("Sending system logs to discord is disabled.")

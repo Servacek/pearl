@@ -191,8 +191,16 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
     end
 end)
 
-RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, target, item)
-    if PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil then
+-- This is being called for cooking in crockpots as well.
+RegisterPlayerItemActionHandler(ACTIONS.COOK, function(doer, target, item)
+    -- Maybe add the crockpot support at some point?
+    -- if target and target.components.stewer and target.compoponents.stewer.ingredient_prefabs then
+    --     for _, prefab in ipairs(target.compoponents.stewer.ingredient_prefabs) do
+
+    --     end
+    -- end
+
+    if target and PEARL.PREFABS.RARE_ITEMS[target.prefab] ~= nil or PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil then
         return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.COOK:format(
             doer:GetDisplayName(), item:GetBasicDisplayName()
         ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)

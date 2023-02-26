@@ -108,10 +108,9 @@ end
 -- [[ Setter Methods ]]
 ------------------------------------------
 
---- @TODO: The max length of the content should be calculated dynamically
 function LogLine:SetContent(content)
     if type(content) == "string" and #content > 0 then
-        self._content = content:ltake(MAX_CONTENT_LENGTH, nil, "...")
+        self._content = content
     end
 
     return self

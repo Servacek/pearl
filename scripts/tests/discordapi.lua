@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 ---@diagnostic disable: invisible
 
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
@@ -33,16 +47,21 @@ function tests.test_all()
         tests.content_limit_test_multiple()
     end)
 
-    PEARL.WallScheduler:ExecuteInTime(20, function()
+    PEARL.WallScheduler:ExecuteInTime(25, function()
+        PEARL.info("=============== Embed Limit Test ===============")
+        tests.too_many_embeds()
+    end)
+
+    PEARL.WallScheduler:ExecuteInTime(30, function()
         PEARL.info("=============== Rate Limit Test ===============")
         tests.rate_limit_test()
     end)
 
-    PEARL.WallScheduler:ExecuteInTime(25, function()
+    PEARL.WallScheduler:ExecuteInTime(35, function()
         PEARL.info("=============== END ===============")
         local current_requests_count = PEARL.RestClient:GetSentRequestsCount()
         PEARL.info("Requests Sent:", current_requests_count - init_request_count)
-    end)()
+    end)
 end
 
 function tests.msg_buffer_test()
@@ -73,6 +92,14 @@ end
 function tests.content_limit_test_multiple()
     PEARL.DiscordLogger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT / 2))
     PEARL.DiscordLogger:LogString(string.rep("a", Message.CONTENT_LENGHT_LIMIT / 2))
+end
+
+function tests.too_many_embeds()
+    for i = 1, Message.EMBED_COUNT_LIMIT + 1 do
+        PEARL.DiscordLogger:LogEmbed(
+            Embed():SetDescription("Embed #"..i)
+        )
+    end
 end
 
 function tests.rate_limit_test()

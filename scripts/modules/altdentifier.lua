@@ -200,7 +200,7 @@ PEARL.AddWorldPostInit(function(world)
             return
         end
 
-        if ShouldCheckClient(data.userid) then
+        if ShouldCheckClient(data.userid) or PEARL.CONFIG.DEBUG_MODE then
             SendFSQueryFor(data.userid)
         end
     end)

@@ -76,7 +76,8 @@ end
 local function OnClientAuthenticationComplete(world, data)
     -- TheNet:GetClientTableForUser crashes for nil values
     local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
-    if not client then --or PEARL.IsClientMigrating(client) then
+    -- This is quite spammy without the joining check tbh.
+    if not client or not PEARL.ServerNetwork:IsClientJoining(client.userid) then
         return
     end
 

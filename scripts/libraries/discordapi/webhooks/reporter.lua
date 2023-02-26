@@ -13,7 +13,6 @@
 
 
 --- @TODO: Think about a way to reduce duplication here...
---- @TODO: Write some tests for this thing
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
@@ -26,6 +25,8 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 -------------------------------------
 
 local MAX_TRACEBACK_LENGHT = 1024
+local MAX_REPORTED_CACHE = 5
+local ERROR_ID_PATTERN = "^(.*)\n.*"
 
 -------------------------------------
 -- [[ Class Declarations ]]
@@ -44,6 +45,9 @@ local Reporter = Class(function(self)
         self:SetIsDisabled(true)
         return PEARL.error("Token and/or ID is not configured for the reporter webhook correctly!")
     end
+
+    --- @type table<string>
+    self._reported = {}
 end)
 
 -------------------------------------
@@ -59,6 +63,24 @@ function Reporter:_SendReportMessage(content, force)
 
     PEARL.info("Sending error log to discord...")
     return self:SendRawReportMessage(Message(content), force)
+end
+
+function Reporter:_GetErrorID(traceback)
+    return traceback and traceback:match(ERROR_ID_PATTERN)
+end
+
+function Reporter:_WasErrorReported(error_id)
+    if not error_id then
+        return false
+    end
+
+    for i = 1, #self._reported do
+        if self._reported[i] == error_id then
+            return true
+        end
+    end
+
+    return false
 end
 
 -------------------------------------
@@ -128,6 +150,15 @@ function Reporter:ReportCatchedLuaError(traceback)
     if type(traceback) ~= "string" or self:IsDisabled() then
         return
     end
+
+    --- @TODO
+    -- Some attempts to reduce duplication...
+    -- local error_id = self:_GetErrorID(traceback)
+    -- print("ERROR ID:", error_id)
+    -- if self:_WasErrorReported(error_id) then
+    --     return PEARL.debug("!!!!!!!!!!!!!!!!!!!! ALREADY REPORTED!!!!!")
+    -- end
+    -- self._reported[#self._reported+1] = error_id
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_CATCHED:format(

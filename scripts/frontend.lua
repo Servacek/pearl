@@ -30,6 +30,14 @@ PEARL.info("Loading Configuration...")
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     if option.public and PEARL.CONFIG[option.name] == nil then
         PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+
+        if option.zip then
+            local _, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim,PEARL.CONFIG[option.name])
+            local success, result = RunInSandbox(data)
+            if success then
+                PEARL.CONFIG[option.name] = result
+            end
+        end
     end
 end
 

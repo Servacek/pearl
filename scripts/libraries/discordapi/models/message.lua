@@ -38,6 +38,13 @@ local type = type
 
 local shallowcopy = shallowcopy
 local cleartable = cleartable
+local iclear = table.iclear
+
+-------------------------------------
+-- [[ Constants ]]
+-------------------------------------
+
+local CROP_POSTFIX = "..."
 
 -------------------------------------
 -- [[ Class Declarations ]]
@@ -53,6 +60,7 @@ local Message = Class(function(self, content)
     --- @type table?
     self._loglines = nil
 
+    --- @type string?
     self._content = content
     -- This table is rarely used so create it
     -- only when it's needed
@@ -63,27 +71,29 @@ local Message = Class(function(self, content)
     self._flags = nil
     -- We don't support these yet
     --self.attachments = {}
+
     -- All mentions are disabled by default
     -- Posibble categories:
     --    parse,
     --    roles,
     --    users,
     -- Settings parse to false disabled the @everyone and @here ping
-    self._allowed_mentions = self.DEFAULT_ALLOWED_MENTIONS
-
-    -- --- @type function?
-    -- self._postconstructfn = nil
-    -- self._postconstructfn_args = nil
+    -- Therefore this should be always a table.
+    --- @type table<string, table>
+    self._allowed_mentions = shallowcopy(self.DEFAULT_ALLOWED_MENTIONS)
 end)
 
 ------------------------------------------
--- [[ Constants ]]
+-- [[ Static ]]
 ------------------------------------------
+
 -- Note: Discord's limit is based on characters not bytes.
 -- So use utf8len to determine the actual number of characters.
-Message.CONTENT_LENGHT_LIMIT    = 2000
-Message.EMBED_COUNT_LIMIT       = 10
-Message.JSON_STRING             = [[
+Message.MAX_CONTENT_LENGTH_LIMIT        = 2000
+Message.CONTENT_LENGTH_LIMIT_RESERVE    = 100
+Message.CONTENT_LENGHT_LIMIT            = Message.MAX_CONTENT_LENGTH_LIMIT - Message.CONTENT_LENGTH_LIMIT_RESERVE
+Message.EMBED_COUNT_LIMIT               = 10
+Message.JSON_STRING                     = [[
     {
         "content": "%q",
         "embeds": "%q",
@@ -129,10 +139,6 @@ function Message:GetLength()
     return length
 end
 
-function Message:AcceptsLogLines()
-    return not self._loglines or #self._loglines < PEARL.CONSTS.DISCORD.MAX_LOGLINE_COUNT
-end
-
 function Message:AcceptsEmbeds()
     return not self._embeds or #self._embeds < PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT
 end
@@ -148,6 +154,10 @@ end
 function Message:HasContent()
     -- Maybe just blank characters are not counted as a content?
     return self._content ~= nil and #self._content > 0
+end
+
+function Message:GetFreeCharCount()
+    return Message.CONTENT_LENGHT_LIMIT - self:GetLength()
 end
 
 function Message:GetContent()
@@ -176,12 +186,12 @@ end
 --- @param embed Embed The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddEmbed(embed)
-    if not (type(embed) == "table" and self:AcceptsEmbeds()) then
-        return
+    if not self:AcceptsEmbeds() then
+        return PEARL.error("Attempted to add more than", PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT, "embeds to a message.")
     end
 
     if not self._embeds then
-        self._embeds = {}
+        self._embeds = {} -- Leave allocation on lua for small messages.
     end
 
     self._embeds[#self._embeds + 1] = embed
@@ -192,20 +202,13 @@ end
 --- @param logline LogLine The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddLogLine(logline)
-    if not (logline and self:AcceptsLogLines() and not self._content) then
-        return
-    end
-
-    -- Verify, that by adding the logline we will not exceed the content length limit.
-    if (self:GetLength() + logline:GetLength()) > Message.CONTENT_LENGHT_LIMIT - 100 then
-        return
-    end
-
     if not self._loglines then
-        self._loglines = {}
+        self._loglines = {} -- Leave allocation on lua for small messages.
     end
 
-    self._loglines[#self._loglines + 1] = logline:Build()
+    self._loglines[#self._loglines + 1] = logline
+        :Build()
+        :ltake(self:GetFreeCharCount(), nil, CROP_POSTFIX)
 
     return self
 end
@@ -222,8 +225,8 @@ end
 
 --- @NOTE: Careful here.
 function Message:SetAllowedMentionTypes(mention_types)
-    if type(self._allowed_mentions) ~= "table" or self._allowed_mentions == Message.DEFAULT_ALLOWED_MENTIONS then
-        self._allowed_mentions = shallowcopy(self._allowed_mentions) or {}
+    if type(self._allowed_mentions) ~= "table" then
+        self._allowed_mentions = {}
     end
 
     self._allowed_mentions.parse = mention_types
@@ -265,11 +268,11 @@ function Message:AllowMentionsForUser(userid)
     return self
 end
 
-function Message:SetPostConstructFn(fn, ...)
-    self._postconstructfn = fn
-    self._postconstructfn_args = ...
+function Message:ClearAllowedMentions()
+    local parse = self._allowed_mentions and self._allowed_mentions.parse
+    cleartable(self._allowed_mentions)
 
-    return self
+    self._allowed_mentions.parse = parse and iclear(parse) or {}
 end
 
 ------------------------------------------
@@ -295,32 +298,8 @@ function Message:ToJson()
     return success, success and utf8.decode_string(result) or result
 end
 
--- function Message:Construct(force)
---     if not self._postconstructfn then
---         return PEARL.error("Message", "_postconstructfn is a nil value!")
---     end
-
---     self._postconstructfn(self, force, self._postconstructfn_args)
--- end
-
--- Allows reuse of the message object (when used as a buffer)
-function Message:Clear()
-     self._flags = nil
-
-    cleartable(self._loglines)
-    cleartable(self._embeds)
-
-    local parse
-    if self._allowed_mentions then
-        parse = self._allowed_mentions.parse
-    end
-
-    cleartable(self._allowed_mentions)
-
-    if parse then
-        cleartable(parse)
-        self._allowed_mentions.parse = parse
-    end
-end
+------------------------------------------
+-- [[ Return ]]
+------------------------------------------
 
 return Message

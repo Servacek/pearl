@@ -23,6 +23,26 @@ local Message = PEARL.loadfile('libraries/discordapi/models/message')
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
+function PEARL.execute_tests(testset_name, testname)
+    local tests = PEARL.loadfile("tests/"..testset_name)
+    if not type(tests) == "table" then
+        PEARL.info("Failed to load the specified test set!")
+    end
+
+    if testname then
+        return tests[testname]()
+    end
+
+    if tests.test_all then
+        return tests.test_all()
+    end
+
+    for name, test in pairs(tests) do
+        PEARL.info("Executing test", name)
+        test()
+    end
+end
+
 
 function PEARL.PrintTests()
     local i = 1
@@ -597,22 +617,6 @@ function PEARL.ListEngineGlobals()
     return globals
 end
 
-function PEARL.execute_tests(testset_name)
-    local tests = PEARL.loadfile("tests/"..testset_name)
-    if not type(tests) == "table" then
-        PEARL.info("Failed to load the specified test set!")
-    end
-
-    if tests.test_all then
-        return tests.test_all()
-    end
-
-    for name, test in pairs(tests) do
-        PEARL.info("Executing test", name)
-        test()
-    end
-end
-
 function PEARL.FakeRunSlashCommand(name, params)
     local command = UserCommands.GetCommandFromName(name)
 
@@ -747,7 +751,6 @@ function PEARL.TESTS.Queue()
         assert(i == max + 1 or queue:full() == false)
         queue:push(i)
         assert(queue:len() == math.min(i, max))
-        print(queue._list.first, queue._list.last, queue:len())
         assert(queue:empty() == false)
     end
 
@@ -761,8 +764,6 @@ function PEARL.TESTS.Queue()
 
     for i = 1, max do
         assert(queue:empty() == false, queue:len())
-        print(queue._list.first, queue._list.last, queue:len())
-        print(queue:take())
         assert(queue:len() == max - i)
     end
 
@@ -772,7 +773,6 @@ function PEARL.TESTS.Queue()
 
     local i = 0
     for item in queue:iter() do
-        print(item, type(item))
         assert(type(item) == "number")
         i = i + 1
     end
@@ -798,7 +798,7 @@ end
 --- @TODO
 
 --------------------------------
--- [[ Localizer ]]
+-- [[ WallScheduler ]]
 --------------------------------
 
 function PEARL.TESTS.WallScheduler()

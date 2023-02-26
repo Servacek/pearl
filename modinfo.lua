@@ -527,10 +527,12 @@ configuration_options = {
     -- These are configurations that are not being explicitly set
     -- by the user but are being configured implicitly by the mod instead.
 
+    -- The strings here can be HUGE, so rather encode and ZIP them before sending...
     {
         name="AGREEMENT_SCREEN_CONTENT",
         default = nil,
         type = "table|nil",
+        zip = true,
         public = true,
         implicit = true,
     },
@@ -539,6 +541,7 @@ configuration_options = {
         name="WELCOME_POPUP_CONTENT",
         default = nil,
         type = "table|nil",
+        zip = true,
         public = true,
         implicit = true,
     },
