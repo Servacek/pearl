@@ -183,6 +183,12 @@ configuration_options = {
         public = true,
     },
 
+    { --- @TODO
+        name = "SHARD_NAME",
+        default = nil,
+        type = "string?",
+    },
+
     --------------------
     -- Global Player Icons
     --------------------
@@ -215,7 +221,7 @@ configuration_options = {
     --------------------
 
     {
-        name="LOG_SUSPICIOUS_INVENTORIES",
+        name="REPORT_INVENTORIES",
         default=true,
         options = {
             true,
@@ -474,13 +480,13 @@ configuration_options = {
     {
         name = "CUSTOM_PREFABS",
         default = {},
-        type = "table",
+        type = "table<string>",
     },
 
     {
-        name = "NO_HEATROCK_DURABILITY",
-        default = false,
-        type = "boolean",
+        name = "PREFAB_EXTENSIONS",
+        default = {},
+        type = "table<string>",
     },
 
     --------------------
@@ -510,7 +516,6 @@ configuration_options = {
         experimental = true,
     },
 
-
     {
         name = "SELF_STACKER",
         default = {
@@ -533,6 +538,7 @@ configuration_options = {
         default = nil,
         type = "table|nil",
         zip = true,
+        master_only = true,
         public = true,
         implicit = true,
     },
@@ -543,6 +549,7 @@ configuration_options = {
         type = "table|nil",
         zip = true,
         public = true,
+        master_only = true,
         implicit = true,
     },
 

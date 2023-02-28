@@ -182,7 +182,8 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
-    if PEARL.PREFABS.ACTIVATABLE[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
+    --- @WARNING: This is a Terrarium specific tag! @TODO
+    if target.is_on and PEARL.PREFABS.ACTIVATABLE[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
         target.components.activatable:SetLastPlayerActivator(doer)
 
         return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.ACTIVATE:format(

@@ -187,6 +187,9 @@ msgstr "{doer} použil/a {item} na {target}!"
 msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON_OWNERED"
 msgstr "{doer} použil/a {item} na {target}! Majiteľ: {owner}"
 
+msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON_OWN_NEAR"
+msgstr "{doer} použil/a {item} na {target} pri {near}! Majiteľ: {owner}"
+
 msgctxt "STRINGS.PEARL.ACTIONS.CAST.NEAR"
 msgid "{doer} used {item} near {near}!"
 msgstr "{doer} použil/a {item} pri {near}!"

@@ -15,8 +15,6 @@
 -- [[ FrontEnd ]]
 -- Should be loaded only on the client's side.
 
-PEARL.info("Loading Mod FE...")
-
 PEARL.SafeModTableExtend("CONSTS", {
     -- Create the file in game's data directory which is more persistent on clients
     AGREEMENT_FILE_PATH = "AGREEMENT",
@@ -26,17 +24,34 @@ PEARL.SafeModTableExtend("CONSTS", {
 -- Config
 ----------------------------------
 
+local function UnzipConfigData(option)
+    local success, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, PEARL.CONFIG[option.name])
+
+    if not success or type(data) ~= "string" then
+        return PEARL.error("Decoding configuration option", option.name "failed!")
+    end
+
+    -- JSON decoding for table strings.
+    if option.type and option.type:startswith("table") then
+        local s, tbl = RunInSandbox(data)
+        if s == true then
+            return tbl
+        end
+    end
+
+    -- Else return just the raw unzipped string
+    return data
+end
+
 PEARL.info("Loading Configuration...")
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     if option.public and PEARL.CONFIG[option.name] == nil then
         PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
 
-        if option.zip then
-            local _, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim,PEARL.CONFIG[option.name])
-            local success, result = RunInSandbox(data)
-            if success then
-                PEARL.CONFIG[option.name] = result
-            end
+        -- In case the data were for whatever reason not ZIPped even if they should be.
+        if option.zip and type(PEARL.CONFIG[option.name]) == "string" then
+            -- This will be set to nil if unzipping fails
+            PEARL.CONFIG[option.name] = UnzipConfigData(option)
         end
     end
 end
@@ -61,7 +76,6 @@ PEARL.info("Loading client network...")
 
 --- @type ClientNetwork
 PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
-PEARL.ClientNetwork:LoadDefaultCFD()
 
 ----------------------------------
 -- FrontEnd Debug Mode
@@ -145,7 +159,8 @@ ModuleManager:SetModuleDirectory("modules")
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
-        "modblocker", PEARL.CONFIG.MOD_BLOCKER.ENABLED
+        -- Only load the modblocker if we have any mods enabled.
+        "modblocker", PEARL.CONFIG.MOD_BLOCKER.ENABLED and KnownModIndex:GetAllEnabledModsCount() > 1
     )
     ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)

@@ -23,7 +23,6 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 
---- @TODO:
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", function(userid, data)
     if not (data and data.enabled_mods and data.enabled_mods.prohibited == true) then
         return

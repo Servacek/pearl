@@ -26,6 +26,8 @@ local function OnClientError(traceback)
     else
         PEARL.error("ClientNetwork not initialized yet!")
     end
+
+    TheSim:ForceAbort()
 end
 
 local function OnServerError(traceback)

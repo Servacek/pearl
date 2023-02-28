@@ -25,13 +25,14 @@ local TIMEOUT = 15 -- seconds
 local _OnNetworkDisconnect = PEARL.GetGlobal("OnNetworkDisconnect")
 
 local disconnection_notified = false
-local disconnecting = false
 local disconnect_data = {}
+local disconnected = false
 local disconnected_by_server = false
 local force_disconnected = false
+local connection_allowed = false
 
 local cfd = {}
-local cfd_sent = false
+
 --- @type Task?
 local timeout_task = nil
 
@@ -59,7 +60,8 @@ function ClientNetwork:Disconnect(reason, from_server, immediate)
     disconnected_by_server = from_server == true or false
     force_disconnected = true
 
-    if PEARL.CONFIG.SERVER_REQUIRE_CFD and not self:HasSentCFD() then
+    --self:SetIsWaitingForResponse(false)
+    if not self:HasSentCFD() then
         -- In case we have been disconnected for invalid mods
         -- we still want to inform the server what mods did we used.
         -- We can't wait for FE here.
@@ -67,7 +69,6 @@ function ClientNetwork:Disconnect(reason, from_server, immediate)
     end
 
     self:CancelTimeout()
-    self:SetIsWaitingForResponse(false)
     self.loader:DefferLoad()
 
     -- Call this before the actual disconnecting so the RPCs can be sent.
@@ -76,48 +77,43 @@ function ClientNetwork:Disconnect(reason, from_server, immediate)
 
     TheNet:JoinServerResponse(true) -- true when disconnecting...
     TheNet:Disconnect(false)
-
-    DisableRPCSending()
-    SetPause(true)
-
-    disconnecting = true
 end
 
 function ClientNetwork:SendPlayerReportToServer(message, ...)
-    return PEARL.SendRPCToServer(PEARL.RPCS.PlayerReportMessage, message)
+    PEARL.info("Sending player report to server...")
+    return PEARL.SendRPCToServer(PEARL.RPCS.PlayerReportMessage, message, ...)
 end
 
 function ClientNetwork:SendErrorTracebackToServer(traceback, ...)
     PEARL.info("Sending the error traceback to the server...")
-
     PEARL.SendRPCToServer(PEARL.RPCS.ClientError, TheSim:ZipAndEncodeString(traceback), ...)
 end
 
 --- CFD = Connection Filter Data = Client Filter Data
---- We are sending this data after every FE post init.
+--- We are sending this data on the initial connection.
 function ClientNetwork:SendCFDToServer()
-    if TheNet:GetIsServer() or type(cfd) ~= "table" or IsTableEmpty(cfd) then
-        return
+    if type(cfd) ~= "table" then
+        return PEARL.error("Attempted to send invalid CFD data to server!")
     end
 
+    self:BuildCFD()
     PEARL.info("Sending connection filter data to the server...")
     PEARL.SendRPCToServer(PEARL.RPCS.ConnectionFilterData, ZipAndEncodeString(cfd))
-    self:SetCFDSent(true)
 
-    if self:IsWaitingForResponse() then
-        self.loader:DefferLoad()
-        self:StartTimeout()
-    end
+    self:SetCFDSent(true)
+    self.loader:DefferLoad()
+    self:StartTimeout()
 end
 
-function ClientNetwork:LoadDefaultCFD()
-    cfd.locale      = TheNet:GetCountryCode()
-    cfd.ping        = TheNet:GetPing()
-    cfd.performance = self:GetHostPerformance()
-    cfd.username    = TheNet:GetLocalUserName()
+function ClientNetwork:BuildCFD()
+    cleartable(cfd)
 
-    cfd.novice      = self:IsNovice()
-    cfd.waiting     = self:IsWaitingForResponse()
+    cfd.enabled_mods    = KnownModIndex:GetModsReport()
+
+    cfd.locale          = TheNet:GetCountryCode()
+    cfd.username        = TheNet:GetLocalUserName()
+
+    cfd.novice          = self:IsNovice()
 
     return cfd
 end
@@ -136,22 +132,16 @@ end
 -- Setters
 ----------------------------------
 
-function ClientNetwork:SetIsWaitingForResponse(waiting)
-    PEARL.GameInstParams:SetModParam("waiting_for_response", waiting)
+-- function ClientNetwork:SetIsWaitingForResponse(waiting)
+--     PEARL.GameInstParams:SetModParam("waiting_for_response", waiting)
+-- end
+
+function ClientNetwork:SetIsConnectionAllowed(allowed)
+    connection_allowed = allowed
 end
 
 function ClientNetwork:SetCFDSent(sent)
-    cfd_sent = sent
-end
-
-function ClientNetwork:SetCFDField(key, value)
-    if cfd[key] ~= nil then
-        PEARL.warn("Overriding CFD field", key, "with value", value)
-    end
-
-    cfd[key] = value
-
-    return cfd
+    PEARL.GameInstParams:SetModParam("cfd_sent", sent)
 end
 
 function ClientNetwork:SetDisconnectionData(data)
@@ -180,45 +170,36 @@ end
 -- Getters
 ----------------------------------
 
+function ClientNetwork:IsConnectionAllowed()
+    return connection_allowed
+end
+
 function ClientNetwork:GetHostPerformance()
     -- For dedicated servers the first index is reserved for the "host" machine.
     return TheNet:GetClientTable()[1].performance
 end
 
 function ClientNetwork:HasSentCFD()
-    return cfd_sent
+    return PEARL.GameInstParams:GetCurrentModParam("cfd_sent") ~= nil
 end
 
 function ClientNetwork:GetCFD()
     return cfd
 end
 
-function ClientNetwork:IsWaitingForResponse()
-    return PEARL.GameInstParams:GetCurrentModParam("waiting_for_response") == true
-end
+-- function ClientNetwork:IsWaitingForResponse()
+--     return PEARL.GameInstParams:GetCurrentModParam("waiting_for_response") == nil
+-- end
 
 function ClientNetwork:IsDisconnected()
-    return disconnection_notified
-end
-
-function ClientNetwork:IsDisconnecting()
-    return disconnecting
-end
-
---- Whether the server has closed the connection or not.
-function ClientNetwork:WasDisconnectedByServer()
-    return disconnected_by_server
-end
-
-function ClientNetwork:WasForceDisconnected()
-    return force_disconnected
-end
-
-function ClientNetwork:IsPaused()
-    return TheNet:IsServerPaused()
+    return disconnected or disconnected_by_server or force_disconnected
 end
 
 function ClientNetwork:IsNovice()
+    if TheNet:GetIsServerAdmin() then
+        return false
+    end
+
     if PEARL.AgreementManager:FileExists() then
         if PEARL.AgreementManager:HasAnyRecords() then
             return not PEARL.AgreementManager:HasRecord()
@@ -243,16 +224,18 @@ function ClientNetwork:OnTimeout()
     )
 end
 
+-- Note that it's common for servers to send multiple responses.
 function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
-    if not self:IsWaitingForResponse() then
-        return -- Ignore
-    end
-
     PEARL.info("ClientNetwork:OnResponse", allowed)
-    self:SetIsWaitingForResponse(false)
     self:CancelTimeout()
 
+    if self:IsDisconnected() or (allowed and self:IsConnectionAllowed()) then
+        return -- Server already responded - Ignore
+    end
+
     if allowed == true then
+        self:SetIsConnectionAllowed(allowed)
+
         -- If the connection is allowed, then load the client I guess.
         self.loader:CancelDeffer()
         return self.loader:ForceLoad()
@@ -271,16 +254,21 @@ end
 
 -- The widgets should be loaded at this point.
 -- Call the defered OnNetworkDisconnect here!
+-- Also all RPCS are loaded as well, so send the CFD too!
 PEARL.AddFrontEndPostInit(function(fe)
     -- All modules working with cfd should be loaded.
     if PEARL.CONFIG.SERVER_REQUIRE_CFD and not ClientNetwork:HasSentCFD() then
         ClientNetwork:SendCFDToServer()
     end
 
-    if ClientNetwork:IsDisconnecting() then
+    if not IsTableEmpty(disconnect_data) then
         return ClientNetwork:NotifyNetworkDisconnect()
     end
 end)
+
+PEARL.AddUserDataFunctionPreCall("Disconnect", function()
+    disconnected = true
+end, TheNet)
 
 -- Also try to let the server known why we have been disconnected.
 -- In the tick this is being called, we should be able to still send some rpcs
@@ -295,7 +283,8 @@ PEARL.OverrideVariable("OnNetworkDisconnect", function(reason, should_reset, imm
         return false
     end
 
-    if not ClientNetwork:WasDisconnectedByServer() then
+    --- Only notify the server if he isn't the cause.
+    if not disconnected_by_server then
         ClientNetwork:OnConnectionClosed(reason)
     end
 
@@ -322,9 +311,7 @@ end, _G)
 
 -- Make the "waiting_for_response" flag persistent between instances,
 -- in case the server restarts when someone just connects to it.
-if PEARL.GameInstParams:GetModParam("waiting_for_response") ~= false then
-    ClientNetwork:SetIsWaitingForResponse(true)
-end
+ClientNetwork:SetCFDSent(PEARL.GameInstParams:GetModParam("cfd_sent"))
 
 ----------------------------------
 -- Return

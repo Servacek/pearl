@@ -37,6 +37,7 @@ local GameInstParams = {}
 --------------------------------------
 
 function GameInstParams:SetModParam(name, value)
+    PEARL.debug("GameInstParams:SetModParam", name, value )
     new_params[name] = value
 end
 

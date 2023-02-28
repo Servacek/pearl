@@ -23,62 +23,10 @@
 local PopupDialogScreen = require("screens/redux/popupdialog")
 
 --------------------------------------
--- [[ Constants ]]
---------------------------------------
-
-local MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST
-local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST
-local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST and not IsTableEmpty(PEARL.CONFIG.MOD_ALLOWLIST)
-local MAX_REPORT_COUNT = 10
-
---------------------------------------
 -- [[ Private ]]
 --------------------------------------
 
 local show_popup = true
-
-local mods_report = {
-    count = KnownModIndex:GetAllEnabledModsCount(),
-    prohibited = false,
-}
-
---------------------------------------
--- [[ Helper Wrappers ]]
---------------------------------------
-
-local function IsClientOnlyMod(modname)
-    local modinfo = KnownModIndex:GetModInfo(modname)
-    return modinfo and modinfo.client_only_mod == true
-end
-
-local function IsModAllowlisted(modname)
-    return table.contains(MOD_ALLOWLIST, GetWorkshopIdNumber(modname))
-end
-
-local function IsModBlocklisted(modname)
-    return table.contains(MOD_BLOCKLIST, GetWorkshopIdNumber(modname))
-end
-
-local function IsModPrivate(modname)
-    -- return IsWorkshopMod(modname)
-    --- @EXPERIMENTAL
-    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
-end
-
-local function IsModAllowed(modname)
-    -- ALWAYS block private mods since all the other checks can be bypassed
-    return not IsModPrivate(modname) and (
-        not IsClientOnlyMod(modname) or (
-            not IsModBlocklisted(modname) and (
-                not ALLOWLISTING or IsModAllowlisted(modname)
-            )
-        )
-    )
-end
-
-local function IsModReportable(modname)
-    return (KnownModIndex:IsModEnabled(modname) and not KnownModIndex:IsModTempEnabled(modname)) or KnownModIndex:IsModBlocked(modname)
-end
 
 local function SaveModIndex()
     --- @NOTE: This only works if DEVELOPER MODE is OFF!
@@ -93,26 +41,6 @@ local function SaveModIndex()
     end
 end
 
-local function CreateReportForMod(modname)
-    return {
-        private     = IsModPrivate(modname),
-        allowed     = IsModAllowed(modname),
-        id          = GetWorkshopIdNumber(modname),
-        fancyname   = GetModFancyName(modname)
-    }
-end
-
-local function AddReportForMod(modname)
-    local mod_report = CreateReportForMod(modname)
-    if not mod_report.allowed then
-        -- Show blocked mods at the top.
-        table.insert(mods_report, 1, mod_report)
-        mods_report.prohibited = true
-    else
-        mods_report[#mods_report + 1] = mod_report
-    end
-end
-
 --------------------------------------
 -- [[ Custom Mod Load Handlers ]]
 --------------------------------------
@@ -120,7 +48,7 @@ end
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
     -- If we are in the strict mode leave the blocked mod's for the post mods load handler,
     -- so clients with blocked mods enabled will be disconnected from the server.
-    if PEARL.CONFIG.MOD_BLOCKER.STRICT == true or IsModAllowed(modname) then
+    if PEARL.CONFIG.MOD_BLOCKER.STRICT == true or KnownModIndex:IsModAllowed(modname) then
         return
     end
 
@@ -185,11 +113,7 @@ end)
 PEARL.AddFrontEndPreInit(function()
     local disconnect = false
     for _, modname in ipairs(KnownModIndex:GetModNames()) do
-        if #mods_report < MAX_REPORT_COUNT and IsModReportable(modname) then
-            AddReportForMod(modname)
-        end
-
-        if KnownModIndex:IsModEnabled(modname) and not IsModAllowed(modname) then
+        if KnownModIndex:IsModEnabled(modname) and not KnownModIndex:IsModAllowed(modname) then
             disconnect = true
 
             -- Even though we are being disconnected,
@@ -197,8 +121,6 @@ PEARL.AddFrontEndPreInit(function()
             KnownModIndex:Block(modname)
         end
     end
-
-    PEARL.ClientNetwork:SetCFDField("enabled_mods", mods_report)
 
     if disconnect == true then
         -- Save the changes made to the mod configurations

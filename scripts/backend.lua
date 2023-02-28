@@ -30,10 +30,6 @@
     Server specific stuff. Needs to be loaded only on the server.
 --]]
 
---local PEARL = PEARL
-
-PEARL.info("Loading BE...")
-
 --------------------------------
 -- [[ Contants ]]
 --------------------------------
@@ -166,7 +162,7 @@ PEARL.info("Loading Configuration...")
 --- Push mod config warnings only for the server owner to see.
 local function LoadConfigOption(option)
     if PEARL.CONFIG[option.name] then
-        return PEARL.warn("Config option already loaded!")
+        return PEARL.warn("Config option", option.name, "already loaded!")
     end
 
     local failed = false
@@ -215,8 +211,12 @@ local function LoadConfigOption(option)
 end
 
 --- @TODOv2.1 Put this to servermodconfig.lua
+
+--- Load backend specific configuration options.
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-    LoadConfigOption(option)
+    if not option.general then
+        LoadConfigOption(option)
+    end
 end
 
 ----------------------------------------------------------------
@@ -272,6 +272,11 @@ end
 --------------------------------
 -- [[ Constants and Utilities ]]
 --------------------------------
+
+-- No need to load any further on the initial launch.
+if PEARL.INIT then
+    return
+end
 
 PEARL.info("Loading constants...")
 --- @type table<table<string, boolean>>
@@ -357,9 +362,11 @@ PEARL.loadfile("extensions/scripts/playercommon")
 PEARL.info("Loading mob brain extensions...")
 PEARL.loadfile("extensions/brains/pigbrain")
 
-if PEARL.CONFIG.NO_HEATROCK_DURABILITY then
-    PEARL.info("Loading prefab extensions...")
-    PEARL.loadfile("extensions/prefabs/heatrock")
+--- @type ExtensionManager
+local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
+PEARL.info("Loading prefab extensions...")
+for _, prefab in ipairs(PEARL.CONFIG.PREFAB_EXTENSIONS) do
+    ExtensionManager:ExtendPrefab(prefab)
 end
 
 -------------------------------------
@@ -396,6 +403,7 @@ PEARL.AdminList:Load()
 if PEARL.CONFIG.DEBUG_MODE then
     PEARL.warn("Debug mode enabled! This is not recommended for production use.")
     PEARL.loadfile("debugtools")
+    PEARL.loadfile("testing")
 
     PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
     PEARL.CreateWordFilterFile("czech.txt", "czech.lua")
@@ -433,10 +441,9 @@ ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
 ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
+ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.REPORT_INVENTORIES)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
 ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enabled)
--- This should not be called in backend I guess
---ModuleManager:AddModule("commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}))
 ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
@@ -444,11 +451,6 @@ ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)
 ModuleManager:AddModule("logger/player", true)
-
--- Discord report channel logs only
-if PEARL.DiscordReporter:IsEnabled() then
-    ModuleManager:AddModule("logger/inventory", true)
-end
 
 -- Discord only loggers
 if PEARL.DiscordLogger:IsEnabled() then
@@ -473,6 +475,7 @@ ModuleManager:LoadAllModules()
 --------------------------------
 -- [[ Custom Prefabs ]]
 --------------------------------
+
 -- Here are stored all the prefabs this mod adds to the game.
 -- This is being loaded after the builtin prefabs so we can override them.
 PrefabFiles = {}

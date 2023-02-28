@@ -43,7 +43,7 @@ local function ParsePublicConfigOption(option, tbl)
         tbl[option.name] = GetGenericConfigData(option.name, true)
 
         --- @TODO: Add zip support for more specific public options.
-        if option.zip then
+        if option.zip and tbl[option.name] then
             local type = type(tbl[option.name])
             if type == "string" then
                 tbl[option.name] = TheNet:ZipAndEncodeString(tbl[option.name])
@@ -113,28 +113,3 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
 
     return DataDumper(mods_config_data, nil, false)
 end)
-
--- rawset(_G, "GetEnabledModsModInfoDetails", function()
---     local modinfo_details = {}
-
---     for _, mod_name in pairs(ModManager:GetEnabledServerModNames()) do
---         local modinfo = KnownModIndex:GetModInfo(mod_name)
---         -- If there is a space between the prefix and the ID then
---         -- the TheSim:QueueDownloadTempMod will be able to recognize it
---         -- but the url will be invalid.
---         local info_name
---         if mod_name == PEARL.MODNAME then
---             info_name = nil
---         end
-
---         table.insert(modinfo_details, {
---             name = mod_name,
---             info_name = info_name or modinfo ~= nil and modinfo.name or mod_name,
---             version = modinfo ~= nil and modinfo.version or "",
---             version_compatible = modinfo ~= nil and modinfo.version_compatible or "",
---             all_clients_require_mod = modinfo ~= nil and modinfo.all_clients_require_mod == true,
---         })
---     end
-
---     return modinfo_details
--- end)

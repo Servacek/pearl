@@ -29,13 +29,10 @@ local unpack = unpack
 
 local mod_post_inits = {}
 local file_pre_loads = {}
-local client_pre_loads = {}
-local game_logic_preloads = {}
-local global_var_postassigns = {}
 local frontend_preinits = {}
+local prefab_post_registers = {}
 
--- local UpValueHacker = PEARL.loadfile("utils/upvaluehacker")
-
+--- @TODO: Refactor these + Add support for local functions
 ----------------------------------
 -- Function Pre/Post call adders
 ----------------------------------
@@ -43,93 +40,72 @@ local frontend_preinits = {}
 -- Overrides the given func with a function that calls func first,
 -- stores it's result(s) and then calls postcb with the result as the first argument.
 -- This function returns the return value(s) of postcb.
---- @return function origin
---- @return function repl
-function PEARL.AddFunctionPostCall(name, postcb, tbl, noraw)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddFunctionPostCall", name, postcb, tbl)
+--- @return function? wrapped The wrapped function.
+local function WrapFunctionPostCall(origin, postcb, with_res)
+    if not origin then
+        return error("Invalid postcb target.")
     end
 
-    if not (type(name) == "string" and type(postcb) == "function" and type(tbl) == "table") then
-        return PEARL.warn("<AddFunctionPreCall> Invalid arguments!")
-    end
-
-    local postfn
-    local _func = noraw and tbl[name] or rawget(tbl, name)
-    if type(_func) ~= "function" then
-        PEARL.debug(
-            "<AddFunctionPreCall> Function '"..tostring(name).."' not declared in", tbl
-        )
-
-        postfn = postcb
-    else
-        postfn = function(...)
-            local result = {_func(...)}
-            --- @TODO: Maybe create a version of this
-            --- post call where the result of the original function
-            --- will be provided as a parameter to the postcb.
-            --return postcb({_func(...)}, ...)
-            postcb(...)
-
-            return unpack(result)
+    if with_res then
+        return function(...)
+            local results = {origin(...)}
+            postcb(results, ...)
+            return results and unpack(results)
         end
     end
 
-
-    if postfn ~= _func then
-        if noraw then
-            tbl[name] = postfn
-        else
-            rawset(tbl, name, postfn)
-        end
+    return function(...)
+        local results = {origin(...)}
+        postcb(...)
+        return unpack(results)
     end
-
-    return _func, postfn
 end
 
--- Similiar to 'AddGlobalFunctionPostCall' but calls precb before func suppling
--- all the arguments. The return value of func is not changed but you can prevent
--- the executioon of the original function by returning false.
---
--- Note: This function does not require the function to be declared in the given table.
---- @return function origin
---- @return function repl
-function PEARL.AddFunctionPreCall(name, precb, tbl, noraw)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddFunctionPreCall", name, precb, tbl)
-    end
-
-    if not (type(name) == "string" and type(precb) == "function" and type(tbl) == "table") then
-        return PEARL.warn("<AddFunctionPreCall> Invalid arguments!", name, precb)
-    end
-
-    local replfn
-    local _func = noraw and tbl[name] or rawget(tbl, name)
-    if type(_func) ~= "function" then
-        PEARL.debug(
-            "<AddFunctionPreCall> Function '"..tostring(name).."' not declared in", tbl
-        )
-
-        replfn = precb
-    else
-        replfn = function(...)
-            if precb(...) ~= false then
-                return _func(...)
-            end
-
+local function WrapFunctionPreCall(origin, precb)
+    return function(...)
+        if precb(...) == false then
             return false
         end
+
+        return origin and origin(...)
+    end
+end
+
+function PEARL.GetValue(t, name, noraw)
+    return noraw and t[name] or rawget(t or _G, name)
+end
+
+function PEARL.SetValue(t, name, value, noraw)
+    if noraw then
+        t[name] = value
+        return t
     end
 
-    if _func ~= replfn then
-        if noraw then
-            tbl[name] = replfn
-        else
-            rawset(tbl, name, replfn)
-        end
-    end
+    return rawset(t, name, value)
+end
 
-    return _func, replfn
+function PEARL.OverrideValue(t, name, value, noraw)
+    t = t or _G
+    local origin = PEARL.GetValue(t, name, noraw)
+    if not origin then
+        PEARL.debug("Adding new index to table.", tostring(t).."["..tostring(name).."] = "..tostring(value))
+    else
+        PEARL.debug("Overriding value of index", origin, "->", value)
+    end
+    PEARL.SetValue(t, name, value, noraw)
+    return origin, value
+end
+
+function PEARL.AddFunctionPreCall(name, precb, t, noraw)
+    return PEARL.OverrideValue(
+        t, name, WrapFunctionPreCall(PEARL.GetValue(t, name, noraw), precb), noraw
+    )
+end
+
+function PEARL.AddFunctionPostCall(name, postcb, t, with_res, noraw)
+    return PEARL.OverrideValue(
+        t, name, WrapFunctionPostCall(PEARL.GetValue(t, name, noraw), postcb, with_res), noraw
+    )
 end
 
 -- A wrapper function for AddFunctionPostCall for global functions
@@ -154,29 +130,31 @@ function PEARL.AddGlobalFunctionPreCall(name, precb, ignoremodenv)
     end
 end
 
--- function PEARL.AddUpValueFunctionPreCall(name, precb, filename)
---     local env = loadfile(filename)
---     if not env then
---         PEARL.error("Failed to load the file!")
---     end
-
---     local target_fn = UpValueHacker.GetUpvalue(env, name)
---     PEARL.AddFunctionPreCall()
--- end
-
 function PEARL.AddClassFunctionPreCall(name, precb, class)
     class = type(class) == "string" and require(class) or class
+
+    if type(class) ~= "table" then
+        return error("Invalid class")
+    end
 
     return PEARL.AddFunctionPreCall(name, precb, class, true)
 end
 
-function PEARL.AddClassFunctionPostCall(name, postcb, class)
+function PEARL.AddClassFunctionPostCall(name, postcb, class, with_res)
     class = type(class) == "string" and require(class) or class
 
-    return PEARL.AddFunctionPostCall(name, postcb, class, true)
+    if type(class) ~= "table" then
+        return error("Invalid class")
+    end
+
+    return PEARL.AddFunctionPostCall(name, postcb, class, with_res, true)
 end
 
 function PEARL.AddUserDataFunctionPreCall(name, precb, userdata)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddUserDataFunctionPreCall", precb, userdata)
+    end
+
     local mt = getmetatable(userdata)
     assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
 
@@ -184,45 +162,26 @@ function PEARL.AddUserDataFunctionPreCall(name, precb, userdata)
 end
 
 function PEARL.AddUserDataFunctionPostCall(name, postcb, userdata)
+    if KnownModIndex:IsModInitPrintEnabled() then
+        PEARL.info("AddUserDataFunctionPostCall", postcb, userdata)
+    end
+
     local mt = getmetatable(userdata)
     assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
 
     return PEARL.AddFunctionPostCall(name, postcb, mt.__index)
 end
 
-
-function PEARL.AddModPostInit(fn)
+function PEARL.AddPrefabPostRegister(prefab, cb)
     if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddModPostInit", fn)
+        PEARL.info("AddPrefabFilePostLoad", cb)
     end
 
-    if type(fn) == "function" then
-        table.insert(mod_post_inits, fn)
-    end
-end
-
-function PEARL.AddGameLogicPreLoad(fn)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddGameLogicPreLoad", fn)
+    if not prefab_post_registers[prefab] then
+        prefab_post_registers[prefab] = {}
     end
 
-    table.insert(game_logic_preloads, fn)
-end
-
-function PEARL.AddModIndexPostInit(fn)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddModIndexPostInit", fn)
-    end
-
-    return PEARL.AddClassFunctionPostCall("EndStartupSequence", fn, KnownModIndex)
-end
-
-function PEARL.AddClientPreLoad(fn, ...)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddClientPreLoad", fn)
-    end
-
-    table.insert(client_pre_loads, fn)
+    table.insert(prefab_post_registers[prefab], cb)
 end
 
 function PEARL.AddFilePreLoad(filename, fn)
@@ -246,24 +205,25 @@ function PEARL.AddFilePreLoad(filename, fn)
     table.insert(file_pre_loads[filename], fn)
 end
 
-function PEARL.AddMetaMethodPostCall(name, tbl, postcb)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddMetaMethodPostCall", name, tbl, postcb)
-    end
+--- WARNING: can cause a lot of nasty issues so do not use if not required!
+-- function PEARL.AddMetaMethodPostCall(name, tbl, postcb)
+--     if KnownModIndex:IsModInitPrintEnabled() then
+--         PEARL.info("AddMetaMethodPostCall", name, tbl, postcb)
+--     end
 
-    -- Do not allow overriding the _G's metamethods because it will break strict.lua!
-    assert(tbl == _G, "Attempted to override metamethods of the global table!")
+--     -- Do not allow overriding the _G's metamethods because it will break strict.lua!
+--     assert(tbl == _G, "Attempted to override metamethods of the global table!")
 
-    local metatable = getmetatable(tbl) or {}
-    local fn = rawget(metatable, name)
-    rawset(metatable, name, function(...)
-        fn(...)
+--     local metatable = getmetatable(tbl) or {}
+--     local fn = rawget(metatable, name)
+--     rawset(metatable, name, function(...)
+--         fn(...)
 
-        postcb(...)
-    end)
+--         postcb(...)
+--     end)
 
-    setmetatable(tbl, metatable)
-end
+--     setmetatable(tbl, metatable)
+-- end
 
 function PEARL.AddWorldPostInit(fn, ...)
     return PEARL.AddPrefabPostInit("world", fn, ...)
@@ -280,17 +240,6 @@ function PEARL.AddFrontEndPostInit(postfn, ...)
     end, ...)
 end
 
-function PEARL.AddGlobalVariablePostAssign(name, postcb)
-    if KnownModIndex:IsModInitPrintEnabled() then
-        PEARL.info("AddGlobalVariablePostAssign", name, postcb)
-    end
-
-    if not global_var_postassigns[name] then
-        global_var_postassigns[name] = {}
-    end
-
-    table.insert(global_var_postassigns[name], postcb)
-end
 
 function PEARL.AddFrontEndPreInit(precb)
     if KnownModIndex:IsModInitPrintEnabled() then
@@ -391,41 +340,14 @@ function PEARL.OnModPostInit(...)
     end
 end
 
--- PEARL.AddClassFunctionPreCall("Load", function(...)
---     local result
---     for _, fn in ipairs(client_pre_loads) do
---         if fn(...) == false then
---             result = false
---         end
---     end
-
---     return result
--- end, Profile)
-
-PEARL.AddGlobalFunctionPreCall("require", function(name)
-    if package.loaded[name] or not file_pre_loads[name] then
+PEARL.AddGlobalFunctionPostCall("RegisterPrefabsImpl", function(inst)
+    if not inst or not prefab_post_registers[inst.name] then
         return
     end
 
-    local result = true
-    for _, cb in ipairs(file_pre_loads[name]) do
-        if cb() == false then
-            result = false
-        end
+    for _, fn in ipairs(prefab_post_registers[inst.name]) do
+        fn(inst)
     end
-
-    return result
-end)
-
-PEARL.AddFilePreLoad("gamelogic", function()
-    local result = true
-    for _, cb in ipairs(game_logic_preloads) do
-        if cb() == false then
-            result = false
-        end
-    end
-
-    return result
 end)
 
 PEARL.AddGlobalClassPreConstruct("frontend", "FrontEnd", function(...)

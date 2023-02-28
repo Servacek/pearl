@@ -11,8 +11,6 @@
 --]==]====================================================]]
 
 
---- @TODO v2.1: Create some kind of cache so we do not announce the same inventories
--- again and again...
 --[[
     Checks the content of an inventory when it's owner despawns.
     Logs suspicious intentories to discord.
@@ -47,12 +45,8 @@ local function CheckPlayersInventory(world, player)
         local message = Message()
         message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
 
-        if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
-            PEARL.info("Sending inventory to discord...")
-            PEARL.DiscordReporter:SendRawReportMessage(message)
-        else
-            PEARL.error("Discord Reporter is disabled! Failed to send the inventory...")
-        end
+        PEARL.info("Sending inventory to discord...")
+        PEARL.DiscordReporter:SendRawReportMessage(message)
     end
 end
 

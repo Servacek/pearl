@@ -22,8 +22,6 @@ local TheNet = TheNet
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
-local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
-
 --------------------------
 -- Initialization
 --------------------------
@@ -33,16 +31,10 @@ PEARL.RPCS = {}
 --- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
     CommandResponse = function(...)
-        if ChatHistory then
-            return ChatHistory:SendCommandResponse(...)
-        end
+        return ChatHistory and ChatHistory:SendCommandResponse(...)
     end,
 
     Disconnect = function(reason, ...)
-        if PEARL.ClientNetwork:IsWaitingForResponse() then
-            return PEARL.ClientNetwork:OnResponse(true, false, reason, ...)
-        end
-
         return PEARL.ClientNetwork:Disconnect(reason, true, ...)
     end,
 
@@ -77,6 +69,8 @@ local SHARD_RPCS = {
 --- These RPCS are called from the clients so additional security checks are needed.
 --- userid is being supplied by the game's RPC manager so that should be safe.
 local SERVER_USERID_RPCS = {
+    --- @TODO: Handle secondary shards receiving this data. Redirect them to Master?
+    --- We need this data on the Master shard as well...
     ConnectionFilterData = function(userid, data)
         if not checkstring(data) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
@@ -288,16 +282,17 @@ end
 
 -- This is redundant on the client because there the staticUpdate works even when
 -- the simulation is paused on the server because of the UI.
-if TheNet:GetIsClient() then
+if not TheNet:GetIsServer() then
     return
 end
 
 -- Custom handler for server RPCs since the built-in one does only work when staticUpdate
 -- gets called, and that is only when the simulation is running.
 
-local RPC_QUEUE_RATE_LIMIT = UpvalueHacker.GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
+local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
-local RPC_Queue_Limiter = UpvalueHacker.GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
+local RPC_QUEUE_RATE_LIMIT = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
+local RPC_Queue_Limiter = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
 
 --- @TODO: There are two main aproaches to this. One is using a PreCall, where
 --- we handle the server mod rpcs all ourselves. The second one is using a PostCall

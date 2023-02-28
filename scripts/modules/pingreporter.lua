@@ -10,6 +10,8 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+
+--- @TODO: Remake this to be a client module.
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 --------------------------------------

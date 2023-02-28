@@ -48,6 +48,7 @@ function PEARL.GetStackSize(item)
     end
 end
 
+--- @return PlayerMetadata
 function PEARL.GetPlayerMetadataFor(userid, cb)
     local player_ref = PlayerReference(userid)
 
@@ -95,9 +96,9 @@ function PEARL.GetMaxStringSize(string_list, key, keyname)
     local max_size = 0
     local size
     for k, v in pairs(string_list) do
-        if not keyname or k == keyname or v[keyname] ~= nil then
+        if not keyname or k == keyname or (type(v) == "table" and v[keyname]) ~= nil then
             size = key and string.utf8len(tostring(k)) or (
-                v[keyname] and string.utf8len(v[keyname])
+                type(v) == "table" and v[keyname] and string.utf8len(v[keyname])
             ) or string.utf8len(tostring(v))
             if size > max_size then
                 max_size = size

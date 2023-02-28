@@ -207,13 +207,13 @@ PEARL.AddWorldPostInit(function(world)
 end)
 
 -- Load the server token here
-AddGlobalClassPostConstruct("frontend", "FrontEnd", function(frontend)
-    if not frontend then
+PEARL.AddFrontEndPostInit(function(fe)
+    if not fe then
         return
     end
 
     PEARL.info("FrontEnd loaded. Loading server token...")
-    local account_manager = frontend:GetAccountManager()
+    local account_manager = fe:GetAccountManager()
     if account_manager and account_manager:HasAuthToken() then
         FS_QUERY_SERVER_TOKEN = account_manager:GetToken()
     end

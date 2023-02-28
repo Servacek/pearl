@@ -23,27 +23,6 @@ local Message = PEARL.loadfile('libraries/discordapi/models/message')
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
-function PEARL.execute_tests(testset_name, testname)
-    local tests = PEARL.loadfile("tests/"..testset_name)
-    if not type(tests) == "table" then
-        PEARL.info("Failed to load the specified test set!")
-    end
-
-    if testname then
-        return tests[testname]()
-    end
-
-    if tests.test_all then
-        return tests.test_all()
-    end
-
-    for name, test in pairs(tests) do
-        PEARL.info("Executing test", name)
-        test()
-    end
-end
-
-
 function PEARL.PrintTests()
     local i = 1
     for name, func in pairs(PEARL.TESTS) do
@@ -337,94 +316,6 @@ function PEARL.TESTS.AltDentifier()
         local current_requests_count = PEARL.RestClient:GetSentRequestsCount()
         PEARL.info("Requests Sent:", current_requests_count - init_request_count)
     end)
-end
-
---------------------------------
--- [[ Suspicious Inventory Detector Tests]]
---------------------------------
-
-local function GiveItemTo(inst, prefab, count)
-    if not inst then
-        return
-    end
-
-    count = count or 1
-    for i = 1, count do
-        local item = DebugSpawn(prefab)
-        if item ~= nil then
-            if item.components.finiteuses then
-                item.components.finiteuses:SetUses(math.random(item.components.finiteuses.total))
-            end
-
-            --PEARL.debug("giving x"..tostring(count), item)
-            inst.components.inventory:GiveItem(item)
-        end
-    end
-end
-
-local function GetSuspicioness(inventory)
-    --PEARL.info(string.rep("-", 30))
-
-    -- spawn our thief first
-    local thief = c_spawn("wilson")
-
-    for _, item in ipairs(inventory) do
-        for prefab, count in pairs(item) do
-            GiveItemTo(thief, prefab, count)
-        end
-    end
-
-
-    local result = thief.components.inventory:CalcSuspicioness()
-    -- if thief.components.inventory:IsSuspicious() then
-    --     PEARL.info(string.rep("-", 30))
-    --     PEARL.debug("["..tostring(index)..".]", DataDumper(inventory, nil, false, 0))
-    --     --PEARL.debug(thief.components.inventory:GetDebugString())
-    -- end
-
-    thief:Remove()
-
-    return result
-end
-
-function PEARL.TESTS.SusInv()
-    local rfile, success = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/d_inventories.txt", "r")
-    if not rfile then
-        return PEARL.error("Failed to open the inventories file!", success)
-    end
-
-    local wfile, success = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/d_result.txt", "w")
-    if not wfile then
-        return PEARL.error("Failed to open the result file!", success)
-    end
-
-    PEARL.info("Searching for suspicious inventories...")
-    local i = 1
-    local count = 0
-    for inv_str in rfile:lines() do
-        if not inv_str:startswith("--") then
-            local inventory = json.decode(inv_str)
-            local suspicioness = GetSuspicioness(inventory)
-            if suspicioness >= 1 then
-                wfile:write("\nINVENTORY: ", i, " ITEM_COUNT: ", #inventory)
-                wfile:write("\nSUSPICIONESS: ", math.round((suspicioness * 100), 2), "%")
-                wfile:write("\nCONTENT: ", DataDumper(inventory, nil, false, 0))
-                wfile:write("\n\n", string.rep("-", 50))
-
-                count = count + 1
-            end
-
-            i = i + 1
-        end
-    end
-
-    wfile:write("\nSUSPICIOUS INVENTORIES DETECTED: ", count)
-    wfile:write("\n\n", string.rep("-", 50))
-
-    rfile:close()
-    wfile:close()
-
-    PEARL.info("Done! Found:", count)
 end
 
 --------------------------------
@@ -829,38 +720,6 @@ end
 
 function PEARL.TESTS.HyperlinksInChat()
     DSay("[Join our discord!](https://discord.gg/RHzJxut)")
-end
-
---------------------------------
--- [[ Table Debug Print ]]
---------------------------------
-
-local TAB_SIZE = 4
-local MAX_RECURSIONS = 10
-function _G.tdump(t, i)
-    if not i then
-        print("{")
-    end
-
-    i = i or 1
-    for k, v in pairs(t) do
-
-        local fm = string.rep(" ", i * TAB_SIZE)..tostring(k).." = "
-        if type(v) == "table" then
-            print(fm.."{")
-            if i < MAX_RECURSIONS then
-                tdump(v, i + 1)
-            else
-                print("...")
-            end
-        elseif type(v) == "string" then
-            print(fm..string.format("%q", v)..",")
-        else
-            print(fm..tostring(v)..",")
-        end
-    end
-
-    print(string.rep(" ", i * TAB_SIZE - TAB_SIZE).."},")
 end
 
 --------------------------------

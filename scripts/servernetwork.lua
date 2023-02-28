@@ -237,6 +237,7 @@ end
 
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
+    PEARL.debug(DataDumper(cfd))
 
     self:CancelTimeoutFor(userid)
 
@@ -246,11 +247,6 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     -- This is being called just for some logging and stuff, to actually
     -- control the connection use the connection filters.
     PEARL.EventProcessor:HandleEvent("clientdatareceived", userid, cfd)
-
-    -- Run the filters only when the client is waiting for our response.
-    if cfd.waiting ~= true then
-        return
-    end
 
     -- Skip already trusted clients
     if not self:IsClientTrusted(userid) or PEARL.CONFIG.DEBUG_MODE then
@@ -343,6 +339,11 @@ end)
 PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
 PEARL.AddUserDataFunctionPreCall("Crash", OnShardCrashed, TheSim)
 PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
+
+-- Filter out prohibited commands recevied by the server.
+PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
+    return PEARL.IsAdminUserid(userid) or PEARL.IsCommandAllowed(cmd)
+end)
 
 -- We want to have full control over this function.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)

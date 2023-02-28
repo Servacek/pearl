@@ -181,6 +181,10 @@ GLOBAL.PEARL = setmetatable({
 
     FRONTEND            = TheNet:GetIsClient(),
 
+    -- Whether this is the initial launch of the mod or not.
+    -- We only care about this on dedicated servers.
+    INIT                = TheSim:GetNumLaunches() == 1,
+
     -- Used for sending internal mod events.
     EventProcessor   = EventProcessor(),
 }, {
@@ -199,6 +203,7 @@ PEARL.CONFIG = {}
 
 local function load_general_config()
     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        -- For frontend we preload the data, but they will be overriden afterwards.
         if option.general == true then
             PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
         end
@@ -308,7 +313,7 @@ end
 --------------------------------
 
 -- Load the debug mode early so in case of errors we have Ctrl+R.
-if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
+if PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Setting up debug mode!")
 
     KnownModIndex.modsettings.initdebugprint = true
@@ -316,10 +321,12 @@ if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
     -- test files that are not provided.
     --PEARL.OverrideGlobal("CONFIGURATION", "dev")
 
-    PEARL.OverrideVariable("ENCODE_SAVES", false)
-    PEARL.OverrideVariable("BRANCH", "dev")
-    PEARL.OverrideVariable("CHEATS_ENABLED", true)
-    PEARL.OverrideVariable("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
+    if TheNet:GetIsServerAdmin() then
+        PEARL.OverrideVariable("ENCODE_SAVES", false)
+        PEARL.OverrideVariable("BRANCH", "dev")
+        PEARL.OverrideVariable("CHEATS_ENABLED", true)
+        PEARL.OverrideVariable("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
+    end
 
     --- @NOTE: DoReload doesn't really affect these...
     --- Maybe this would require some further investigation
@@ -329,6 +336,35 @@ if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServerAdmin() then
     local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
     RequiredFilesForReload[modmain_fp] = modmain_ft
     RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
+
+    --- @TEMPORARY
+    local TAB_SIZE = 4
+    local MAX_RECURSIONS = 10
+    function _G.tdump(t, i)
+        if not i then
+            print("{")
+        end
+
+        i = i or 1
+        for k, v in pairs(t) do
+
+            local fm = string.rep(" ", i * TAB_SIZE)..tostring(k).." = "
+            if type(v) == "table" then
+                print(fm.."{")
+                if i < MAX_RECURSIONS then
+                    tdump(v, i + 1)
+                else
+                    print("...")
+                end
+            elseif type(v) == "string" then
+                print(fm..string.format("%q", v)..",")
+            else
+                print(fm..tostring(v)..",")
+            end
+        end
+
+        print(string.rep(" ", i * TAB_SIZE - TAB_SIZE).."},")
+    end
 end
 
 --------------------------------
