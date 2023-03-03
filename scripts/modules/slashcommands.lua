@@ -405,6 +405,33 @@ AddCommand("admins", {
     -- We do not want to log the messages.
 })
 
+--- currently the cfd data are erased every time we restart the server.
+AddCommand("mods", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    params = { "userid" },
+    paramsoptional = { false },
+
+    serverfn = function(params, caller)
+        if type(params.userid) ~= "string" or type(caller) ~= "table" then
+            return
+        end
+
+        local cfd = PEARL.ServerNetwork:GetCachedCFDFor(params.userid)
+        if not cfd then
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_CFD)
+        end
+
+        if type(cfd.enabled_mods) ~= "table" or IsTableEmpty(cfd.enabled_mods) or (cfd.enabled_mods.count or 1) <= 1 then
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS)
+        end
+
+        PEARL.LogModsFor(params.userid, cfd)
+    end,
+})
+
 if TheNet:GetIsServer() then
     return -- Nothing interesting for the server here
 end

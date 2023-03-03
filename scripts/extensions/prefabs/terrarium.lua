@@ -21,24 +21,14 @@ local Terrarium = require("prefabs/terrarium")
 -- [[ Global Localization ]]
 --------------------------------
 
+--- @type table<string, any>
 local UPVALUES = UPVALUES
+--- @type table This should always be a table.
 local _AllPlayers = PEARL.GetValue(_G, "AllPlayers")
-
---------------------------------
--- [[ Function Declarations ]]
---------------------------------
-
-local OnSummonerDespawned
 
 --------------------------------
 -- [[ Private Functions ]]
 --------------------------------
-
-local function HasBossAnyTargets(inst)
-    return inst.eyeofterror ~= nil and (
-        inst.eyeofterror.components.grouptargeter and not IsTableEmpty(inst.eyeofterror.components.grouptargeter:GetTargets())
-    )
-end
 
 local function GetSummoner(inst)
     return inst._summoner_userid and LookupPlayerInstByUserID(
@@ -47,30 +37,28 @@ local function GetSummoner(inst)
 end
 
 local function SummonerExists(inst)
-    return GetSummoner(inst) ~= nil
+    local summoner = GetSummoner(inst)
+    return summoner and summoner:IsValid()
 end
 
 local function IsSummoner(inst, userid)
     return inst._summoner_userid == userid
 end
 
+local function IsSummonerConnected(inst)
+    return inst._summoner_userid and TheNet:GetClientTableForUser(inst._summoner_userid) ~= nil
+end
+
+local function IsSummoning(inst)
+    return inst.components.timer and inst.components.timer:TimerExists("warning")
+end
+
 local function SetSummoner(inst, summoner)
-    PEARL.debug("SetSummoner", summoner)
-
-    inst._summoner_userid = summoner.userid
-
-    summoner:ListenForEvent("player_despawn", OnSummonerDespawned, inst)
+    inst._summoner_userid = type(summoner) == "table" and summoner.userid or summoner
 end
 
 local function ClearSummoner(inst, summoner)
-    PEARL.debug("ClearSummoner", summoner)
-
     inst._summoner_userid = nil
-
-    summoner = summoner or GetSummoner(inst)
-    if summoner then
-        summoner:RemoveEventCallback("player_despawn", OnSummonerDespawned, inst)
-    end
 end
 
 -- Use this only if the boss was not already spawned.
@@ -85,40 +73,45 @@ local function HasBossSpawned(inst)
     return inst.eyeofterror ~= nil
 end
 
-local function CanBossSpawn(inst)
-    return (
-        not HasBossSpawned(inst) and
-        type(_AllPlayers) == "table" and
-        not IsTableEmpty(_AllPlayers) and
-        SummonerExists(inst)
-    )
+local function IsBossActive(inst)
+    -- When the boss leaves it enters the LIMBO state instead of being completely removed.
+    return HasBossSpawned(inst) and not inst.eyeofterror:IsInLimbo()
+end
+
+local function CanSummonBoss(inst)
+    return not IsBossActive(inst) and SummonerExists(inst)
+end
+
+local function SetPossibleTargets(targets)
+    return PEARL.OverrideValue(_G, "AllPlayers", targets, true)
+end
+
+local function ClearPossibleTargets()
+    return PEARL.OverrideValue(_G, "AllPlayers", _AllPlayers, true)
 end
 
 local function PreSpawnEyeOfTerror(inst)
-    if not CanBossSpawn(inst) then
+    if not CanSummonBoss(inst) then
         return false, CancelSummoning(inst)
     end
 
-    PEARL.info("TARGETING THE SUMMONER!")
     -- Let's hope this is better than overriding the whole function just for one stupid line.
-    PEARL.OverrideValue(_G, "AllPlayers", {GetSummoner(inst)}, true)
+    SetPossibleTargets({GetSummoner(inst)})
 end
 
 local function PostSpawnEyeOfTerror()
-    print("PostSpawnEyeOfTerror")
-    PEARL.OverrideValue(_G, "AllPlayers", _AllPlayers, true)
+    ClearPossibleTargets()
 end
 
+-- When loading, this is being called from OnLoadPostPass,
+-- so the summoner should be already loaded at this point.
 local function StartSummoning(inst, is_loading)
-    print("START SUMMONING")
-    -- Just to make sure
-    if not is_loading and not SummonerExists(inst) then
-        return UPVALUES.TurnOff(inst)
+    if not SummonerExists(inst) then
+        return false, UPVALUES.TurnOff(inst)
     end
 end
 
 local function TurnOff(inst)
-    print("TURN OFF")
     if inst.components.timer:TimerExists("summon_delay") then
         inst.components.timer:StopTimer("summon_delay")
     end
@@ -130,26 +123,20 @@ end
 -- [[ Event Handlers ]]
 --------------------------------
 
-OnSummonerDespawned = function(summoner, inst)
-    if not (summoner and IsSummoner(inst, summoner.userid)) then
-        return
+local function OnActivate(inst, doer)
+    if not inst.is_on and doer then
+        SetSummoner(inst, doer)
     end
-
-    if not HasBossSpawned(inst) and inst.is_on then
-        return CancelSummoning(inst)
-    end
-
-    --- @TODO:
-    -- Not sure if we want this since it could cause some side effects.
-    -- If the boss has already been spawned, and has no other targets than
-    -- if HasBossSpawned(inst) and not HasBossAnyTargets(inst) then
-    --     SendBossAway(inst)
-    -- end
 end
 
-local function OnLoadPostPass(inst, data)
-    if data and data.is_on then
-        inst._summoner_userid = data.summoner_userid
+-- Called after everything loads up
+local function OnLoadPostPass(inst, newents, data)
+    if inst.is_on then
+        SetSummoner(inst, data.summoner_userid)
+
+        if not IsSummonerConnected(inst) then
+            return UPVALUES.TurnOff(inst)
+        end
     end
 end
 
@@ -158,16 +145,38 @@ local function OnSave(inst, data)
 end
 
 --------------------------------
--- [[ Setup ]]
+-- [[ Class Pre-Initializator ]]
 --------------------------------
 
 --- This is being called every time a new terrarium prefab is created.
 --- Load here the dynamic extensions of the actual prefab's instance
 PEARL.AddPrefabPostInit("terrarium", function(inst)
+    inst.OnSummonerDespawned = function(world, player)
+        if IsBossActive(inst) or not IsSummoner(inst, (player and player.userid)) then
+            -- If the boss is already active just leave it as is,
+            -- so we do not interupt any existing fights.
+            return
+        end
+
+        if IsSummoning(inst) then
+            return CancelSummoning(inst)
+        end
+
+        return UPVALUES.TurnOff(inst)
+    end
+
     -- Set it always since if we are turning off the summoner will be cleared anyway.
-    PEARL.AddClassFunctionPreCall("OnActivate", SetSummoner, inst.components.activatable)
+    PEARL.AddClassFunctionPreCall("OnActivate", OnActivate, inst.components.activatable)
     PEARL.AddClassFunctionPreCall("OnSave", OnSave, inst)
-    PEARL.AddClassFunctionPreCall("OnLoadPostPass", OnLoadPostPass, inst)
+    PEARL.AddClassFunctionPostCall("OnLoadPostPass", OnLoadPostPass, inst)
+
+    inst:ListenForEvent("ms_playerdespawn", inst.OnSummonerDespawned, TheWorld)
+    inst:ListenForEvent("ms_playerdespawnanddelete", inst.OnSummonerDespawned, TheWorld)
+    inst:ListenForEvent("ms_playerdespawnandmigrate", function(world, data)
+        if data and data.player then
+            inst.OnSummonerDespawned(world, data.player)
+        end
+    end, TheWorld)
 end)
 
 --- This should be called just once when the prefab is actually loaded and registered.

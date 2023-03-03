@@ -98,8 +98,8 @@ function PEARL.GetMaxStringSize(string_list, key, keyname)
     for k, v in pairs(string_list) do
         if not keyname or k == keyname or (type(v) == "table" and v[keyname]) ~= nil then
             size = key and string.utf8len(tostring(k)) or (
-                type(v) == "table" and v[keyname] and string.utf8len(v[keyname])
-            ) or string.utf8len(tostring(v))
+                type(v) == "table" and type(v[keyname]) == "string" and string.utf8len(v[keyname])
+            ) or string.utf8len(tostring(v)) or 0
             if size > max_size then
                 max_size = size
             end
@@ -107,6 +107,69 @@ function PEARL.GetMaxStringSize(string_list, key, keyname)
     end
 
     return max_size
+end
+
+--------------------------------
+-- [[ Persistent String ]]
+--------------------------------
+-- A bunch of wrappers for nicer handling of persistent strings.
+
+function PEARL.PersistentStringExists(fp)
+    local file_exists = false
+    TheSim:CheckPersistentStringExists(fp, function(exists)
+        file_exists = exists
+    end)
+
+    return file_exists
+end
+
+function PEARL.CreatePersistentString(fp)
+    return PEARL.SetPersistentString(fp, "")
+end
+
+function PEARL.EnsurePersistentString(fp)
+    if not PEARL.PersistentStringExists(fp) then
+        if not PEARL.CreatePersistentString(fp) then
+            PEARL.error("Failed to create file", fp)
+            return false
+        end
+    end
+
+    return true
+end
+
+-- This runs synchronously actually.
+function PEARL.GetPersistentStringByLines(fp, fn, ensure)
+    if PEARL.PersistentStringExists(fp) ~= true then
+        if ensure == true then
+            PEARL.info("Creating file", fp)
+
+            return PEARL.CreatePersistentString(fp)
+        end
+
+        return PEARL.error("File not found!")
+    end
+
+    return TheSim:GetPersistentString(fp, function(success, str)
+        if not success or type(str) ~= "string" then
+            return PEARL.error("Failed to load the file!", fp)
+        end
+
+        for _, line in ipairs(str:split("\n")) do
+            fn(line)
+        end
+    end)
+end
+
+function PEARL.SetPersistentString(fp, str, encode)
+    encode = encode or false
+
+    local s = false
+    TheSim:SetPersistentString(fp, str, encode, function(success)
+        s = success
+    end)
+
+    return s
 end
 
 --------------------------------
@@ -577,4 +640,15 @@ function PEARL.LogInventoryFor(userid)
     PEARL.DiscordReporter:SendRawReportMessage(message)
 
     return true
+end
+
+function PEARL.LogModsFor(userid, cfd)
+    cfd = cfd or PEARL.ServerNetwork:GetCachedCFDFor(userid)
+    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
+    local owner_name = client and client.name or userid
+    local embed = EMBEDS.ClientMods(cfd.enabled_mods, owner_name)
+
+    local message = Message()
+    message:AddEmbed(embed)
+    PEARL.DiscordReporter:SendRawReportMessage(message)
 end

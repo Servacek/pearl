@@ -44,6 +44,7 @@ local CLIENT_RPCS = {
 }
 
 --- These handlers should be called only from the server.
+--- That means, they should be trusted and we do not need to add any additional checks.
 local SHARD_RPCS = {
     -- Used by the VersionChecker for shutting down secondary shards
     -- to synchronize the shutdown process on version mismatch.
@@ -56,14 +57,10 @@ local SHARD_RPCS = {
         end
     end,
 
-    SyncModConfig = function(shard_id, modconfig)
-        if shard_id ~= PEARL.CONSTS.SHARD_ID.MASTER then
-            return PEARL.error("Received mod configuration from a secondary shard!")
-        end
-
-        local config = RunInSandboxSafe(modconfig)
-
-    end,
+    ClientCFDRecevied = function(shard_id, userid, data)
+        -- Always keep just the newest record
+        PEARL.ServerNetwork:CacheClientCFDFor(userid, data)
+    end
 }
 
 --- These RPCS are called from the clients so additional security checks are needed.
@@ -85,6 +82,11 @@ local SERVER_USERID_RPCS = {
         --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
 
         PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
+
+        -- Broadcast the CFD to all connected shards so they have the fresh info as well.
+        PEARL.SendRPCToShard(
+            PEARL.RPCS.ClientCFDRecevied, nil, userid, data
+        )
     end,
 
     ClientDisconnected = function(userid, reason, force)

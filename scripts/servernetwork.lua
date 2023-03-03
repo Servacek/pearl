@@ -178,6 +178,10 @@ function ServerNetwork:CacheClientTableFor(userid)
     return client_cache[userid]
 end
 
+function ServerNetwork:CacheClientCFDFor(userid, cfd)
+    conn_data_cache[userid] = cfd
+end
+
 function ServerNetwork:StartTimeoutFor(userid)
     PEARL.debug("ServerNetwork:StartTimeoutFor", userid)
 
@@ -242,7 +246,8 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     self:CancelTimeoutFor(userid)
 
     -- Always keep just the newest record
-    conn_data_cache[userid] = cfd
+    -- This is here just to make sure the data are being cached in case the RCP fails.
+    self:CacheClientCFDFor(userid, cfd)
 
     -- This is being called just for some logging and stuff, to actually
     -- control the connection use the connection filters.

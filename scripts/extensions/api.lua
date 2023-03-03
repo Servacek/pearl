@@ -236,7 +236,7 @@ function PEARL.AddFrontEndPostInit(postfn, ...)
             PEARL.OverrideVariable("TheFrontEnd", FE, _G)
         end
 
-        postfn(...)
+        postfn(FE, ...)
     end, ...)
 end
 

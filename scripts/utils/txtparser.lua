@@ -16,28 +16,49 @@
 -- [[ Constants ]]
 --------------------------------------
 
-local PATH_TEMPLATE = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/%s"
+local PATH_TEMPLATE = "../../%s"
 local COMMENT_PREFIX = "//"
-local ESCAPE_PREFIX = "/"
+local ESCAPE_PREFIX = "\\"
 local TITLE_PREFIX = "#"
 local VERSION_PREFIX = "@v"
+
+-- local COMMENT_SUBITLES = [[
+-- This is a file used for storing content for UI screens.
+-- You can specific the version of this file by typing @v{YOUR_VERSION}.
+
+-- The first line starting with a '#' will be the initial title of the screen.
+-- ]]
+
+-- local COMMENT = [[
+
+-- ]]
 
 --------------------------------------
 -- [[ Locals ]]
 --------------------------------------
 
-return function(fp, create_if_needed, subtitles)
-    local abs_path = PATH_TEMPLATE:format(fp)
-    local rfile, errmsg = io.open(abs_path, "r")
-    if not rfile then
-        if create_if_needed == true then
-            PEARL.info("Creating file", fp)
+return function(fname, create_if_needed, subtitles)
+    local file_exists
+    local abs_path = PATH_TEMPLATE:format(fname)
+    TheSim:CheckPersistentStringExists(abs_path, function(exists)
+        file_exists = exists
 
-            io.ensure(abs_path)
-            return ""
+        if exists == true then
+            return
         end
 
-        return PEARL.error("File not found!", errmsg)
+        if create_if_needed == true then
+            PEARL.info("Creating file", fname)
+
+            --- @TODO: Maybe add some header comments?
+            return TheSim:SetPersistentString(abs_path, "")
+        end
+
+        return PEARL.error("File not found!")
+    end)
+
+    if not file_exists then
+        return
     end
 
     --- @type table<string, string>?
@@ -93,9 +114,12 @@ return function(fp, create_if_needed, subtitles)
         end
     end
 
-    -- strips new line characters
-    for raw_line in rfile:lines() do
-        ParseLine(result, raw_line, subtitles)
+    PEARL.GetPersistentStringByLines(abs_path, function(line)
+        ParseLine(result, line, subtitles)
+    end)
+
+    if IsTableEmpty(result) then
+        return
     end
 
     result.version = version
@@ -103,7 +127,7 @@ return function(fp, create_if_needed, subtitles)
     --- @TODO: looks like this doesn't work correctly on Linux
     -- TheSim:GetFileModificationTime returns a hexadecimal string representing the timestamp
     --- @type number
-    result.lmt = tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
+    --result.lmt = tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
 
     return result
 end

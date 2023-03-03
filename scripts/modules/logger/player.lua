@@ -63,6 +63,7 @@ local function RegisterActionHandler(action, handler, checkfn)
         local success = _action(act, ...)
         if success and act ~= nil and handler ~= nil then
             local doer, target, item, pos = act.doer, act.target, (act.invobject or act.recipe), act:GetActionPoint()
+            pos = pos or (target and target:GetPosition())
 
             local result, was_successfull
             if checkfn(doer, target, item, pos) then
@@ -281,7 +282,9 @@ local function OnCastFire(doer, item, target, pos, radius)
         nil, radius
     ) or PEARL.GetBurnableEntitiesNearPos(pos, radius)
 
-    removearrayvalue(entities, target)
+    if target then
+        removearrayvalue(entities, target)
+    end
 
     if #entities > 0 then
         return OnAreaCast(
@@ -290,7 +293,7 @@ local function OnCastFire(doer, item, target, pos, radius)
         )
     end
 
-    if not target:HasOneOfTags(PEARL.CONSTS.ENT_ONEOF_TAGS) then
+    if not target or not target:HasOneOfTags(PEARL.CONSTS.ENT_ONEOF_TAGS) then
         return -- Something we do not really care about away from anything we care.
     end
 
@@ -303,7 +306,9 @@ local function OnCastAreaDestruction(doer, item, target, pos, radius)
         nil, nil, PEARL.CONSTS.BASE_STRUCTURE_TAGS
     )
 
-    removearrayvalue(entities, target)
+    if target then
+        removearrayvalue(entities, target)
+    end
 
     if #entities > 0 then
         return OnAreaCast(
@@ -321,8 +326,6 @@ RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, 
         return OnCastDestruction(doer, item, target)
     end
 
-    pos = pos or target:GetPosition()
-
     local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
     if ign_radius > 0 then
         return OnCastFire(doer, item, target, pos, ign_radius)
@@ -336,8 +339,6 @@ RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, 
 end)
 
 RegisterPlayerItemActionHandler(ACTIONS.ATTACK, function(doer, target, item, pos)
-    pos = pos or target:GetPosition()
-
     -- Fire Staff - Using it counts as attacking not casting.
     local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
     if ign_radius > 0 then

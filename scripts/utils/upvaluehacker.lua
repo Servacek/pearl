@@ -76,7 +76,7 @@ function UpvalueHacker:GetUpvalueRecursively(fn, name, _visited)
 			return v, i
 		end
 
-		if not _visited[v] then -- Is this a new value we have never seen before?
+		if v and not _visited[v] then -- Is this a new value we have never seen before?
 			_visited[v] = true
 
 			-- Is this upvalue a function containing other upvalues?

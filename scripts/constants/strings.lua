@@ -350,7 +350,16 @@ STRINGS.PEARL = {
             SOS = {
                 PRETTYNAME = "Call the Admins",
                 DESC       = "If you find yourself in a hopeless situation... call the admins!",
-            }
+            },
+
+            MODS = {
+                PRETTYNAME = "Display Player's Mods",
+                DESC       = "Check for some hacky modifications the players are using!",
+
+                NO_CFD     = "Failed to fetch player's mods!",
+                NO_MODS    = "This player does not use any mods now.",
+                ON_SUCCESS = "The mod list was sent to discord.",
+            },
         },
 
         DISCORD_BUTTON_HOVER = "View Discord",

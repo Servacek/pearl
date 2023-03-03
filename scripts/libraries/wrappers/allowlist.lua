@@ -24,7 +24,7 @@ end
 -- [[ Contants ]]
 --------------------------------------
 
-local ALLOWLIST_PATH = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/allowlist.txt"
+local ALLOWLIST_PATH = "../../allowlist.txt"
 
 --------------------------------------
 -- [[ Initialization ]]
@@ -72,37 +72,28 @@ function AllowList:Contains(userid)
 end
 
 function AllowList:Load()
-    if not io.exists(ALLOWLIST_PATH) then
-        PEARL.info("Allowlist file not found. Creating a new one...")
-        return self:Save()
-    end
-
-    -- We do not care about the order so create an key-value table
-    -- for faster and easier access.
-    for line in io.lines(ALLOWLIST_PATH) do
-        -- Strip the lines because of the annoying '\r' on Windows...
+    PEARL.GetPersistentStringByLines(ALLOWLIST_PATH, function(line)
         self:Add(line:strip())
-    end
+    end, true)
 end
 
 function AllowList:Save()
-    local file, msg = io.open(ALLOWLIST_PATH, "w")
-    if file == nil then
-        PEARL.error("Couldn't create the allowlist file:\n", msg)
+    if not PEARL.EnsurePersistentString(ALLOWLIST_PATH) then
+        PEARL.error("Couldn't create the allowlist file!")
         return false
     end
 
-    for userid, allowed in pairs(self._userids) do
-        if allowed == true then
-            local _, errmsg = file:write(userid, "\n")
-            if errmsg then
-                PEARL.error("Couldn't write to the allowlist:\n", errmsg)
-                return false
-            end
-        end
+    return PEARL.SetPersistentString(ALLOWLIST_PATH, self:ToString())
+end
+
+function AllowList:ToString()
+    local string = ""
+    for userid, _ in pairs(self._userids) do
+        -- Start with a new line
+        string = string.."\n"..userid
     end
 
-    return file:close()
+    return string
 end
 
 function AllowList:Clear()

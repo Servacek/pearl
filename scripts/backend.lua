@@ -231,12 +231,12 @@ if PEARL.CONFIG.INTRO_SCREEN then
     PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = ParseTxt("agreement.txt", true, true)
     PEARL.CONFIG.WELCOME_POPUP_CONTENT = ParseTxt("welcome.txt", true, false)
 
-    if type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) ~= "table" or #PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT < 1 then
+    if type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) then
         PEARL.warn("The body and content for the agreement screen are not setuped!")
         PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = nil
     end
 
-    if type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) ~= "table" or #PEARL.CONFIG.WELCOME_POPUP_CONTENT < 1 then
+    if type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.WELCOME_POPUP_CONTENT) then
         PEARL.warn("The body and content for the welcome popup are not setuped!")
         PEARL.CONFIG.WELCOME_POPUP_CONTENT = nil
     end
@@ -439,7 +439,8 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
 ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
-ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)
+-- This needs some refactoring and will probably be migrated to the clients.
+--ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.REPORT_INVENTORIES)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)

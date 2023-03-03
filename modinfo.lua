@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.0.b-rev"
+version = "2.1"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
