@@ -58,11 +58,9 @@ local function GetEnvForPrefab(prefab)
             end
 
             if upvalues[index] ~= nil then
-                print("PULLING FROM CACHE", index)
                 return upvalues[index]
             end
 
-            print("SEARCHING...", index)
             local value = UpvalueHacker:GetUpvalueRecursively(fn, index)
             upvalues[index] = value
             return value
@@ -85,12 +83,11 @@ local function GetEnvForPrefab(prefab)
                     return PEARL.warn("Index", index, "already cached!")
                 end
 
-                print("CACHING", index)
                 return metatable.__index(self, index)
             end,
 
             SetSource = function(self, source)
-                
+
             end
         }, metatable),
     }, MT)

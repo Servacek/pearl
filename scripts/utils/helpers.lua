@@ -155,10 +155,29 @@ function PEARL.GetPersistentStringByLines(fp, fn, ensure)
             return PEARL.error("Failed to load the file!", fp)
         end
 
+        local prefix = string.strip(PEARL.CONSTS.KLEI_DATA_PREFIX)
         for _, line in ipairs(str:split("\n")) do
-            fn(line)
+            if string.strip(line) ~= prefix then
+                fn(line)
+            end
         end
     end)
+end
+
+function PEARL.GetAllPersistentStringLines(fp, ensure, strip)
+    local lines = {}
+    PEARL.GetPersistentStringByLines(fp, function(line)
+        if strip == true then
+            local stripped = string.strip(line)
+            if #stripped > 0 then
+                lines[#lines + 1] = stripped
+            end
+        else
+            lines[#lines + 1] = line
+        end
+    end, ensure)
+
+    return lines
 end
 
 function PEARL.SetPersistentString(fp, str, encode)

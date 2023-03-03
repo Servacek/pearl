@@ -46,7 +46,7 @@ end
 PEARL.info("Loading Configuration...")
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     if option.public and PEARL.CONFIG[option.name] == nil then
-        PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+        PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name) or option.default
 
         -- In case the data were for whatever reason not ZIPped even if they should be.
         if option.zip and type(PEARL.CONFIG[option.name]) == "string" then

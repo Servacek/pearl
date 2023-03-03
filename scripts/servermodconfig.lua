@@ -44,11 +44,24 @@ local function ParsePublicConfigOption(option, tbl)
 
         --- @TODO: Add zip support for more specific public options.
         if option.zip and tbl[option.name] then
-            local type = type(tbl[option.name])
+            local value = tbl[option.name]
+            local type = type(value)
             if type == "string" then
-                tbl[option.name] = TheNet:ZipAndEncodeString(tbl[option.name])
+                -- Do not zip empty strings.
+                if #value <= 0 then
+                    tbl[option.name] = nil
+                    return
+                end
+
+                tbl[option.name] = TheNet:ZipAndEncodeString(value)
             elseif type == "table" then
-                tbl[option.name] = ZipAndEncodeString(tbl[option.name])
+                -- Do not zip empty tables
+                if IsTableEmpty(value) then
+                    tbl[option.name] = nil
+                    return
+                end
+
+                tbl[option.name] = ZipAndEncodeString(value)
             else
                 return print("[PEARL] [Error] Failed to zip and encode type", type)
             end

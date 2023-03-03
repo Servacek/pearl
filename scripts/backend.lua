@@ -242,16 +242,23 @@ if PEARL.CONFIG.INTRO_SCREEN then
     end
 end
 
-
 if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     PEARL.info("Loading mod blocker configurations...")
-    io.ensure(PEARL.DATADIR.."modblacklist.txt")
-    io.ensure(PEARL.DATADIR.."modallowlist.txt")
 
-    PEARL.CONFIG.MOD_BLOCKLIST = io.strippedlines(PEARL.DATADIR.."modblacklist.txt")
-    PEARL.CONFIG.MOD_ALLOWLIST = io.strippedlines(PEARL.DATADIR.."modallowlist.txt")
+    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.GetAllPersistentStringLines("../../modblacklist.txt", true, true)
+    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.GetAllPersistentStringLines("../../modallowlist.txt", true, true)
 
-    if IsTableEmpty(PEARL.CONFIG.MOD_BLOCKLIST) and IsTableEmpty(PEARL.CONFIG.MOD_ALLOWLIST) then
+    -- When the tables are empty, set them to nil to save some bytes when sending the config.
+    -- Since these data are being zipped.
+    if PEARL.CONFIG.MOD_BLOCKLIST and IsTableEmpty(PEARL.CONFIG.MOD_BLOCKLIST) then
+        PEARL.CONFIG.MOD_BLOCKLIST = nil
+    end
+
+    if PEARL.CONFIG.MOD_ALLOWLIST and IsTableEmpty(PEARL.CONFIG.MOD_ALLOWLIST) then
+        PEARL.CONFIG.MOD_ALLOWLIST = nil
+    end
+
+    if not PEARL.CONFIG.MOD_BLOCKLIST and not PEARL.CONFIG.MOD_ALLOWLIST then
         PEARL.info("Mod blocker is enabled by the mod allowlist and blocklist are empty!")
         PEARL.CONFIG.MOD_BLOCKER.ENABLED = false
     end
