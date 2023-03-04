@@ -59,7 +59,7 @@ local function UpdateAFKState(afk, kicked)
     if _is_afk ~= afk or kicked then
         _is_afk = afk
 
-        PEARL.SendRPCToServer(PEARL.RPCS.AFKStateChanged, afk, kicked)
+        PEARL.SendRPCToServer(PEARL.RPC.AFKStateChanged, afk, kicked)
     end
 end
 

@@ -44,7 +44,7 @@ local function OnCyclesChanged(world, cycle)
             math.floor((world.state.temperature or 0) / 2 + 0.5),
 
             --- @TEMPORARY until catcoon is finished.
-            TheNet:GetPlayerCount(),
+            PEARL.ServerNetwork:GetConnectedClientsCount(),
             TheNet:GetDefaultMaxPlayers()
         ):center(20)
     )))

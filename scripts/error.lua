@@ -15,19 +15,22 @@
 
 --[[
     Handles uncatched errors and reports them to discord.
+
+    On clients, we should be able to send the traceback as soon as this file is loaded.
 ]]
 
 local function OnClientError(traceback)
-    -- ClientNetwork should always be
+    PEARL.SendErrorTracebackToServer(traceback)
+
     if PEARL.ClientNetwork then
-        PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
-        PEARL.info("We have crashed! Disconnecting the user from the server...")
+        PEARL.info("Disconnecting the user from the server...")
         PEARL.ClientNetwork:Disconnect("ID_DST_USER_CRASHED")
-    else
-        PEARL.error("ClientNetwork not initialized yet!")
     end
 
-    TheSim:ForceAbort()
+    PEARL.info("Force aborting in 5 seconds...")
+    PEARL.StaticScheduler:DoTaskInTime(5, function()
+        TheSim:ForceAbort()
+    end)
 end
 
 local function OnServerError(traceback)
@@ -64,3 +67,23 @@ PEARL.AddGlobalFunctionPreCall("DisplayError", function(traceback)
         PEARL.error("Error while handling an error!\n", err)
     end
 end)
+
+----------------------------------
+-- RPC
+----------------------------------
+
+PEARL.AddRawServerRPC("ClientError", function(userid, data)
+    if not checkstring(data) then
+        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
+    end
+
+    local traceback = TheSim:DecodeAndUnzipString(data)
+    if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+        PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
+    end
+end, true)
+
+function PEARL.SendErrorTracebackToServer(traceback, ...)
+    PEARL.info("Sending the error traceback to the server...")
+    PEARL.SendRawRPCToServer(PEARL.RPC.ClientError, TheSim:ZipAndEncodeString(traceback), ...)
+end

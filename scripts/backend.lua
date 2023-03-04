@@ -264,6 +264,26 @@ if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     end
 end
 
+----------------------------------------------------------------
+-- [[ Loading Tips Config ]]
+----------------------------------------------------------------
+
+if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
+    local fp = "../../loadingtips.lua"
+    if not PEARL.PersistentStringExists(fp) then
+        PEARL.SetPersistentString(fp, "return { }")
+    end
+
+    -- Run the file in our environment so it has access to all the globals it could possibly need.
+    local success, data = PEARL.LoadPersistentLuaString(fp, false, PEARL.ENV)
+    if not success or not data then
+        -- Data should be in this case the traceback.
+        return PEARL.error("Failed to load the custom loading tips!", data)
+    end
+
+    PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA = data
+end end
+
 --------------------------------
 -- [[ Server Tags ]]
 --------------------------------

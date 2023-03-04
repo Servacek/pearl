@@ -163,13 +163,12 @@ configuration_options = {
 
     { --- @TODO: Option to add custom loading tips.
         name = "CUSTOM_LOADING_TIPS",
-        default = true,
+        default = false,
         options = {
             true,
             false,
         },
         type = "boolean",
-        public = true,
     },
 
     {
@@ -335,7 +334,6 @@ configuration_options = {
             --]]
             ALLOWED_LOCALES = {},
             CACHE = true,
-            TIMEOUT = 60,
         },
         type = "table<string, any>",
 
@@ -420,6 +418,13 @@ configuration_options = {
             false,
         },
         type = "boolean",
+        public = true,
+    },
+
+    {
+        name = "AUTH_TIMEOUT",
+        default = 20,
+        type = "number",
         public = true,
     },
 
@@ -557,6 +562,15 @@ configuration_options = {
         name="SERVER_REQUIRE_CFD",
         default = true, -- Let this be always true because a lot of systems depend on these.
         type = "boolean",
+        public = true,
+        implicit = true,
+    },
+
+    {
+        name="CUSTOM_LOADING_TIPS_DATA",
+        default = {},
+        type = "table",
+        zip = true,
         public = true,
         implicit = true,
     },

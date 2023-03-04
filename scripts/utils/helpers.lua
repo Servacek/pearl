@@ -138,6 +138,19 @@ function PEARL.EnsurePersistentString(fp)
     return true
 end
 
+function PEARL.GetPersistentString(fp, ensure)
+    if ensure and not PEARL.EnsurePersistentString(fp) then
+        return false, PEARL.error("Failed to create the file!")
+    end
+
+    local result
+    TheSim:GetPersistentString(fp, function(success, str)
+        result = success and str
+    end)
+
+    return result ~= nil, result
+end
+
 -- This runs synchronously actually.
 function PEARL.GetPersistentStringByLines(fp, fn, ensure)
     if PEARL.PersistentStringExists(fp) ~= true then
@@ -189,6 +202,25 @@ function PEARL.SetPersistentString(fp, str, encode)
     end)
 
     return s
+end
+
+function PEARL.LoadPersistentLuaString(fp, ensure, env)
+    if ensure and not PEARL.EnsurePersistentString(fp) then
+        return false, PEARL.error("Failed to create the file!")
+    end
+
+    local success, lua_str = PEARL.GetPersistentString(fp, ensure)
+    if not success or type(lua_str) ~= "string" then
+        return false, PEARL.error("Failed to load the given lua file!")
+    end
+
+    if type(env) == "table" then
+        return RunInEnvironmentSafe(function()
+            return loadstring(lua_str)()
+        end, env)
+    end
+
+    return RunInSandboxSafe(lua_str)
 end
 
 --------------------------------

@@ -393,6 +393,14 @@ PEARL.info("Loading RPC handlers...")
 PEARL.loadfile("networkrpc")
 
 --------------------------------
+-- [[ Custom Error Handler ]]
+--------------------------------
+
+-- Requires the RPCs for correct functionality
+PEARL.info("Loading mod error handler...")
+PEARL.loadfile("error")
+
+--------------------------------
 -- [[ Load ]]
 --------------------------------
 
@@ -410,13 +418,6 @@ PEARL.AddAnnouncementCategory("activate")
 PEARL.AddAnnouncementCategory("teach")
 PEARL.AddAnnouncementCategory("read")
 PEARL.AddAnnouncementCategory("welcome")
-
---------------------------------
--- [[ Custom Error Handler ]]
---------------------------------
-
-PEARL.info("Loading mod error handler...")
-PEARL.loadfile("error")
 
 --------------------------------
 -- [[ Instance Param Manager]]

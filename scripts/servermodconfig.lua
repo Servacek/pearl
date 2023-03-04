@@ -43,7 +43,7 @@ local function ParsePublicConfigOption(option, tbl)
         tbl[option.name] = GetGenericConfigData(option.name, true)
 
         --- @TODO: Add zip support for more specific public options.
-        if option.zip and tbl[option.name] then
+        if option.zip == true and tbl[option.name] then
             local value = tbl[option.name]
             local type = type(value)
             if type == "string" then

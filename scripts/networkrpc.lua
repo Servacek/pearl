@@ -22,11 +22,13 @@ local TheNet = TheNet
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
+local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
+
 --------------------------
 -- Initialization
 --------------------------
 
-PEARL.RPCS = {}
+PEARL.RPC = {}
 
 --- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
@@ -85,7 +87,7 @@ local SERVER_USERID_RPCS = {
 
         -- Broadcast the CFD to all connected shards so they have the fresh info as well.
         PEARL.SendRPCToShard(
-            PEARL.RPCS.ClientCFDRecevied, nil, userid, data
+            PEARL.RPC.ClientCFDRecevied, nil, userid, data
         )
     end,
 
@@ -169,6 +171,38 @@ local SERVER_USERID_RPCS = {
 }
 
 --------------------------
+-- Raw RPCs
+--------------------------
+
+local RAW_RPCS = {}
+
+--- @type table<integer, any>
+local RPC_HANDLERS = UpvalueHacker:GetUpvalue(HandleRPC, "RPC_HANDLERS")
+local USERID_RPCS  = UpvalueHacker:GetUpvalue(HandleRPC, "USERID_RPCS")
+
+function PEARL.SendRawRPCToServer(rpc_id, ...)
+    return SendRPCToServer(rpc_id, ...)
+end
+
+-- Used for adding RPCs without the need to register a namespace.
+-- Valid RPC codes are from the range of 0 to 63.
+--
+-- Note: Currently, it looks like the only free RPC code is 0.
+--       So just one raw RPC for now :/
+function PEARL.AddRawServerRPC(name, fn, useridrpc)
+    local i = 0
+    assert(RPC_HANDLERS[i] == nil)
+
+    RPC_HANDLERS[i] = fn
+    PEARL.RPC[name] = i
+    RAW_RPCS[i] = fn
+
+    if useridrpc == true then
+        USERID_RPCS[fn] = true
+    end
+end
+
+--------------------------
 -- Wrappers
 --------------------------
 -- Note: Handle all shard RPCs in the backend
@@ -215,17 +249,17 @@ function PEARL.SendRPCToServer(rpc_id, ...)
 end
 
 function PEARL.AddServerRPCHandler(name, handler)
-    PEARL.RPCS[name] = name
+    PEARL.RPC[name] = name
     return AddModRPCHandler(PEARL.RPC_NAME, name, handler)
 end
 
 function PEARL.AddShardRPCHandler(name, handler)
-    PEARL.RPCS[name] = name
+    PEARL.RPC[name] = name
     return AddShardModRPCHandler(PEARL.RPC_NAME, name, handler)
 end
 
 function PEARL.AddClientRPCHandler(name, handler)
-    PEARL.RPCS[name] = name
+    PEARL.RPC[name] = name
     return AddClientModRPCHandler(PEARL.RPC_NAME, name, handler)
 end
 
@@ -244,7 +278,7 @@ do
     for name, cb in orderedPairs(CLIENT_RPCS) do
         AddClientModRPCHandler(PEARL.RPC_NAME, i, cb)
 
-        PEARL.RPCS[name] = i
+        PEARL.RPC[name] = i
         i = i + 1
     end
 end
@@ -259,7 +293,7 @@ do
         AddModRPCHandler(PEARL.RPC_NAME, i, cb)
         MarkUserIDRPC(PEARL.RPC_NAME, i)
 
-        PEARL.RPCS[name] = i
+        PEARL.RPC[name] = i
         i = i + 1
     end
 end
@@ -273,7 +307,7 @@ do
     for name, cb in orderedPairs(SHARD_RPCS) do
         AddShardModRPCHandler(PEARL.RPC_NAME, i, cb)
 
-        PEARL.RPCS[name] = i
+        PEARL.RPC[name] = i
         i = i + 1
     end
 end
@@ -291,8 +325,6 @@ end
 -- Custom handler for server RPCs since the built-in one does only work when staticUpdate
 -- gets called, and that is only when the simulation is running.
 
-local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
-
 local RPC_QUEUE_RATE_LIMIT = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
 local RPC_Queue_Limiter = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
 
@@ -304,11 +336,12 @@ local RPC_Queue_Limiter = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_Queue_Limi
 -- This one is only called on the server.
 PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace, code, data)
     -- This is not our RPC so we do not care. How selfish...
-    if namespace ~= PEARL.RPC_NAME then
+    if namespace ~= PEARL.RPC_NAME or RAW_RPCS[code] ~= nil then
         return -- Leave the game handle it.
     end
 
-    local handler = MOD_RPC_HANDLERS[namespace][code]
+    local ns_handlers = MOD_RPC_HANDLERS[namespace]
+    local handler = ns_handlers[code] or RAW_RPCS[code]
     if type(handler) ~= "function" then
         return
     end

@@ -317,6 +317,10 @@ local function OnCastAreaDestruction(doer, item, target, pos, radius)
         )
     end
 
+    if not target or not target:HasTag("structure") then
+        return
+    end
+
     return OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER)
 end
 

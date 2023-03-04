@@ -229,6 +229,10 @@ function PEARL.AddWorldPostInit(fn, ...)
     return PEARL.AddPrefabPostInit("world", fn, ...)
 end
 
+function PEARL.AddShardNetworkPostInit(fn, ...)
+    return PEARL.AddPrefabPostInit("shard_network", fn, ...)
+end
+
 -- TheFrontEnd is avaible when this is being called.
 function PEARL.AddFrontEndPostInit(postfn, ...)
     return PEARL.AddGlobalClassPostConstruct("frontend", "FrontEnd", function(FE, ...)
@@ -397,6 +401,14 @@ function PEARL.AddAnnouncementCategory(name, icon)
     end
 
     PEARL.CONSTS.ANNOUNCEMENT_TYPES[string.upper(name)] = name
+end
+
+function PEARL.RemoveAllLoadingTips()
+    for _, tv in pairs(PEARL.CONSTS.LT_TYPES) do
+        cleartable(tv)
+    end
+
+    cleartable(LOADING_SCREEN_CONTROL_TIP_KEYS)
 end
 
 --------------------------------

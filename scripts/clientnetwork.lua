@@ -81,12 +81,11 @@ end
 
 function ClientNetwork:SendPlayerReportToServer(message, ...)
     PEARL.info("Sending player report to server...")
-    return PEARL.SendRPCToServer(PEARL.RPCS.PlayerReportMessage, message, ...)
+    return PEARL.SendRPCToServer(PEARL.RPC.PlayerReportMessage, message, ...)
 end
 
 function ClientNetwork:SendErrorTracebackToServer(traceback, ...)
-    PEARL.info("Sending the error traceback to the server...")
-    PEARL.SendRPCToServer(PEARL.RPCS.ClientError, TheSim:ZipAndEncodeString(traceback), ...)
+    return PEARL.SendErrorTracebackToServer(traceback, ...)
 end
 
 --- CFD = Connection Filter Data = Client Filter Data
@@ -98,7 +97,7 @@ function ClientNetwork:SendCFDToServer()
 
     self:BuildCFD()
     PEARL.info("Sending connection filter data to the server...")
-    PEARL.SendRPCToServer(PEARL.RPCS.ConnectionFilterData, ZipAndEncodeString(cfd))
+    PEARL.SendRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(cfd))
 
     self:SetCFDSent(true)
     self.loader:DefferLoad()
@@ -245,7 +244,7 @@ function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
 end
 
 function ClientNetwork:OnConnectionClosed(reason)
-    return PEARL.SendRPCToServer(PEARL.RPCS.ClientDisconnected, reason, force_disconnected)
+    return PEARL.SendRPCToServer(PEARL.RPC.ClientDisconnected, reason, force_disconnected)
 end
 
 ----------------------------------

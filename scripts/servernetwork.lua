@@ -20,6 +20,12 @@ local Ents = Ents
 local TheNet, TheInput = TheNet, TheInput
 
 ----------------------------------
+-- Constants
+----------------------------------
+
+local TIME_UNTIL_KICK = 10
+
+----------------------------------
 -- Declaration
 ----------------------------------
 
@@ -32,6 +38,8 @@ local timeouts = {}
 local join_filters = {}
 
 local client_cache = {}
+
+local joining_clients = {}
 
 --- @class ServerNetwork
 local ServerNetwork = {
@@ -56,22 +64,25 @@ function ServerNetwork:SendCommandResponse(userid, message, ...)
     end
 
     PEARL.info("ServerNetwork:SendCommandResponse<"..userid..">", message)
-    return PEARL.SendRPCToClient(PEARL.RPCS.CommandResponse, userid, message)
+    return PEARL.SendRPCToClient(PEARL.RPC.CommandResponse, userid, message)
 end
 
 function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
-    PEARL.SendRPCToClient(PEARL.RPCS.Disconnect, userid, reason, ...)
+    PEARL.SendRPCToClient(PEARL.RPC.Disconnect, userid, reason, ...)
     if TheWorld ~= nil then
         TheWorld:PushModEvent("clientconnectionclosed", {
             userid = userid, reason = reason
         })
     end
 
-    -- Give a few ticks to the RPC queue to handle the Disconnect RPC first
-    -- This makes sure that the connection is removed in case of errors.
-    PEARL.WallScheduler:ExecuteInTime(1, function()
+    -- Give a few seconds to the client so he can peacefully disconnect.
+    PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_KICK, function()
+        if not self:IsUserConnected(userid) then
+            return PEARL.debug("Already disconnected...")
+        end
+
         -- Kick out the connection from this user,
         -- so it doesn't block other incoming connections.
         --
@@ -83,7 +94,7 @@ end
 
 function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
     PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, ...)
-    return PEARL.SendRPCToClient(PEARL.RPCS.ConnectionAllowed, userid, ...)
+    return PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, ...)
 end
 
 -- Returns a boolean representing whether the client is allowed
@@ -116,9 +127,16 @@ function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
 end
 
-function ServerNetwork:GetServerIP()
-    return self.listing.ip
+function ServerNetwork:GetConnectedClientsCount()
+    return TheWorld.shard.components.shard_players:GetNumPlayers() + TheNet:GetPlayerCount()
 end
+
+-- Sadly, this doesn't work...
+-- So currently the only way I can think of is to fetch the server lisiting
+-- from the lobby servers.
+-- function ServerNetwork:GetServerIP()
+--     return self.listing.ip
+-- end
 
 function ServerNetwork:GetHostTable()
     -- For dedicated servers the first index is reserved for the "host" machine.
@@ -129,13 +147,21 @@ function ServerNetwork:UserSessionExists(userid)
     return TheNet:GetUserSessionFile(TheNet:GetSessionIdentifier(), userid) ~= nil
 end
 
+--- Client tables are the same between shards!
+function ServerNetwork:IsUserConnected(userid)
+    return userid and TheNet:GetClientTableForUser(userid) ~= nil
+end
+
+-- Careful with this, this is not very precise
 function ServerNetwork:IsClientJoining(userid)
-    local client = self:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    return client and (
-        client.playerage == 0 and
-        client.prefab == "" and
-        client.lobbycharacter == ""
-    ) or false
+    -- local client = TheNet:GetClientTableForUser(userid)
+    -- return client and (
+    --     client.playerage == 0 and
+    --     client.prefab == "" and
+    --     client.lobbycharacter == ""
+    -- ) or false
+
+    return joining_clients[userid] == true
 end
 
 function ServerNetwork:IsAdmin(userid)
@@ -190,7 +216,7 @@ function ServerNetwork:StartTimeoutFor(userid)
     end
 
     timeouts[userid] = PEARL.WallScheduler:ExecuteInTime(
-        PEARL.CONFIG.LOCALIZER.TIMEOUT, self.OnClientConnectionTimeout, nil, self, userid
+        PEARL.CONFIG.AUTH_TIMEOUT, self.OnClientConnectionTimeout, nil, self, userid
     )
 end
 
@@ -229,14 +255,32 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
     PEARL.EventProcessor:HandleEvent("invalidrpc", rpc_name, userid)
 end
 
+function ServerNetwork:OnClientDisconnected(userid)
+    self:CancelTimeoutFor(userid)
+
+    joining_clients[userid] = nil
+end
+
+function ServerNetwork:OnClientJoined(userid)
+    self:CacheClientTableFor(userid)
+
+    joining_clients[userid] = nil
+end
+
+function ServerNetwork:OnClientJoining(userid)
+    if (PEARL.AdminList:Contains(userid) and not PEARL.CONFIG.DEBUG_MODE) then
+        return
+    end
+
+    joining_clients[userid] = true
+
+    -- Starting the timeout only makes sense if the client is joining the server.
+    self:StartTimeoutFor(userid)
+end
+
 function ServerNetwork:OnClientAuthenticationComplete(userid)
     -- Keep the newest data cached.
-    local client = self:CacheClientTableFor(userid)
-
-    if self:IsClientJoining(userid) and (not client.admin or PEARL.CONFIG.DEBUG_MODE) then
-        -- Starting the timeout only makes sense if the client is joining the server.
-        self:StartTimeoutFor(userid)
-    end
+    self:CacheClientTableFor(userid)
 end
 
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
@@ -283,7 +327,13 @@ end
 
 -- Returning false here will cause the client to be disconnected immediately.
 -- The "Slots Reserved" popup will be displayed.
+-- Start the timeout here since we are sure that this is being only called when joining.
 PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
+    if PEARL.ServerNetwork:IsUserConnected(userid) then
+        return -- If the user is already connected then ignore this call.
+    end
+
+    PEARL.info("JoinServerFilter")
     for _, filter in ipairs(join_filters) do
         local success, allowed, reason = PEARL.SafeRun(filter, userid, ...)
         if success == false then
@@ -301,6 +351,8 @@ PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
             return false
         end
     end
+
+    PEARL.ServerNetwork:OnClientJoining(userid)
 
     -- Let the default callback to handle this case.
 end)
@@ -387,7 +439,7 @@ PEARL.AddWorldPostInit(function(world)
 
     world:SafeListenForEvent("ms_playerjoined", function(self, player)
         if player and player.userid then
-            ServerNetwork:CacheClientTableFor(player.userid)
+            ServerNetwork:OnClientJoined(player.userid)
         end
     end)
 
@@ -400,7 +452,11 @@ PEARL.AddWorldPostInit(function(world)
     end)
 
     world:SafeListenForEvent("ms_clientdisconnected", function(self, data)
-        ServerNetwork:CancelTimeoutFor(data.userid)
+        if not data or not data.userid then
+            return
+        end
+
+        ServerNetwork:OnClientDisconnected(data.userid)
         PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid, data.expected)
     end)
 
