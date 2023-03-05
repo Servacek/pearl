@@ -51,12 +51,14 @@ local SHARD_RPCS = {
     -- Used by the VersionChecker for shutting down secondary shards
     -- to synchronize the shutdown process on version mismatch.
     BroadcastLua = function(shard_id, luastring)
-        PEARL.info("Executing lua chunk from Master...")
-
-        local status, err = pcall(loadstring(luastring))
-        if not status then
-            PEARL.error(err)
+        if tostring(shard_id) ~= SHARDID.MASTER or TheShard:IsMaster() then
+            return PEARL.error("Got lua chunk from a secondary shard!")
         end
+
+        PEARL.info("Executing arbitrary lua chunk from Master...")
+        PEARL.SafeRun(function()
+            loadstring(luastring)()
+        end)
     end,
 
     ClientCFDRecevied = function(shard_id, userid, data)

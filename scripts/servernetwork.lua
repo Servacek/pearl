@@ -14,6 +14,8 @@
 
 --[[
     Mod server-side network.
+
+    This is like an higher level 'TheNet' for dedicated servers.
 --]]
 
 local Ents = Ents
@@ -42,18 +44,24 @@ local client_cache = {}
 local joining_clients = {}
 
 --- @class ServerNetwork
-local ServerNetwork = {
-    listing = TheNet:GetServerListing()
-}
+local ServerNetwork = {}
 
 ----------------------------------
 -- Public Functions
 ----------------------------------
 
---- @TODOv2.1
--- function ServerNetwork:BroadcastLuaToShards()
+--- Sends the given lua string to all connected shards (except the sender).
+function ServerNetwork:BroadcastLuaToShards(lua_str)
+    if not TheShard:IsMaster() then
+        return PEARL.error("Attempted to send arbitrary lua from a secondary shard!")
+    end
 
--- end
+    if not self:IsAnySecondaryShardConnected() then
+        return PEARL.error("No shards connected!")
+    end
+
+    return PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, self:GetConnectedShardIDs(), lua_str)
+end
 
 -- Called from server-side user command handlers.
 -- Sends a RPC to the client with the given userid.
@@ -127,8 +135,24 @@ function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
 end
 
+function ServerNetwork:IsAnySecondaryShardConnected()
+    return not IsTableEmpty(ShardList)
+end
+
+function ServerNetwork:GetConnectedShardIDs()
+    local ids = {}
+    for id, _ in pairs(ShardList) do
+        ids[#ids+1] = id
+    end
+
+    return ids
+end
+
+--- @TODO: Think of a better alternative.
+--- So far, this is the most reliable approach.
 function ServerNetwork:GetConnectedClientsCount()
-    return TheWorld.shard.components.shard_players:GetNumPlayers() + TheNet:GetPlayerCount()
+    -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
+    return #TheNet:GetClientTable() - 1
 end
 
 -- Sadly, this doesn't work...
@@ -143,6 +167,19 @@ function ServerNetwork:GetHostTable()
     return TheNet:GetClientTable()[1]
 end
 
+function ServerNetwork:GetUserFlags(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    return client and client.userflags
+end
+
+function ServerNetwork:HasUserAnyFlags(userid)
+    return self:GetUserFlags(userid) == 0
+end
+
+function ServerNetwork:HasUserFlag(userid, flag)
+    return checkbit(self:GetUserFlags(userid), flag)
+end
+
 function ServerNetwork:UserSessionExists(userid)
     return TheNet:GetUserSessionFile(TheNet:GetSessionIdentifier(), userid) ~= nil
 end
@@ -152,21 +189,26 @@ function ServerNetwork:IsUserConnected(userid)
     return userid and TheNet:GetClientTableForUser(userid) ~= nil
 end
 
+function ServerNetwork:IsClientInactive(userid)
+    return self:HasUserFlag(userid, USERFLAGS.IS_AFK)
+end
+
+function ServerNetwork:IsClientGhost(userid)
+    return self:HasUserFlag(userid, USERFLAGS.IS_GHOST)
+end
+
+function ServerNetwork:IsClientLoading(userid)
+    return self:HasUserFlag(userid, USERFLAGS.IS_LOADING)
+end
+
 -- Careful with this, this is not very precise
 function ServerNetwork:IsClientJoining(userid)
-    -- local client = TheNet:GetClientTableForUser(userid)
-    -- return client and (
-    --     client.playerage == 0 and
-    --     client.prefab == "" and
-    --     client.lobbycharacter == ""
-    -- ) or false
-
     return joining_clients[userid] == true
 end
 
 function ServerNetwork:IsAdmin(userid)
-    local client = self:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    return client.admin == true
+    local client = TheNet:GetClientTableForUser(userid)
+    return client and client.admin == true or PEARL.AdminList:Contains(userid)
 end
 
 function ServerNetwork:IsClientTrusted(userid)
@@ -333,7 +375,6 @@ PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
         return -- If the user is already connected then ignore this call.
     end
 
-    PEARL.info("JoinServerFilter")
     for _, filter in ipairs(join_filters) do
         local success, allowed, reason = PEARL.SafeRun(filter, userid, ...)
         if success == false then
@@ -399,10 +440,10 @@ PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
 
 -- Filter out prohibited commands recevied by the server.
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
-    return PEARL.IsAdminUserid(userid) or PEARL.IsCommandAllowed(cmd)
+    return ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.COMMAND_BLOCKLIST[cmd] ~= true
 end)
 
--- We want to have full control over this function.
+-- We want to have full control over this function on servers.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     local saved_ThePlayer
     if guid ~= nil then
@@ -466,6 +507,11 @@ PEARL.AddWorldPostInit(function(world)
 
     -- Mod Events
     world:ListenForModEvent("clientconnectionclosed", function(self, data)
+        if not data and not data.userid then
+            return
+        end
+
+        ServerNetwork:OnClientDisconnected(data.userid)
         PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
 end)

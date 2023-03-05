@@ -139,9 +139,10 @@ if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" then
     end
 
     PEARL.info("Loading custom loading tips...")
-    for _, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
+    for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
         local type = PEARL.CONSTS.LT_TYPES[lt.type] or PEARL.CONSTS.LT_TYPES["other"]
-        PEARL.AddLoadingTip(type, lt.name, lt.text, lt.data)
+        local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
+        PEARL.AddLoadingTip(type, name, lt.text, lt.data)
     end
 end
 

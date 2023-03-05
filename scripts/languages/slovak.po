@@ -107,6 +107,9 @@ msgctxt "STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN"
 msgid "%s entered the constant as %s"
 msgstr "%s vstúpil/a do konštanty ako %s!"
 
+msgctxt "STRINGS.PEARL.LOGS.PLAYER_DESPAWN"
+msgstr "%s opustil/a konštantu ako %s."
+
 msgctxt "STRINGS.PEARL.ACTIONS.FEED"
 msgid "%s feed %s with %s!"
 msgstr "%s nakŕmil/a %s s %s!"
@@ -124,6 +127,21 @@ msgstr "{doer} rozbil/a {target}! Majiteľ: {owner}"
 msgctxt "STRINGS.PEARL.LOGS.SAY"
 msgid "**%s**: %s"
 msgstr "**%s**: %s"
+
+msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.snow"
+msgstr "snežiť"
+
+msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.rain"
+msgstr "pršať"
+
+msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.none"
+msgstr "žiadne zrážky"
+
+msgctxt "STRINGS.PEARL.LOGS.PRECIPITATION_START"
+msgstr "Začalo %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.PRECIPITATION_STOP"
+msgstr "Prestalo %s."
 
 msgctxt "STRINGS.PEARL.LOGS.AUTH"
 msgid "%s authenticated as %s"

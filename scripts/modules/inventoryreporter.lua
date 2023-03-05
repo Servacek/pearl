@@ -28,7 +28,7 @@ local function CheckPlayersInventory(world, player)
         return
     end
 
-    if not PEARL.CONFIG.DEBUG_MODE and (PEARL.IsAdminUserid(player.userid) or (player.components.age and player.components.age:IsTrustworthy())) then
+    if not PEARL.CONFIG.DEBUG_MODE and (PEARL.ServerNetwork:IsAdmin(player.userid) or (player.components.age and player.components.age:IsTrustworthy())) then
         return
     end
 

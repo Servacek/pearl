@@ -227,34 +227,6 @@ end
 -- [[ Server Commands ]]
 --------------------------------
 
--- TODO: add support for 'all' param
---- @param all any Whether campfires and staff lights should be removed too or not
-function PEARL.ExtinguishFiresNear(x, y, z, all)
-    if x ~= nil and y ~= nil and z ~= nil then
-        -- local mustoneoftags = {'fire','smolder'}
-        -- if all then
-        --     table.insert(mustoneoftags, "heater")
-        -- end
-
-        local fire_entities = TheSim:FindEntities(
-            x, y, z, PEARL.CONSTS.EXTINGUISH_RADIUS,
-            nil, -- must-have tags
-            {'wildfireprotected', 'campfire', 'NOCLICK', 'FX','DECOR','INLIMBO','burnt'}, -- cant-have tags
-            {'fire','smolder'} -- must-have-one tags
-        )
-
-        for _, ent in pairs(fire_entities) do
-            if ent.components and ent.components.burnable then
-                ent.components.burnable:Extinguish()
-            end
-
-            -- if all and ent:IsValid() and SUB.PREFABS.FIRE_SOURCES[ent.prefab] then
-            --     ent:Remove()
-            -- end
-        end
-    end
-end
-
 function PEARL.RawRollbackByID(snapshot_id)
     -- Using raw low-level 'TheNet:TruncateSnapshots' instead of
     -- the default 'WorldRollbackFromSim' because of the 30 seconds limit.
@@ -343,9 +315,10 @@ end
 --------------------------------
 
 function PEARL.GetShardFancyName()
-    return (TheShard:IsMaster() and STRINGS.PEARL.SHARDS.MASTER)
-        or (TheShard:IsSecondary() and STRINGS.PEARL.SHARDS.SECONDARY)
-        or STRINGS.PEARL.SHARDS.UNKNOWN
+    return PEARL.CONFIG.SHARD_NAME or
+        (TheShard:IsMaster() and STRINGS.PEARL.SHARDS.MASTER) or
+        (TheShard:IsSecondary() and STRINGS.PEARL.SHARDS.SECONDARY) or
+        STRINGS.PEARL.SHARDS.UNKNOWN
 end
 
 function PEARL.GetSeasonFancyName()
@@ -392,41 +365,6 @@ end
 function PEARL.IsFirstLaunch()
     -- initial + current
     return TheSim:GetNumLaunches() == 2
-end
-
-function PEARL.IsEmoteCommand(cmd_name)
-    local command = UserCommands.GetCommandFromName(cmd_name)
-
-    return command and command.emote == true
-end
-
-function PEARL.IsCommandAllowed(cmd_name)
-    return cmd_name and not table.contains(PEARL.CONFIG.COMMAND_BLOCKLIST, cmd_name)
-end
-
--- function PEARL.IsBase(entities)
---     if not (entities and type(entities) == "table") then
---         return false
---     end
-
---     local base_structs_count = #(table.filter(entities, function(k, v)
---         return v and v:IsBaseStructure()
---     end))
-
---     return base_structs_count > 3, base_structs_count
--- end
-
--- Used to determine whether the client is connecting to the server for the first time
--- or just migrating between the server shards.
-function PEARL.IsClientMigrating(client)
-    client = (type(client) == "table" and client) or (type(client) == "string" and TheNet:GetClientTableForUser(client))
-
-    return client and client.prefab ~= "" and client.lobbycharacter == ""
-end
-
-function PEARL.IsAdminUserid(userid)
-    local client = userid and TheNet:GetClientTableForUser(userid)
-    return client and client.admin == true
 end
 
 --------------------------------
@@ -628,10 +566,31 @@ function PEARL.ToISO8601UTC(timestamp)
     return os.date("!%Y-%m-%dT%X", timestamp)
 end
 
+function PEARL.ExtinguishFires(x, y, z, radius)
+    local onfire = TheSim:FindEntities(x, y, z, radius,
+        nil, -- must-have tags
+        {'wildfireprotected', 'campfire', 'NOCLICK', 'FX','DECOR','INLIMBO','burnt'}, -- cant-have tags
+        {'fire','smolder'} -- must-have-one tags
+    )
+
+    for i = 1, #onfire do
+        if onfire[i].components and onfire[i].components.burnable then
+            onfire[i].components.burnable:Extinguish()
+        end
+    end
+end
+
+function PEARL.ExtinguishAllFires()
+    -- Extinguish fires all around the world.
+    PEARL.ExtinguishFires(0, 0, 0, WORLD_TILES_OCEAN_SIZE)
+
+    PEARL.info("All world fires were extinguished!")
+end
+
 function PEARL.ExtinguishFiresNearAll()
     for _, v in ipairs(AllPlayers) do
         if v.Transform then
-            PEARL.ExtinguishFiresNear(v.Transform:GetWorldPosition())
+            PEARL.ExtinguishFires(v.Transform:GetWorldPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
         end
     end
 

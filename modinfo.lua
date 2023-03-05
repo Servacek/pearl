@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.1.2"
+version = "2.1.2a"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -182,7 +182,7 @@ configuration_options = {
         public = true,
     },
 
-    { --- @TODO
+    {
         name = "SHARD_NAME",
         default = nil,
         type = "string?",
