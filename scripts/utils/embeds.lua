@@ -147,7 +147,7 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
     for _, mod in ipairs(enabled_mods) do
         local type_icon = mod.private and PEARL.ICONS.LOCAL or PEARL.ICONS.STEAM
         local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
-        local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN) or "???")
+        local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN, "...") or "???")
 
         local modid = ""
         if not mod.private then
@@ -155,7 +155,7 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
             local modid_spac = string.rep(" ", max_id_size - #mod.id)
             modid = MARKDOWN.codeline(modid..modid_spac)
             modid = (MARKDOWN.hlink(
-                modid, PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):ltake(MAX_MODID_LEN))
+                modid, PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):ltake(MAX_MODID_LEN, "..."))
             ).." ")
         else
             modid = MARKDOWN.codeline(string.rep(" ", max_id_size)).." "

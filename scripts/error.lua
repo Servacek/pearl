@@ -19,18 +19,41 @@
     On clients, we should be able to send the traceback as soon as this file is loaded.
 ]]
 
+--------------------------------
+-- [[ Constants ]]
+--------------------------------
+
+local MOD_AFFLICTER_PATTERN = "%#?%[string \"../mods/(.*)/.*\"%]%:"
+
+--------------------------------
+-- [[ Locals ]]
+--------------------------------
+
+local function TryGetAfflicterMod(traceback)
+    return traceback:match(MOD_AFFLICTER_PATTERN)
+end
+
 local function OnClientError(traceback)
-    PEARL.SendErrorTracebackToServer(traceback)
+    --- @TODO:
+    -- local afflicter_modname = TryGetAfflicterMod(traceback)
+    -- local was_disabled = false
+    -- if afflicter_modname ~= PEARL.MODNAME and not KnownModIndex:IsModDisablingDisabled() then
+    --     PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
+
+    --     KnownModIndex:DisableBecauseBad(afflicter_modname)
+    --     was_disabled = true
+    -- end
+
+    PEARL.SendErrorTracebackToServer(
+        traceback --, afflicter_modname, was_disabled
+    )
 
     if PEARL.ClientNetwork then
         PEARL.info("Disconnecting the user from the server...")
         PEARL.ClientNetwork:Disconnect("ID_DST_USER_CRASHED")
     end
 
-    PEARL.info("Force aborting in 5 seconds...")
-    PEARL.StaticScheduler:DoTaskInTime(5, function()
-        TheSim:ForceAbort()
-    end)
+    -- Do not force abort here in case we are displaying the error.
 end
 
 local function OnServerError(traceback)

@@ -140,7 +140,7 @@ function Reporter:ReportUncatchedLuaError(traceback)
     self:SetIsDisabled(true)
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED:format(
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_SHARD:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
     )), true) -- Force-send uncatched errors.
 end
@@ -161,20 +161,23 @@ function Reporter:ReportCatchedLuaError(traceback)
     -- self._reported[#self._reported+1] = error_id
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_CATCHED:format(
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
     )))
 end
 
 --- @param userid string The identifier of the client where the error happened on.
 --- @param traceback string
-function Reporter:ReportUncatchedClientLuaError(userid, traceback)
+function Reporter:ReportUncatchedClientLuaError(userid, traceback, afflicter, was_disabled)
     if type(traceback) ~= "string" or self:IsDisabled() then
         return
     end
 
+    -- We have caused this error!
+    --local self_afflicter = afflicter == PEARL.MODNAME
+
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    local message = Message(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXCEPTION_UNCATCHED_CL:format(
+    local message = Message(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CLIENT:format(
         MARKDOWN.codeline(userid), traceback
     )))
 

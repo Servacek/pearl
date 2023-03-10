@@ -94,10 +94,15 @@ function KnownModIndex:IsModBlocked(modname)
 	return known_mod and known_mod.blocked == true
 end
 
+function KnownModIndex:IsModDisablingDisabled()
+    return self.modsettings.disablemods == false
+end
+
 function KnownModIndex:AreAnyModsBlocked()
     return self._mods_blocked == true
 end
 
+-- Counts also blocked mods since they we originally enabled as well.
 function KnownModIndex:GetAllEnabledModsCount()
     local count = 0
     for modname, _ in pairs(KnownModIndex.savedata.known_mods) do

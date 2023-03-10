@@ -160,8 +160,8 @@ local SERVER_USERID_RPCS = {
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
 
-    ClientError = function(userid, data)
-        if not checkstring(data) then
+    ClientError = function(userid, data, afflicter_modname, was_disabled)
+        if not checkstring(data) then --or not optstring(afflicter_modname) or not optbool(was_disabled) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
         end
 

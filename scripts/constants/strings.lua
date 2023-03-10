@@ -213,9 +213,24 @@ STRINGS.PEARL = {
         SIM_PAUSED              = "Simulation was paused.",
         SIM_UNPAUSED            = "Simulation was unpaused.",
 
-        EXCEPTION_CATCHED       = "Catched exception on shard %s:\n%s",
-        EXCEPTION_UNCATCHED     = "Uncatched exception on shard %s:\n%s",
-        EXCEPTION_UNCATCHED_CL  = "Uncatched exception on client %s:\n%s",
+        -- We assume that catched exceptions are always caused by us.
+        EXC_CATCHED_SERVER      = "Catched exception on server %s:\n%s",
+        EXC_CATCHED_SHARD       = "Catched exception on shard %s:\n%s",
+        EXC_CATCHED_CLIENT      = "Catched exception on client %s:\n%s",
+
+        EXC_SERVER              = "Uncatched exception:\n%s",
+        EXC_SHARD               = "Uncatched exception on shard %s:\n%s",
+        EXC_CLIENT              = "Uncatched exception on client %s:\n%s",
+
+        EXC_SELF_SERVER         = "Caused uncatched exception:\n%s",
+        EXC_SELF_SHARD          = "Caused uncatched exception on shard %s:\n%s",
+        EXC_SELF_CLIENT         = "Caused uncatched exception on client %s:\n%s",
+
+        EXC_MOD_SERVER          = "Mod %s caused uncatched exception:\n%s",
+        EXC_MOD_SHARD           = "Mod %s caused uncatched exception on shard %s:\n%s",
+        EXC_MOD_CLIENT          = "Mod %s caused uncatched exception on client %s:\n%s",
+
+        AFFLICTER_MOD_DISABLED  = "The crashed mod was disabled.",
         HTTP_ERROR              = "HTTP Error status code on shard %s:\n%s",
 
         INVALIDRPC              = "Received invalid RPC %s from client %s!",

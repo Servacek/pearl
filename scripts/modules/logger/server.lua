@@ -118,6 +118,10 @@ PEARL.AddSimPostInit(function()
         return
     end
 
+    if PEARL.IsShuttingDown() then
+        return
+    end
+
     OnShardLoaded(TheWorld.ismastershard)
 
     if TheWorld.ismastershard then

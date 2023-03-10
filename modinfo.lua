@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.1.2a"
+version = "2.1.2b-pre"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -495,7 +495,7 @@ configuration_options = {
     },
 
     --------------------
-    -- Debugging
+    -- Modes
     --------------------
 
     {
@@ -529,6 +529,17 @@ configuration_options = {
             RADIUS = 20, -- Taken from selfstacker.lua
         },
         type = "table",
+    },
+
+    {
+        name = "LAZY_LOAD_PREFABS",
+        default = false,
+        general = true,
+        type = "boolean",
+        options = {
+            true,
+            false,
+        }
     },
 
     --------------------
