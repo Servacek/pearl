@@ -180,13 +180,10 @@ end
 -- [[ Function Pre Calls ]]
 --------------------------------
 
-local _ClearOwner = InventoryItem.ClearOwner
-InventoryItem.ClearOwner = _ClearOwner and function(self, ...)
+PEARL.AddClassFunctionPreCall("ClearOwner", function(self)
     if self.owner and self.owner:HasTag("player") then
         self:SetLastPlayerOwner(self.owner)
     end
 
     self:SetLastOwner(self.owner)
-
-    return _ClearOwner(self, ...)
-end or _ClearOwner
+end, InventoryItem)

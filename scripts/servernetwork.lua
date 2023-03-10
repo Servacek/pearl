@@ -333,7 +333,6 @@ PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
         return -- If the user is already connected then ignore this call.
     end
 
-    PEARL.info("JoinServerFilter")
     for _, filter in ipairs(join_filters) do
         local success, allowed, reason = PEARL.SafeRun(filter, userid, ...)
         if success == false then

@@ -63,6 +63,11 @@ function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, c
         return {}
     end
 
+    -- For example flares.
+    if self.components.propagator and (self.components.propagator.heatoutput or 0) <= 0 then
+        return {}
+    end
+
     local radius = self.components.propagator and self.components.propagator.propagaterange
         or rad or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
 

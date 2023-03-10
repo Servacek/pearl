@@ -121,13 +121,15 @@ end
 -- A wrapper function for AddFunctionPreCall for global functions
 function PEARL.AddGlobalFunctionPreCall(name, precb, ignoremodenv)
     -- Use _G override functions in the game's environment
-    local _, repl = PEARL.AddFunctionPreCall(name, precb, _G)
+    local origin, repl = PEARL.AddFunctionPreCall(name, precb, _G)
 
     -- Sync with mod's global environment since the reference there still refers to
     -- the origin.
     if not ignoremodenv then
         PEARL.OverrideVariable(name, repl)
     end
+
+    return origin
 end
 
 function PEARL.AddClassFunctionPreCall(name, precb, class)
@@ -407,8 +409,6 @@ function PEARL.RemoveAllLoadingTips()
     for _, tv in pairs(PEARL.CONSTS.LT_TYPES) do
         cleartable(tv)
     end
-
-    cleartable(LOADING_SCREEN_CONTROL_TIP_KEYS)
 end
 
 --------------------------------

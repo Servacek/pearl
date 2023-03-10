@@ -366,35 +366,41 @@ PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")
 -- [[ Extensions ]]
 --------------------------------
 
-PEARL.info("Loading game component extensions...")
-PEARL.loadfile("extensions/components/inventory")
-PEARL.loadfile("extensions/components/workable")
-PEARL.loadfile("extensions/components/age")
-PEARL.loadfile("extensions/components/inventoryitem")
-PEARL.loadfile("extensions/components/container")
-PEARL.loadfile("extensions/components/edible")
-PEARL.loadfile("extensions/components/activable")
+local function LoadExtensions()
+    PEARL.info("Loading game component extensions...")
+    PEARL.loadfile("extensions/components/inventory")
+    PEARL.loadfile("extensions/components/workable")
+    PEARL.loadfile("extensions/components/age")
+    PEARL.loadfile("extensions/components/inventoryitem")
+    PEARL.loadfile("extensions/components/container")
+    PEARL.loadfile("extensions/components/edible")
+    PEARL.loadfile("extensions/components/activable")
 
---- @TODO: Create some extension manager. (maybe just extend the module manager)
--- Performance testing
-if PEARL.CONFIG.PERFORMANCE_MODE then
-    PEARL.loadfile("extensions/components/updatelooper")
-    PEARL.loadfile("extensions/components/timer")
+    --- @TODO: Create some extension manager. (maybe just extend the module manager)
+    -- Performance testing
+    if PEARL.CONFIG.PERFORMANCE_MODE then
+        PEARL.loadfile("extensions/components/updatelooper")
+        PEARL.loadfile("extensions/components/timer")
+    end
+
+    PEARL.info("Loading game script extensions...")
+    PEARL.loadfile("extensions/scripts/entityscript")
+    PEARL.loadfile("extensions/scripts/playercommon")
+
+    PEARL.info("Loading mob brain extensions...")
+    PEARL.loadfile("extensions/brains/pigbrain")
+
+    --- @type ExtensionManager
+    local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
+    PEARL.info("Loading prefab extensions...")
+    for _, prefab in ipairs(PEARL.CONFIG.PREFAB_EXTENSIONS) do
+        ExtensionManager:ExtendPrefab(prefab)
+    end
 end
 
-PEARL.info("Loading game script extensions...")
-PEARL.loadfile("extensions/scripts/entityscript")
-PEARL.loadfile("extensions/scripts/playercommon")
-
-PEARL.info("Loading mob brain extensions...")
-PEARL.loadfile("extensions/brains/pigbrain")
-
---- @type ExtensionManager
-local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
-PEARL.info("Loading prefab extensions...")
-for _, prefab in ipairs(PEARL.CONFIG.PREFAB_EXTENSIONS) do
-    ExtensionManager:ExtendPrefab(prefab)
-end
+-- Load our extensions after all mods are loaded,
+-- in case some of them override the extended files.
+PEARL.AddFrontEndPreInit(LoadExtensions)
 
 -------------------------------------
 -- [[ Blacklist/Whitelist Wrappers ]]
