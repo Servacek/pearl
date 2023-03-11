@@ -30,7 +30,7 @@ local MAX_TAG_LENGTH = 32
 local MAX_HEADER_LENGTH = MAX_TAG_LENGTH + MAX_ICON_LENGTH
 local MAX_TIMESTAMP_LENGTH = 12
 
-local TIMESTAMP_TEMPLATE = MARKDOWN.bold(MARKDOWN.codeline("[%H:%M:%S]:"))
+local TIMESTAMP_TEMPLATE = MARKDOWN.codeline("[%H:%M:%S]:")
 -- timestamp and content
 local TEMPLATE = (PEARL.CONFIG.DEBUG_MODE and
     "%s ["..MARKDOWN.codeline(string.upper(PEARL.GetShardFancyName())).."] %s" or "%s %s"

@@ -285,7 +285,7 @@ function Message:ToTable()
     return {
         content = self:GetContent(),
         embeds = not table.empty(self._embeds) and self._embeds or nil,
-        flags = not table.empty(self._flags) and self._flags or nil,
+        flags = self._flags,
         allowed_mentions = not table.empty(self._allowed_mentions) and self._allowed_mentions or nil,
     }
 end

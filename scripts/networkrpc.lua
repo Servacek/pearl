@@ -159,17 +159,6 @@ local SERVER_USERID_RPCS = {
         -- Anounce it so it logs the message and also other players can see it as well.
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
-
-    ClientError = function(userid, data, afflicter_modname, was_disabled)
-        if not checkstring(data) then --or not optstring(afflicter_modname) or not optbool(was_disabled) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
-        end
-
-        local traceback = TheSim:DecodeAndUnzipString(data)
-        if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
-            PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
-        end
-    end,
 }
 
 --------------------------

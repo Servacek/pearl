@@ -132,13 +132,13 @@ PEARL.loadfile("constants/strings")
     <controltipdata> is a table containing input control bindings to be used in the tip string. Refer to LOADING_SCREEN_CONTROL_TIP_KEYS in constants.lua and LOADING_SCREEN_CONTROL_TIPS in strings.lua for an example usage.
 ]]
 -- Loading screen tips setup
-if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" then
+if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
     if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
         PEARL.info("Removing default loading tips...")
         PEARL.RemoveAllLoadingTips()
     end
 
-    PEARL.info("Loading custom loading tips...")
+    PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
     for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
         local type = PEARL.CONSTS.LT_TYPES[lt.type] or PEARL.CONSTS.LT_TYPES["other"]
         local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))

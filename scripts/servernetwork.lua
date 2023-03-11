@@ -250,35 +250,33 @@ function ServerNetwork:CacheClientCFDFor(userid, cfd)
     conn_data_cache[userid] = cfd
 end
 
-function ServerNetwork:StartTimeoutFor(userid)
-    PEARL.debug("ServerNetwork:StartTimeoutFor", userid)
+-- function ServerNetwork:StartTimeoutFor(userid)
+--     PEARL.debug("ServerNetwork:StartTimeoutFor", userid)
 
-    if timeouts[userid] then
-        return
-    end
+--     if timeouts[userid] then
+--         return
+--     end
 
-    timeouts[userid] = PEARL.WallScheduler:ExecuteInTime(
-        PEARL.CONFIG.AUTH_TIMEOUT, self.OnClientConnectionTimeout, nil, self, userid
-    )
-end
+--     timeouts[userid] = PEARL.WallScheduler:ExecuteInTime(
+--         PEARL.CONFIG.AUTH_TIMEOUT, self.OnClientConnectionTimeout, nil, self, userid
+--     )
+-- end
 
-function ServerNetwork:CancelTimeoutFor(userid)
-    PEARL.debug("ServerNetwork:CancelTimeoutFor", userid)
+-- function ServerNetwork:CancelTimeoutFor(userid)
+--     PEARL.debug("ServerNetwork:CancelTimeoutFor", userid)
 
-    if timeouts[userid] ~= nil then
-        timeouts[userid]:cancel()
-        timeouts[userid] = nil
-    end
-end
+--     if timeouts[userid] ~= nil then
+--         timeouts[userid]:cancel()
+--         timeouts[userid] = nil
+--     end
+-- end
 
 ----------------------------------
 -- Handlers
 ----------------------------------
 
-function ServerNetwork:OnClientConnectionTimeout(userid)
-    self:CancelTimeoutFor(userid)
-
-    PEARL.warn("Client", userid, "didn't send connection data on time!")
+function ServerNetwork:OnClientFilterDataFailed(userid)
+    PEARL.warn("Client", userid, "didn't send connection filter data to the server!")
     if PEARL.DiscordReporter then
         PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT:format(
             userid
@@ -298,8 +296,6 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
 end
 
 function ServerNetwork:OnClientDisconnected(userid)
-    self:CancelTimeoutFor(userid)
-
     joining_clients[userid] = nil
 end
 
@@ -307,6 +303,10 @@ function ServerNetwork:OnClientJoined(userid)
     self:CacheClientTableFor(userid)
 
     joining_clients[userid] = nil
+
+    if self:GetCachedCFDFor(userid) == nil then
+        return self:OnClientFilterDataFailed(userid)
+    end
 end
 
 function ServerNetwork:OnClientJoining(userid)
@@ -315,9 +315,6 @@ function ServerNetwork:OnClientJoining(userid)
     end
 
     joining_clients[userid] = true
-
-    -- Starting the timeout only makes sense if the client is joining the server.
-    self:StartTimeoutFor(userid)
 end
 
 function ServerNetwork:OnClientAuthenticationComplete(userid)
@@ -328,8 +325,6 @@ end
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
     PEARL.debug(DataDumper(cfd))
-
-    self:CancelTimeoutFor(userid)
 
     -- Always keep just the newest record
     -- This is here just to make sure the data are being cached in case the RCP fails.
