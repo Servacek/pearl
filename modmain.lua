@@ -430,11 +430,6 @@ if TheNet:IsDedicated() then
     PEARL.loadfile("backend")
 
     PEARL.info("Loading mod BE done.")
-
-
-    if not PEARL.INIT then
-        error("BEFORE BE")
-    end
 end
 
 --------------------------------
