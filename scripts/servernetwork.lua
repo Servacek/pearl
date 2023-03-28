@@ -201,7 +201,6 @@ function ServerNetwork:IsClientLoading(userid)
     return self:HasUserFlag(userid, USERFLAGS.IS_LOADING)
 end
 
--- Careful with this, this is not very precise
 function ServerNetwork:IsClientJoining(userid)
     return joining_clients[userid] == true
 end
@@ -302,11 +301,11 @@ end
 function ServerNetwork:OnClientJoined(userid)
     self:CacheClientTableFor(userid)
 
-    joining_clients[userid] = nil
-
-    if self:GetCachedCFDFor(userid) == nil then
-        return self:OnClientFilterDataFailed(userid)
+    if self:IsClientJoining(userid) and self:GetCachedCFDFor(userid) == nil then
+        self:OnClientFilterDataFailed(userid)
     end
+
+    joining_clients[userid] = nil
 end
 
 function ServerNetwork:OnClientJoining(userid)

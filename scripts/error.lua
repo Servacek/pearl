@@ -23,7 +23,7 @@
 -- [[ Constants ]]
 --------------------------------
 
-local MOD_AFFLICTER_PATTERN = "%#?%[string \"../mods/(.*)/.*\"%]%:"
+local MOD_AFFLICTER_PATTERN = "%#?%[string \"../mods/([^/]+)/.*\"%]%:"
 
 --------------------------------
 -- [[ Locals ]]
@@ -114,15 +114,20 @@ end, true)
 function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname, ...)
     PEARL.info("Sending the error traceback to the server...")
 
+    local mod
     local enabled_mods = ModManager:GetEnabledModNames()
-    PEARL.SendRawRPCToServer(PEARL.RPC.ClientError, ZipAndEncodeString({
-        traceback = traceback,
-        catched = catched,
-        enabled_mods = enabled_mods,
+    if type(afflicter_modname) == "string" then
         mod = {
             id = GetWorkshopIdNumber(afflicter_modname),
             fancyname = GetModFancyName(afflicter_modname),
             disabled = not table.contains(enabled_mods, afflicter_modname)
-        },
+        }
+    end
+
+    PEARL.SendRawRPCToServer(PEARL.RPC.ClientError, ZipAndEncodeString({
+        traceback = traceback,
+        catched = catched == true,
+        enabled_mods = enabled_mods,
+        mod = mod,
     }), ...)
 end

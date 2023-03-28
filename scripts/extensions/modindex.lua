@@ -18,9 +18,10 @@ local KnownModIndex = KnownModIndex
 -- [[ Constants ]]
 ---------------------------
 
-local MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST
-local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST
-local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST and not table.empty(PEARL.CONFIG.MOD_ALLOWLIST)
+-- Allowlists and blocklists can be empty.
+local MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST or {}
+local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST or {}
+local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST
 local MAX_REPORTS   = 25
 
 ---------------------------

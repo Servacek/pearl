@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.1.2c"
+version = "2.2b-rel"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -602,5 +602,15 @@ configuration_options = {
         zip = true,
         public = true,
         implicit = true,
+    },
+
+    {
+        name="HEALTH_INFO",
+        default = {
+            ENABLED = false,
+            TAGS = {},
+        },
+        type = "table",
+        public = true,
     },
 }

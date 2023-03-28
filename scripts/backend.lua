@@ -481,6 +481,7 @@ ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enable
 ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
+ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

@@ -187,7 +187,7 @@ function Reporter:ReportCatchedLuaError(traceback)
     -- self._reported[#self._reported+1] = error_id
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED:format(
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
     )))
 end

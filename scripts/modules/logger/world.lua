@@ -158,9 +158,10 @@ local function OnPlayerMigrating(self, data)
         return
     end
 
+    local to_master = data.worldid == SHARDID.MASTER
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
-        data.player:GetDisplayName(), PEARL.GetShardFancyName()
-    ), self.ismastershard and PEARL.ICONS.PLAYER_STATE.CAVE_ENTER or PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE)
+        data.player:GetDisplayName(), PEARL.GetShardFancyName(data.worldid)
+    ), to_master and PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE or PEARL.ICONS.PLAYER_STATE.CAVE_ENTER)
 end
 
 local function OnPlayerDespawnAndDelete(self, player)

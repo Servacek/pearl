@@ -19,6 +19,9 @@ PEARL.AddPrefabPostInit("heatrock", function(inst)
         return
     end
 
+    inst.components.fueled.fueltype = FUELTYPE.MAGIC
     inst.components.fueled:SetDepletedFn(nil)
     inst.components.fueled:MakeEmpty()
+
+    inst:AddTag("hide_percentage")
 end)

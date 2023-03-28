@@ -153,6 +153,8 @@ end
 PEARL.info("Loading game extensions...")
 PEARL.loadfile("extensions/modindex")
 
+PEARL.loadfile("extensions/scripts/entityscript")
+
 ----------------------------------
 -- UI Extensions
 ----------------------------------
@@ -173,6 +175,7 @@ ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
+ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
         -- Only load the modblocker if we have any mods enabled.

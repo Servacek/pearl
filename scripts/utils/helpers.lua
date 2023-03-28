@@ -314,9 +314,9 @@ end
 -- [[ Getters/Checks ]]
 --------------------------------
 
-function PEARL.GetShardFancyName()
+function PEARL.GetShardFancyName(id)
     return PEARL.CONFIG.SHARD_NAME or
-        (TheShard:IsMaster() and STRINGS.PEARL.SHARDS.MASTER) or
+        ((TheShard:IsMaster() or id == SHARDID.MASTER) and STRINGS.PEARL.SHARDS.MASTER) or
         (TheShard:IsSecondary() and STRINGS.PEARL.SHARDS.SECONDARY) or
         STRINGS.PEARL.SHARDS.UNKNOWN
 end
