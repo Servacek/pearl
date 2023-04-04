@@ -67,6 +67,10 @@ function KnownModIndex:IsModPrivate(modname)
 end
 
 function KnownModIndex:IsModAllowed(modname)
+    if TheNet:GetIsServerAdmin() then
+        return true -- All mods are allowed for admins
+    end
+
     -- ALWAYS block private mods since all the other checks can be bypassed
     return not self:IsModPrivate(modname) and (
         not self:IsClientOnlyMod(modname) or (

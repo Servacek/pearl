@@ -188,10 +188,10 @@ local function OnInputAny()
     end
 end
 
-TheInput:AddKeyHandler(OnInputAny) -- Key presses and releases
-TheInput:AddTextInputHandler(OnInputAny) -- Typing inside chat for example
-TheInput:AddMouseButtonHandler(OnInputAny) -- Clicking mouse buttons
-TheInput:AddMoveHandler(OnInputAny) -- Moving the cursor
+-- This handles all controll buttons the game can use for all controllers (mouse, joystick, keyboard, ...)
+-- Even for chats and consoles.
+PEARL.AddClassFunctionPreCall("OnControl", OnInputAny, TheInput)
+TheInput:AddMoveHandler(OnInputAny) -- Moving the cursor with a mouse
 
 --------------------------------------
 -- [[ Connection Handlers ]]

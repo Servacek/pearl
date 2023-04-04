@@ -458,26 +458,26 @@ end)
 
 -- Note: This causes quite a lot of spam when using some mods
 -- like Too Many Items etc...
-local function oncommandexecuted(doer, fnstr)
-    -- It's totally normal when the command is just an empty string.
-    -- This happens for example when you just open and then close the console.
-    if not doer or not (type(fnstr) == "string" and #fnstr > 0) then
-        return
-    end
+-- local function oncommandexecuted(doer, fnstr)
+--     -- It's totally normal when the command is just an empty string.
+--     -- This happens for example when you just open and then close the console.
+--     if not doer or not (type(fnstr) == "string" and #fnstr > 0) then
+--         return
+--     end
 
-    -- Ignore commands from the server owner.
-    if TheNet:GetUserID() == doer.userid then
-        return
-    end
+--     -- Ignore commands from the server owner.
+--     if TheNet:GetUserID() == doer.userid then
+--         return
+--     end
 
-    if #fnstr > MAX_COMMAND_LENGTH then
-        fnstr = fnstr:ltake(MAX_COMMAND_LENGTH, nil, "...")
-    end
+--     if #fnstr > MAX_COMMAND_LENGTH then
+--         fnstr = fnstr:ltake(MAX_COMMAND_LENGTH, nil, "...")
+--     end
 
-    PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
-        doer:GetDisplayName(), fnstr
-    ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
-end
+--     PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
+--         doer:GetDisplayName(), fnstr
+--     ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
+-- end
 
 local function ontookrareitem(doer, item)
     if not (doer and item) then
@@ -531,7 +531,7 @@ PEARL.AddPlayerPostInit(function(player)
     player:ListenForModEvent("tookrarecontainer", ontookrarecontainer)
     player:ListenForModEvent("finishedlooting", onfinishedlooting)
 
-    if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
-        player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
-    end
+    -- if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
+    --     player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
+    -- end
 end)

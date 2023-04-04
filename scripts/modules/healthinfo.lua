@@ -70,7 +70,7 @@ end, Health)
 -- We use a class-post-construct because a regular component-post-init
 -- doesn't work for replicated components.
 PEARL.AddClassPostConstruct("components/health_replica", function(self, inst)
-    if not inst:HasOneOfTags(PEARL.CONFIG.HEALTH_INFO.TAGS) then
+    if not (table.empty(PEARL.CONFIG.HEALTH_INFO.TAGS) or inst:HasOneOfTags(PEARL.CONFIG.HEALTH_INFO.TAGS)) then
         return
     end
 
