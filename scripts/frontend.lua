@@ -190,9 +190,6 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
         "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
     )
-    ModuleManager:AddModule(
-        "inventorymanager", true
-    )
 end
 
 ModuleManager:LoadAllModules()
