@@ -160,7 +160,7 @@ local function OnPlayerMigrating(self, data)
 
     local to_master = data.worldid == SHARDID.MASTER
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
-        data.player:GetDisplayName(), PEARL.GetShardFancyName(data.worldid)
+        data.player:GetDisplayName(), PEARL.GetShardFancyNameByID(data.worldid)
     ), to_master and PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE or PEARL.ICONS.PLAYER_STATE.CAVE_ENTER)
 end
 

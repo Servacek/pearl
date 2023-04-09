@@ -389,6 +389,20 @@ end)
 -- [[ Frontend Stuff ]]
 --------------------------------
 
+function PEARL.RegisterAnnouncementType(type)
+    if not PEARL.CONSTS.ANNOUNCEMENT_TYPES then
+        PEARL.CONSTS.ANNOUNCEMENT_TYPES = {}
+    end
+
+    PEARL.CONSTS.ANNOUNCEMENT_TYPES[string.upper(type)] = type
+end
+
+function PEARL.RegisterDefaultAnnouncementTypes()
+    for type, _ in pairs(ANNOUNCEMENT_ICONS) do
+        PEARL.RegisterAnnouncementType(type)
+    end
+end
+
 function PEARL.AddAnnouncementCategory(name, icon)
     assert(ANNOUNCEMENT_ICONS, "ANNOUNCEMENT_ICONS is nil!")
 
@@ -398,11 +412,7 @@ function PEARL.AddAnnouncementCategory(name, icon)
         }
     end
 
-    if not PEARL.CONSTS.ANNOUNCEMENT_TYPES then
-        PEARL.CONSTS.ANNOUNCEMENT_TYPES = {}
-    end
-
-    PEARL.CONSTS.ANNOUNCEMENT_TYPES[string.upper(name)] = name
+    PEARL.RegisterAnnouncementType(name)
 end
 
 function PEARL.RemoveAllLoadingTips()

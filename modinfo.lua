@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "2.2c-event" -- "Review 2.3"
+version = "Review 2.4"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -251,6 +251,16 @@ configuration_options = {
 
     {
         name="REPORT_BAD_SERVER_LATENCY",
+        default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    {
+        name="SEND_KLEI_METRICS",
         default=true,
         options = {
             true,

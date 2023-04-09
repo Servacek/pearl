@@ -63,7 +63,8 @@ function KnownModIndex:IsModBlocklisted(modname)
 end
 
 function KnownModIndex:IsModPrivate(modname)
-    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
+    --- @TODO: Disabling this for now because it seems to be very unreliable.
+    return not IsWorkshopMod(modname) --or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
 end
 
 function KnownModIndex:IsModAllowed(modname)

@@ -70,40 +70,6 @@ local SHARD_RPCS = {
 --- These RPCS are called from the clients so additional security checks are needed.
 --- userid is being supplied by the game's RPC manager so that should be safe.
 local SERVER_USERID_RPCS = {
-    --- @TODO: Handle secondary shards receiving this data. Redirect them to Master?
-    --- We need this data on the Master shard as well...
-    ConnectionFilterData = function(userid, data)
-        if not checkstring(data) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
-        end
-
-        -- All the data is untrusted in this case.
-        local data_tbl = DecodeAndUnzipString(data)
-        if not data_tbl or IsTableEmpty(data_tbl) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
-        end
-
-        --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
-
-        PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
-
-        -- Broadcast the CFD to all connected shards so they have the fresh info as well.
-        PEARL.SendRPCToShard(
-            PEARL.RPC.ClientCFDRecevied, nil, userid, data
-        )
-    end,
-
-    ClientDisconnected = function(userid, reason, force)
-        if not (optstring(reason) and optbool(force)) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
-        end
-
-        PEARL.debug("RPC: ClientDisconnected", reason, force)
-        PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
-    end,
-
-    --- @TODO: Maybe this should use PEARL.AnnounceWithType as well
-    --- so the announcement can be disabled in the settings.
     AFKStateChanged = function(userid, is_afk, kicked)
         if not (optbool(is_afk) and optbool(kicked)) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("AFKStateChanged", userid)
@@ -119,18 +85,17 @@ local SERVER_USERID_RPCS = {
         local entity = player and player.entity or nil
         if kicked then
             -- Make sure we close the connection
+            --- @TODO: This logs two times.
             PEARL.ServerNetwork:SendUserDisconnectFor(userid, "ID_DST_USER_INACTIVE")
 
-            return TheNet:Announce(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
+            return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
-            ), entity, nil, "kicked_from_game")
+            ), PEARL.ANNOUNCEMENT_TYPES.KICKED_FROM_GAME, entity)
         end
 
-        -- Since it's an announcement,
-        -- it will be logged to discord automatically.
-        TheNet:Announce((is_afk and STRINGS.PEARL.LOGS.USER_INACTIVE or STRINGS.PEARL.LOGS.USER_ACTIVE):format(
-            name
-        ), entity, nil, is_afk and "afk_start" or "afk_stop")
+        local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
+        local type = PEARL.ANNOUNCEMENT_TYPES[is_afk and "AFK_START" or "AFK_STOP"]
+        return PEARL.AnnounceWithType(message:format(name), type, entity)
     end,
 
     --- @TODO: Maybe move this somewhere else?
@@ -175,22 +140,29 @@ function PEARL.SendRawRPCToServer(rpc_id, ...)
     return SendRPCToServer(rpc_id, ...)
 end
 
--- Used for adding RPCs without the need to register a namespace.
--- Valid RPC codes are from the range of 0 to 63.
---
--- Note: Currently, it looks like the only free RPC code is 0.
---       So just one raw RPC for now :/
-function PEARL.AddRawServerRPC(name, fn, useridrpc)
-    local i = 0
+function PEARL.AddRawServerRPCHandler(name, fn, useridrpc)
+    local i = #RPC_HANDLERS + 1
     assert(RPC_HANDLERS[i] == nil)
 
     RPC_HANDLERS[i] = fn
     PEARL.RPC[name] = i
     RAW_RPCS[i] = fn
 
-    if useridrpc == true then
+    if fn and useridrpc == true then
         USERID_RPCS[fn] = true
     end
+end
+
+function PEARL.RegisterRawServerRPC(name)
+    local i = #RPC_HANDLERS + 1
+    assert(RPC_HANDLERS[i] == nil)
+
+    RPC_HANDLERS[i] = function() end
+    PEARL.RPC[name] = i
+end
+
+function PEARL.AddRawServerUseridRPCHandler(name, fn)
+    PEARL.AddRawServerRPCHandler(name, fn, true)
 end
 
 --------------------------

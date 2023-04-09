@@ -48,11 +48,21 @@ local function GetColour(percent)
 end
 
 local function OnHealthPercentDirty(inst)
+    -- Make sure we still have the health component
+    -- because it can be removed during runtime.
+    if not inst.replica or not inst.replica.health then
+        return
+    end
+
+    if not inst.replica.health._max or not inst.replica.health._percent then
+        return
+    end
+
     inst.replica.health._current = inst.replica.health._max:value() * inst.replica.health._percent:value()
 end
 
 local function OnHealthDelta(self, data)
-    if self.replica.health._percent:value() ~= data.newpercent then
+    if self.replica.health and self.replica.health._percent:value() ~= data.newpercent then
         self.replica.health._percent:set(data.newpercent)
     end
 end
