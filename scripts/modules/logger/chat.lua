@@ -20,13 +20,20 @@ local GetSkinDescription, GetSkinName, GetColorForItem, UserToName = GetSkinDesc
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
+local UserCommands = require("usercommands")
+
 -----------------------------
 -- [[ Networking Handlers ]]
 -----------------------------
 
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
     -- Ignore emote commands
-    if not (userid and cmd and guid) or PEARL.IsEmoteCommand(cmd) then
+    if not (userid and cmd and guid) then
+        return
+    end
+
+    local command = UserCommands.GetCommandFromName(cmd)
+    if not command or command.emote then
         return
     end
 

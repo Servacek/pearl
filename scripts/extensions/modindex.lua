@@ -18,9 +18,10 @@ local KnownModIndex = KnownModIndex
 -- [[ Constants ]]
 ---------------------------
 
-local MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST
-local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST
-local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST and not table.empty(PEARL.CONFIG.MOD_ALLOWLIST)
+-- Allowlists and blocklists can be empty.
+local MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST or {}
+local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST or {}
+local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST
 local MAX_REPORTS   = 25
 
 ---------------------------
@@ -67,6 +68,10 @@ function KnownModIndex:IsModPrivate(modname)
 end
 
 function KnownModIndex:IsModAllowed(modname)
+    if TheNet:GetIsServerAdmin() then
+        return true -- All mods are allowed for admins
+    end
+
     -- ALWAYS block private mods since all the other checks can be bypassed
     return not self:IsModPrivate(modname) and (
         not self:IsClientOnlyMod(modname) or (

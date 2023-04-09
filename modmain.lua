@@ -35,19 +35,6 @@
     - Be carefull with declaring some of DST specific globals as locals on the
       start of a file, because some of them may not be loaded yet and refer to nil.
 
-    - 'moderror' function is being called when the mod crashes. Sadly when
-      this function is called it's too late for use
-      to send that information to discord.
-
-        local _moderror = _G.moderror
-        _G.moderror = function(...)
-            SUB.error("MOD ERROR!!!")
-
-            SUB.Rhook:SendErrorReport("ERROR")
-
-            return _moderror(...)
-        end
-
     - Always pass discord ids as string since the newer ones do not fit in 64 bits
 
     - pcall will return false if there was thrown an error before.
@@ -138,6 +125,7 @@ GLOBAL.PEARL = setmetatable({
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
     MODNAME             = modname,
+    MODID               = GetWorkshopIdNumber(modname),
     MOD_INFO            = KnownModIndex:GetModInfo(modname),
     RPC_NAME            = modname.."_rpc",
 

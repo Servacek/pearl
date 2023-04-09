@@ -23,7 +23,7 @@
 -- [[ Constants ]]
 --------------------------------
 
-local MOD_AFFLICTER_PATTERN = "%#?%[string \"../mods/(.*)/.*\"%]%:"
+local MOD_AFFLICTER_PATTERN = "%#?%[string \"../mods/([^/]+)/.*\"%]%:"
 
 --------------------------------
 -- [[ Locals ]]
@@ -34,18 +34,15 @@ local function TryGetAfflicterMod(traceback)
 end
 
 local function OnClientError(traceback)
-    --- @TODO:
-    -- local afflicter_modname = TryGetAfflicterMod(traceback)
-    -- local was_disabled = false
-    -- if afflicter_modname ~= PEARL.MODNAME and not KnownModIndex:IsModDisablingDisabled() then
-    --     PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
+    local afflicter_modname = TryGetAfflicterMod(traceback)
+    if afflicter_modname ~= PEARL.MODNAME and not KnownModIndex:IsModDisablingDisabled() and not KnownModIndex:IsModTempEnabled(afflicter_modname) then
+        PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
 
-    --     KnownModIndex:DisableBecauseBad(afflicter_modname)
-    --     was_disabled = true
-    -- end
+        KnownModIndex:DisableBecauseBad(afflicter_modname)
+    end
 
     PEARL.SendErrorTracebackToServer(
-        traceback --, afflicter_modname, was_disabled
+        traceback, false, afflicter_modname
     )
 
     if PEARL.ClientNetwork then
@@ -58,7 +55,7 @@ end
 
 local function OnServerError(traceback)
     if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
-        PEARL.DiscordReporter:ReportUncatchedLuaError(traceback)
+        PEARL.DiscordReporter:ReportUncatchedLuaError(traceback, TryGetAfflicterMod(traceback))
     else
         PEARL.error("DiscordReporter disabled or not initialized yet!")
     end
@@ -100,13 +97,37 @@ PEARL.AddRawServerRPCHandler("ClientError", function(userid, data)
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
     end
 
-    local traceback = TheSim:DecodeAndUnzipString(data)
-    if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
-        PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
+    if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
+        return
     end
+
+    local error_data = DecodeAndUnzipString(data)
+    if type(error_data) ~= "table" then
+        return PEARL.error("Failed to decode error data!")
+    end
+
+    PEARL.DiscordReporter:ReportClientLuaError(
+        userid, error_data
+    )
 end, true)
 
-function PEARL.SendErrorTracebackToServer(traceback, ...)
+function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname, ...)
     PEARL.info("Sending the error traceback to the server...")
-    PEARL.SendRawRPCToServer(PEARL.RPC.ClientError, TheSim:ZipAndEncodeString(traceback), ...)
+
+    local mod
+    local enabled_mods = ModManager:GetEnabledModNames()
+    if type(afflicter_modname) == "string" then
+        mod = {
+            id = GetWorkshopIdNumber(afflicter_modname),
+            fancyname = GetModFancyName(afflicter_modname),
+            disabled = not table.contains(enabled_mods, afflicter_modname)
+        }
+    end
+
+    PEARL.SendRawRPCToServer(PEARL.RPC.ClientError, ZipAndEncodeString({
+        traceback = traceback,
+        catched = catched == true,
+        enabled_mods = enabled_mods,
+        mod = mod,
+    }), ...)
 end

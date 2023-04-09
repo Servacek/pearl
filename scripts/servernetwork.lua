@@ -14,6 +14,8 @@
 
 --[[
     Mod server-side network.
+
+    This is like an higher level 'TheNet' for dedicated servers.
 --]]
 
 local Ents = Ents
@@ -39,18 +41,24 @@ local client_cache = {}
 local joining_clients = {}
 
 --- @class ServerNetwork
-local ServerNetwork = {
-    listing = TheNet:GetServerListing()
-}
+local ServerNetwork = {}
 
 ----------------------------------
 -- Public Functions
 ----------------------------------
 
---- @TODOv2.1
--- function ServerNetwork:BroadcastLuaToShards()
+--- Sends the given lua string to all connected shards (except the sender).
+function ServerNetwork:BroadcastLuaToShards(lua_str)
+    if not TheShard:IsMaster() then
+        return PEARL.error("Attempted to send arbitrary lua from a secondary shard!")
+    end
 
--- end
+    if not self:IsAnySecondaryShardConnected() then
+        return PEARL.error("No shards connected!")
+    end
+
+    return PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, self:GetConnectedShardIDs(), lua_str)
+end
 
 -- Called from server-side user command handlers.
 -- Sends a RPC to the client with the given userid.
@@ -124,8 +132,24 @@ function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
 end
 
+function ServerNetwork:IsAnySecondaryShardConnected()
+    return not IsTableEmpty(ShardList)
+end
+
+function ServerNetwork:GetConnectedShardIDs()
+    local ids = {}
+    for id, _ in pairs(ShardList) do
+        ids[#ids+1] = id
+    end
+
+    return ids
+end
+
+--- @TODO: Think of a better alternative.
+--- So far, this is the most reliable approach.
 function ServerNetwork:GetConnectedClientsCount()
-    return TheWorld.shard.components.shard_players:GetNumPlayers() + TheNet:GetPlayerCount()
+    -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
+    return #TheNet:GetClientTable() - 1
 end
 
 -- Sadly, this doesn't work...
@@ -140,6 +164,19 @@ function ServerNetwork:GetHostTable()
     return TheNet:GetClientTable()[1]
 end
 
+function ServerNetwork:GetUserFlags(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    return client and client.userflags
+end
+
+function ServerNetwork:HasUserAnyFlags(userid)
+    return self:GetUserFlags(userid) == 0
+end
+
+function ServerNetwork:HasUserFlag(userid, flag)
+    return checkbit(self:GetUserFlags(userid), flag)
+end
+
 function ServerNetwork:UserSessionExists(userid)
     return TheNet:GetUserSessionFile(TheNet:GetSessionIdentifier(), userid) ~= nil
 end
@@ -149,21 +186,25 @@ function ServerNetwork:IsUserConnected(userid)
     return userid and TheNet:GetClientTableForUser(userid) ~= nil
 end
 
--- Careful with this, this is not very precise
-function ServerNetwork:IsClientJoining(userid)
-    -- local client = TheNet:GetClientTableForUser(userid)
-    -- return client and (
-    --     client.playerage == 0 and
-    --     client.prefab == "" and
-    --     client.lobbycharacter == ""
-    -- ) or false
+function ServerNetwork:IsClientInactive(userid)
+    return self:HasUserFlag(userid, USERFLAGS.IS_AFK)
+end
 
+function ServerNetwork:IsClientGhost(userid)
+    return self:HasUserFlag(userid, USERFLAGS.IS_GHOST)
+end
+
+function ServerNetwork:IsClientLoading(userid)
+    return self:HasUserFlag(userid, USERFLAGS.IS_LOADING)
+end
+
+function ServerNetwork:IsClientJoining(userid)
     return joining_clients[userid] == true
 end
 
 function ServerNetwork:IsAdmin(userid)
-    local client = self:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    return client.admin == true
+    local client = TheNet:GetClientTableForUser(userid)
+    return client and client.admin == true or PEARL.AdminList:Contains(userid)
 end
 
 function ServerNetwork:IsClientTrusted(userid)
@@ -205,35 +246,33 @@ function ServerNetwork:CacheClientCFDFor(userid, cfd)
     conn_data_cache[userid] = cfd
 end
 
-function ServerNetwork:StartTimeoutFor(userid)
-    PEARL.debug("ServerNetwork:StartTimeoutFor", userid)
+-- function ServerNetwork:StartTimeoutFor(userid)
+--     PEARL.debug("ServerNetwork:StartTimeoutFor", userid)
 
-    if timeouts[userid] then
-        return
-    end
+--     if timeouts[userid] then
+--         return
+--     end
 
-    timeouts[userid] = PEARL.WallScheduler:ExecuteInTime(
-        PEARL.CONFIG.AUTH_TIMEOUT, self.OnClientConnectionTimeout, nil, self, userid
-    )
-end
+--     timeouts[userid] = PEARL.WallScheduler:ExecuteInTime(
+--         PEARL.CONFIG.AUTH_TIMEOUT, self.OnClientConnectionTimeout, nil, self, userid
+--     )
+-- end
 
-function ServerNetwork:CancelTimeoutFor(userid)
-    PEARL.debug("ServerNetwork:CancelTimeoutFor", userid)
+-- function ServerNetwork:CancelTimeoutFor(userid)
+--     PEARL.debug("ServerNetwork:CancelTimeoutFor", userid)
 
-    if timeouts[userid] ~= nil then
-        timeouts[userid]:cancel()
-        timeouts[userid] = nil
-    end
-end
+--     if timeouts[userid] ~= nil then
+--         timeouts[userid]:cancel()
+--         timeouts[userid] = nil
+--     end
+-- end
 
 ----------------------------------
 -- Handlers
 ----------------------------------
 
-function ServerNetwork:OnClientConnectionTimeout(userid)
-    self:CancelTimeoutFor(userid)
-
-    PEARL.warn("Client", userid, "didn't send connection data on time!")
+function ServerNetwork:OnClientFilterDataFailed(userid)
+    PEARL.warn("Client", userid, "didn't send connection filter data to the server!")
     if PEARL.DiscordReporter then
         PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT:format(
             userid
@@ -253,13 +292,15 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
 end
 
 function ServerNetwork:OnClientDisconnected(userid)
-    self:CancelTimeoutFor(userid)
-
     joining_clients[userid] = nil
 end
 
 function ServerNetwork:OnClientJoined(userid)
     self:CacheClientTableFor(userid)
+
+    if self:IsClientJoining(userid) and self:GetCachedCFDFor(userid) == nil then
+        self:OnClientFilterDataFailed(userid)
+    end
 
     joining_clients[userid] = nil
 end
@@ -270,9 +311,6 @@ function ServerNetwork:OnClientJoining(userid)
     end
 
     joining_clients[userid] = true
-
-    -- Starting the timeout only makes sense if the client is joining the server.
-    self:StartTimeoutFor(userid)
 end
 
 function ServerNetwork:OnClientAuthenticationComplete(userid)
@@ -283,8 +321,6 @@ end
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
     PEARL.debug(DataDumper(cfd))
-
-    self:CancelTimeoutFor(userid)
 
     -- Always keep just the newest record
     -- This is here just to make sure the data are being cached in case the RCP fails.
@@ -395,10 +431,10 @@ PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
 
 -- Filter out prohibited commands recevied by the server.
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
-    return PEARL.IsAdminUserid(userid) or PEARL.IsCommandAllowed(cmd)
+    return ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.COMMAND_BLOCKLIST[cmd] ~= true
 end)
 
--- We want to have full control over this function.
+-- We want to have full control over this function on servers.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     local saved_ThePlayer
     if guid ~= nil then
@@ -462,6 +498,11 @@ PEARL.AddWorldPostInit(function(world)
 
     -- Mod Events
     world:ListenForModEvent("clientconnectionclosed", function(self, data)
+        if not data and not data.userid then
+            return
+        end
+
+        ServerNetwork:OnClientDisconnected(data.userid)
         PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
 end)

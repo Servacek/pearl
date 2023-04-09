@@ -37,7 +37,7 @@ local MessageBuffer = Class(Message, function(self)
     --- @type Message
     self._message = Message()
     self._timeout = 0
-    --- @type Task
+    --- @type Task?
     self._task = nil
 
     --- @type function?
@@ -46,6 +46,9 @@ local MessageBuffer = Class(Message, function(self)
     -- Pre-Allocation
     self._loglines = table.create(LOGLINE_ALLOC)
     self._embeds = table.create(EMBED_ALLOC)
+
+    --- @type integer?
+    self._flags = nil
 end)
 
 -------------------------------------

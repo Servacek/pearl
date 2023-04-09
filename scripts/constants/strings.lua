@@ -167,11 +167,15 @@ STRINGS.PEARL = {
         DAY                     = "Day %d - %s (%s °C) - %d/%d Players",
         PHASE                   = "%s",
 
+        PRECIPITATION_START     = "It started %s!",
+        PRECIPITATION_STOP      = "It stopped %s.",
+
         START_VOTE              = "%s started %s.",
         START_VOTE_ANONYMOUS    = "%s started.",
         STOP_VOTE               = "The vote was stopped.",
 
-        NEW_PLAYER_SPAWN        = "%s entered the constant as %s",
+        NEW_PLAYER_SPAWN        = "%s entered the constant as %s!",
+        PLAYER_DESPAWN          = "%s left the constant as %s.",
 
         RESET_COUNTDOWN_START   = "World reset countdown has started! The server will be regenerated in %s seconds.",
         RESET_COUNTDOWN_STOP    = "World reset countdown has stopped.",
@@ -212,19 +216,21 @@ STRINGS.PEARL = {
         -- We assume that catched exceptions are always caused by us.
         EXC_CATCHED_SERVER      = "Catched exception on server %s:\n%s",
         EXC_CATCHED_SHARD       = "Catched exception on shard %s:\n%s",
-        EXC_CATCHED_CLIENT      = "Catched exception on client %s:\n%s",
+        EXC_CATCHED_CLIENT      = "Catched exception on client (%s) %s:\n%s",
 
         EXC_SERVER              = "Uncatched exception:\n%s",
         EXC_SHARD               = "Uncatched exception on shard %s:\n%s",
-        EXC_CLIENT              = "Uncatched exception on client %s:\n%s",
+        EXC_CLIENT              = "Uncatched exception on client (%s) %s:\n%s",
 
         EXC_SELF_SERVER         = "Caused uncatched exception:\n%s",
         EXC_SELF_SHARD          = "Caused uncatched exception on shard %s:\n%s",
-        EXC_SELF_CLIENT         = "Caused uncatched exception on client %s:\n%s",
+        EXC_SELF_CLIENT         = "Caused uncatched exception on client (%s) %s:\n%s",
 
         EXC_MOD_SERVER          = "Mod %s caused uncatched exception:\n%s",
         EXC_MOD_SHARD           = "Mod %s caused uncatched exception on shard %s:\n%s",
-        EXC_MOD_CLIENT          = "Mod %s caused uncatched exception on client %s:\n%s",
+        EXC_MOD_CLIENT          = "Mod %s caused uncatched exception on client (%s) %s:\n%s",
+
+        EXC_ENABLED_MODS        = "Enabled Mods (%s):\n%s",
 
         AFFLICTER_MOD_DISABLED  = "The crashed mod was disabled.",
         HTTP_ERROR              = "HTTP Error status code on shard %s:\n%s",
@@ -268,6 +274,12 @@ STRINGS.PEARL = {
         ["summer"] = "Early",
         ["autumn"] = "Early",
         ["winter"] = "Early",
+    },
+
+    PRECIPITATION_NAMES = {
+        ["rain"] = "raining",
+        ["snow"] = "snowing",
+        ["none"] = "no precipitation",
     },
 
     -- Create a copy of the game's seasons so we do not modify the actual table when translating

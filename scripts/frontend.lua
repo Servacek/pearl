@@ -132,16 +132,17 @@ PEARL.loadfile("constants/strings")
     <controltipdata> is a table containing input control bindings to be used in the tip string. Refer to LOADING_SCREEN_CONTROL_TIP_KEYS in constants.lua and LOADING_SCREEN_CONTROL_TIPS in strings.lua for an example usage.
 ]]
 -- Loading screen tips setup
-if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" then
+if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
     if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
         PEARL.info("Removing default loading tips...")
         PEARL.RemoveAllLoadingTips()
     end
 
-    PEARL.info("Loading custom loading tips...")
-    for _, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
+    PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
+    for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
         local type = PEARL.CONSTS.LT_TYPES[lt.type] or PEARL.CONSTS.LT_TYPES["other"]
-        PEARL.AddLoadingTip(type, lt.name, lt.text, lt.data)
+        local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
+        PEARL.AddLoadingTip(type, name, lt.text, lt.data)
     end
 end
 
@@ -151,6 +152,8 @@ end
 
 PEARL.info("Loading game extensions...")
 PEARL.loadfile("extensions/modindex")
+
+PEARL.loadfile("extensions/scripts/entityscript")
 
 ----------------------------------
 -- UI Extensions
@@ -172,6 +175,7 @@ ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
+ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
         -- Only load the modblocker if we have any mods enabled.

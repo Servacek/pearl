@@ -62,6 +62,7 @@ return {
 
         -- Unknown character
         [""] =              "<:unknown:990652780496695406>",
+        unknown =           "<:unknown:990652780496695406>",
 
         -- Server
         ["server"] =        "<:dedicated:1001104949524041788>",

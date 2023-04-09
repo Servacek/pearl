@@ -15,7 +15,6 @@
 --- @TODO: Think about a way to reduce duplication here...
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
-local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
@@ -131,7 +130,7 @@ end
 --- The reporter will be disabled after calling this for safety reasons.
 --- We expect that the server will shutdown after an uncatched error.
 --- @param traceback string
-function Reporter:ReportUncatchedLuaError(traceback)
+function Reporter:ReportUncatchedLuaError(traceback, modname)
     if type(traceback) ~= "string" or self:IsDisabled() then
         return
     end
@@ -139,10 +138,37 @@ function Reporter:ReportUncatchedLuaError(traceback)
     -- Disable to prevent any looping since these reports are sent by force.
     self:SetIsDisabled(true)
 
+    local mod_fancyname = modname and GetModFancyName(modname)
+    local mod_id = modname and GetWorkshopIdNumber(modname)
+    local mod_self = mod_id == PEARL.MODID
+
+    local content
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_SHARD:format(
-        MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
-    )), true) -- Force-send uncatched errors.
+    if modname and not mod_self then
+        content = STRINGS.PEARL.LOGS.EXC_MOD_SHARD:format(
+            MARKDOWN.hlink(MARKDOWN.codeline(mod_fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(mod_id)),
+            MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
+        )
+    else
+        content = (STRINGS.PEARL.LOGS[mod_self and "EXC_SELF_SHARD" or "EXC_SHARD"]):format(
+            MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
+        )
+    end
+
+    return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
+        :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS), true
+    )
+
+    -- if modname then
+    --     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_MOD_SERVER:format(
+    --         MARKDOWN.hlink(MARKDOWN.codeline(mod_fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(mod_id)),
+    --         traceback
+    --     )), true) -- Force-send uncatched errors.
+    -- end
+
+    -- return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_SERVER:format(
+    --     traceback
+    -- )), true) -- Force-send uncatched errors.
 end
 
 --- @param traceback string
@@ -161,33 +187,56 @@ function Reporter:ReportCatchedLuaError(traceback)
     -- self._reported[#self._reported+1] = error_id
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED:format(
+    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
     )))
 end
 
 --- @param userid string The identifier of the client where the error happened on.
---- @param traceback string
-function Reporter:ReportUncatchedClientLuaError(userid, traceback, afflicter, was_disabled)
-    if type(traceback) ~= "string" or self:IsDisabled() then
+--- @param data table The error data.
+function Reporter:ReportClientLuaError(userid, data)
+    if type(data) ~= "table" or self:IsDisabled() then
         return
     end
 
-    -- We have caused this error!
-    --local self_afflicter = afflicter == PEARL.MODNAME
+    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
+    local client_name = client.name or "UNKNOWN"
 
-    traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    local message = Message(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CLIENT:format(
-        MARKDOWN.codeline(userid), traceback
-    )))
+    local self_afflicter = type(data.mod) == "table" and data.mod.id == PEARL.MODID
+    local pattern = (
+        (self_afflicter and STRINGS.PEARL.LOGS.EXC_SELF_CLIENT) or
+        (data.catched and STRINGS.PEARL.LOGS.EXC_CATCHED_CLIENT) or
+        STRINGS.PEARL.LOGS.EXC_CLIENT
+    )
 
-    -- If the client has some mods enabled, send that info to the server as well.
-    local client_cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
-    if type(client_cfd) == "table" and not IsTableEmpty(client_cfd) then
-        message:AddEmbed(EMBEDS.ClientMods(client_cfd.enabled_mods, client_cfd.username))
+    local content
+    local traceback = MARKDOWN.codeblock(type(data.traceback) == "string" and
+        data.traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "...") or "NO TRACEBACK",
+    "lua")
+
+    if type(data.mod) == "table" and not self_afflicter then
+        content = STRINGS.PEARL.LOGS.EXC_MOD_CLIENT:format(
+            MARKDOWN.hlink(
+                MARKDOWN.codeline(data.mod.fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(data.mod.id)
+            ), MARKDOWN.codeline(userid), MARKDOWN.codeline(client_name), traceback
+        )
+    else
+        content = pattern:format(MARKDOWN.codeline(userid), MARKDOWN.codeline(client_name), traceback)
     end
 
-    return self:SendRawReportMessage(message)
+    if type(data.enabled_mods) == "table" and #data.enabled_mods > 0 then
+        content = content..STRINGS.PEARL.LOGS.EXC_ENABLED_MODS:format(
+            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.codeline(table.concat(data.enabled_mods, ", "))
+        )
+
+        if type(data.mod) == "table" and data.mod.disabled then
+            content = content.."\n\n"..STRINGS.PEARL.LOGS.AFFLICTER_MOD_DISABLED
+        end
+    end
+
+    return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
+        :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
+    )
 end
 
 -------------------------------------

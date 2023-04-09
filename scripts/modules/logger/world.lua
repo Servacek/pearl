@@ -69,6 +69,22 @@ local function OnPhaseChanged(world, phase)
     ), moonphase_icon)
 end
 
+local prev_prec = "none"
+local function OnPrecipitationChanged(world, precipitation)
+    if not precipitation or precipitation == prev_prec then
+        return
+    end
+
+    local started = precipitation ~= "none"
+    local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[(started and precipitation or prev_prec)]
+
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
+        prec_name
+    ))
+
+    prev_prec = precipitation
+end
+
 -------------------------------
 -- [[ Client State Handlers ]]
 -------------------------------
@@ -135,16 +151,6 @@ local function OnClientDisconnected(userid, expected, reason)
             name, PEARL.GetShardFancyName(), userid
     ))
 end
-
---- @TODO: v2.1
--- local function Logger.OnPlayerWarnedForGriefing(name)
---     if not name then return end
-
---     PEARL.Logger:LogString(
---         STRINGS.PEARL.LOGS.WARNED:format(name),
---         PEARL.ICONS.ANNOUNCEMENTS["default"]
---     )
--- end
 
 -- data.player, data.portalid, data.worldid
 local function OnPlayerMigrating(self, data)
@@ -225,7 +231,7 @@ local function OnNewPlayerSpawn(self, player)
 
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN:format(
         player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
-    ), PEARL.ICONS.PLAYER_PREFABS[player.prefab])
+    ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
 
     local cfd = PEARL.ServerNetwork:GetCachedCFDFor(player.userid)
     if not cfd or not cfd.novice == true then
@@ -235,15 +241,14 @@ local function OnNewPlayerSpawn(self, player)
     -- Send a nice welcome message for novices.
     local welcome_msg_template = STRINGS.PEARL.NOVICE_ANNOUNCEMENTS[math.random(1, #STRINGS.PEARL.NOVICE_ANNOUNCEMENTS)]
     local welcome_msg = welcome_msg_template:format(player:GetDisplayName())
-    if #AllPlayers > 1 then
+    if PEARL.ServerNetwork:GetConnectedClientsCount() > 1 then
+        -- Only announce it if there are more people on the server.
         return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
     end
 
-    if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
-        return PEARL.DiscordLogger:LogString(
-            welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
-        )
-    end
+    return PEARL.DiscordLogger:LogString(
+        welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
+    )
 end
 
 --- Note: This seems to be a bit spammy.
@@ -330,6 +335,7 @@ PEARL.AddWorldPostInit(function(world)
             -- We care about these event's only on the master shard
             world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
             world:SafeListenForEvent("phasechanged", OnPhaseChanged)
+            world:SafeListenForEvent("precipitationchanged", OnPrecipitationChanged)
 
             world:SafeListenForEvent("showworldreset", OnResetCountDownStart)
             world:SafeListenForEvent("hideworldreset", OnResetCountDownStop)
@@ -342,6 +348,7 @@ PEARL.AddWorldPostInit(function(world)
 
         world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
+        world:SafeListenForEvent("ms_playerdespawnanddelete", OnPlayerDespawnAndDelete)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
         world:SafeListenForEvent("ms_save", OnSaved)
 

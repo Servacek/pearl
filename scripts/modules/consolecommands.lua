@@ -18,6 +18,7 @@
 
 PEARL.OverrideVariable("c_inv", PEARL.LogInventoryFor)
 PEARL.OverrideVariable("c_fire", PEARL.ExtinguishFiresNearAll)
+PEARL.OverrideVariable("c_fireall", PEARL.ExtinguishAllFires)
 PEARL.OverrideVariable("c_repair", PEARL.RepairStructuresNearAll)
 PEARL.OverrideVariable("c_unban", PEARL.UnbanUserByID)
 PEARL.OverrideVariable("c_daysback", PEARL.RollbackByDays)

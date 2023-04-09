@@ -97,7 +97,7 @@ msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD"
 msgstr "Zachytená výnimka shardu %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_CLIENT"
-msgstr "Zachytená výnimka klienta %s:\n%s"
+msgstr "Zachytená výnimka klienta (%s) %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_SERVER"
 msgstr "Neočakávaná výnimka hry:\n%s"
@@ -106,7 +106,7 @@ msgctxt "STRINGS.PEARL.LOGS.EXC_SHARD"
 msgstr "Neočakávaná výnimka hry shardu %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_CLIENT"
-msgstr "Neočakávaná výnimka hry klienta %s:\n%s"
+msgstr "Neočakávaná výnimka hry klienta (%s) %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SERVER"
 msgstr "Neočakávaná výnimka modifikácie:\n%s"
@@ -115,7 +115,7 @@ msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SHARD"
 msgstr "Neočakávaná výnimka modifikácie shardu %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_CLIENT"
-msgstr "Neočakávaná výnimka modifikácie klienta %s:\n%s"
+msgstr "Neočakávaná výnimka modifikácie klienta (%s) %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_SERVER"
 msgstr "Mod %s spôsobil výnimku:\n%s"
@@ -124,7 +124,13 @@ msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_SHARD"
 msgstr "Mod %s spôsobil výnimku shardu %s:\n%s"
 
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_CLIENT"
-msgstr "Mod %s spôsobil výnimku klienta %s:\n%s"
+msgstr "Mod %s spôsobil výnimku klienta (%s) %s:\n%s"
+
+msgctxt "STRINGS.PEARL.LOGS.EXC_ENABLED_MODS"
+msgstr "Aktívne Mody (%s):\n%s"
+
+msgctxt "STRINGS.PEARL.LOGS.AFFLICTER_MOD_DISABLED"
+msgstr "Chybná modifikácia bola odstavená."
 
 msgctxt "STRINGS.PEARL.LOGS.INVALIDRPC"
 msgstr "Prijaté RPC %s od %s je neplatné!"
@@ -139,6 +145,9 @@ msgstr "%s bol/a odpojený/á od shardu %s ako %s."
 msgctxt "STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN"
 msgid "%s entered the constant as %s"
 msgstr "%s vstúpil/a do konštanty ako %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.PLAYER_DESPAWN"
+msgstr "%s opustil/a konštantu ako %s."
 
 msgctxt "STRINGS.PEARL.ACTIONS.FEED"
 msgid "%s feed %s with %s!"
@@ -157,6 +166,21 @@ msgstr "{doer} rozbil/a {target}! Majiteľ: {owner}"
 msgctxt "STRINGS.PEARL.LOGS.SAY"
 msgid "**%s**: %s"
 msgstr "**%s**: %s"
+
+msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.snow"
+msgstr "snežiť"
+
+msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.rain"
+msgstr "pršať"
+
+msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.none"
+msgstr "žiadne zrážky"
+
+msgctxt "STRINGS.PEARL.LOGS.PRECIPITATION_START"
+msgstr "Začalo %s!"
+
+msgctxt "STRINGS.PEARL.LOGS.PRECIPITATION_STOP"
+msgstr "Prestalo %s."
 
 msgctxt "STRINGS.PEARL.LOGS.AUTH"
 msgid "%s authenticated as %s"
@@ -332,7 +356,7 @@ msgid "%s started %s."
 msgstr "%s spustil %s."
 
 msgctxt "STRINGS.PEARL.LOGS.SHUTDOWN_ERROR"
-msgstr "Shard %s bol neočakávane ukončený kvôli neošetrenej výnimke..."
+msgstr "Shard %s bol neočakávane vypnutý kvôli neošetrenej výnimke..."
 
 msgctxt "STRINGS.PEARL.ACTIONS.BUILD.GENERIC"
 msgid "{doer} built {target}!"

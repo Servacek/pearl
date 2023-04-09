@@ -51,12 +51,14 @@ local SHARD_RPCS = {
     -- Used by the VersionChecker for shutting down secondary shards
     -- to synchronize the shutdown process on version mismatch.
     BroadcastLua = function(shard_id, luastring)
-        PEARL.info("Executing lua chunk from Master...")
-
-        local status, err = pcall(loadstring(luastring))
-        if not status then
-            PEARL.error(err)
+        if tostring(shard_id) ~= SHARDID.MASTER or TheShard:IsMaster() then
+            return PEARL.error("Got lua chunk from a secondary shard!")
         end
+
+        PEARL.info("Executing arbitrary lua chunk from Master...")
+        PEARL.SafeRun(function()
+            loadstring(luastring)()
+        end)
     end,
 
     ClientCFDRecevied = function(shard_id, userid, data)
@@ -88,11 +90,11 @@ local SERVER_USERID_RPCS = {
 
             return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
-            ), PEARL.ANNOUNCEMENT_TYPES.KICKED_FROM_GAME, entity)
+            ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KICKED_FROM_GAME, entity)
         end
 
         local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
-        local type = PEARL.ANNOUNCEMENT_TYPES[is_afk and "AFK_START" or "AFK_STOP"]
+        local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[is_afk and "AFK_START" or "AFK_STOP"]
         return PEARL.AnnounceWithType(message:format(name), type, entity)
     end,
 
@@ -121,17 +123,6 @@ local SERVER_USERID_RPCS = {
 
         -- Anounce it so it logs the message and also other players can see it as well.
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
-    end,
-
-    ClientError = function(userid, data, afflicter_modname, was_disabled)
-        if not checkstring(data) then --or not optstring(afflicter_modname) or not optbool(was_disabled) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
-        end
-
-        local traceback = TheSim:DecodeAndUnzipString(data)
-        if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
-            PEARL.DiscordReporter:ReportUncatchedClientLuaError(userid, traceback)
-        end
     end,
 }
 

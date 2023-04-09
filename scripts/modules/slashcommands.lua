@@ -108,14 +108,6 @@ AddCommand("fire", {
     slash = true,
 
     serverfn = function(params, caller)
-        -- if caller and caller.Transform then
-        --     PEARL.ExtinguishFiresNear(caller.Transform:GetWorldPosition())
-
-        --     return TheNet:Announce(STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(
-        --         caller:GetDisplayName()
-        --     ), caller.entity)
-        -- end
-
         PEARL.ExtinguishFiresNearAll()
 
         TheNet:Announce(STRINGS.PEARL.LOGS.EXTINGUISH_ALL:format(
