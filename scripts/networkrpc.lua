@@ -90,11 +90,11 @@ local SERVER_USERID_RPCS = {
 
             return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
-            ), PEARL.ANNOUNCEMENT_TYPES.KICKED_FROM_GAME, entity)
+            ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KICKED_FROM_GAME, entity)
         end
 
         local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
-        local type = PEARL.ANNOUNCEMENT_TYPES[is_afk and "AFK_START" or "AFK_STOP"]
+        local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[is_afk and "AFK_START" or "AFK_STOP"]
         return PEARL.AnnounceWithType(message:format(name), type, entity)
     end,
 
