@@ -404,6 +404,8 @@ PEARL.loadfile("error")
 -- [[ Load ]]
 --------------------------------
 
+PEARL.RegisterDefaultAnnouncementTypes()
+
 PEARL.AddAnnouncementCategory("ignite", "torch.tex")
 PEARL.AddAnnouncementCategory("burn", "fire.tex")
 PEARL.AddAnnouncementCategory("take", "backpack.tex")
@@ -434,10 +436,6 @@ PEARL.GameInstParams = PEARL.loadfile("instanceparams")
 --- TheNet:GetIsClient return's false when we disconnect.
 --- Looks like TheNet:IsDedicated works even without the network!
 if TheNet:IsDedicated() then
-    -- if PEARL.CONFIG.LAZY_LOAD_PREFABS then
-    --     PEARL.loadfile("modules/lazyloading")
-    -- end
-
     PEARL.info("Loading mod BE...")
     PEARL.loadfile("backend")
 

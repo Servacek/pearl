@@ -152,9 +152,20 @@ local function OnPlayerMigrating(self, data)
         return
     end
 
+    local to_master = data.worldid == SHARDID.MASTER
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.MIGRATING:format(
-        data.player:GetDisplayName(), self.ismastershard and STRINGS.PEARL.SHARDS.SECONDARY or STRINGS.PEARL.SHARDS.MASTER
-    ), self.ismastershard and PEARL.ICONS.PLAYER_STATE.CAVE_ENTER or PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE)
+        data.player:GetDisplayName(), PEARL.GetShardFancyNameByID(data.worldid)
+    ), to_master and PEARL.ICONS.PLAYER_STATE.CAVE_LEAVE or PEARL.ICONS.PLAYER_STATE.CAVE_ENTER)
+end
+
+local function OnPlayerDespawnAndDelete(self, player)
+    if not player then
+        return
+    end
+
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PLAYER_DESPAWN:format(
+        player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
+    ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end
 
 local function OnPlayerSpawnedInCaves(self, player)

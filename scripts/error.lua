@@ -95,7 +95,7 @@ end)
 -- RPC
 ----------------------------------
 
-PEARL.AddRawServerRPC("ClientError", function(userid, data)
+PEARL.AddRawServerRPCHandler("ClientError", function(userid, data)
     if not checkstring(data) then
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
     end

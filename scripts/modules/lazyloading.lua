@@ -18,21 +18,28 @@
 -- make the prefab be loaded before it is spawned.
 --]]
 
+local Prefabs = _G.Prefabs
+
+local _LoadPrefabs
+
 local function MakeLazyLoader(prefab)
-    print("MakeLazyLoader", prefab)
-    if type(prefab.fn) ~= "function" then
-		--Prefab's without a .fn get loaded immediatly, since its just assets for Skins
-        TheSim:UnloadPrefabs({prefab.name})
-		TheSim:LoadPrefabs({prefab.name})
+    -- Whether the prefab is already being lazy loaded.
+    if prefab._lazy then
+        return
     end
 
     local fn = prefab.fn
+    if type(fn) ~= "function" then
+		-- Prefab's without a .fn get loaded immediatly, since its just assets for Skins
+		return _LoadPrefabs(TheSim, {prefab.name})
+    end
+
     local current_fn
 
     local function new_fn(...)
-        print("LAZY LOADING PREFAB", prefab.name)
-        TheSim:UnloadPrefabs({prefab.name})
-        TheSim:LoadPrefabs({prefab.name})
+        PEARL.debug("LAZY LOADING PREFAB", prefab.name)
+
+        _LoadPrefabs(TheSim, {prefab.name})
 
         -- Ensures this only runs once, for efficiency.
         current_fn = fn
@@ -51,82 +58,30 @@ local function MakeLazyLoader(prefab)
     -- patching.
     --]]
     prefab.fn = function(...)
-        current_fn(...)
+        -- This is being modified from inside.
+        return current_fn(...)
     end
+
+    prefab._lazy = true
 end
 
 ------------------------------------------------------------------------
 
--- PEARL.AddUserDataFunctionPreCall("RegisterPrefabs", function(prefab)
---     for _, dep in ipairs(prefab.deps) do
---         print("LAZY LOAD")
---         MakeLazyLoader(Prefabs[dep])
---     end
+-- PEARL.AddGlobalFunctionPreCall("LoadPrefabFile", function(filename, ...)
+--     print(filename)
+-- end)
 
---     return false
--- end, TheSim)
-
--- local _LoadPrefabs
--- _LoadPrefabs = PEARL.AddUserDataFunctionPreCall("LoadPrefabs", function(self, prefabs)
---     print("TheSim:LoadPrefabs")
---     for _, prefab in ipairs(prefabs) do
---         if not Prefabs[prefab] then
---             _LoadPrefabs(TheSim, {prefab})
---         else
---             MakeLazyLoader(Prefabs[prefab])
---         end
---     end
-
---     return false
--- end, TheSim)
-
---- @TODO: Looks like this doesn't work anymore.
-local ModMananger_RegisterPrefabs = ModManager.RegisterPrefabs
-function ModManager.RegisterPrefabs(self, ...)
-    local mod_prefabnames = {}
-
-    local _RegisterPrefabs = PEARL.AddGlobalFunctionPreCall("RegisterPrefabs", function(...)
-        error("RegisterPrefabs")
-        for _, prefab in ipairs({...}) do
-            for _, name in ipairs(prefab.deps) do
-                table.insert(mod_prefabnames, name)
-            end
-
-            prefab.deps = {}
-        end
-    end)
-
-    ModMananger_RegisterPrefabs(self, ...)
-
-    PEARL.SetValue(_G, "RegisterPrefabs", _RegisterPrefabs)
-
-    -- First, do a pass over recipes to extend dependencies if need be.
-    for k, v in pairs(AllRecipes) do
-        table.removearrayvalue(mod_prefabnames, v.name)
-        if v.placer then
-            table.removearrayvalue(mod_prefabnames, v.placer)
+-- Mod prefabs are being loaded first.
+-- All these prefabs are being loaded only on the first launch.
+_LoadPrefabs = PEARL.AddUserDataFunctionPreCall("LoadPrefabs", function(self, prefabs)
+    for _, prefab in ipairs(prefabs) do
+        local p = Prefabs[prefab]
+        if not p then
+            _LoadPrefabs(self, {prefab})
+        else
+            MakeLazyLoader(p)
         end
     end
 
-    for _, prefabname in ipairs(mod_prefabnames) do
-        print("Registering "..prefabname)
-
-        local prefab = Prefabs[prefabname]
-
-        _RegisterPrefabs(prefab)
-
-        MakeLazyLoader(prefab)
-
-        -- This also takes care of the unloading, so there's no need to patch ModWrangler:UnloadPrefabs.
-        table.insert(self.loadedprefabs, prefabname)
-    end
-
-    -- --re-reset this with modded recipes.
-    RECIPE_PREFABS = {}
-    for k,v in pairs(AllRecipes) do
-        table.insert(RECIPE_PREFABS, v.name)
-        if v.placer then
-            table.insert(RECIPE_PREFABS, v.placer)
-        end
-    end
-end
+    return false -- Override
+end, TheSim)

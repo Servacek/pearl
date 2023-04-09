@@ -32,9 +32,6 @@ local TIME_UNTIL_KICK = 10
 local conn_filters = {}
 local conn_data_cache = {}
 
---- @type table<string, Task>
-local timeouts = {}
-
 local join_filters = {}
 
 local client_cache = {}
@@ -479,6 +476,44 @@ PEARL.AddSimPostInit(function()
     if PEARL.GameInstParams:GetModParam("regenerated") == true then
         TheWorld:PushModEvent("worldgencomplete")
     end
+end)
+
+----------------------------------
+-- RPC Handlers
+----------------------------------
+
+PEARL.AddRawServerUseridRPCHandler("ClientDisconnected", function(userid, reason, force)
+    if not (optstring(reason) and optbool(force)) then
+        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
+    end
+
+    PEARL.debug("RPC: ClientDisconnected", reason, force)
+    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
+end)
+
+--- @TODO: Handle secondary shards receiving this data. Redirect them to Master?
+--- We need this data on the Master shard as well...
+---
+--- We will probably save the data from this to the DB.
+PEARL.AddRawServerUseridRPCHandler("ConnectionFilterData", function(userid, data)
+    if not checkstring(data) then
+        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+    end
+
+    -- All the data is untrusted in this case.
+    local data_tbl = DecodeAndUnzipString(data)
+    if not data_tbl or IsTableEmpty(data_tbl) then
+        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+    end
+
+    --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
+
+    PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
+
+    -- Broadcast the CFD to all connected shards so they have the fresh info as well.
+    PEARL.SendRPCToShard(
+        PEARL.RPC.ClientCFDRecevied, nil, userid, data
+    )
 end)
 
 ----------------------------------

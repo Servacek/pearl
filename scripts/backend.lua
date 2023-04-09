@@ -297,6 +297,12 @@ end
 -- UpdateServerTagsString()
 
 --------------------------------
+-- [[ Klei Metrics ]]
+--------------------------------
+
+PEARL.OverrideValue(_G, "METRICS_ENABLED", PEARL.CONFIG.SEND_KLEI_METRICS)
+
+--------------------------------
 -- [[ Constants and Utilities ]]
 --------------------------------
 
@@ -438,8 +444,8 @@ if PEARL.CONFIG.DEBUG_MODE then
     PEARL.loadfile("debugtools")
     PEARL.loadfile("testing")
 
-    PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
-    PEARL.CreateWordFilterFile("czech.txt", "czech.lua")
+    -- PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
+    -- PEARL.CreateWordFilterFile("czech.txt", "czech.lua")
 
     require("profiler")
     PEARL.Profiler = newProfiler("time", 10^6)
@@ -481,6 +487,8 @@ ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enable
 ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
+ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
+ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

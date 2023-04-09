@@ -98,22 +98,9 @@ function Inventory:CalcSuspicioness()
 end
 
 -----------------------------------
--- [[ Low-Level Handlers ]]
+-- [[ Post Init ]]
 -----------------------------------
--- This doesn't work for containers
--- PEARL.AddClassFunctionPreCall("GiveItem", function(self, item)
---     PEARL.debug(string.format("GiveItem[%s]<Holder: %s>",
---         tostring(item), tostring(item.components.inventoryitem.owner)
---     ))
--- end, Inventory)
 
--- PEARL.AddClassFunctionPreCall("RemoveItem", function(self, item)
---     -- We only care if the active item is places somewhere outside the inventory
---     -- if self.activeitem ~= item then
---     --     return
---     -- end
+PEARL.AddFunctionPostCall("_ctor", function(self, inst)
 
---     PEARL.debug(string.format("RemoveItem[%s]<Holder: %s>",
---         tostring(item), tostring(item.components.inventoryitem.owner)
---     ))
--- end, Inventory)
+end, Inventory)

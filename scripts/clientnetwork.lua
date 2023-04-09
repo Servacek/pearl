@@ -97,7 +97,7 @@ function ClientNetwork:SendCFDToServer()
 
     self:BuildCFD()
     PEARL.info("Sending connection filter data to the server...")
-    PEARL.SendRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(cfd))
+    PEARL.SendRawRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(cfd))
 
     self:SetCFDSent(true)
     self.loader:DefferLoad()
@@ -244,7 +244,7 @@ function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
 end
 
 function ClientNetwork:OnConnectionClosed(reason)
-    return PEARL.SendRPCToServer(PEARL.RPC.ClientDisconnected, reason, force_disconnected)
+    return PEARL.SendRawRPCToServer(PEARL.RPC.ClientDisconnected, reason, force_disconnected)
 end
 
 ----------------------------------
@@ -303,6 +303,13 @@ PEARL.OverrideVariable("OnNetworkDisconnect", function(reason, should_reset, imm
     -- It would cause a crash...
     PEARL.debug("Deffering OnNetworkDisconnect")
 end, _G)
+
+----------------------------------
+-- RPCs
+----------------------------------
+
+PEARL.RegisterRawServerRPC("ClientDisconnected")
+PEARL.RegisterRawServerRPC("ConnectionFilterData")
 
 ----------------------------------
 -- Game Instance Parameters

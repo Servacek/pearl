@@ -342,10 +342,17 @@ end
 -- [[ Getters/Checks ]]
 --------------------------------
 
+function PEARL.GetShardFancyNameByID(id)
+    if id == SHARDID.INVALID then
+        return STRINGS.PEARL.SHARDS.UNKNOWN
+    end
+
+    return id == SHARDID.MASTER and STRINGS.PEARL.SHARDS.MASTER or STRINGS.PEARL.SHARDS.SECONDARY
+end
+
+-- Supports name configuration
 function PEARL.GetShardFancyName()
-    return (TheShard:IsMaster() and STRINGS.PEARL.SHARDS.MASTER)
-        or (TheShard:IsSecondary() and STRINGS.PEARL.SHARDS.SECONDARY)
-        or STRINGS.PEARL.SHARDS.UNKNOWN
+    return PEARL.CONFIG.SHARD_NAME or PEARL.GetShardFancyNameByID(TheShard:GetShardId())
 end
 
 function PEARL.GetSeasonFancyName()
@@ -645,15 +652,9 @@ function PEARL.RepairStructuresNear(player)
     )
 
     for _, ent in ipairs(burned_entities) do
-        local orig_pos = ent:GetPosition()
-        ent:Remove()
-
         --- @TODO: Does not inherit the builder
         --- Also investigate the 'creator' parameter for TheSim:CreateEntity
-        local inst = SpawnPrefab(tostring(ent.prefab), tostring(ent.skinname), nil, player.userid)
-        if inst then
-            inst.Transform:SetPosition(orig_pos:Get())
-        end
+        ReplacePrefab(ent, ent.prefab, ent.skinname, ent.skin_id, player.userid)
     end
 end
 
