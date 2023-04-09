@@ -10,22 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
-
---[[====================================================[==[
-    The 'Pearl' - modification software for
-    the game 'Don't Starve Together' by Klei Entertainment.
-
-    Copyright (c) 2023 Fi7iP
-    All rights reserved.
-
-    This file is part of the 'Pearl' software shared under
-    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
-    See LICENSE and AUTHORS for more details.
---]==]====================================================]]
-
-
-
 --[[
     Extends the player status screen by adding a new discord link button to it.
 ]]
@@ -96,10 +80,6 @@ PEARL.AddWorldPostInit(function(world)
 
     world:ListenForEvent("playeractivated", function(player)
         print(player)
+        print(player.components.inventory)
     end)
-end)
-TheWorld:ListenForEvent()
-PEARL.AddPlayerPostInit(function(player)
-    print("PLAYER INIT", player)
-    print("PLAYER INTI", player.components.inventory)
 end)

@@ -613,4 +613,14 @@ configuration_options = {
         public = true,
         implicit = true,
     },
+
+    {
+        name="HEALTH_INFO",
+        default = {
+            ENABLED = false,
+            TAGS = {},
+        },
+        type = "table",
+        public = true,
+    },
 }
