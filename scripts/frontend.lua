@@ -176,6 +176,14 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
+
+-- Admin only modules
+if TheNet:GetIsServerAdmin() then
+    ModuleManager:AddModule(
+        "inventorymanager", true
+    )
+end
+
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
         -- Only load the modblocker if we have any mods enabled.
@@ -189,9 +197,6 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     )
     ModuleManager:AddModule(
         "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
-    )
-    ModuleManager:AddModule(
-        "inventorymanager", true
     )
 end
 
