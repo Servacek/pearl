@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "Review 2.4.1b"
+version = "Review 2.4.2"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -220,8 +220,11 @@ configuration_options = {
     --------------------
 
     {
-        name="REPORT_INVENTORIES",
-        default=true,
+        name="INVENTORY_REPORTER",
+        default={
+            DROP_UNDER_AGE = 5, -- Setting this to zero will disable dropping.
+            SEND_REPORT = true,
+        },
         options = {
             true,
             false,

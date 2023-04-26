@@ -104,13 +104,17 @@ if TheNet:GetIsServer() then
 end
 
 PEARL.AddClassPostConstruct("widgets/hoverer", function(self)
-    local health_info = self:AddChild(Text(HEATLH_INFO_FONT, HEALTH_INFO_FSIZE))
-    health_info:SetPosition(HEALTH_INFO_POS)
+    if not (self.owner and self.owner.components) then
+        return
+    end
 
     local controller = self.owner.components.playercontroller
     if not controller then
         return
     end
+
+    local health_info = self:AddChild(Text(HEATLH_INFO_FONT, HEALTH_INFO_FSIZE))
+    health_info:SetPosition(HEALTH_INFO_POS)
 
     PEARL.AddClassFunctionPostCall("OnUpdate", function(self)
         if not self.text:IsVisible() then

@@ -146,6 +146,7 @@ STRINGS.PEARL = {
         INV_REPORT_EMPTY        = "*Loading failed or the inventory is empty.*",
         INV_REPORT_ITEM_RARE    = "**%dx\t%s (\"%s\")**",
         INV_REPORT_ITEM         = MARKDOWN.codeline("%dx").."\t%s\t\t\t\t"..MARKDOWN.codeline("%s"),
+        INV_REPORT_DROPPED      = "Player's inventory was dropped before despawning.",
 
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),

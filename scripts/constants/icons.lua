@@ -109,6 +109,7 @@ return {
         CAVE_ENTER          = "<:cave_enter:998568774519230494>",
         CAVE_LEAVE          = "<:cave_leave:998568758647988244>",
         FORCE_DISCONNECTED  = "<:disconnect:1030926979463135313>",
+        DROP_ITEMS          = "<:drop:1096807866167480401>",
     },
 
     SIM_STATE = {

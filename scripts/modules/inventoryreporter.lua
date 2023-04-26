@@ -20,9 +20,16 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 -------------------------------
+-- [[ Constants ]]
+-------------------------------
+
+local FLAGGED_SUSPICION = .95
+
+-------------------------------
 -- [[ Event Handlers ]]
 -------------------------------
 
+--- @TODO: Debug
 local function CheckPlayersInventory(world, player)
     if type(player) ~= "table" then
         return
@@ -38,12 +45,26 @@ local function CheckPlayersInventory(world, player)
     end
 
     local suspicioness = player.components.inventory:CalcSuspicioness()
-    if suspicioness > .9 then
-        PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
+    if suspicioness < FLAGGED_SUSPICION then
+        return
+    end
 
-        local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+    PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
+
+    local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+    local embed = EMBEDS.SuspiciousInventory(player_meta, suspicioness)
+    if player_meta:GetAge() < PEARL.CONFIG.INVENTORY_REPORTER.DROP_UNDER_AGE then
+        PEARL.info("Dropping player's inventory...")
+        player.components.inventory:DropEverything()
+
+        embed:SetDescription(embed.description + (
+            "\n\n" + PEARL.ICONS.PLAYER_STATE.DROP_ITEMS + " " + STRINGS.PEARL.LOGS.INV_REPORT_DROPPED
+        ))
+    end
+
+    if PEARL.CONFIG.INVENTORY_REPORTER.SEND_REPORT then
         local message = Message()
-        message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
+        message:AddEmbed(embed)
 
         PEARL.info("Sending inventory to discord...")
         PEARL.DiscordReporter:SendRawReportMessage(message)

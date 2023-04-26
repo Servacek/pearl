@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
+--- @TODO: This calculating needs some improvements.
 
 local PEARL = PEARL
 
@@ -22,6 +22,7 @@ local Inventory = require("components/inventory")
 
 -- Suspicious Inventory Detector
 local MAX_SUSPICION = 3
+local MAX_SUSPICION_PERCENT = .99
 
 -----------------------------------
 -- [[ Extension Functions ]]
@@ -94,7 +95,7 @@ function Inventory:CalcSuspicioness()
     end
 
     --PEARL.debug("SUSPICION:", suspicioness)
-    return suspicioness / MAX_SUSPICION
+    return math.min(suspicioness / MAX_SUSPICION, MAX_SUSPICION_PERCENT)
 end
 
 -----------------------------------

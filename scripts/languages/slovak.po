@@ -190,6 +190,9 @@ msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_TITLE"
 msgid "%s %s's Inventory"
 msgstr "%s Inventár hráča %s"
 
+msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_DROPPED"
+msgstr "Inventár hráča bol dropnutý pred odpojením zo servera."
+
 msgctxt "STRINGS.PEARL.LOGS.MIGRATING"
 msgid "%s migruje do shardu %s."
 msgstr "%s migruje do shardu %s."

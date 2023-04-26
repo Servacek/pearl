@@ -19,6 +19,8 @@
     On clients, we should be able to send the traceback as soon as this file is loaded.
 ]]
 
+-- @TODO: Some errors are not being reported when occured during gamelogic loading.
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------

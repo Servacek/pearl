@@ -157,7 +157,13 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
     local workable = target.components and target.components.workable or nil
     if workable and workable.workleft and workable.workleft <= 0 then
         -- Only announce hammering when the structure was built by a player
+        -- This makes sure we only log when a base structure get's hammered.
         if not workable:HasBuilder() or workable:IsBuildBy(doer.userid) then
+            return
+        end
+
+        -- Ignore burned structures
+        if target:HasTag("burnt") then
             return
         end
 

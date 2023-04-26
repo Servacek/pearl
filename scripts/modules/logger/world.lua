@@ -91,21 +91,21 @@ end
 
 local function OnClientAuthenticationComplete(world, data)
     -- TheNet:GetClientTableForUser crashes for nil values
-    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
+    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid) or {}
     -- This is quite spammy without the joining check tbh.
     if not client or not PEARL.ServerNetwork:IsClientJoining(client.userid) then
         return
     end
 
-    PEARL.DiscordLogger:LogStringRaw(MARKDOWN.escape_link_embeds(MARKDOWN.hlink(
+    PEARL.DiscordLogger:LogStringRaw(MARKDOWN.hlink(
         MARKDOWN.codeline(
             STRINGS.PEARL.LOGS.AUTH:format(
                 client.name, client.userid
             )
-        ), client.netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(
+        ), client.netid and MARKDOWN.escape_link_embeds(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(
             client.netid
-        ) or nil
-    )), PEARL.ICONS.PLAYER_STATE.AUTH)
+        )) or nil
+    ), PEARL.ICONS.PLAYER_STATE.AUTH)
 end
 
 local function OnClientConnectionClosed(userid, reason)

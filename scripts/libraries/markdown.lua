@@ -74,10 +74,10 @@ function MARKDOWN.escape(s)
     return (s:gsub(MARKDOWN.SYMBOL_PATTERN, "\\%1"))
 end
 
--- https://some.host/ -> https\://some.host
--- Warning: This link is not clickable anymore! Only if used in a hyperlink
-function MARKDOWN.escape_link_embeds(s)
-    return s:gsub(":", "\\%1")
+-- https://some.host/ -> <https://some.host>
+-- The result link is clickable but doesn't create the embed when posted.
+function MARKDOWN.escape_link_embeds(link)
+    return string.format("<%s>", link)
 end
 
 --- Formats a string to the codeline format using the discord markdown characters
