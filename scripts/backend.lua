@@ -481,7 +481,7 @@ ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 -- This needs some refactoring and will probably be migrated to the clients.
 --ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
-ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.REPORT_INVENTORIES)
+ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.INVENTORY_REPORTER.ENABLED)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
 ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enabled)
 ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)

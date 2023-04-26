@@ -222,8 +222,9 @@ configuration_options = {
     {
         name="INVENTORY_REPORTER",
         default={
-            DROP_UNDER_AGE = 5, -- Setting this to zero will disable dropping.
+            DROP_UNDER_AGE = 0, -- Setting this to zero will disable dropping.
             SEND_REPORT = true,
+            ENABLED = true,
         },
         options = {
             true,
