@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "Review 2.4.2"
+version = "Review 2.4.2a"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -226,11 +226,7 @@ configuration_options = {
             SEND_REPORT = true,
             ENABLED = true,
         },
-        options = {
-            true,
-            false,
-        },
-        type = "boolean",
+        type = "table",
     },
 
     {
