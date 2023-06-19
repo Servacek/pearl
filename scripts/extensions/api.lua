@@ -32,7 +32,6 @@ local file_pre_loads = {}
 local frontend_preinits = {}
 local prefab_post_registers = {}
 
---- @TODO: Refactor these + Add support for local functions
 ----------------------------------
 -- Function Pre/Post call adders
 ----------------------------------
@@ -130,6 +129,15 @@ function PEARL.AddGlobalFunctionPreCall(name, precb, ignoremodenv)
     end
 
     return origin
+end
+
+function PEARL.AddRPCHandlerPreCall(name, precb)
+    local handlers = PEARL.GetDefaultRPCHandlers()
+    if type(handlers[name]) ~= "function" then
+        return error("Invalid RPC handler", name);
+    end
+
+    return PEARL.AddClassFunctionPreCall(name, precb, handlers)
 end
 
 function PEARL.AddClassFunctionPreCall(name, precb, class)

@@ -666,7 +666,7 @@ msgstr "Žiaden Event"
 msgctxt "STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY"
 msgstr "%s **%s (`%s`)**\n> Počet prežitých dní: `%s`\n> Podozrenie: `%d%%`"
 
-msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.PLATFORM"
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLATFORM"
 msgstr "Platforma"
 
 msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"

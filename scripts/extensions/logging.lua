@@ -110,6 +110,10 @@ function PEARL.warn(...)
 end
 
 --- @param ... any Anything you want to log on the ERROR level.
-function PEARL.error(...)
-    return PEARL.log(LOG_LEVELS.ERROR, ...)
+function PEARL.error(msg, ...)
+    if PEARL.CONFIG.DEBUG_MODE then
+        return error(msg)
+    end
+
+    return PEARL.log(LOG_LEVELS.ERROR, msg, ...)
 end

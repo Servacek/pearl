@@ -59,6 +59,8 @@
 
     - 'require' doesn't support mod specific pathes.
 
+    - Master shard is always restarted the first
+
     - Try to not push in-game events.
 
     - Use raw tables for singleton non-inherited classes.
@@ -67,6 +69,8 @@
 
     - Do not use raw RPCs! Use the built-in mod API. They are being registered
       after TheFrontEnd.
+
+    - inst.persists does modify the saving behavior for an entity.
 
     - Built-in utf8 library:
         string.utf8char = utf8char -- decode a codepoint
@@ -304,7 +308,7 @@ end
 if PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Setting up debug mode!")
 
-    KnownModIndex.modsettings.initdebugprint = true
+    --KnownModIndex.modsettings.initdebugprint = true
     -- Do not override this because it attempts to load some
     -- test files that are not provided.
     --PEARL.OverrideGlobal("CONFIGURATION", "dev")
@@ -423,7 +427,7 @@ PEARL.GameInstParams = PEARL.loadfile("instanceparams")
 
 --- TheNet:GetIsClient return's false when we disconnect.
 --- Looks like TheNet:IsDedicated works even without the network!
-if TheNet:IsDedicated() then
+if TheNet:IsDedicated() and not TheNet:GetIsClient() then
     PEARL.info("Loading mod BE...")
     PEARL.loadfile("backend")
 

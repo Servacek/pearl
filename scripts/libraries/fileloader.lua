@@ -30,8 +30,9 @@ local _cache = {}
 --- @param rfp string Path to the target file starting from the mod's scripts dir (do not add '.lua' postfix)
 --- @param env table? The environment the file should be loaded with. Be default the files are loaded with the mods env.
 --- @param reload boolean? Whether the file should be loaded from disk or from the cache.
+--- @param errcb function? The error handler this file.
 --- @return any results Any results the target file returns after loading.
-local function loadfile(rfp, env, reload)
+local function loadfile(rfp, env, reload, errcb)
     local afp = PEARL.SRCDIR..tostring(rfp)..".lua"
 
     if type(_cache[afp]) == "table" and not reload then
@@ -41,7 +42,12 @@ local function loadfile(rfp, env, reload)
     -- fn is nil when the file was not found
     local fn = kleiloadlua(afp)
     if type(fn) ~= "function" then
-        return error("Failed to load file "..afp.." - "..tostring(fn or "File not found!"))
+        -- fn should be in this case the error message
+        if type(errcb) == "function" then
+            return errcb(rfp, fn)
+        else
+            return error("Failed to load file "..afp.." - "..tostring(fn or "File not found!"))
+        end
     end
 
     -- The logging library doesn't have to be loaded yet.

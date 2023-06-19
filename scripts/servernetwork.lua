@@ -391,8 +391,12 @@ end)
 
 -- Used by the engine to notify lua on the master shard
 -- that a secondary shard has changed it's state. This also notifies the shard itself.
-PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(...)
-    PEARL.EventProcessor:HandleEvent("shard_stateupdate", ...)
+PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(world_id, state, ...)
+    PEARL.EventProcessor:HandleEvent(
+        state == REMOTESHARDSTATE.READY and "shard_connected" or "shard_disconnected", world_id, ...
+    )
+
+    PEARL.EventProcessor:HandleEvent("shard_stateupdate", world_id, state, ...)
 end)
 
 -- Looks like this is pushed only on the Master shard

@@ -41,7 +41,21 @@ local function CheckPlayersInventory(world, player)
     if suspicioness > .9 then
         PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
 
-        local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+    local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+    local embed = EMBEDS.SuspiciousInventory(player_meta, suspicioness)
+
+    -- When the inventory was flagged and the owner of it is very new to the server,
+    -- drop the inventory because it's most likely a thief.
+    if player_meta:GetAge() < PEARL.CONFIG.INVENTORY_REPORTER.DROP_UNDER_AGE then
+        PEARL.info("Dropping player's inventory...")
+        player.components.inventory:DropEverything()
+
+        embed:SetDescription(embed.description..(
+            "\n\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..STRINGS.PEARL.LOGS.INV_REPORT_DROPPED
+        ))
+    end
+
+    if PEARL.CONFIG.INVENTORY_REPORTER.SEND_REPORT then
         local message = Message()
         message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
 
