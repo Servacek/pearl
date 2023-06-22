@@ -144,6 +144,10 @@ function RestClient:SetIsWaiting(waiting)
 end
 
 function RestClient:SetRequestFrequency(frequency)
+    if type(frequency) ~= "number" then
+        return PEARL.error("Invalid frequency parameter!")
+    end
+
     self._frequency = frequency
 
     return self

@@ -247,7 +247,7 @@ local function OnWallUpdate()
 
     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
     -- is going to be executed. So just return.
-    if tasks[tasks.n]._ext and tasks[tasks.n]._ext > wtime then
+    if tasks[tasks.n] and tasks[tasks.n]._ext and tasks[tasks.n]._ext > wtime then
         return
     end
 
