@@ -17,6 +17,9 @@
     for accessing the data. This is being added to the main mod table, so it's
     accessible basically from everywhere.
 
+    This also fixes up some bugs with bad decoded files, since it uses patterns
+    for precise parsing.
+
     NOTES:
         - TheNet:GetBlacklist() always creates a new table.
 --]]
@@ -24,6 +27,19 @@
 local PEARL = PEARL
 local table = table
 local TheNet = TheNet
+
+--------------------------------
+-- [[ Contants ]]
+--------------------------------
+
+local BLACKLIST_PATH = "../../blocklist.txt"
+
+local KLEI_ID_PATTERN = "KU_"..string.rep("[%d%a%p]", 8)
+local STEAM_ID_PATTERN = string.rep("%d", 17)
+
+--------------------------------
+-- [[ Initialization ]]
+--------------------------------
 
 --- @class BlackList
 local BlackList = {}
@@ -52,8 +68,8 @@ function BlackList:RemovePlayerByID(userid)
     return false
 end
 
-function BlackList:AddPlayerByID(userid)
-    return TheNet:Ban(userid)
+function BlackList:AddPlayerByID(id)
+    return TheNet:Ban(id)
 end
 
 --------------------------------
@@ -62,8 +78,34 @@ end
 
 --- @return table blacklist An array-like table of user tables.
 function BlackList:Get()
-    -- Returns always a new table
-    return TheNet:GetBlacklist() or {}
+    return TheNet:GetBlacklist()
+end
+
+-- Supports Steam ID and Klei ID
+-- Fixes some errors when reading files with bad enconding.
+function BlackList:Load()
+    local blocklist = {}
+
+    -- Even though this seems like an async function, it blocks.
+    PEARL.GetPersistentStringByLines(BLACKLIST_PATH, function(line)
+        local netid = line:match(STEAM_ID_PATTERN)
+        local userid = line:match(KLEI_ID_PATTERN)
+
+        if not (netid or userid) then
+            return
+        end
+
+        blocklist[#blocklist+1] = {
+            netid               = netid or "",
+            userid              = userid or "",
+            servername          = "",
+            character           = "",
+            timestamp           = "",
+            serverdescription   = "",
+        }
+    end, true)
+
+    self:Set(blocklist)
 end
 
 --- @param userid string Supports both Klei and Steam IDs.
@@ -90,11 +132,13 @@ function BlackList:PrintDebugInfo()
 
     for i, v in ipairs(self:Get()) do
         if not v.empty then
-            PEARL.info("\t"..i..". "..tostring(v.userid or v.netid).."")
+            PEARL.info("\t"..i..". "..tostring(v.userid).." "..tostring(v.netid))
         end
     end
 end
 
+--------------------------------
+-- [[ Return ]]
 --------------------------------
 
 return BlackList

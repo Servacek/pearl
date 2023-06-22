@@ -414,6 +414,7 @@ PEARL.AddFrontEndPreInit(LoadExtensions)
 
 --- @type BlackList
 PEARL.BlackList = PEARL.loadfile("libraries/wrappers/blacklist")
+PEARL.BlackList:Load()
 
 --- @type Whitelist
 PEARL.WhiteList = PEARL.loadfile("libraries/wrappers/whitelist")
