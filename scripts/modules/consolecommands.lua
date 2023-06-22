@@ -24,3 +24,12 @@ PEARL.OverrideVariable("c_unban", PEARL.UnbanUserByID)
 PEARL.OverrideVariable("c_daysback", PEARL.RollbackByDays)
 PEARL.OverrideVariable("c_hasreedtrap", PEARL.CheckForReedTrap)
 PEARL.OverrideVariable("c_mods", PEARL.LogModsFor)
+
+-- This is here mainly for debugging purposes, so we do not have to wait
+-- for the Master shard to be restarted.
+PEARL.OverrideVariable("c_resetshard", function()
+    return StartNextInstance({
+        reset_action = RESET_ACTION.LOAD_SLOT,
+        save_slot = ShardGameIndex:GetSlot()
+    })
+end)

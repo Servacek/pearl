@@ -165,7 +165,8 @@ STRINGS.PEARL = {
         WARNED                  = "%s was warned for griefing!",
         STAFF_CALLED            = "Admins and server moderators were notified.",
         SKIN_RECEIVED           = "%s received %s!",
-        DAY                     = "Day %d - %s (%s °C) - %d/%d Players",
+        --DAY                     = "Day %d - %s (%s °C) - %d/%d Players",
+        DAY                     = "Day %d - %s (%s °C)",
         PHASE                   = "%s",
 
         PRECIPITATION_START     = "It started %s!",

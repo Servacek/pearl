@@ -60,8 +60,8 @@ local function CheckPlayersInventory(world, player)
         PEARL.info("Dropping player's inventory...")
         player.components.inventory:DropEverything()
 
-        embed:SetDescription(embed.description + (
-            "\n\n" + PEARL.ICONS.PLAYER_STATE.DROP_ITEMS + " " + STRINGS.PEARL.LOGS.INV_REPORT_DROPPED
+        embed:SetDescription(embed.description..(
+            "\n\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..STRINGS.PEARL.LOGS.INV_REPORT_DROPPED
         ))
     end
 

@@ -10,7 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- Note: Errors before gamelogic won't be loaded.
---- @TODO: In case of mod errors get the afflicter mod.
 
 
 --[[

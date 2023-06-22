@@ -51,6 +51,7 @@ local LogLine = Class(function(self, content)
     self._content = nil
     self._icon = nil
     self._tag = nil
+    self._size = self.SIZES.DEFAULT
 
     -- Timestamp should refer to the creation time of this object
     -- This should not change.
@@ -63,6 +64,17 @@ local LogLine = Class(function(self, content)
         self:SetContent(content)
     end
 end)
+
+------------------------------------------
+-- [[ Contants ]]
+------------------------------------------
+
+LogLine.SIZES = {
+    DEFAULT = 0,
+    BIG     = 1,
+    MEDIUM  = 2,
+    SMALL   = 3,
+}
 
 ------------------------------------------
 -- [[ Meta Methods ]]
@@ -104,9 +116,19 @@ function LogLine:GetIcon()
     return self._icon
 end
 
+function LogLine:GetSize()
+    return self._size
+end
+
 ------------------------------------------
 -- [[ Setter Methods ]]
 ------------------------------------------
+
+function LogLine:SetSize(size)
+    self._size = size
+
+    return self
+end
 
 function LogLine:SetContent(content)
     if type(content) == "string" and #content > 0 then
@@ -116,15 +138,25 @@ function LogLine:SetContent(content)
     return self
 end
 
-function LogLine:SetHeader(tag, icon)
+function LogLine:SetTag(tag)
     if type(tag) == "string" then
         self._tag = STRINGS.PEARL.LOGS.TAG:format(tag:ltake(MAX_TAG_LENGTH, nil, "..."))
     end
 
-    -- Do not crop the icon if it's too big since it would break it anyway.
+    return self
+end
+
+function LogLine:SetIcon(icon)
     if type(icon) == "string" and #icon < MAX_ICON_LENGTH then
         self._icon = icon
     end
+
+    return self
+end
+
+function LogLine:SetHeader(tag, icon)
+    self:SetTag(tag)
+    self:SetIcon(icon)
 
     return self
 end
@@ -137,11 +169,10 @@ function LogLine:RemoveTimestamp()
 end
 
 ------------------------------------------
--- [[ Public Methods ]]
+-- [[ Private Methods ]]
 ------------------------------------------
 
--- Returns a discord compatible string
-function LogLine:Build()
+function LogLine:_BuildString()
     -- We do not have a header
     if not (self._icon or self._tag) then
         if PEARL.CONFIG.DEBUG_MODE then
@@ -164,5 +195,23 @@ function LogLine:Build()
         self:GetReadableTimestamp(), self._tag, self._icon, self._content
     )
 end
+
+------------------------------------------
+-- [[ Public Methods ]]
+------------------------------------------
+
+-- Returns a discord compatible string
+function LogLine:Build()
+    local str = self:_BuildString()
+    if self._size <= self.SIZES.DEFAULT then
+        return str
+    end
+
+    return MARKDOWN.header(str, self._size)
+end
+
+------------------------------------------
+-- [[ Return ]]
+------------------------------------------
 
 return LogLine

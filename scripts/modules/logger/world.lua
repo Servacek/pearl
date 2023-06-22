@@ -22,6 +22,7 @@ local string, math = string, math
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 local UserCommands = require("usercommands")
 
@@ -37,17 +38,20 @@ local function OnCyclesChanged(world, cycle)
 
     last_cycle = cycle
 
-    PEARL.DiscordLogger:LogStringRaw(MARKDOWN.bold(MARKDOWN.codeline(
-        STRINGS.PEARL.LOGS.DAY:format(
-            ((cycle or 0) + 1),
-            PEARL.GetSeasonFancyName(),
-            math.floor((world.state.temperature or 0) / 2 + 0.5),
+    PEARL.DiscordLogger:LogLine(LogLine()
+        :SetContent(MARKDOWN.codeline(
+            STRINGS.PEARL.LOGS.DAY:format(
+                ((cycle or 0) + 1),
+                PEARL.GetSeasonFancyName(),
+                math.floor((world.state.temperature or 0) / 2 + 0.5),
 
-            --- @TEMPORARY until catcoon is finished.
-            PEARL.ServerNetwork:GetConnectedClientsCount(),
-            TheNet:GetDefaultMaxPlayers()
-        ):center(20)
-    )))
+                --- @TEMPORARY until catcoon is finished.
+                PEARL.ServerNetwork:GetConnectedClientsCount(),
+                TheNet:GetDefaultMaxPlayers()
+            ):center(4)
+        ))
+        --:SetSize(LogLine.SIZES.MEDIUM)
+    )
 end
 
 local function OnPhaseChanged(world, phase)
@@ -64,9 +68,13 @@ local function OnPhaseChanged(world, phase)
         moonphase_icon = PEARL.ICONS.MOONPHASES.WANNING[world.state.moonphase]
     end
 
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PHASE:format(
-        STRINGS.PEARL.PHASES[string.upper(phase)]
-    ), moonphase_icon)
+    PEARL.DiscordLogger:LogLine(LogLine()
+        :SetContent(STRINGS.PEARL.LOGS.PHASE:format(
+            STRINGS.PEARL.PHASES[string.upper(phase)]
+        ))
+        :SetIcon(moonphase_icon)
+        --:SetSize(LogLine.SIZES.SMALL)
+    )
 end
 
 local prev_prec = "none"
@@ -78,9 +86,9 @@ local function OnPrecipitationChanged(world, precipitation)
     local started = precipitation ~= "none"
     local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[(started and precipitation or prev_prec)]
 
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
+    PEARL.DiscordLogger:LogString(MARKDOWN.header(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
         prec_name
-    ))
+    ), 2))
 
     prev_prec = precipitation
 end

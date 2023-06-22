@@ -382,7 +382,6 @@ local function LoadExtensions()
     PEARL.loadfile("extensions/components/edible")
     PEARL.loadfile("extensions/components/activable")
 
-    --- @TODO: Create some extension manager. (maybe just extend the module manager)
     -- Performance testing
     if PEARL.CONFIG.PERFORMANCE_MODE then
         PEARL.loadfile("extensions/components/updatelooper")
@@ -412,9 +411,13 @@ PEARL.AddFrontEndPreInit(LoadExtensions)
 -- [[ Blacklist/Whitelist Wrappers ]]
 -------------------------------------
 
+PEARL.info("Loading blacklist...")
+
 --- @type BlackList
 PEARL.BlackList = PEARL.loadfile("libraries/wrappers/blacklist")
 PEARL.BlackList:Load()
+
+PEARL.info("Loading whitelist...")
 
 --- @type Whitelist
 PEARL.WhiteList = PEARL.loadfile("libraries/wrappers/whitelist")
@@ -424,6 +427,8 @@ if PEARL.CONFIG.STRICT_WHITELIST then
     PEARL.WhiteList:SyncReservedWithSlots()
 end
 
+PEARL.info("Loading allowlist...")
+
 --- @type AllowList
 PEARL.AllowList = PEARL.loadfile("libraries/wrappers/allowlist")
 if PEARL.CONFIG.ALLOWLIST and TheShard:IsMaster() then
@@ -432,9 +437,27 @@ if PEARL.CONFIG.ALLOWLIST and TheShard:IsMaster() then
 end
 PEARL.AllowList:Load()
 
+PEARL.info("Loading adminlist...")
+
 --- @type AdminList
 PEARL.AdminList = PEARL.loadfile("libraries/wrappers/adminlist")
 PEARL.AdminList:Load()
+
+-------------------------------------
+-- [[ Player Database ]]
+-------------------------------------
+
+PEARL.info("Loading player database...")
+
+--- @TODO: Add some configsx here
+PEARL.PlayerDB = PEARL.loadfile("libraries/playerdatabase")
+if PEARL.CONFIG.DATABASE.ENABLED then
+    if PEARL.PlayerDB:Load() then
+        PEARL.info("Database loaded!")
+    else
+        PEARL.error("Failed to load player database! Please disable it in the mod settings until the issue is resolved.")
+    end
+end
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -490,6 +513,9 @@ ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
+ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
+ModuleManager:AddModule("playertracker", PEARL.CONFIG.DATABASE.ENABLED)
+ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

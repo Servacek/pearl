@@ -34,6 +34,9 @@ local string, table, math = string, table, math
 
 local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
 
+local KLEI_ID_PATTERN = "KU_"..string.rep("[%d%a%p]", 8)
+local STEAM_ID_PATTERN = string.rep("[%d", 17)
+
 --------------------------------
 -- [[ Inventory ]]
 --------------------------------
@@ -140,15 +143,16 @@ end
 
 function PEARL.GetPersistentString(fp, ensure)
     if ensure and not PEARL.EnsurePersistentString(fp) then
-        return false, PEARL.error("Failed to create the file!")
+        return false
     end
 
-    local result
-    TheSim:GetPersistentString(fp, function(success, str)
-        result = success and str
+    local result, success
+    TheSim:GetPersistentString(fp, function(successfull, str)
+        success = successfull
+        result = str
     end)
 
-    return result ~= nil, result
+    return success, result
 end
 
 -- This runs synchronously actually.
@@ -388,6 +392,14 @@ end
 --------------------------------
 -- [[ Utils ]]
 --------------------------------
+
+function PEARL.GetKleiIDFromString(str)
+
+end
+
+function PEARL.GetSteamIDFromString(str)
+
+end
 
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"

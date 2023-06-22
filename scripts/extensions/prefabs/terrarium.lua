@@ -12,8 +12,6 @@
 
 
 
-local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
-
 --- @class Terrarium
 local Terrarium = require("prefabs/terrarium")
 

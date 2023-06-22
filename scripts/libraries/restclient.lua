@@ -70,7 +70,7 @@ _SendRequest = function(self, request, force)
 
     if success then
         self:SetIsWaiting(true)
-        self._rcount = self._rcount + 1
+        --self._rcount = self._rcount + 1
     else -- If we have failed to execute the task
         PEARL.error("Failed to execute request!", err)
         _FinishCooldown(self)
@@ -110,7 +110,7 @@ local RestClient = Class(function(self)
     self._cooldown_task = nil
 
     -- Used for debugging
-    self._rcount = 0
+    --self._rcount = 0
 
     -- internal state
     self._shutting_down = false
@@ -144,6 +144,10 @@ function RestClient:SetIsWaiting(waiting)
 end
 
 function RestClient:SetRequestFrequency(frequency)
+    if type(frequency) ~= "number" then
+        return PEARL.error("Invalid frequency parameter!")
+    end
+
     self._frequency = frequency
 
     return self
@@ -188,9 +192,9 @@ function RestClient:GetCached(url)
 end
 
 -- Used for debugging purposes
-function RestClient:GetSentRequestsCount()
-    return self._rcount
-end
+-- function RestClient:GetSentRequestsCount()
+--     return self._rcount
+-- end
 
 --------------------------------
 -- [[ Public Methods ]]

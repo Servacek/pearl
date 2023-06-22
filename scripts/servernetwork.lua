@@ -207,7 +207,7 @@ function ServerNetwork:IsAdmin(userid)
     return client and client.admin == true or PEARL.AdminList:Contains(userid)
 end
 
-function ServerNetwork:IsClientTrusted(userid)
+function ServerNetwork:IsClientPriviliged(userid)
     return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid)
 end
 
@@ -331,7 +331,7 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.EventProcessor:HandleEvent("clientdatareceived", userid, cfd)
 
     -- Skip already trusted clients
-    if not self:IsClientTrusted(userid) or PEARL.CONFIG.DEBUG_MODE then
+    if not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE then
         local allowed, reason = self:RunClientConnectionFiltersFor(userid)
         if allowed == false then
             return self:SendUserDisconnectFor(userid, reason)
@@ -391,8 +391,12 @@ end)
 
 -- Used by the engine to notify lua on the master shard
 -- that a secondary shard has changed it's state. This also notifies the shard itself.
-PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(...)
-    PEARL.EventProcessor:HandleEvent("shard_stateupdate", ...)
+PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(world_id, state, ...)
+    PEARL.EventProcessor:HandleEvent(
+        state == REMOTESHARDSTATE.READY and "shard_connected" or "shard_disconnected", world_id, ...
+    )
+
+    PEARL.EventProcessor:HandleEvent("shard_stateupdate", world_id, state, ...)
 end)
 
 -- Looks like this is pushed only on the Master shard
@@ -468,6 +472,10 @@ PEARL.AddWorldPostInit(function(world)
     if not world then
         return
     end
+
+    world:SafeListenForEvent("ms_save", function(...)
+        PEARL.EventProcessor:HandleEvent("save", ...)
+    end)
 
     world:SafeListenForEvent("ms_playerjoined", function(self, player)
         if player and player.userid then

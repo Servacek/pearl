@@ -122,6 +122,8 @@ end
 -- [[ Getters ]]
 --------------------------------------
 
+-- TODO: Read the whitelist by ourselves
+-- because this doesn't work for the Caves shard.
 function WhiteList:Contains(userid)
     return TheNet:IsWhiteListed(userid)
 end

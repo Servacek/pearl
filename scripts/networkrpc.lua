@@ -28,7 +28,9 @@ local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 -- Initialization
 --------------------------
 
-PEARL.RPC = {}
+PEARL.RPC = {
+    _size = 0
+}
 
 --- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
@@ -165,6 +167,10 @@ function PEARL.AddRawServerUseridRPCHandler(name, fn)
     PEARL.AddRawServerRPCHandler(name, fn, true)
 end
 
+function PEARL.GetDefaultRPCHandlers()
+    return RPC_HANDLERS;
+end
+
 --------------------------
 -- Wrappers
 --------------------------
@@ -211,19 +217,63 @@ function PEARL.SendRPCToServer(rpc_id, ...)
     return SendModRPCToServer(PEARL.GetServerRPC(rpc_id), ...)
 end
 
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param ... any Any additional data provided to the rpc handler.
+function PEARL.SendRPCToMaster(rpc_id, ...)
+    return PEARL.SendRPCToShard(rpc_id, SHARDID.MASTER, ...)
+end
+
+--- Sends the given RPC to all connected shards except the current one.
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param ... any Any additional data provided to the rpc handler.
+function PEARL.BroadcastRPCToShards(rpc_id, ...)
+    local connected_shards = PEARL.ServerNetwork:GetConnectedShardIDs()
+    if IsTableEmpty(connected_shards) then
+        return
+    end
+
+    return PEARL.SendRPCToShard(rpc_id, connected_shards, ...)
+end
+
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param ... any Any additional data provided to the rpc handler.
+function PEARL.BroadcastRPCToClients(rpc_id, ...)
+    return PEARL.SendRPCToClient(rpc_id, nil, ...)
+end
+
+------------------------------------
+
+function PEARL.AddRPC(name)
+    PEARL.RPC._size = PEARL.RPC._size + 1
+    PEARL.RPC[name] = PEARL.RPC._size
+
+    return PEARL.RPC._size
+end
+
+function PEARL.AddServerUseridRPCHandler(name, handler)
+    local id = PEARL.AddRPC(name)
+
+    AddModRPCHandler(PEARL.RPC_NAME, id, handler)
+    MarkUserIDRPC(PEARL.RPC_NAME, id)
+end
+
 function PEARL.AddServerRPCHandler(name, handler)
-    PEARL.RPC[name] = name
-    return AddModRPCHandler(PEARL.RPC_NAME, name, handler)
+    return AddModRPCHandler(
+        PEARL.RPC_NAME, PEARL.AddRPC(name), handler
+    )
 end
 
 function PEARL.AddShardRPCHandler(name, handler)
-    PEARL.RPC[name] = name
-    return AddShardModRPCHandler(PEARL.RPC_NAME, name, handler)
+    return AddShardModRPCHandler(
+        PEARL.RPC_NAME, PEARL.AddRPC(name), handler
+    )
 end
 
 function PEARL.AddClientRPCHandler(name, handler)
-    PEARL.RPC[name] = name
-    return AddClientModRPCHandler(PEARL.RPC_NAME, name, handler)
+    PEARL.AddRPC(name)
+    return AddClientModRPCHandler(
+        PEARL.RPC_NAME, PEARL.AddRPC(name), handler
+    )
 end
 
 -- Note: All of these RPCs needs to be loaded
@@ -239,9 +289,7 @@ end
 do
     local i = 1
     for name, cb in orderedPairs(CLIENT_RPCS) do
-        AddClientModRPCHandler(PEARL.RPC_NAME, i, cb)
-
-        PEARL.RPC[name] = i
+        PEARL.AddClientRPCHandler(name, cb)
         i = i + 1
     end
 end
@@ -253,10 +301,7 @@ end
 do
     local i = 1
     for name, cb in orderedPairs(SERVER_USERID_RPCS) do
-        AddModRPCHandler(PEARL.RPC_NAME, i, cb)
-        MarkUserIDRPC(PEARL.RPC_NAME, i)
-
-        PEARL.RPC[name] = i
+        PEARL.AddServerUseridRPCHandler(name, cb)
         i = i + 1
     end
 end
@@ -276,12 +321,12 @@ do
 end
 
 --------------------------
--- Handler
+-- Function Overrides
 --------------------------
 
 -- This is redundant on the client because there the staticUpdate works even when
 -- the simulation is paused on the server because of the UI.
-if not TheNet:GetIsServer() then
+if not TheNet:IsDedicated() then
     return
 end
 
@@ -291,12 +336,13 @@ end
 local RPC_QUEUE_RATE_LIMIT = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
 local RPC_Queue_Limiter = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
 
---- @TODO: There are two main aproaches to this. One is using a PreCall, where
+--- There are two main aproaches to this. One is using a PreCall, where
 --- we handle the server mod rpcs all ourselves. The second one is using a PostCall
 --- and if the rpc handled was ours, call TickRPCQueue afterwards. This however, can how
 --- some side effects since the tick will not just call our RPCs but also the game's.
 
 -- This one is only called on the server.
+-- Also we need to handle rate limits here because these are not trusted.
 PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace, code, data)
     -- This is not our RPC so we do not care. How selfish...
     if namespace ~= PEARL.RPC_NAME or RAW_RPCS[code] ~= nil then
@@ -304,7 +350,7 @@ PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace,
     end
 
     local ns_handlers = MOD_RPC_HANDLERS[namespace]
-    local handler = ns_handlers[code] or RAW_RPCS[code]
+    local handler = ns_handlers and ns_handlers[code] or RAW_RPCS[code]
     if type(handler) ~= "function" then
         return
     end
@@ -324,3 +370,38 @@ PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace,
 
     return false
 end)
+
+PEARL.AddGlobalFunctionPreCall("HandleShardModRPC", function(sender, tick, namespace, code, data)
+    if not SHARD_MOD_RPC_HANDLERS[namespace] then
+        return -- Leave the game handle it.
+    end
+
+    local ns_handlers = SHARD_MOD_RPC_HANDLERS[namespace]
+    local handler = ns_handlers and ns_handlers[code]
+    if not handler then
+        return -- Leave the game handle it.
+    end
+
+    PEARL.SafeRun(TheNet.CallShardRPC, TheNet, handler, sender, data)
+
+    return false
+end)
+
+PEARL.AddGlobalFunctionPreCall("HandleClientRPC", function(sender, tick, namespace, code, data)
+    if not CLIENT_MOD_RPC_HANDLERS[namespace] then
+        return -- Leave the game handle it.
+    end
+
+    local ns_handlers = CLIENT_MOD_RPC_HANDLERS[namespace]
+    local handler = ns_handlers and ns_handlers[code]
+    if not handler then
+        return -- Leave the game handle it.
+    end
+
+    PEARL.SafeRun(TheNet.CallClientRPC, TheNet, handler, sender, data)
+
+    return false
+end)
+
+-- Disable RPC disabling
+PEARL.AddGlobalFunctionPreCall("DisableRPCSending", function() end)

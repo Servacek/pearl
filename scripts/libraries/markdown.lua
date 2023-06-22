@@ -33,8 +33,8 @@
 
 local MARKDOWN = {
     -- Do not add backslashes before backticks
-    SYMBOL_PATTERN = "[%~%*%_%>%|%[~%`%:]",
-    PATTERNS = {
+    SYMBOL_PATTERN = "[%~%*%_%>%|%[~%`%:%-%#]",
+    PATTERNS = { -- We do not need to escape these
         BOLD                = "**%s**",
         ITALIC              = "*%s*",
         CODE_BLOCK          = "```%s```",
@@ -44,6 +44,10 @@ local MARKDOWN = {
         UNDERLINE           = "__%s__",
         STRYKETHROUGH       = "~~%s~~",
         QUOTE               = ">%s",
+        HEADER_BIG          = "# %s",
+        HEADER_MED          = "## %s",
+        HEADER_SML          = "### %s",
+        LIST_ITEM           = "- %s", -- Use this instead of the asterisk to prevent any conflicts.
     }
 }
 
@@ -124,6 +128,19 @@ function MARKDOWN.hlink(s, link)
     end
 
     return MARKDOWN.PATTERNS.HYPERLINK:format(s, tostring(link))
+end
+
+function MARKDOWN.listitem(s, indent)
+    indent = indent or 0
+
+    return string.rep(" ", indent)..MARKDOWN.PATTERNS.LIST_ITEM:format(s);
+end
+
+function MARKDOWN.header(s, level)
+    level = level or 1
+
+    -- The space here IS required!
+    return string.rep("#", level).." "..s
 end
 
 --- @deprecated Use SUPPRESS_EMBEDS flag instead
