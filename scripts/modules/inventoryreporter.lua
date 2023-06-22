@@ -38,8 +38,11 @@ local function CheckPlayersInventory(world, player)
     end
 
     local suspicioness = player.components.inventory:CalcSuspicioness()
-    if suspicioness > .9 then
-        PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
+    if suspicioness < .9 then
+        return
+    end
+
+    PEARL.info("Suspicious inventory detected! Owner:", player.name or player.userid)
 
     local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
     local embed = EMBEDS.SuspiciousInventory(player_meta, suspicioness)

@@ -95,8 +95,13 @@ local function sort_tasks()
 end
 
 -- Adds the given task to the end of the stack.
+--- @return Task?
 local function add_task(task, nosort)
-    --PEARL.debug("Registering task:", task.time)
+    if type(task) ~= "table" then
+        return PEARL.error("Attempted to add an invalid task!")
+    end
+
+    PEARL.debug("Registering task:", task.time)
     local prev = tasks[tasks.n]
     tasks.n = tasks.n + 1
     tasks[tasks.n] = task
@@ -300,7 +305,7 @@ end
 --- @param id integer? The id of the task used for debuging
 --- @param ... any? Additional arguments to the callback function
 ---
---- @return Task task The new created task
+--- @return Task? task The new created task
 function WallScheduler:ExecuteInTime(time, fn, id, ...)
     return add_task(create_task(
         time, fn, 1, nil, id, ...)

@@ -336,7 +336,7 @@ end
 local RPC_QUEUE_RATE_LIMIT = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
 local RPC_Queue_Limiter = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
 
---- @TODO: There are two main aproaches to this. One is using a PreCall, where
+--- There are two main aproaches to this. One is using a PreCall, where
 --- we handle the server mod rpcs all ourselves. The second one is using a PostCall
 --- and if the rpc handled was ours, call TickRPCQueue afterwards. This however, can how
 --- some side effects since the tick will not just call our RPCs but also the game's.

@@ -17,8 +17,8 @@
     for non-admins.
 --]]
 
-if TheNet:GetIsServerAdmin() or not PEARL.CONFIG.CONSOLE_DISABLED then
-	return
+if TheNet:GetIsServerAdmin() or PEARL.CONFIG.CLIENT_CONSOLE_ENABLED then
+    return -- Do not disable it
 end
 
 -------------------------------
@@ -39,3 +39,5 @@ end, ConsoleScreen)
 PEARL.OverrideVariable("CONSOLE_ENABLED", false, _G)
 -- Disable this function so even input from stdout won't be executed.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function() end, _G)
+
+PEARL.OverrideUserdataVariable("SendRemoteExecute", function() end, TheNet)

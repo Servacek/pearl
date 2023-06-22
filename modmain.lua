@@ -216,6 +216,8 @@ PEARL.CONSTS = {
     -- the prefix and the actual content
     KLEI_DATA_PREFIX            = "KLEI     1",
     KLEI_ENCODED_DATA_PREFIX    = "KLEI     1D",
+
+    FPS = 60,
 }
 
 --------------------------------

@@ -300,6 +300,13 @@ function PEARL.OverrideVariable(name, value, tbl, optional)
     return rawset(tbl, name, value)
 end
 
+function PEARL.OverrideUserdataVariable(name, value, userdata, optional)
+    local mt = type(userdata) == "userdata" and getmetatable(userdata) or nil
+    assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
+
+    return PEARL.OverrideVariable(name, value, mt.__index, optional)
+end
+
 function PEARL.GetGlobal(name)
     return rawget(_G, name)
 end

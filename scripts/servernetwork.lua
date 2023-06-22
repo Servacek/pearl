@@ -207,7 +207,7 @@ function ServerNetwork:IsAdmin(userid)
     return client and client.admin == true or PEARL.AdminList:Contains(userid)
 end
 
-function ServerNetwork:IsClientTrusted(userid)
+function ServerNetwork:IsClientPriviliged(userid)
     return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid)
 end
 
@@ -331,7 +331,7 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.EventProcessor:HandleEvent("clientdatareceived", userid, cfd)
 
     -- Skip already trusted clients
-    if not self:IsClientTrusted(userid) or PEARL.CONFIG.DEBUG_MODE then
+    if not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE then
         local allowed, reason = self:RunClientConnectionFiltersFor(userid)
         if allowed == false then
             return self:SendUserDisconnectFor(userid, reason)
@@ -472,6 +472,10 @@ PEARL.AddWorldPostInit(function(world)
     if not world then
         return
     end
+
+    world:SafeListenForEvent("ms_save", function(...)
+        PEARL.EventProcessor:HandleEvent("save", ...)
+    end)
 
     world:SafeListenForEvent("ms_playerjoined", function(self, player)
         if player and player.userid then

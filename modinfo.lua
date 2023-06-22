@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "Review 2.4.2b"
+version = "Review 2.5"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -128,6 +128,13 @@ configuration_options = {
 
     { -- regenerate, rollback, kick...
         name="COMMAND_BLOCKLIST",
+        default={},
+        type = "table<string, boolean>",
+        public = true,
+    },
+
+    { -- regenerate, rollback, kick...
+        name="CHARACTER_BLOCKLIST",
         default={},
         type = "table<string, boolean>",
         public = true,
@@ -269,6 +276,24 @@ configuration_options = {
         type = "boolean",
     },
 
+    {
+        name = "DATABASE",
+        default = {
+            ENABLED = false,
+        },
+        type = "table",
+    },
+
+    {
+        name = "VERSION_CHECKER",
+        default = {
+            ENABLED = true,
+            FREQUENCY = 30, -- In Minutes
+            UPDATE_AFTER = 0, -- In Seconds, 0> if disabled, 0 for immeadiate updates
+        },
+        type = "table",
+    },
+
     --------------------
     -- Commands
     --------------------
@@ -295,8 +320,8 @@ configuration_options = {
     },
 
     {
-        name="DISABLE_CONSOLE",
-        default=true,
+        name="CLIENT_CONSOLE_ENABLED",
+        default=false,
         options = {
             true,
             false,

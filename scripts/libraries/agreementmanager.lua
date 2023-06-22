@@ -174,6 +174,8 @@ function AgreementManager:Load()
             table.insert(self.records, record)
         end
     end
+
+    rf:close()
 end
 
 function AgreementManager:Save()
