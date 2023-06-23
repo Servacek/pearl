@@ -31,13 +31,20 @@ local TIME_UNTIL_KICK = 10
 -- Declaration
 ----------------------------------
 
+--- @type table<number, function>
 local conn_filters = {}
-local conn_data_cache = {}
 
+--- Let the cfd data be persistent.
+--- @type table<string, table<any, any>>
+local conn_data_cache = PEARL.GameInstParams:GetModParam("conn_data_cache") or PEARL.GameInstParams:SetModParam("conn_data_cache", {})
+
+--- @type table<number, function>
 local join_filters = {}
 
+--- @type table<string, table>
 local client_cache = {}
 
+--- @type table<string, boolean>
 local joining_clients = {}
 
 --- @class ServerNetwork
@@ -158,6 +165,10 @@ end
 -- function ServerNetwork:GetServerIP()
 --     return self.listing.ip
 -- end
+
+function ServerNetwork:GetCFDCache()
+    return conn_data_cache
+end
 
 function ServerNetwork:GetHostTable()
     -- For dedicated servers the first index is reserved for the "host" machine.
@@ -320,7 +331,7 @@ end
 
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
-    PEARL.debug(DataDumper(cfd))
+    --PEARL.debug(DataDumper(cfd))
 
     -- Always keep just the newest record
     -- This is here just to make sure the data are being cached in case the RCP fails.
@@ -341,6 +352,37 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     -- If all the filters have successfully passed, then the connection should be allowed.
     PEARL.debug("Allowing connection...")
     self:SendUserConnectionAllowedFor(userid)
+end
+
+function ServerNetwork:HandleRawConnectionData(userid, data, shardid)
+    -- All the data is untrusted in this case.
+    local data_tbl = DecodeAndUnzipString(data)
+    if not data_tbl or IsTableEmpty(data_tbl) then
+        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+    end
+
+    --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
+
+    PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
+
+    -- This won't be needed in the future because we will save all
+    -- the important stuff in the DB.
+    -- if TheShard:IsMaster() then
+    --     -- Broadcast the CFD to all connected shards so they have the fresh info as well.
+    --     PEARL.BroadcastRPCToShardsExcept(
+    --         PEARL.RPC.ClientCFDRecevied, shardid, userid, data
+    --     )
+    -- elseif tostring(shardid) ~= tostring(SHARDID.MASTER) then
+    --     PEARL.SendRPCToMaster(PEARL.RPC.ClientCFDRecevied, userid, data)
+    -- end
+end
+
+----------------------------------
+-- Debug
+----------------------------------
+
+function ServerNetwork:PrintDebugInfo()
+    tdump(conn_data_cache)
 end
 
 ----------------------------------
@@ -549,20 +591,7 @@ PEARL.AddRawServerUseridRPCHandler("ConnectionFilterData", function(userid, data
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 
-    -- All the data is untrusted in this case.
-    local data_tbl = DecodeAndUnzipString(data)
-    if not data_tbl or IsTableEmpty(data_tbl) then
-        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
-    end
-
-    --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
-
-    PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
-
-    -- Broadcast the CFD to all connected shards so they have the fresh info as well.
-    PEARL.SendRPCToShard(
-        PEARL.RPC.ClientCFDRecevied, nil, userid, data
-    )
+    return ServerNetwork:HandleRawConnectionData(userid, data)
 end)
 
 ----------------------------------

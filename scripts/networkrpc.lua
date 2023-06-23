@@ -63,9 +63,9 @@ local SHARD_RPCS = {
         end)
     end,
 
-    ClientCFDRecevied = function(shard_id, userid, data)
+    ClientCFDRecevied = function(shardid, userid, data)
         -- Always keep just the newest record
-        PEARL.ServerNetwork:CacheClientCFDFor(userid, data)
+        PEARL.ServerNetwork:HandleRawConnectionData(userid, data, shardid)
     end
 }
 
@@ -126,6 +126,30 @@ local SERVER_USERID_RPCS = {
         -- Anounce it so it logs the message and also other players can see it as well.
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
+
+    UserAgreed = function(userid)
+        local client = userid and TheNet:GetClientTableForUser(userid)
+        if not client and client.name then
+            return
+        end
+
+        local cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
+        if not cfd or cfd.novice ~= true then
+            return
+        end
+
+        -- Send a nice welcome message for novices.
+        local welcome_msg_template = STRINGS.PEARL.NOVICE_ANNOUNCEMENTS[math.random(1, #STRINGS.PEARL.NOVICE_ANNOUNCEMENTS)]
+        local welcome_msg = welcome_msg_template:format(client.name)
+        if PEARL.ServerNetwork:GetConnectedClientsCount() > 1 then
+            -- Only announce it if there are more people on the server.
+            return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
+        end
+
+        return PEARL.DiscordLogger:LogString(
+            welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
+        )
+    end
 }
 
 --------------------------
@@ -233,6 +257,28 @@ function PEARL.BroadcastRPCToShards(rpc_id, ...)
     end
 
     return PEARL.SendRPCToShard(rpc_id, connected_shards, ...)
+end
+
+--- Sends the given RPC to all connected shards except the current one.
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param ... any Any additional data provided to the rpc handler.
+function PEARL.BroadcastRPCToShardsExcept(rpc_id, except, ...)
+    local target_shards = PEARL.ServerNetwork:GetConnectedShardIDs()
+    if IsTableEmpty(target_shards) then
+        return
+    end
+
+    if except then
+        except = tonumber(except)
+    end
+
+    for i, shardid in ipairs(target_shards) do
+        if tonumber(shardid) == except then
+            table.remove(target_shards, i)
+        end
+    end
+
+    return PEARL.SendRPCToShard(rpc_id, target_shards, ...)
 end
 
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.

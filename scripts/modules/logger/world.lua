@@ -43,14 +43,14 @@ local function OnCyclesChanged(world, cycle)
             STRINGS.PEARL.LOGS.DAY:format(
                 ((cycle or 0) + 1),
                 PEARL.GetSeasonFancyName(),
-                math.floor((world.state.temperature or 0) / 2 + 0.5),
+                math.floor((world.state.temperature or 0) / 2 + 0.5)
 
                 --- @TEMPORARY until catcoon is finished.
-                PEARL.ServerNetwork:GetConnectedClientsCount(),
-                TheNet:GetDefaultMaxPlayers()
-            ):center(4)
+                -- PEARL.ServerNetwork:GetConnectedClientsCount(),
+                -- TheNet:GetDefaultMaxPlayers()
+            ):center(10)
         ))
-        --:SetSize(LogLine.SIZES.MEDIUM)
+        :SetSize(LogLine.SIZES.MEDIUM)
     )
 end
 
@@ -69,9 +69,9 @@ local function OnPhaseChanged(world, phase)
     end
 
     PEARL.DiscordLogger:LogLine(LogLine()
-        :SetContent(STRINGS.PEARL.LOGS.PHASE:format(
+        :SetContent(MARKDOWN.codeline(STRINGS.PEARL.LOGS.PHASE:format(
             STRINGS.PEARL.PHASES[string.upper(phase)]
-        ))
+        )))
         :SetIcon(moonphase_icon)
         --:SetSize(LogLine.SIZES.SMALL)
     )
@@ -86,9 +86,9 @@ local function OnPrecipitationChanged(world, precipitation)
     local started = precipitation ~= "none"
     local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[(started and precipitation or prev_prec)]
 
-    PEARL.DiscordLogger:LogString(MARKDOWN.header(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
         prec_name
-    ), 2))
+    ))
 
     prev_prec = precipitation
 end
@@ -240,23 +240,6 @@ local function OnNewPlayerSpawn(self, player)
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN:format(
         player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
-
-    local cfd = PEARL.ServerNetwork:GetCachedCFDFor(player.userid)
-    if not cfd or not cfd.novice == true then
-        return
-    end
-
-    -- Send a nice welcome message for novices.
-    local welcome_msg_template = STRINGS.PEARL.NOVICE_ANNOUNCEMENTS[math.random(1, #STRINGS.PEARL.NOVICE_ANNOUNCEMENTS)]
-    local welcome_msg = welcome_msg_template:format(player:GetDisplayName())
-    if PEARL.ServerNetwork:GetConnectedClientsCount() > 1 then
-        -- Only announce it if there are more people on the server.
-        return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
-    end
-
-    return PEARL.DiscordLogger:LogString(
-        welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
-    )
 end
 
 --- Note: This seems to be a bit spammy.

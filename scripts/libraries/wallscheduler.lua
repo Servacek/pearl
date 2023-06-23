@@ -102,12 +102,7 @@ local function add_task(task, nosort)
         return PEARL.error("Attempted to add an invalid task!")
     end
 
-    PEARL.debug("Registering task:", task.time)
-    if type(task) ~= "table" then
-        return PEARL.error("Attempted to add an invalid task!")
-    end
-
-    PEARL.debug("Registering task:", task.time)
+    PEARL.debug("Registering task:", task)
     local prev = tasks[tasks.n]
     tasks.n = tasks.n + 1
     tasks[tasks.n] = task

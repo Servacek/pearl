@@ -513,9 +513,9 @@ ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
-ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
-ModuleManager:AddModule("playertracker", PEARL.CONFIG.DATABASE.ENABLED)
-ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
+--ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
+--ModuleManager:AddModule("playertracker", PEARL.CONFIG.DATABASE.ENABLED)
+--ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

@@ -82,6 +82,7 @@ local function OnPlayerFinishedAgreement(self, agreed)
 
     -- Only save the record when we have agreed.
     PEARL.AgreementManager:UpdateFile()
+    PEARL.SendRPCToServer(PEARL.RPC.UserAgreed)
 end
 
 ShowAgreement = function()

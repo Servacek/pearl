@@ -335,6 +335,10 @@ if PEARL.CONFIG.DEBUG_MODE then
     local TAB_SIZE = 4
     local MAX_RECURSIONS = 10
     function _G.tdump(t, i)
+        if type(t) ~= "table" then
+            return PEARL.warn("Invalid table provided")
+        end
+
         if not i then
             print("{")
         end

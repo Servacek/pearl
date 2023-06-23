@@ -207,7 +207,7 @@ msgstr "[W] **%s**: *%s*"
 
 msgctxt "STRINGS.PEARL.LOGS.DAY"
 msgid "Day %d - %s (%s °C)"
-msgstr "Deň %d - %s (%s °C) - %d/%d Hráčov"
+msgstr "Deň %d - %s (%s °C)"
 
 msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH"
 msgid "Fires were extinguished!"

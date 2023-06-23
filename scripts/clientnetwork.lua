@@ -255,6 +255,7 @@ end
 -- Call the defered OnNetworkDisconnect here!
 -- Also all RPCS are loaded as well, so send the CFD too!
 PEARL.AddFrontEndPostInit(function(fe)
+    print(PEARL.CONFIG.SERVER_REQUIRE_CFD, ClientNetwork:HasSentCFD())
     -- All modules working with cfd should be loaded.
     if PEARL.CONFIG.SERVER_REQUIRE_CFD and not ClientNetwork:HasSentCFD() then
         ClientNetwork:SendCFDToServer()

@@ -25,6 +25,10 @@
           from Master to prevent exceeding any rate limits.
 
         - The discord REST API rate limit is 16 requests/second.
+
+    - TODOS:
+        - Fix request caching. It cannot rely just on the URL. Probably best
+        option would be to explicitly cache the requests with an unique ID.
 --]]
 
 local Queue = PEARL.loadfile("libraries/queue")
@@ -260,19 +264,19 @@ function RestClient:ForceSend(request)
 end
 
 function RestClient:Request(url, method)
-    local cached = self:GetCached(url)
-    if cached ~= nil and cached.method == method then
-        --PEARL.debug(method.." (cached)", url)
-        return cached
-    end
+    -- local cached = self:GetCached(url)
+    -- if cached ~= nil and cached.method == method then
+    --     PEARL.debug(method.." (cached)", url)
+    --     return cached
+    -- end
 
     --PEARL.debug(method, url)
     local request = Request(url, method)
 
-    if not self:IsShuttingDown() then
-        PEARL.debug("Caching request...")
-        self:CacheRequest(request)
-    end
+    -- if not self:IsShuttingDown() then
+    --     PEARL.debug("Caching request...")
+    --     self:CacheRequest(request)
+    -- end
 
     return request
 end
