@@ -27,25 +27,27 @@ local ShowAgreement
 -- [[ Locals ]]
 --------------------------------------
 
+local _t_agreementstart = 0
+
 -- This module should have only one screen displayed at a time.
-local active_screen
+local _active_screen
 
 --------------------------------------
 -- [[ Local Functions ]]
 --------------------------------------
 
 local function CloseActiveScreen()
-    if active_screen then
-        TheFrontEnd:PopScreen(active_screen)
-        active_screen = nil
+    if _active_screen then
+        TheFrontEnd:PopScreen(_active_screen)
+        _active_screen = nil
     end
 end
 
 local function ShowScreen(screen)
     CloseActiveScreen()
 
-    active_screen = screen
-    return TheFrontEnd:PushScreen(active_screen)
+    _active_screen = screen
+    return TheFrontEnd:PushScreen(_active_screen)
 end
 
 local function WarnOnDecline()
@@ -76,13 +78,15 @@ end
 local function OnPlayerFinishedAgreement(self, agreed)
     CloseActiveScreen()
 
+    local agreedintime = agreed and os.difftime(_t_agreementstart, os.time()) or nil
+    PEARL.SendRPCToServer(PEARL.RPC.AgreementFinished, agreed, agreedintime)
+
     if not agreed then
         return WarnOnDecline()
     end
 
     -- Only save the record when we have agreed.
     PEARL.AgreementManager:UpdateFile()
-    PEARL.SendRPCToServer(PEARL.RPC.UserAgreed)
 end
 
 ShowAgreement = function()
@@ -90,6 +94,8 @@ ShowAgreement = function()
 
     local agreement_screen = AgreementScreen()
     agreement_screen:SetOnContinue(OnPlayerFinishedAgreement)
+
+    _t_agreementstart = os.time()
 
     return ShowScreen(agreement_screen)
 end

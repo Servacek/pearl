@@ -53,6 +53,8 @@ PEARL.SafeModTableExtend("CONSTS", {
         MAX_ROLE_MENTIONS = 100,
     },
 
+    STEAM_API_KEY_LENGTH = 32,
+
     -- Penalozation module
     GRIEF_ACTS                  = {
         LIGHT                   = { penalty = 2, penalty_per_ent = 1, base_mult = 2},
@@ -285,6 +287,13 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
 end end
 
 --------------------------------
+-- [[ Simulation Handlers ]]
+--------------------------------
+
+PEARL.info("Loading simulation handlers...")
+PEARL.loadfile("simulation")
+
+--------------------------------
 -- [[ Server Tags ]]
 --------------------------------
 
@@ -300,7 +309,11 @@ end
 -- [[ Klei Metrics ]]
 --------------------------------
 
+--- @TODO: This seems to not be sufficient
 PEARL.OverrideValue(_G, "METRICS_ENABLED", PEARL.CONFIG.SEND_KLEI_METRICS)
+if PEARL.CONFIG.SEND_KLEI_METRICS == false then
+    PEARL.OverrideUserdataVariable("SendProfileStats", function() end, TheNet)
+end
 
 --------------------------------
 -- [[ Constants and Utilities ]]
@@ -336,8 +349,8 @@ PEARL.WallScheduler:StartWallUpdate()
 --------------------------------
 PEARL.info("Loading network components...")
 
---- @type RestClient
-PEARL.RestClient = PEARL.loadfile("libraries/restclient")()
+--- @type HTTPClient
+PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")()
     :SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
 
 --- @type RestAPI
@@ -367,6 +380,17 @@ end
 
 --- @type Reporter
 PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
+
+--- @type LeaderBorder
+PEARL.DiscordLeaderBorder = PEARL.loadfile("libraries/discordapi/webhooks/leaderborder")()
+
+--------------------------------
+-- [[ Steam API ]]
+--------------------------------
+
+--- @type SteamAPI
+--- @class SteamAPI
+PEARL.SteamAPI = PEARL.loadfile("libraries/steamapi")
 
 --------------------------------
 -- [[ Extensions ]]
@@ -444,20 +468,15 @@ PEARL.AdminList = PEARL.loadfile("libraries/wrappers/adminlist")
 PEARL.AdminList:Load()
 
 -------------------------------------
--- [[ Player Database ]]
+-- [[ Player Libraries ]]
 -------------------------------------
 
-PEARL.info("Loading player database...")
-
---- @TODO: Add some configsx here
+--- @TODO: Add some configs here
+--- @type PlayerDB
 PEARL.PlayerDB = PEARL.loadfile("libraries/playerdatabase")
-if PEARL.CONFIG.DATABASE.ENABLED then
-    if PEARL.PlayerDB:Load() then
-        PEARL.info("Database loaded!")
-    else
-        PEARL.error("Failed to load player database! Please disable it in the mod settings until the issue is resolved.")
-    end
-end
+
+--- @type PlayerRepManager
+PEARL.PlayerRepManager = PEARL.loadfile("libraries/repmanager")
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -513,9 +532,11 @@ ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
---ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
---ModuleManager:AddModule("playertracker", PEARL.CONFIG.DATABASE.ENABLED)
---ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
+ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
+ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
+ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
+ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBorder:IsEnabled())
+ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

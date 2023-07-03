@@ -34,6 +34,9 @@ local TIME_UNTIL_KICK = 10
 --- @type table<number, function>
 local conn_filters = {}
 
+--- @type table<number, function>
+local async_conn_filters = {}
+
 --- Let the cfd data be persistent.
 --- @type table<string, table<any, any>>
 local conn_data_cache = PEARL.GameInstParams:GetModParam("conn_data_cache") or PEARL.GameInstParams:SetModParam("conn_data_cache", {})
@@ -51,7 +54,25 @@ local joining_clients = {}
 local ServerNetwork = {}
 
 ----------------------------------
--- Public Functions
+-- Local Functions
+----------------------------------
+
+local function _OnConnectionFiltersFinished(userid, allowed, reason)
+    if not ServerNetwork:IsUserConnected(userid) then
+        return PEARL.debug("Already disconnected... Deffering filter results...")
+    end
+
+    if allowed == false then
+        return ServerNetwork:SendUserDisconnectFor(userid, reason)
+    end
+
+    -- If all the filters have successfully passed, then the connection should be allowed.
+    PEARL.debug("Allowing connection for", userid)
+    return ServerNetwork:SendUserConnectionAllowedFor(userid)
+end
+
+----------------------------------
+-- Public Methods
 ----------------------------------
 
 --- Sends the given lua string to all connected shards (except the sender).
@@ -82,6 +103,10 @@ end
 function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
+    if type(reason) ~= "string" then
+        PEARL.warn("Invalid reason provided!")
+    end
+
     PEARL.SendRPCToClient(PEARL.RPC.Disconnect, userid, reason, ...)
     if TheWorld ~= nil then
         TheWorld:PushModEvent("clientconnectionclosed", {
@@ -109,13 +134,16 @@ function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
     return PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, ...)
 end
 
--- Returns a boolean representing whether the client is allowed
--- to join according the filters or not.
-function ServerNetwork:RunClientConnectionFiltersFor(userid, cfd)
+--- @param userid string The Klei ID of the user you want to run filters for.
+--- @param cfd table? The data proccessed by the filters.
+--- @return boolean? allowed Representing whether the client is allowed
+--- to join according the filters or not.
+--- @return string? reason The code of the reason why the access was prohibited.
+function ServerNetwork:RunConnectionFiltersFor(userid, cfd)
     cfd = cfd or self:GetCachedCFDFor(userid)
 
-    for _, filter in ipairs(conn_filters) do
-        local success, allowed, reason = PEARL.SafeRun(filter, userid, cfd)
+    for i = 1, #conn_filters do
+        local success, allowed, reason = PEARL.SafeRun(conn_filters[i], userid, cfd)
         if success == false then
             -- Allowed should be the error message in this case.
             PEARL.error("Failed to execute a connection data filter!", allowed)
@@ -125,6 +153,45 @@ function ServerNetwork:RunClientConnectionFiltersFor(userid, cfd)
     end
 
     return true
+end
+
+-- Returns always nil, this one requires a finishcb function
+-- where the first 2 parameters will be the allowed flag and reason string.
+--- @param userid string The Klei ID of the user you want to run filters for.
+--- @param cfd table? The data proccessed by the filters.
+--- @param finishcb fun(userid: string, allowed: boolean?, reason: string?)
+function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
+    cfd = cfd or self:GetCachedCFDFor(userid)
+
+    local count = 0
+    local allowed, reason
+    local total_count = #async_conn_filters
+    local handle_async_filter = function(_allowed, _reason)
+        count = count + 1
+
+        if allowed == false then
+            return
+        end
+
+        allowed = _allowed
+        reason = _reason
+        if count == total_count or allowed == false then
+            finishcb(userid, allowed, reason)
+        end
+    end
+
+    if total_count == count then
+        finishcb(true)
+    end
+
+    for i = 1, total_count do
+        if PEARL.SafeRun(
+            async_conn_filters[i], userid, cfd, handle_async_filter
+        ) == false then
+            -- Allowed should be the error message in this case.
+            PEARL.error("Failed to execute an async connection data filter!")
+        end
+    end
 end
 
 ----------------------------------
@@ -156,7 +223,8 @@ end
 --- So far, this is the most reliable approach.
 function ServerNetwork:GetConnectedClientsCount()
     -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
-    return #TheNet:GetClientTable() - 1
+    -- We decrement this by one because of the host client for dedicated servers.
+    return #TheNet:GetClientTable() - (TheNet:IsDedicated() and 1 or 0)
 end
 
 -- Sadly, this doesn't work...
@@ -192,9 +260,14 @@ function ServerNetwork:UserSessionExists(userid)
     return TheNet:GetUserSessionFile(TheNet:GetSessionIdentifier(), userid) ~= nil
 end
 
+function ServerNetwork:IsLocaleAllowed(localecode)
+    return localecode and (PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES[localecode] == true or
+    table.contains(PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES, localecode))
+end
+
 --- Client tables are the same between shards!
 function ServerNetwork:IsUserConnected(userid)
-    return userid and TheNet:GetClientTableForUser(userid) ~= nil
+    return userid and type(TheNet:GetClientTableForUser(userid)) == "table"
 end
 
 function ServerNetwork:IsClientInactive(userid)
@@ -227,12 +300,21 @@ end
 ----------------------------------
 
 --- @param filter function<userid, data>
-function ServerNetwork:AddClientConnectionFilter(filter)
-    PEARL.debug("ServerNetwork:AddClientConnectionFilter", filter)
+function ServerNetwork:AddConnectionFilter(filter)
+    PEARL.debug("ServerNetwork:AddConnectionFilter", filter)
 
     self:SetServerRequiresCFD(true)
 
     return table.insert(conn_filters, filter)
+end
+
+--- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
+function ServerNetwork:AddAsyncConnectionFilter(filter)
+    PEARL.debug("ServerNetwork:AddAsyncConnectionFilter", filter)
+
+    self:SetServerRequiresCFD(true)
+
+    return table.insert(async_conn_filters, filter)
 end
 
 function ServerNetwork:AddJoinServerFilter(filter)
@@ -307,6 +389,7 @@ function ServerNetwork:OnClientDisconnected(userid)
 end
 
 function ServerNetwork:OnClientJoined(userid)
+    PEARL.debug("OnClientJoined")
     self:CacheClientTableFor(userid)
 
     if self:IsClientJoining(userid) and self:GetCachedCFDFor(userid) == nil then
@@ -331,7 +414,7 @@ end
 
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
-    --PEARL.debug(DataDumper(cfd))
+    PEARL.debug(DataDumper(cfd))
 
     -- Always keep just the newest record
     -- This is here just to make sure the data are being cached in case the RCP fails.
@@ -341,23 +424,33 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     -- control the connection use the connection filters.
     PEARL.EventProcessor:HandleEvent("clientdatareceived", userid, cfd)
 
+    -- Make sure the client is still connected at this point
+    -- because those filter checks can be quite expensive.
+    if not ServerNetwork:IsUserConnected(userid) then
+        return PEARL.debug("Already disconnected... Deffering filter execution...")
+    end
+
     -- Skip already trusted clients
+    local allowed, reason
     if not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE then
-        local allowed, reason = self:RunClientConnectionFiltersFor(userid)
-        if allowed == false then
-            return self:SendUserDisconnectFor(userid, reason)
+        if allowed ~= false and conn_filters and #conn_filters > 0 then
+            allowed, reason = self:RunConnectionFiltersFor(userid)
+        end
+
+        if allowed ~= false and async_conn_filters and #async_conn_filters > 0 then
+            return self:RunAsyncConnectionFilters(
+                userid, cfd, _OnConnectionFiltersFinished
+            )
         end
     end
 
-    -- If all the filters have successfully passed, then the connection should be allowed.
-    PEARL.debug("Allowing connection...")
-    self:SendUserConnectionAllowedFor(userid)
+    _OnConnectionFiltersFinished(userid, allowed, reason)
 end
 
 function ServerNetwork:HandleRawConnectionData(userid, data, shardid)
     -- All the data is untrusted in this case.
     local data_tbl = DecodeAndUnzipString(data)
-    if not data_tbl or IsTableEmpty(data_tbl) then
+    if type(data_tbl) ~= "table" or IsTableEmpty(data_tbl) then
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 
@@ -388,18 +481,6 @@ end
 ----------------------------------
 -- Network Callbacks
 ----------------------------------
---- @TODO: I guess this should be moved somewhere else.
-
-local function OnShardCrashed()
-    PEARL.EventProcessor:HandleEvent("shard_shutdown", true)
-    PEARL.ModShutdown()
-end
-
-local function OnShardShutdown()
-    PEARL.EventProcessor:HandleEvent("shard_shutdown")
-    PEARL.ModShutdown()
-end
-
 -- Returning false here will cause the client to be disconnected immediately.
 -- The "Slots Reserved" popup will be displayed.
 -- Start the timeout here since we are sure that this is being only called when joining.
@@ -441,39 +522,13 @@ PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(world_id, stat
     PEARL.EventProcessor:HandleEvent("shard_stateupdate", world_id, state, ...)
 end)
 
--- Looks like this is pushed only on the Master shard
-PEARL.AddGlobalFunctionPreCall("WorldRollbackFromSim", function(count)
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("world_rollback", count)
+PEARL.EventProcessor:AddEventHandler("quit", function()
+    for userid, joining in pairs(joining_clients) do
+        if joining and not ServerNetwork:IsClientPriviliged(userid) then
+            ServerNetwork:SendUserDisconnectFor(userid, "ID_DST_GAME_SESSION_AUTH_FAILED")
+        end
     end
 end)
-
-PEARL.AddGlobalFunctionPreCall("OnSimPaused", function()
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("simpaused")
-    end
-end)
-
-PEARL.AddUserDataFunctionPreCall("Reset", function()
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("world_restart")
-    end
-
-    PEARL.ModShutdown()
-end, TheSim)
-
-PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("world_reset")
-    end
-
-    PEARL.GameInstParams:SetModParam("regenerated", true)
-    PEARL.ModShutdown()
-end)
-
-PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
-PEARL.AddUserDataFunctionPreCall("Crash", OnShardCrashed, TheSim)
-PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
 
 -- Filter out prohibited commands recevied by the server.
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
@@ -557,28 +612,20 @@ PEARL.AddWorldPostInit(function(world)
     end)
 end)
 
--- Looks like GamePostInit isn't called when regenerating the world.
-PEARL.AddSimPostInit(function()
-    if not TheWorld then
-        return
-    end
-
-    -- Push this here since this is the place where all the meta data are loaded as well.
-    if PEARL.GameInstParams:GetModParam("regenerated") == true then
-        TheWorld:PushModEvent("worldgencomplete")
-    end
-end)
-
 ----------------------------------
 -- RPC Handlers
 ----------------------------------
 
 PEARL.AddRawServerUseridRPCHandler("ClientDisconnected", function(userid, reason, force)
     if not (optstring(reason) and optbool(force)) then
-        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
+        return ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
     end
 
     PEARL.debug("RPC: ClientDisconnected", reason, force)
+    if not ServerNetwork:IsUserConnected(userid) then
+        return PEARL.debug("Already disconnected...")
+    end
+
     PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
 end)
 
@@ -588,7 +635,7 @@ end)
 --- We will probably save the data from this to the DB.
 PEARL.AddRawServerUseridRPCHandler("ConnectionFilterData", function(userid, data)
     if not checkstring(data) then
-        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+        return ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 
     return ServerNetwork:HandleRawConnectionData(userid, data)

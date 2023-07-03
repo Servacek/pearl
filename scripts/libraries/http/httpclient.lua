@@ -32,7 +32,8 @@
 --]]
 
 local Queue = PEARL.loadfile("libraries/queue")
-local Request = PEARL.loadfile("models/request")
+local Request = PEARL.loadfile("libraries/http/models/request")
+local HTTPClientProxy = PEARL.loadfile("libraries/http/httpclientproxy")
 
 local Class = Class
 local TheSim = TheSim
@@ -59,6 +60,8 @@ _SendRequest = function(self, request, force)
     if type(request) ~= "table" then
         return PEARL.warn("Attempted to send an invalid request!")
     end
+
+    self._last_host = request.host
 
     -- Run in a protected call so if an error occures and the request is not actually
     -- being sent, we do not block the requester.
@@ -91,6 +94,8 @@ _ProcessQueue = function(self)
 end
 
 _FinishCooldown = function(self)
+    PEARL.debug("Cooldown task finished!")
+
     self._cooldown_task:stop()
 
     _ProcessQueue(self)
@@ -100,8 +105,8 @@ end
 -- [[ Class Declaration ]]
 --------------------------------
 
---- @class RestClient singleton
-local RestClient = Class(function(self)
+--- @class HTTPClient singleton
+local HTTPClient = Class(function(self)
     self._frequency = DEFAULT_REQUEST_FREQUENCY
 
     self._force_threshold = MAX_FORCE_THRESHOLD
@@ -113,6 +118,8 @@ local RestClient = Class(function(self)
     --- @type Task?
     self._cooldown_task = nil
 
+    self._last_host = nil
+
     -- Used for debugging
     --self._rcount = 0
 
@@ -120,6 +127,14 @@ local RestClient = Class(function(self)
     self._shutting_down = false
     self._waiting = false
     --self._ready = false
+
+    --- This should be public
+    --- @type HTTPClientProxy
+    self.proxy = HTTPClientProxy
+    if PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
+        self.proxy:SetEnabled(true)
+        self.proxy:SetURL(PEARL.CONFIG.PROXY.URL)
+    end
 
     -- [[ Events ]]
     PEARL.EventProcessor:AddSafeEventHandler("quit", function()
@@ -132,7 +147,7 @@ end)
 --------------------------------
 
 -- More can be added later
-RestClient.METHODS = {
+HTTPClient.METHODS = {
     POST    = "POST",
     GET     = "GET",
 }
@@ -141,13 +156,13 @@ RestClient.METHODS = {
 -- [[ Setters ]]
 --------------------------------
 
-function RestClient:SetIsWaiting(waiting)
+function HTTPClient:SetIsWaiting(waiting)
     self._waiting = waiting
 
     return self
 end
 
-function RestClient:SetRequestFrequency(frequency)
+function HTTPClient:SetRequestFrequency(frequency)
     if type(frequency) ~= "number" then
         return PEARL.error("Invalid frequency parameter!")
     end
@@ -157,13 +172,13 @@ function RestClient:SetRequestFrequency(frequency)
     return self
 end
 
-function RestClient:CacheRequest(request)
+function HTTPClient:CacheRequest(request)
     self._request_cache[request.url] = request
 
     return self
 end
 
-function RestClient:ResetForceTreshold()
+function HTTPClient:ResetForceTreshold()
     self._force_threshold = MAX_FORCE_THRESHOLD
 end
 
@@ -171,32 +186,33 @@ end
 -- [[ Getters ]]
 --------------------------------
 
-function RestClient:IsQueueDisabled()
+function HTTPClient:IsQueueDisabled()
     return self._frequency <= 0
 end
 
-function RestClient:IsShuttingDown()
+function HTTPClient:IsShuttingDown()
     return self._shutting_down
 end
 
-function RestClient:IsWaiting()
+function HTTPClient:IsWaiting()
     return self._waiting
 end
 
-function RestClient:IsOnCooldown()
+function HTTPClient:IsOnCooldown()
+    print(self._cooldown_task, self._cooldown_task.running)
     return self._cooldown_task ~= nil and self._cooldown_task.running
 end
 
--- function RestClient:IsReady()
+-- function HTTPClient:IsReady()
 --     return self._ready
 -- end
 
-function RestClient:GetCached(url)
+function HTTPClient:GetCached(url)
     return self._request_cache[url]
 end
 
 -- Used for debugging purposes
--- function RestClient:GetSentRequestsCount()
+-- function HTTPClient:GetSentRequestsCount()
 --     return self._rcount
 -- end
 
@@ -204,7 +220,7 @@ end
 -- [[ Public Methods ]]
 --------------------------------
 
-function RestClient:StartCooldown(force)
+function HTTPClient:StartCooldown(force)
     if self:IsShuttingDown() then
         return
     end
@@ -226,7 +242,8 @@ function RestClient:StartCooldown(force)
     end
 end
 
-function RestClient:ProcessRequest(request)
+function HTTPClient:ProcessRequest(request)
+    print(self:IsWaiting(), self:IsOnCooldown())
     -- If we are not waiting for anything or the queue is disabled
     -- then send the request immediately
     if not (self:IsWaiting() or self:IsOnCooldown()) or self:IsQueueDisabled() or self:IsShuttingDown() then
@@ -244,7 +261,7 @@ function RestClient:ProcessRequest(request)
     end
 end
 
-function RestClient:ForceSend(request)
+function HTTPClient:ForceSend(request)
     if self._force_threshold <= 0 then
         return false
     end
@@ -254,7 +271,12 @@ function RestClient:ForceSend(request)
         self._cooldown_task:stop()
     end
 
-    self._force_threshold = self._force_threshold - 1
+    -- If we are forcefully sending multiple requests to the same host.
+    -- This is here in order to prevent hitting the rate limits when something
+    -- gets really wrong and some request loop is created.
+    if request.host == self._last_host then
+        self._force_threshold = self._force_threshold - 1
+    end
 
     PEARL.debug(string.format("Forcing a request! (%d/%d)",
         self._force_threshold, MAX_FORCE_THRESHOLD
@@ -263,7 +285,8 @@ function RestClient:ForceSend(request)
     return _SendRequest(self, request, true)
 end
 
-function RestClient:Request(url, method)
+--- @return Request
+function HTTPClient:Request(url, method)
     -- local cached = self:GetCached(url)
     -- if cached ~= nil and cached.method == method then
     --     PEARL.debug(method.." (cached)", url)
@@ -281,22 +304,37 @@ function RestClient:Request(url, method)
     return request
 end
 
-function RestClient:RetryRequestAfter(request, seconds)
+function HTTPClient:RetryRequestAfter(request, seconds)
     PEARL.info("Retrying request in", seconds, "seconds...")
 
     return PEARL.WallScheduler:ExecuteInTime(seconds, function()
-        RestClient:ProcessRequest(request)
+        HTTPClient:ProcessRequest(request)
     end)
 end
 
-function RestClient:GET(url, callbackfn, timeout, ...)
-    return self:Request(url, RestClient.METHODS.GET)
+--- @nodiscard
+--- @param url string The url of the endpoint we want to send the request to.
+--- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param timeout number? The number of seconds before timeout should occur.
+--- @param ... any? Additional parameters for the callback function.
+---
+--- @return Request request The newly created request. You need to execute it using :Send.
+function HTTPClient:GET(url, callbackfn, timeout, ...)
+    return self:Request(url, HTTPClient.METHODS.GET)
         :SetCallbackFn(callbackfn, ...)
         :SetTimeout(timeout)
 end
 
-function RestClient:POST(url, callbackfn, encoded_data, timeout, ...)
-    return self:Request(url, RestClient.METHODS.POST)
+--- @nodiscard
+--- @param url string The url of the endpoint we want to send the request to.
+--- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param encoded_data string The json data body for the request.
+--- @param timeout number? The number of seconds before timeout should occur.
+--- @param ... any? Additional parameters for the callback function.
+---
+--- @return Request request The newly created request. You need to execute it using :Send.
+function HTTPClient:POST(url, callbackfn, encoded_data, timeout, ...)
+    return self:Request(url, HTTPClient.METHODS.POST)
         :SetCallbackFn(callbackfn, ...)
         :SetTimeout(timeout)
         :SetData(encoded_data)
@@ -306,7 +344,7 @@ end
 -- [[ Callbacks ]]
 --------------------------------
 
-function RestClient:OnShutdown()
+function HTTPClient:OnShutdown()
     PEARL.info("Shutting down...")
     self._shutting_down = true
 
@@ -338,4 +376,4 @@ end
 -- [[ Return ]]
 --------------------------------
 
-return RestClient
+return HTTPClient

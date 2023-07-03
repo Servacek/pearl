@@ -9,3 +9,19 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
+
+
+
+--- @class PlayerRepManager
+local PlayerRepManager = {}
+
+function PlayerRepManager:Give(userid, reputation)
+
+end
+
+function PlayerRepManager:Take(userid, reputation)
+
+end
+
+
+return PlayerRepManager

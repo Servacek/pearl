@@ -24,7 +24,15 @@ local TrackedAssert = TrackedAssert
 -- [[ Constants ]]
 ------------------------------------------
 
-local DATABASE_FILE_PATH = "_pdb"
+local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"
+
+------------------------------------------
+-- [[ Local Functions ]]
+------------------------------------------
+
+local function IsClearValue(value)
+    return value == nil or value == ""
+end
 
 ------------------------------------------
 -- [[ Class Declaration ]]
@@ -33,7 +41,6 @@ local DATABASE_FILE_PATH = "_pdb"
 --- @class PlayerDB
 local PlayerDB = {
     _records = {},
-    _loaded = false,
 }
 
 ------------------------------------------
@@ -41,15 +48,20 @@ local PlayerDB = {
 ------------------------------------------
 
 function PlayerDB:HasRecord(userid)
-    return table.empty(self._records[userid])
+    return io.exists(DATABASE_FILE_PATH:format(userid))
 end
 
 function PlayerDB:GetRecordFor(userid)
-    return self._records[userid]
+    return self._records[userid] or self:LoadRecordFor(userid)
 end
 
-function PlayerDB:IsLoaded()
-    return self._loaded
+function PlayerDB:GetField(userid, name)
+    local record = self:GetRecordFor(userid)
+    if not record then
+        return
+    end
+
+    return record[name]
 end
 
 ------------------------------------------
@@ -62,83 +74,106 @@ function PlayerDB:AddRecord(userid, record)
     return record
 end
 
-function PlayerDB:AddPlayer(player)
-    if self:HasRecord(player.userid) then
+function PlayerDB:AddPlayer(userid)
+    if self:HasRecord(userid) then
         PEARL.error("Player already in db!")
     end
 
-    local record = self:CreateRecord()
-    self:AddRecord(player.userid, record)
-    self:UpdateRecordFor(player)
-
-    return record
+    return self:AddRecord(userid, self:CreateRecord())
 end
 
-function PlayerDB:RemoveRecord(userid)
+--- We cannot delete files from this limited environment.
+function PlayerDB:UnloadRecord(userid)
     local record = self._records[userid]
     self._records[userid] = nil
 
     return record
 end
 
+function PlayerDB:OptionalSetField(userid, name, value)
+    local record = PEARL.PlayerDB:GetRecordFor(userid)
+    if not record then
+        return
+    end
+
+    local prev = record[name]
+    record[name] = value
+
+    return prev
+end
+
+function PlayerDB:OptionalSafeSetField(userid, name, value)
+    if not IsClearValue(value) then
+        return self:OptionalSetField(userid, name, value)
+    end
+end
+
 ------------------------------------------
 -- [[ Public Methods ]]
 ------------------------------------------
 
-function PlayerDB:UpdateRecordFor(player)
-    local record = self:GetRecordFor(player.userid)
-    if record then
-        record.lastprefab = player.prefab
-        record.lasttime = player.lasttime
-
-        return record
+--- Returns the record and a boolean determining whether the record was created or not.
+function PlayerDB:EnsureRecordFor(userid)
+    local record = self:GetRecordFor(userid)
+    if not record then
+        return self:AddPlayer(userid), true
     end
 
-    return self:AddPlayer(player)
+    return record, false
+end
+
+function PlayerDB:UpdateRecordFor(userid)
+    return self:GetRecordFor(userid) or self:AddPlayer(userid)
 end
 
 function PlayerDB:CreateRecord()
     return {
         rep = 0,
         maxgriefness = 0,
+        joinedtime = os.time(),
+        totaldays = 0,
+        gamerep = 0,
+        profilerep = 0,
     }
 end
 
-function PlayerDB:Load()
-    io.ensure(DATABASE_FILE_PATH)
+function PlayerDB:LoadRecordFor(userid)
+    local path = DATABASE_FILE_PATH:format(userid)
+    io.ensure(path)
 
-    local rf, err = io.open(DATABASE_FILE_PATH, "r")
+    local rf, err = io.open(path, "r")
     if not rf or err then
-        return false, err
+        PEARL.error(err)
+        return
     end
 
     local str = rf:read("*a")
     rf:close()
 
+    -- Decoding and un-encoded string should return nil
     local decoded = TheSim:DecodeAndUnzipString(str)
     str = decoded and #decoded > 0 and decoded or str
 
-    print(str)
-    local success, records = RunInSandboxSafe(str)
-    records = records or {}
+    local success, record = pcall(json.decode, str)
+    record = record or {}
 
-    print(records)
-
-    if not success or type(records) ~= "table" then
-        return false
+    if not success or type(record) ~= "table" then
+        return
     end
 
-    tdump(records)
+    self._records[userid] = record
 
-    self._records = records
-    self._loaded = true
-
-    return true
+    return record
 end
 
-function PlayerDB:Save()
-    local str = DataDumper(self._records, nil, true)
-    if not PEARL.CONFIG.DEBUG_MODE then
+function PlayerDB:SaveRecordFor(userid, record)
+    record = record or self._records[userid]
+    if not record then
+        return
+    end
+
+    local str = json.encode(record)
+    if PEARL.CONFIG.DATABASE.ENCODE_DATA then
         -- Only encode and zip the data in production
         str = TheSim:ZipAndEncodeString(str)
     end
@@ -147,13 +182,19 @@ function PlayerDB:Save()
         return false
     end
 
-    local wf, err = io.open(DATABASE_FILE_PATH, "w")
+    local wf, err = io.open(DATABASE_FILE_PATH:format(userid), "w")
     if not wf or err then
         return false, err
     end
 
     wf:write(str)
     wf:close()
+end
+
+function PlayerDB:SaveActiveRecords()
+    for userid, record in pairs(self._records) do
+        self:SaveRecordFor(userid, record)
+    end
 end
 
 function PlayerDB:PrintDebugInfo()

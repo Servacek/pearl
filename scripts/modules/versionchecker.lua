@@ -22,6 +22,11 @@
     last early access version of the game :/
 --]]
 
+
+if not TheShard:IsMaster() then
+    return
+end
+
 local PEARL = PEARL
 local APP_VERSION, json, LoadingStates = APP_VERSION, json, LoadingStates
 local TheNet = TheNet
@@ -39,7 +44,7 @@ local TARGET_VERSION_PATTERN = ",\"(%d+)\"%],\"staging\":%[\"%d+\","
 -------------------------------------
 
 local task
-local current_version = 1 --tonumber(APP_VERSION) or 0
+local current_version = tonumber(APP_VERSION) or 0
 local target_version = 0
 
 -------------------------------------
@@ -75,7 +80,7 @@ local function StopVersionCheckTask()
     if task ~= nil then
         PEARL.debug("Stopping version check task...")
 
-        task:Cancel()
+        task:cancel()
         task = nil
     end
 end
@@ -95,9 +100,12 @@ local function StartServerUpdate()
         -- Show the loading screen to all all players,
         -- so we can shutdown gracefully...
         --- @TODO debug a bit more since it seems to not work properly
-        TheNet:NotifyLoadingState(LoadingStates.Loading)
+        TheNet:NotifyLoadingState(LoadingStates.Loading, "")
 
-        PEARL.SafeShutdownAllShards()
+        PEARL.BroadcastRPCToShards(PEARL.RPC.BroadcastLua, "c_shutdown()")
+        PEARL.WallScheduler:ExecuteInTime(0, function()
+            c_shutdown()
+        end)
     end)
 end
 
@@ -140,7 +148,7 @@ local function CheckAppVersion()
         NotifyVersionMismatch()
 
         if TheNet:GetPlayerCount() <= 0 then
-            -- No new players should be able to join at this point.
+            -- Announce the version mismatch just once.
             StopVersionCheckTask()
         end
 
@@ -164,7 +172,6 @@ local function OnVersionCheckQueryComplete(result, isSuccessful, resultCode)
         or tonumber(get_target_version(result))
         or 0
 
-    error("TARGET:", target_version)
     if target_version < 1 then
         return PEARL.error("Failed to retrive target version!")
     end
@@ -174,8 +181,8 @@ end
 
 local function DoVersionCheckTask()
     PEARL.debug("DoVersionCheck")
-    if CheckAppVersion() then
-        PEARL.RestClient:GET(
+    if target_version == 0 or CheckAppVersion() then
+        PEARL.HTTPClient:GET(
             PEARL.CONSTS.DST_BUILDS, OnVersionCheckQueryComplete, VERSION_QUERY_TIMEOUT
         ):Send()
     end

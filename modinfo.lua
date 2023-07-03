@@ -69,7 +69,14 @@ configuration_options = {
                 ID = "",
                 TOKEN = "",
                 ENABLED = true,
-            }
+            },
+            BHOOK = {
+                ID = "",
+                TOKEN = "",
+                ENABLED = true,
+
+                MESSAGE_ID = "",
+            },
         },
         type = "table<string, any>",
         public = "DISCORD.INVITE",
@@ -78,6 +85,47 @@ configuration_options = {
             TOKEN = "string",
             INVITE = "string",
         }
+    },
+
+    --------------------
+    -- Steam
+    --------------------
+
+    {
+        name = "STEAM",
+        default = {
+            API_KEY = nil,
+            VERIFY_NEW_ACCOUNTS = true,
+        },
+        type = "table<string, any>",
+    },
+
+    --------------------
+    -- Database
+    --------------------
+
+    {
+        name = "DATABASE",
+        default = {
+            ENABLED = false,
+            FOLDER = ".", -- "data" folder by default
+            ENCODE_DATA = false,
+        },
+        type = "table",
+    },
+
+    --------------------
+    -- Proxy
+    --------------------
+
+    {
+        name = "PROXY",
+        default = {
+            ENABLED = false,
+            URL = nil,
+            KEY = "dst0qy97fkfvAapK-VPFfcKNdtzFHG1F-rwFwrajnG8=",
+        },
+        type = "table",
     },
 
     --------------------
@@ -126,6 +174,16 @@ configuration_options = {
         type = "boolean",
     },
 
+    {
+        name = "FILTER_NEW_PROFILES",
+        default = true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
     { -- regenerate, rollback, kick...
         name="COMMAND_BLOCKLIST",
         default={},
@@ -137,6 +195,13 @@ configuration_options = {
         name="CHARACTER_BLOCKLIST",
         default={},
         type = "table<string, boolean>",
+        public = true,
+    },
+
+    {
+        name = "STEAM_GROUP_BLOCKLIST",
+        default = {},
+        type = "table<string, boolen>",
         public = true,
     },
 
@@ -274,14 +339,6 @@ configuration_options = {
             false,
         },
         type = "boolean",
-    },
-
-    {
-        name = "DATABASE",
-        default = {
-            ENABLED = false,
-        },
-        type = "table",
     },
 
     {

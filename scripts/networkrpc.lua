@@ -127,7 +127,17 @@ local SERVER_USERID_RPCS = {
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
 
-    UserAgreed = function(userid)
+    AgreementFinished = function(userid, agreed, agreedintime)
+        if not optbool(agreed) or not optnumber(agreedintime) then
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementFinished", userid)
+        end
+
+        PEARL.EventProcessor:HandleEvent("clientagreementfinished", userid, agreed, agreedintime)
+
+        if not agreed then
+            return
+        end
+
         local client = userid and TheNet:GetClientTableForUser(userid)
         if not client and client.name then
             return

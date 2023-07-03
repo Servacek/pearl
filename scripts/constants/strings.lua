@@ -454,8 +454,13 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_USER_NOT_ALLOWED",
 )
 
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_MODS_PROHIBITED",
-    "Disconnected",
-    "You are using mods that are not allowed on this server.\nPlease disable them and try again."
+    "Mods Prohibited",
+    "Some of the mods your are using are disallowed by this server.\nPlease disable them and try again."
+)
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_ALL_MODS_PROHIBITED",
+    "All Mods Prohibited",
+    "All of the mods your are using are disallowed by this server.\nPlease disable them and try again."
 )
 
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_LOCALE_BLOCKED",
@@ -471,4 +476,9 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_SERVER_RESPONSE_TIMEOUT",
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_USERNAME_BLOCKED",
     "Inappropiate User Name",
     "To continue playing on this server, please change your Steam user name."
+)
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PROFILE_REP_TOO_LOW",
+    "Reputation Too Low",
+    "Your gaming reputation seems to be too low for this server."
 )

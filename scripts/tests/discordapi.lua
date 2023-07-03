@@ -22,7 +22,7 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local tests = {}
 
 function tests.test_all()
-    local init_request_count = PEARL.RestClient:GetSentRequestsCount()
+    local init_request_count = PEARL.HTTPClient:GetSentRequestsCount()
 
     PEARL.info("=============== Message Buffer Test ===============")
     tests.msg_buffer_test()
@@ -59,7 +59,7 @@ function tests.test_all()
 
     PEARL.WallScheduler:ExecuteInTime(35, function()
         PEARL.info("=============== END ===============")
-        local current_requests_count = PEARL.RestClient:GetSentRequestsCount()
+        local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
         PEARL.info("Requests Sent:", current_requests_count - init_request_count)
     end)
 end

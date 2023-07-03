@@ -21,7 +21,7 @@ function tests.test_all()
     end
 
     PEARL.info("=============== START ===============")
-    local init_request_count = PEARL.RestClient:GetSentRequestsCount()
+    local init_request_count = PEARL.HTTPClient:GetSentRequestsCount()
 
     PEARL.info("=============== TEST BANNED VALID ROOT ===============")
     TheWorld:PushEvent("ms_clientauthenticationcomplete", {userid ="KU_ZC24p91Q"})
@@ -51,7 +51,7 @@ function tests.test_all()
 
     PEARL.WallScheduler:ExecuteInTime(60, function()
         PEARL.info("=============== END ===============")
-        local current_requests_count = PEARL.RestClient:GetSentRequestsCount()
+        local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
         PEARL.info("Requests Sent:", current_requests_count - init_request_count)
     end)
 end

@@ -178,7 +178,7 @@ SendFSQueryFor = function(userid, no_retry)
         return PEARL.error("JSON failed to encode query data!")
     end
 
-    PEARL.RestClient:POST(
+    PEARL.HTTPClient:POST(
         PEARL.CONSTS.FSLS_QUERY_URL, HandleFSQuery,
         input_json, FS_QUERY_TIMEOUT, userid, no_retry or false
     ):Send()

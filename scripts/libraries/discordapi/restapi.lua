@@ -35,6 +35,22 @@ local DISCORD_STATUS_CODES = {
     --5xx (SERVER ERROR)	The server had an error processing your request (these are rare).
 }
 
+local ENDPOINTS = {
+    W_MESSAGE = "/messages/%s"
+}
+
+local MESSAGE_ACTIONS = {
+    POST   = 1,
+    DELETE = 2,
+    EDIT   = 3,
+}
+
+local MESSAGE_ACTION_METHODS = {
+    [MESSAGE_ACTIONS.POST]      = PEARL.HTTPClient.METHODS.POST,
+    [MESSAGE_ACTIONS.DELETE]    = PEARL.HTTPClient.proxy.METHODS.DELETE,
+    [MESSAGE_ACTIONS.EDIT]      = PEARL.HTTPClient.proxy.METHODS.PATCH,
+}
+
 --------------------------------
 -- [[ Private Functions ]]
 --------------------------------
@@ -83,7 +99,7 @@ function RestAPI:_OnErrorStatusCode(status_code, result, request)
     if status_code == DISCORD_STATUS_CODES.GATEWAY_UNAVAILABLE then
         local retry_seconds = RETRY_SECONDS + math.random(RETRY_SECONDS)
         PEARL.error("Gateway Unavailable.")
-        PEARL.RestClient:RetryRequestAfter(request, retry_seconds)
+        PEARL.HTTPClient:RetryRequestAfter(request, retry_seconds)
     end
 
     if status_code > 500 then
@@ -104,9 +120,40 @@ function RestAPI:ExecuteWebhook(webhook, json_data, force)
         return
     end
 
-    return PEARL.RestClient:POST(
+    if type(webhook) ~= "table" or type(webhook.url) ~= "string" then
+        return PEARL.error("Invalid webhook provided for Message Post Action!")
+    end
+
+    return PEARL.HTTPClient:POST(
         webhook.url, on_request_completed, json_data, REQUEST_TIMEOUT, self
     ):SetCallbackFnInst(self):Send(force)
+end
+
+function RestAPI:DoWebhookMessageAction(webhook, messageid, action, data, force)
+    if self:IsDisabled() then
+        return
+    end
+
+    if type(webhook) ~= "table" or type(webhook.url) ~= "string" then
+        return PEARL.error("Invalid webhook provided for message action!")
+    end
+
+    local endpoint_url = webhook.url..ENDPOINTS.W_MESSAGE:format(messageid)
+    return PEARL.HTTPClient.proxy:Request(
+        endpoint_url, MESSAGE_ACTION_METHODS[action], on_request_completed, data, REQUEST_TIMEOUT, self
+    ):SetCallbackFnInst(self):Send(force)
+end
+
+function RestAPI:EditWebhookMessage(webhook, messageid, data, force)
+    return self:DoWebhookMessageAction(
+        webhook, messageid, MESSAGE_ACTIONS.EDIT, data, force
+    )
+end
+
+function RestAPI:DeleteWebhookMessage(webhook, messageid, force)
+    return self:DoWebhookMessageAction(
+        webhook, messageid, MESSAGE_ACTIONS.DELETE, nil, force
+    )
 end
 
 function RestAPI:RateLimitForTime(seconds)

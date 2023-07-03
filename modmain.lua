@@ -266,6 +266,7 @@ PEARL.loadfile("extensions/standard/table")
 PEARL.loadfile("extensions/standard/math")
 PEARL.loadfile("extensions/standard/io")
 PEARL.loadfile("extensions/standard/string")
+PEARL.loadfile("extensions/standard/os")
 
 ----------------------------------
 -- [[ Static Scheduler ]]

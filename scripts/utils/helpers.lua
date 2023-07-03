@@ -377,6 +377,16 @@ function PEARL.IsFirstLaunch()
     return TheSim:GetNumLaunches() == 2
 end
 
+function PEARL.ToggleEncryptString(str, key)
+    local key_len = #key
+    local encrypted = {}
+    for i = 1, #str do
+        encrypted[#encrypted + 1] = bit.bxor(str:byte(i), key:byte((i - 1) % key_len + 1))
+    end
+
+    return string.char(unpack(encrypted))
+end
+
 --------------------------------
 -- [[ Klei Data ]]
 --------------------------------

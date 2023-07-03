@@ -11,6 +11,8 @@
 --]==]====================================================]]
 
 
+--- @type utf8
+local utf8 = PEARL.loadfile("libraries/utf8")
 
 ------------------------------------------
 -- [[ Class Declaration ]]
@@ -228,6 +230,11 @@ function Embed:ToTable()
         url = self.url,
         fields = self.fields,
     }
+end
+
+function Embed:ToJson()
+    local success, result = pcall(json.encode_compliant, self:ToTable())
+    return success, success and utf8.decode_string(result) or result
 end
 
 ------------------------------------------

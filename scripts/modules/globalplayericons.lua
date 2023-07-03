@@ -31,7 +31,7 @@ PEARL.AddPlayerPostInit(function(inst)
     inst.components.maprevealable:AddRevealSource(inst, "compatriot")
 end)
 
-PEARL.AddGlobalFunctionPreCall("NotifyPlayerProgress", function(name, value, player)
+PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(name, value, player)
     if name ~= "days" or not player or player:HasTag("compatriot") or not player.components.age then
         return
     end

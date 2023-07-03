@@ -36,7 +36,7 @@ local REQUEST_FAILED_HEADER     = "(%s) [%d] Request Failed! Reason: %s"
 --- url and method params are required.
 local Request = Class(function(self, url, method)
     assert(type(url) == "string", "Invalid request url supplied!")
-    assert(PEARL.RestClient.METHODS[method], "Invalid request method supplied!")
+    assert(PEARL.HTTPClient.METHODS[method], "Invalid request method supplied!")
 
     --- @type string
     self.url = url
@@ -86,8 +86,17 @@ end
 
 function Request:SetData(data)
     if type(data) ~= "string" then
-        PEARL.error("Attempted to set an invalid request data!")
-        return self
+        if type(data) == "table" then
+            local success
+            success, data = pcall(json.encode_compliant, data)
+            if not success or type(data) ~= "string" then
+                PEARL.error("Failed to encode the given table to JSON!")
+                return self
+            end
+        else
+            PEARL.error("Attempted to set an invalid request data!")
+            return self
+        end
     end
 
     self.data = data
@@ -139,10 +148,10 @@ end
 
 function Request:Send(force)
     if force then
-        return PEARL.RestClient:ForceSend(self)
+        return PEARL.HTTPClient:ForceSend(self)
     end
 
-    PEARL.RestClient:ProcessRequest(self)
+    PEARL.HTTPClient:ProcessRequest(self)
 end
 
 -------------------------------------

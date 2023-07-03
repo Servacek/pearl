@@ -52,18 +52,18 @@ PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
         return
     end
 
-    if KnownModIndex:IsModEnabled(modname) then
-        PEARL.debug("Blocking mod "..modname)
-        -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
-        table.removearrayvalue(self.enabledmods, modname)
+    -- if KnownModIndex:IsModEnabled(modname) then
+    --     PEARL.debug("Blocking mod "..modname)
+    --     -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
+    --     table.removearrayvalue(self.enabledmods, modname)
 
-        -- Disable permanently so the popup does not show each time during shard migration or reset
-        KnownModIndex:Block(modname)
-        SaveModIndex()
-    end
+    --     -- Disable permanently so the popup does not show each time during shard migration or reset
+    --     KnownModIndex:Block(modname)
+    --     SaveModIndex()
+    -- end
 
-    -- Stop further execution
-    return false
+    -- -- Stop further execution
+    -- return false
 end, ModManager)
 
 --------------------------------------
@@ -111,21 +111,37 @@ end)
 -- So far the best place where to drop this check I guess
 -- Load this before frontend since on FE post init we send the CFD data.
 PEARL.AddFrontEndPreInit(function()
-    local disconnect = false
-    for _, modname in ipairs(KnownModIndex:GetModNames()) do
-        if KnownModIndex:IsModEnabled(modname) and not KnownModIndex:IsModAllowed(modname) then
-            disconnect = true
+    -- Do not disable mods in STRICT mode
+    if PEARL.CONFIG.MOD_BLOCKER.STRICT then
+        return
+    end
 
-            -- Even though we are being disconnected,
-            -- disable the mods in case of re-join.
-            KnownModIndex:Block(modname)
+    PEARL.info("Checking the mods... again...")
+
+    local count = 0
+    local prohibited_count = 0
+    for modname, _ in pairs(KnownModIndex.savedata.known_mods) do
+        if KnownModIndex:IsModEnabledAny(modname) and not KnownModIndex:IsModAllowed(modname) then
+            count = count + 1
+            if not KnownModIndex:IsModAllowed(modname) then
+                prohibited_count = prohibited_count + 1
+
+                -- Even though we are being disconnected,
+                -- disable the mods in case of re-join.
+                KnownModIndex:Block(modname)
+            end
         end
     end
 
-    if disconnect == true then
+    print("PROHIBITED", prohibited_count, count)
+    if prohibited_count > 0 then
         -- Save the changes made to the mod configurations
         SaveModIndex()
 
-        PEARL.ClientNetwork:Disconnect("ID_DST_MODS_PROHIBITED")
+        -- Prohibited mods were loaded even though our efforts to stop them.
+        -- The only thing left is to disconnect the user...
+        PEARL.ClientNetwork:Disconnect(
+           (count - 1) == prohibited_count and "ID_DST_ALL_MODS_PROHIBITED" or "ID_DST_MODS_PROHIBITED"
+        )
     end
 end)

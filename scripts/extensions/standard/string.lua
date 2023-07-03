@@ -1,3 +1,17 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 
 -------------------------------------
 -- [[ Global Localization ]]
@@ -99,6 +113,18 @@ end
 --- @return string result The formatted result string
 function string:capitalize()
     return self and (self:gsub("^%l", upper)) or self
+end
+
+function string:count(word)
+    local count = 0
+    local startPos = 0
+    while startPos do
+        startPos = self:find(word, startPos + 1, true)
+        if startPos then
+            count = count + 1
+        end
+    end
+    return count
 end
 
 function string:escape(char)

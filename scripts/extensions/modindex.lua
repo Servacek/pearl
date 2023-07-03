@@ -68,7 +68,7 @@ function KnownModIndex:IsModPrivate(modname)
 end
 
 function KnownModIndex:IsModAllowed(modname)
-    if TheNet:GetIsServerAdmin() then
+    if TheNet:GetIsServerAdmin() or modname == PEARL.MODNAME then
         return true -- All mods are allowed for admins
     end
 
@@ -123,16 +123,17 @@ end
 function KnownModIndex:GetModsReport()
     local report = {
         count = self:GetAllEnabledModsCount(),
-        prohibited = false,
+        prohibited_count = 0,
     }
 
     for _, modname in ipairs(KnownModIndex:GetModNames()) do
         if #report < MAX_REPORTS and IsModReportable(modname) then
             local mod_report = CreateReportForMod(modname)
-            if not mod_report.allowed then
+            if mod_report.allowed == false then
                 -- Show blocked mods at the top.
                 table.insert(report, 1, mod_report)
-                report.prohibited = true
+
+                report.prohibited_count = report.prohibited_count + 1
             else
                 report[#report + 1] = mod_report
             end

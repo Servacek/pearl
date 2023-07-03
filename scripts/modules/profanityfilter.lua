@@ -88,8 +88,6 @@ end
 
 -- We use our custom function for this since the default one doesn't support patterns.
 function ProfanityFilter:Detect(text)
-    PEARL.debug("ProfanityFilter:Detect", text)
-
     if type(text) ~= "string" or #text <= 1 then
         return
     end
@@ -102,6 +100,22 @@ function ProfanityFilter:Detect(text)
     end
 
     return false
+end
+
+function ProfanityFilter:CountInappropriateWords(text)
+    if type(text) ~= "string" or #text <= 1 then
+        return
+    end
+
+    local count = 0
+    text = normalize(lower(text))
+    for i = 1, #patterns do
+        for _ in text:gmatch(patterns[i]) do
+            count = count + 1
+        end
+    end
+
+    return count
 end
 
 -------------------------------------
@@ -144,7 +158,7 @@ end)
 -------------------------------------
 
 if PEARL.CONFIG.FILTER_USERNAMES then
-    PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, data)
+    PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
         if type(data.username) ~= "string" then
             return
         end

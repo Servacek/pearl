@@ -98,7 +98,7 @@ end
 -- [[ Setup - Server ]]
 --------------------------------
 
-PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, cfd)
+PEARL.ServerNetwork:AddConnectionFilter(function(userid, cfd)
     local locale = cfd.locale and string.upper(cfd.locale)
     if not locale then
         return PEARL.warn("Invalid locale!")
@@ -121,7 +121,7 @@ PEARL.ServerNetwork:AddClientConnectionFilter(function(userid, cfd)
     -- So by default everything is prohibited
     -- Everything else should be checked before sending the localization request
     -- Cache only successfull localizations.
-    if PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES[locale] == true or table.contains(PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES, locale) then
+    if PEARL.ServerNetwork:IsLocaleAllowed(locale) then
         PEARL.info("Locale allowed.")
 
         if PEARL.CONFIG.LOCALIZER.CACHE then

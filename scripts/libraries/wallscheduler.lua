@@ -129,12 +129,14 @@ end
 --- @param id any? The identifier of the task. Used for debugging purposes only.
 --- @param ... any? All the additional parameters for the callback function.
 local function create_task(time, fn, limit, initialdelay, id, ...)
+    PEARL.debug("create_task", time, fn, limit, initialdelay, id)
     if type(fn) ~= "function" or type(time) ~= "number" then
         return PEARL.error("Attempted to create a task with invalid parameters!")
     end
 
     local task = {
         _time = time / wtdelta,
+        _delayed = type(initialdelay) == "number",
         _ext = wtime + (initialdelay or time) / wtdelta,
         _fn = fn,
         _limit = limit,
@@ -167,6 +169,12 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         end
 
         self._ext = wtime + self._time
+
+        if self._delayed then
+            -- This is for tasks that have initial_delay
+            self._delayed = false
+            sort_tasks()
+        end
     end
 
     -- Even running tasks can be restarted.
@@ -218,6 +226,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         self._args = nil
 
         self.running = false
+        self._delayed = false
     end
 
     return task
