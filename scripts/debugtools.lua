@@ -38,7 +38,7 @@ PEARL.TESTS = setmetatable({}, {
     end,
 
     __call = function(self, filename)
-        PEARL.execute_tests(filename)
+        PEARL.EXT(filename)
     end
 })
 
@@ -90,7 +90,7 @@ function PEARL.TESTS.TestRequesterQueue()
     for _ = 1, 5 do
         PEARL.HTTPClient:GET(
             "https://google.com"
-        ):SetSkipOnDeadline(false):Send()
+        ):SetSkipOnDeadline(false):SetIsRaw(true):Send()
     end
 end
 
@@ -284,7 +284,7 @@ end
 
 function PEARL.TESTS.AltDentifier()
     PEARL.info("=============== START ===============")
-    local init_request_count = PEARL.HTTPClient:GetSentRequestsCount()
+    --local init_request_count = PEARL.HTTPClient:GetSentRequestsCount()
 
     PEARL.info("=============== TEST BANNED VALID ROOT ===============")
     TheWorld:PushEvent("ms_clientauthenticationcomplete", "KU_ZC24p91Q")
@@ -314,8 +314,8 @@ function PEARL.TESTS.AltDentifier()
 
     PEARL.WallScheduler:ExecuteInTime(60, function()
         PEARL.info("=============== END ===============")
-        local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
-        PEARL.info("Requests Sent:", current_requests_count - init_request_count)
+        --local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
+        --PEARL.info("Requests Sent:", current_requests_count - init_request_count)
     end)
 end
 

@@ -95,6 +95,14 @@ function PEARL.OverrideValue(t, name, value, noraw)
     return origin, value
 end
 
+function PEARL.OverrideReturnValue(t, funcname, func, noraw)
+    local origin
+    origin = PEARL.OverrideValue(t, funcname, function(self, ...)
+        local old_ret = (type(origin) == "function") and origin(self, ...) or nil
+        return func(old_ret, ...)
+    end, noraw)
+end
+
 function PEARL.AddFunctionPreCall(name, precb, t, noraw)
     return PEARL.OverrideValue(
         t, name, WrapFunctionPreCall(PEARL.GetValue(t, name, noraw), precb), noraw
@@ -431,7 +439,9 @@ function PEARL.AddAnnouncementCategory(name, icon)
 end
 
 function PEARL.RemoveAllLoadingTips()
-    for _, tv in pairs(PEARL.CONSTS.LT_TYPES) do
+    PEARL.debug("PEARL.RemoveAllLoadingTips")
+
+    for _, tv in pairs(PEARL.CONSTS.LT_TYPE_TABLES) do
         cleartable(tv)
     end
 end

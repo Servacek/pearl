@@ -101,6 +101,31 @@ function EMBEDS.SuspiciousInventory(pwd, suspiciousness)
     return embed
 end
 
+function EMBEDS.Leaderboard(leaderboard, cur)
+    local index_col, name_col, rep_col = "", "", ""
+
+    for i, userid in ipairs(leaderboard) do
+        local name = PEARL.PlayerDB:GetField(userid, "username") or "UNKNOWN"
+        local netid = PEARL.PlayerDB:GetField(userid, "netid") or nil
+        local rep = PEARL.PlayerDB:GetField(userid, "rep")
+
+        index_col = index_col..MARKDOWN.codeline(tostring(i)..".").."\n"
+        name_col = name_col..MARKDOWN.hlink(
+            MARKDOWN.codeline(tostring(name)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
+        ).."\n"
+        rep_col = rep_col..MARKDOWN.codeline(tostring(rep)).."\n"
+    end
+
+    return Embed()
+        :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD[cur and "TITLE_CUR" or "TITLE_ABS"])
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.LEADERBOARD[cur and "THMB_CUR_URL" or "THMB_ABS_URL"])
+        :SetTimestamp(os.time())
+
+        :AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.INDEX_COL, index_col, true)
+        :AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL, name_col, true)
+        :AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL, rep_col, true)
+end
+
 --- @return Embed
 function EMBEDS.ServerBoot()
     local seed = TheWorld and TheWorld.meta and TheWorld.meta.seed or "???"

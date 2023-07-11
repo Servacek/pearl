@@ -112,6 +112,8 @@ function ClientNetwork:BuildCFD()
     cfd.locale          = TheNet:GetCountryCode()
     cfd.username        = TheNet:GetLocalUserName()
 
+    cfd.platform        = PLATFORM
+
     cfd.novice          = self:IsNovice()
 
     return cfd
@@ -195,7 +197,7 @@ function ClientNetwork:IsDisconnected()
 end
 
 function ClientNetwork:IsNovice()
-    if TheNet:GetIsServerAdmin() then
+    if TheNet:GetIsServerAdmin() and not PEARL.CONFIG.DEBUG_MODE then
         return false
     end
 

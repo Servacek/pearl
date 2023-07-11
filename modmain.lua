@@ -126,6 +126,8 @@ GLOBAL.PEARL = setmetatable({
     SRCDIR              = MODROOT.."scripts/",
     DATADIR             = MODROOT.."data/",
 
+    BANNER_PATH         = "banner.txt",
+
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
     MODNAME             = modname,
@@ -186,6 +188,15 @@ GLOBAL.PEARL = setmetatable({
 })
 
 PEARL = GLOBAL.PEARL
+
+--------------------------------
+-- [[ Banner ]]
+--------------------------------
+
+local bf = io.open(PEARL.ROOTDIR..""..PEARL.BANNER_PATH, "r")
+if bf then
+    print("\n"..bf:read("*a"))
+end
 
 --------------------------------
 -- [[ General Configurations ]]

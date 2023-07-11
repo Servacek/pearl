@@ -229,6 +229,8 @@ function Embed:ToTable()
         footer = self.footer,
         url = self.url,
         fields = self.fields,
+        thumbnail = self.thumbnail,
+        timestamp = self.timestamp,
     }
 end
 

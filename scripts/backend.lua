@@ -81,6 +81,8 @@ PEARL.SafeModTableExtend("CONSTS", {
     BAD_PING_THRESHOLD          = 300, -- This is what is used for server listing filters
     BAD_PERFORMANCE_THRESHOLD   = 2, -- These are just logical values (0 - GOOD, 1 - OK, 2 - BAD)
 
+    MAX_REQUEST_RETRIES         = 3,
+
     DEFAULT_PROPAGATOR_RADIUS   = 5,
     LARGE_PROPAGATOR_RADIUS     = 8,
     MAX_FIRE_ATTEMPTS           = 3,
@@ -350,11 +352,12 @@ PEARL.WallScheduler:StartWallUpdate()
 PEARL.info("Loading network components...")
 
 --- @type HTTPClient
-PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")()
-    :SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
+PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
+PEARL.HTTPClient:Setup()
+PEARL.HTTPClient:SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
 
 --- @type RestAPI
-PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")()
+PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")
 
 PEARL.info("Loading server network...")
 
@@ -382,11 +385,13 @@ end
 PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
 
 --- @type LeaderBorder
-PEARL.DiscordLeaderBorder = PEARL.loadfile("libraries/discordapi/webhooks/leaderborder")()
+PEARL.DiscordLeaderBoarder = PEARL.loadfile("libraries/discordapi/webhooks/leaderboarder")()
 
 --------------------------------
 -- [[ Steam API ]]
 --------------------------------
+
+PEARL.info("Wrapping up the Steam Web API...")
 
 --- @type SteamAPI
 --- @class SteamAPI
@@ -534,9 +539,16 @@ ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
 ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
-ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
-ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBorder:IsEnabled())
 ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
+--- Looks like currently only Steam is supported as a platform.
+--ModuleManager:AddModule("platformchecker", not table.empty(PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS))
+
+--- Master-only Modules
+if TheShard:IsMaster() then
+    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
+    ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
+    ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED)
+end
 
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)

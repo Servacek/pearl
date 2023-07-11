@@ -46,7 +46,8 @@ local function OnClientError(traceback)
         traceback, false, afflicter_modname
     )
 
-    if PEARL.ClientNetwork then
+    -- No disconnecting in debug mode... We have our fancy Realod Save button!
+    if PEARL.ClientNetwork and not PEARL.CONFIG.DEBUG_MODE then
         PEARL.info("Disconnecting the user from the server...")
         PEARL.ClientNetwork:Disconnect("ID_DST_USER_CRASHED")
     end

@@ -21,6 +21,8 @@ if TheNet:GetIsServerAdmin() or PEARL.CONFIG.CLIENT_CONSOLE_ENABLED then
     return -- Do not disable it
 end
 
+PEARL.debug("Disabling the console and remote command sending...")
+
 -------------------------------
 -- [[ Class Declaration ]]
 -------------------------------

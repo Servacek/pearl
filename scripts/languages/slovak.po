@@ -20,6 +20,34 @@ msgctxt "STRINGS.PEARL.SEASON_UNKNOWN"
 msgid "Unknown Season"
 msgstr "Neznáma Sezóna"
 
+msgctxt "STRINGS.PEARL.MONTHS.1"
+msgstr "Január"
+msgctxt "STRINGS.PEARL.MONTHS.2"
+msgstr "Február"
+msgctxt "STRINGS.PEARL.MONTHS.3"
+msgstr "Marec"
+msgctxt "STRINGS.PEARL.MONTHS.4"
+msgstr "Apríl"
+msgctxt "STRINGS.PEARL.MONTHS.5"
+msgstr "Máj"
+msgctxt "STRINGS.PEARL.MONTHS.6"
+msgstr "Jún"
+msgctxt "STRINGS.PEARL.MONTHS.7"
+msgstr "Júl"
+msgctxt "STRINGS.PEARL.MONTHS.8"
+msgstr "August"
+msgctxt "STRINGS.PEARL.MONTHS.9"
+msgstr "September"
+msgctxt "STRINGS.PEARL.MONTHS.10"
+msgstr "Október"
+msgctxt "STRINGS.PEARL.MONTHS.11"
+msgstr "November"
+msgctxt "STRINGS.PEARL.MONTHS.12"
+msgstr "December"
+
+msgctxt "STRINGS.PEARL.DATE_FORMAT"
+msgstr "%s. %s %s"
+
 msgctxt "STRINGS.PEARL.ACTIONS.BURNTUP.GENERIC"
 msgstr "Zhorel/a {target}!"
 
@@ -79,7 +107,7 @@ msgctxt "STRINGS.PEARL.LOGS.UNKNOWN"
 msgstr "Neznámy"
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
-msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s."
+msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s"
 
 msgctxt "STRINGS.PEARL.EMBEDS.MODS.TITLE"
 msgstr "Zoznam Aktívnych Modov Hráča %s"
@@ -140,14 +168,14 @@ msgid "%s was warned for griefing!"
 msgstr "%s bol/a varovaný/á za griefing!"
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT"
-msgstr "%s bol/a odpojený/á od shardu %s ako %s."
+msgstr "%s bol/a odpojený/á od shardu %s ako %s"
 
 msgctxt "STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN"
 msgid "%s entered the constant as %s"
 msgstr "%s vstúpil/a do konštanty ako %s!"
 
 msgctxt "STRINGS.PEARL.LOGS.PLAYER_DESPAWN"
-msgstr "%s opustil/a konštantu ako %s."
+msgstr "%s opustil/a konštantu ako %s"
 
 msgctxt "STRINGS.PEARL.ACTIONS.FEED"
 msgid "%s feed %s with %s!"
@@ -434,11 +462,14 @@ msgid "Simulation was paused."
 msgstr "Simulácia bola pozastavená."
 
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_REASON"
-msgstr "%s bol/a odpojený/á od shardu %s ako %s. %s"
+msgstr "%s bol/a odpojený/á od shardu %s ako %s -> %s"
 
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.winter"
 msgid "Early"
 msgstr "Skorá"
+
+msgctxt "STRINGS.UI.NOTIFICATION.LOADING"
+msgstr "Načítavanie"
 
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.autumn"
 msgid "Early"
@@ -581,6 +612,30 @@ msgstr ". Teraz je z neho desivý duch!"
 msgctxt "STRINGS.UI.BUILTINCOMMANDS.KICK.VOTENAMEFMT"
 msgid "vote to kick %s"
 msgstr "Hlasovanie za vyhodenie %s"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_ACCEPT"
+msgstr "Potvrdiť"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DECLINE"
+msgstr "Odmietnuť"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_VERSION_LABEL"
+msgstr "Verzia: %s"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_LAST_UPDATE_LABEL"
+msgstr "Naposledy aktualizované: %s"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE"
+msgstr "Zavrieť"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_NO_MODIFICATION_LABEL"
+msgstr "Aktuálne nie je možné už nič upravovať."
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL"
+msgstr "Naposledy akceptované: %s"
+
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_DC_CHECKBOX_TEXT"
+msgstr "*Súhlasím so zhromažďovaním mojích herných údajov nami - Československou komunitou hry, za učelom moderovania a skvalitnenia naších serverov a služieb."
 
 #. STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTENAMEFMT
 msgctxt "STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTENAMEFMT"

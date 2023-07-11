@@ -21,7 +21,7 @@ if type(PEARL.CONFIG.DISCORD.INVITE) ~= "string" or #PEARL.CONFIG.DISCORD.INVITE
     return
 end
 
-local ImageButton = require("widgets/imagebutton")
+local TEMPLATES = require("widgets/redux/templates")
 
 --- @class PlayerStatusScreen
 local PlayerStatusScreen = require("screens/playerstatusscreen")
@@ -36,19 +36,9 @@ local VIEWDC_BUTTON_Y = 200 - VIEWDC_BUTTON_OFFSET_Y
 
 local SCREEN_BUTTONS_OFFSET = 24
 
-local VIEWDC_BUTTON_HOVER_OFFSET_X = 0
-local VIEWDC_BUTTON_HOVER_OFFSET_Y = 38
-local VIEWDC_BUTTON_HOVER_FCOLOR = WHITE
-local VIEWDC_BUTTON_HOVER_FONT = NEWFONT_OUTLINE
-
 local VIEWDC_BUTTON_TEXT_ATLAS = "images/dcbutton.xml"
 local VIEWDC_BUTTON_NORMAL_TEX = "dcbutton.tex"
 local VIEWDC_BUTTON_FOCUS_TEX = "dcbutton_hover.tex"
-local VIEWDC_BUTTON_DISABLED_TEX = "dcbutton.tex"
-local VIEWDC_BUTTON_DOWN_TEX = "dcbutton.tex"
-local VIEWDC_BUTTON_SELECTED_TEX = nil
-local VIEWDC_BUTTON_SCALE = { .4, .4 }
-local VIEWDC_BUTTON_OFFSET = { 0, 0 }
 
 -------------------------------
 -- [[ Function Extensions ]]
@@ -62,15 +52,9 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
 
     self.servermenunumbtns = (self.servermenunumbtns or 0) + 1
 
-    self.viewdiscord_button = self.root:AddChild(ImageButton(VIEWDC_BUTTON_TEXT_ATLAS, VIEWDC_BUTTON_NORMAL_TEX, VIEWDC_BUTTON_FOCUS_TEX, VIEWDC_BUTTON_DISABLED_TEX, VIEWDC_BUTTON_DOWN_TEX, VIEWDC_BUTTON_SELECTED_TEX, VIEWDC_BUTTON_SCALE, VIEWDC_BUTTON_OFFSET))
+    self.viewdiscord_button = self.root:AddChild(TEMPLATES.LinkButton(
+        PEARL.CONFIG.DISCORD.INVITE, STRINGS.PEARL.UI.DISCORD_BUTTON_HOVER,
+        VIEWDC_BUTTON_TEXT_ATLAS, VIEWDC_BUTTON_NORMAL_TEX, VIEWDC_BUTTON_FOCUS_TEX
+    ))
     self.viewdiscord_button:SetPosition(VIEWDC_BUTTON_X + (self.servermenunumbtns * SCREEN_BUTTONS_OFFSET), VIEWDC_BUTTON_Y)
-    self.viewdiscord_button:SetHoverText(STRINGS.PEARL.UI.DISCORD_BUTTON_HOVER, {
-        font = VIEWDC_BUTTON_HOVER_FONT,
-        offset_x = VIEWDC_BUTTON_HOVER_OFFSET_X,
-        offset_y = VIEWDC_BUTTON_HOVER_OFFSET_Y,
-        colour = VIEWDC_BUTTON_HOVER_FCOLOR,
-    })
-    self.viewdiscord_button:SetOnClick(function()
-        VisitURL(PEARL.CONFIG.DISCORD.INVITE)
-    end)
 end, PlayerStatusScreen)

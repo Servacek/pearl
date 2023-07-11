@@ -24,8 +24,9 @@ local function RecordClientConnectionData(userid, data)
     -- This is the place where we want to create the record if needed.
     PEARL.PlayerDB:EnsureRecordFor(userid)
 
-    PEARL.PlayerDB:OptionalSafeSetField(userid, "lastmods", data.mods)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "lastmods", data.enabled_mods)
     PEARL.PlayerDB:OptionalSafeSetField(userid, "lastlocale", data.locale)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "lastplatform", data.platform)
 
     -- Make sure these data are saved, because they are important.
     PEARL.PlayerDB:SaveRecordFor(userid)
@@ -72,27 +73,37 @@ local function OnClientDataRecevied(userid, data)
     return RecordClientConnectionData(userid, data)
 end
 
-local function OnClientAgreementFinished(userid, agreed, agreedintime)
-    local record
-    if agreed then
+local function OnClientAgreementFinished(data)
+    -- Only record data if we have agreed and enabled data collection
+    if data.agreed and data.datacollection then
         -- Create record if needed here!
-        record = PEARL.PlayerDB:GetRecordFor(userid)
+        local record = PEARL.PlayerDB:GetRecordFor(data.userid)
         if record and not record.agreedintime then
             -- Note only the first agreed-in time
-            record.agreedintime = agreedintime
+            record.agreedintime = data.agreedintime
         end
-    end
 
-    --- @TODO: Handle disagreement here.
+        -- Here we can finally save the data with clear mind.
+        PEARL.PlayerDB:SaveRecordFor(data.userid, record)
+    end
 end
 
 local function OnClientConnected(world, player)
-    PEARL.PlayerDB:OptionalSafeSetField(player.userid, "lastjoinedtime", os.time())
+    PEARL.PlayerDB:OptionalSafeSetFild(player.userid, "lastjoinedtime", os.time())
+
+    local client = TheNet:GetClientTableForUser(player.userid)
+    if not client or not client.name then
+        return
+    end
+
+    -- Update this on every connect since it could possibly change.
+    PEARL.PlayerDB:OptionalSafeSetField(player.userid, "username", client.name)
 end
 
 local function OnClientDisconnected(world, player)
     PEARL.PlayerDB:OptionalSafeSetField(player.userid, "lastseentime", os.time())
     PEARL.PlayerDB:SaveRecordFor(player.userid)
+    PEARL.PlayerDB:UnloadRecord(player.userid) -- Free the memory
 end
 
 local function OnPlayerSpawned(world, player)
@@ -104,15 +115,16 @@ local function OnPlayerSpawned(world, player)
 end
 
 local function OnSave()
-    PEARL.info("Saving the database.")
-    PEARL.PlayerDB:SaveActiveRecords()
+    PEARL.info("Saving the database...")
 
     -- Save lastseentime, lastdays here as well, because we may be shutting down,
-    -- or the server may crash during the restarting/rollbacking
+    -- or the server may crash during restarting/rollbacking
     local time_now = os.time()
     for _, client in ipairs(TheNet:GetClientTable()) do
-        if client.perfomance == nil then
+        -- Skip the host
+        if client.performance == nil then
             PEARL.PlayerDB:OptionalSafeSetField(client.userid, "lastseentime", time_now)
+            PEARL.PlayerDB:SaveRecordFor(client.userid)
         end
     end
 end
@@ -122,6 +134,10 @@ end
 --------------------------------------
 
 PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, count, age, player)
+    if not (type(player) == "table" and player:IsValid() and type(player.userid) == "string") and type(count) == "number" and count > 0 then
+        return
+    end
+
     local record = PEARL.PlayerDB:GetRecordFor(player.userid)
     if record then
         record.totaldays = record.totaldays + count
@@ -136,8 +152,8 @@ PEARL.EventProcessor:AddSafeEventHandler("clientagreementfinished", OnClientAgre
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
 
 PEARL.AddWorldPostInit(function(world)
-    world:ListenForEvent("ms_clientconnected", OnClientConnected)
-    world:ListenForEvent("ms_clientdisconnected", OnClientDisconnected)
+    world:ListenForModEvent("ms_clientconnected", OnClientConnected)
+    world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
 
-    world:ListenForEvent("ms_playerdespawn", OnPlayerSpawned)
+    world:SafeListenForEvent("ms_playerdespawn", OnPlayerSpawned)
 end)

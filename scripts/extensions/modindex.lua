@@ -122,7 +122,8 @@ end
 
 function KnownModIndex:GetModsReport()
     local report = {
-        count = self:GetAllEnabledModsCount(),
+        -- We do not count ourselves!
+        count = self:GetAllEnabledModsCount() - 1,
         prohibited_count = 0,
     }
 

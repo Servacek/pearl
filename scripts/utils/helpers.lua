@@ -411,6 +411,16 @@ function PEARL.GetSteamIDFromString(str)
 
 end
 
+function PEARL.TimestampToFancyDateString(timestamp)
+    local date_tbl = os.date("*t", timestamp)
+
+    return STRINGS.PEARL.DATE_FORMAT:format(
+        date_tbl.day,
+        STRINGS.PEARL.MONTHS[date_tbl.month],
+        date_tbl.year
+    )
+end
+
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
@@ -431,6 +441,10 @@ function PEARL.FancyTableConcat(t)
         table.concat(t, ", ", 1, #t-1), t[#t]
     ) or table.concat(t, ", ")
 end
+
+-- function PEARL.IsValidKleiID(kleid)
+--     return kleid and type(kleid) == "string" and kleid:match()
+-- end
 
 function PEARL.BuildFancyStringForEntities(entities)
     local grouped = PEARL.GroupEntitiesByPrefab(entities)
@@ -583,6 +597,18 @@ end
 
 function PEARL.RGBToDecimal(r, g, b)
     return bit.lshift(r, 16) + bit.lshift(g, 8) + b
+end
+
+function PEARL.DecimalToRGB(decimal)
+    return bit.band(bit.rshift(decimal, 16), 0xFF), bit.band(bit.rshift(decimal, 8), 0xFF), bit.band(decimal, 0xFF)
+end
+
+function PEARL.RGBToHex(r, g, b)
+    return string.format("#%06X", PEARL.RGBToDecimal(r, g, b))
+end
+
+function PEARL.GetColorFromDecimal(decimal, default)
+    return type(decimal) == "number" and {PEARL.DecimalToRGB(decimal)} or (default or WHITE)
 end
 
 function PEARL.ToISO8601UTC(timestamp)

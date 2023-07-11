@@ -19,7 +19,6 @@
     Uses a cache for verified accounts.
 
     TODOS: (v2.1)
-        - Make the cache persistent?
         - Load the token from token.txt
 ]]
 
@@ -92,9 +91,9 @@ end
 
 local function ShouldCheckClient(userid)
     return (
-        not IsUserIDCached(userid) and
-        not PEARL.AdminList:Contains(userid) and
-        not TheNet:GetUserID() == userid
+        IsUserIDCached(userid) or
+        PEARL.ServerNetwork:IsClientJoining(userid) or
+        PEARL.ServerNetwork:IsClientPriviliged(userid)
     )
 end
 
@@ -102,42 +101,33 @@ end
 -- [[ Query ]]
 --------------------------------
 
-local HandleFSQuery, SendFSQueryFor
+local OnFSQueryComplete, SendFSQueryFor
 
-HandleFSQuery = function(response, success_query, http_code, request, userid, no_retry)
-    if not success_query or not response then
-        -- Try to log this error to discord as well.
-        if not no_retry then
-            PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..tostring(userid).." failed with error code "..(http_code or "UNKNOWN"))
-        end
-
-        return PEARL.error("Query failed with status code", http_code, "for user", userid)
+local function OnFSQueryFailed(response, http_code, request, userid, no_retry)
+    -- Try to log this error to discord as well.
+    if not no_retry then
+        PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..tostring(userid).." failed with error code "..(http_code or "UNKNOWN"))
     end
 
-    -- PEARL.debug(
-    --     "RESPONSE", response,
-    --     "USERID:", userid,
-    --     "NO_RETRY:", no_retry,
-    --     "SUCCESS:", success_query,
-    --     "CODE:", http_code,
-    --     "REQUEST:", request
-    -- )
-    local success_decode, reponse_json = pcall(json.decode, response)
-    if not success_decode or not reponse_json then
-        return PEARL.error("JSON decoding failed for user", userid)
+    return PEARL.error("Query failed with status code", http_code, "for user", userid)
+end
+
+OnFSQueryComplete = function(response, request, userid, no_retry)
+    if not response then
+        return
     end
 
-    -- reponse_json.Error refers to a boolean
-    if reponse_json.Error then
-        PEARL.error("Query for", userid, "failed with error code", reponse_json.ErrorCode or "UNKNOWN")
+    -- response.Error refers to a boolean
+    if response.Error then
+        PEARL.error("Query for", userid, "failed with error code", response.ErrorCode or "UNKNOWN")
 
         -- If the error is unknown then report it to discord.
-        if not no_retry and not table.contains(QUERY_ERRORS, reponse_json.ErrorCode) then
-            PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..userid.." failed with unknown error code "..(reponse_json.ErrorCode or "UNKNOWN"))
+        if not no_retry and not table.contains(QUERY_ERRORS, response.ErrorCode) then
+            PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..userid.." failed with unknown error code "..(response.ErrorCode or "UNKNOWN"))
         end
 
         -- When an error occurs, try to send the request one more time
-        if not no_retry and not DO_NOT_RETRY_ERRORS[reponse_json.ErrorCode] then
+        if not no_retry and not DO_NOT_RETRY_ERRORS[response.ErrorCode] then
             PEARL.info("Retrying request...")
             return SendFSQueryFor(userid, true)
         end
@@ -145,7 +135,7 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
         return
     end
 
-    local rootid = reponse_json.ParentAccount
+    local rootid = response.ParentAccount
     if not rootid then
         return PEARL.info("No root account info for user", userid)
     end
@@ -164,7 +154,8 @@ HandleFSQuery = function(response, success_query, http_code, request, userid, no
 
     -- If verification was successfull, cache this userid to
     -- reduce the number of queries.
-    PEARL.debug("Account", userid, "has a valid root. Caching...")
+    PEARL.debug("Account", userid, "has a valid root ("..rootid.."). Caching...")
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "rootuserid", rootid)
     CacheRootUserid(userid)
 end
 
@@ -179,9 +170,11 @@ SendFSQueryFor = function(userid, no_retry)
     end
 
     PEARL.HTTPClient:POST(
-        PEARL.CONSTS.FSLS_QUERY_URL, HandleFSQuery,
+        PEARL.CONSTS.FSLS_QUERY_URL, OnFSQueryComplete,
         input_json, FS_QUERY_TIMEOUT, userid, no_retry or false
-    ):Send()
+    )
+    :SetErrorHandler(OnFSQueryFailed)
+    :Send()
 end
 
 --------------------------------

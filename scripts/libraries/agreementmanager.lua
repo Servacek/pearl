@@ -15,19 +15,21 @@
 -- [[ Constants ]]
 --------------------------------
 
---- 1.2.3;KU_ZC2919302;100203103020
-local SEP = ";"
-local REPL = ","
-local FILE_HEADER_PATTERN = "%s"..SEP.."%s"..SEP.."%s\n"
-local DECODE_PATTERN = "(.-)"..SEP
-
 local RECORD = {
     VERSION = 1,
     USERID = 2,
     NETID = 3,
+    TIME = 4,
 
+    SIZE = 4,
     MIN_SIZE = 2,
 }
+
+--- 1.2.3;KU_ZC2919302;100203103020;169200202003
+local SEP = ";"
+local REPL = ","
+local FILE_HEADER_PATTERN = string.rep("%s"..SEP, RECORD.SIZE).."\n"
+local DECODE_PATTERN = "(.-)"..SEP
 
 --------------------------------
 -- [[ Local Functions ]]
@@ -89,11 +91,19 @@ function AgreementManager:GetGlobalVersion()
     return PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT and PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version or ""
 end
 
---- @return string? localversion Nil when the record doesn't exist.
-function AgreementManager:GetLocalVersion()
+function AgreementManager:GetLocalRecordField(index)
     local userid = TheNet:GetUserID()
     local record = self:GetRecord(userid, TheNet:GetNetIdForUser(userid))
-    return record and record[RECORD.VERSION] or nil
+    return record and record[index] or nil
+end
+
+--- @return string? localversion Nil when the record doesn't exist.
+function AgreementManager:GetLocalVersion()
+    return self:GetLocalRecordField(self.RECORD.VERSION)
+end
+
+function AgreementManager:GetLocalLastAgreeTime()
+    return self:GetLocalRecordField(self.RECORD.TIME)
 end
 
 --- @return boolean uptodate Whether the file exists and it version matches with the server's (global) version.
@@ -153,6 +163,7 @@ function AgreementManager:UpdateRecord()
     record[RECORD.VERSION] = normalize(self:GetGlobalVersion()) or ""
     record[RECORD.USERID] = userid or ""
     record[RECORD.NETID] = netid or ""
+    record[RECORD.TIME] = os.time()
 
     return record
 end
@@ -189,11 +200,6 @@ function AgreementManager:Save()
 end
 
 function AgreementManager:BuildFileHeader()
-    -- We need to save here the following:
-    -- - version
-    -- - userid
-    -- - steamid
-
     local header = ""
     for _, record in ipairs(self.records) do
         if #record >= RECORD.MIN_SIZE then
@@ -207,6 +213,11 @@ end
 function AgreementManager:UpdateFile()
     self:UpdateRecord()
     self:Save()
+end
+
+function AgreementManager:OnAgreed()
+    -- Only save the record when we have agreed.
+    return self:UpdateFile()
 end
 
 --------------------------------

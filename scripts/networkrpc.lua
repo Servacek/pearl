@@ -38,6 +38,15 @@ local CLIENT_RPCS = {
         return ChatHistory and ChatHistory:SendCommandResponse(...)
     end,
 
+    AddToChatHistory = function(dec_m_color, tp, userid, netid, name, message, dec_s_color, ...)
+        PEARL.debug("AddToChatHistory:", dec_m_color, tp, userid, netid, name, message, dec_s_color, ...)
+
+        local color = PEARL.GetColorFromDecimal(dec_s_color)
+        color.message = PEARL.GetColorFromDecimal(dec_m_color, SAY_COLOR)
+
+        return ChatHistory and ChatHistory:AddToHistory(tp, userid, netid, name, message, color, ...)
+    end,
+
     Disconnect = function(reason, ...)
         return PEARL.ClientNetwork:Disconnect(reason, true, ...)
     end,
@@ -45,6 +54,10 @@ local CLIENT_RPCS = {
     ConnectionAllowed = function(...)
         return PEARL.ClientNetwork:OnResponse(true, true, ...)
     end,
+
+    CLIENT = function(...)
+        print("CLIENT RPC TEST EXECUTED!!", ...)
+    end
 }
 
 --- These handlers should be called only from the server.
@@ -63,10 +76,28 @@ local SHARD_RPCS = {
         end)
     end,
 
+    BroadcastRPC = function(shardid, client_rpc_id, ...)
+        print("BroadcastRPC")
+        return PEARL.BroadcastRPCToConnectedShards(client_rpc_id, ...)
+    end,
+
+    BroadcastClientRPC = function(shardid, client_rpc_id, sender_list, ...)
+        print("BroadcastClientRPC", client_rpc_id, sender_list, ...)
+
+        -- It seems like you cannot execute RPC in an RPC...
+        PEARL.WallScheduler:ExecuteInTime(
+            0, PEARL.SendRPCToClient, nil, client_rpc_id, sender_list, ...
+        )
+    end,
+
     ClientCFDRecevied = function(shardid, userid, data)
         -- Always keep just the newest record
         PEARL.ServerNetwork:HandleRawConnectionData(userid, data, shardid)
-    end
+    end,
+
+    TEST = function(...)
+        print("SHARD RPC TEST EXECUTED!!", ...)
+    end,
 }
 
 --- These RPCS are called from the clients so additional security checks are needed.
@@ -127,12 +158,17 @@ local SERVER_USERID_RPCS = {
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
 
-    AgreementFinished = function(userid, agreed, agreedintime)
-        if not optbool(agreed) or not optnumber(agreedintime) then
+    AgreementFinished = function(userid, agreed, datacollection, agreedintime)
+        if not optbool(agreed) or not optbool(datacollection) or not optnumber(agreedintime) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementFinished", userid)
         end
 
-        PEARL.EventProcessor:HandleEvent("clientagreementfinished", userid, agreed, agreedintime)
+        PEARL.EventProcessor:HandleEvent("clientagreementfinished", {
+            userid = userid,
+            agreed = agreed,
+            datacollection = datacollection,
+            agreedintime = agreedintime
+        })
 
         if not agreed then
             return
@@ -202,7 +238,7 @@ function PEARL.AddRawServerUseridRPCHandler(name, fn)
 end
 
 function PEARL.GetDefaultRPCHandlers()
-    return RPC_HANDLERS;
+    return RPC_HANDLERS
 end
 
 --------------------------
@@ -230,8 +266,6 @@ end
 --- if sender_list is a table, it will be iterated upon and send it to every client that is connected to the current shard thats UserID is in the table.
 --- if sender_list is a string, it will send the RPC to the specific client with that UserID, as long as they are connected to that shard.
 function PEARL.SendRPCToClient(rpc_id, sender_list, ...)
-    -- print("SEND TO CLIENT", name, ...)
-    --PEARL.debug("Sending rpc", CLIENT_RPCS_TO_NAME[name], "to the client")
     return SendModRPCToClient(PEARL.GetClientRPC(rpc_id), sender_list, ...)
 end
 
@@ -257,10 +291,23 @@ function PEARL.SendRPCToMaster(rpc_id, ...)
     return PEARL.SendRPCToShard(rpc_id, SHARDID.MASTER, ...)
 end
 
+--- If called on Master, sends the given RPC to all connected shards.
+--- Otherwise it will send the BroadcastRPC to shard Master and broadcast from there again.
+--- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param ... any Any additional data provided to the rpc handler.
+function PEARL.BroadcastRPCToAllShards(rpc_id, ...)
+    if TheShard:IsMaster() then
+        -- Send RPC to all connected shards including this one.
+        return PEARL.SendRPCToShard(rpc_id, nil, ...)
+    end
+
+    return PEARL.SendRPCToMaster(PEARL.RPC.BroadcastRPC, rpc_id, ...)
+end
+
 --- Sends the given RPC to all connected shards except the current one.
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
-function PEARL.BroadcastRPCToShards(rpc_id, ...)
+function PEARL.BroadcastRPCToConnectedShards(rpc_id, ...)
     local connected_shards = PEARL.ServerNetwork:GetConnectedShardIDs()
     if IsTableEmpty(connected_shards) then
         return
@@ -269,7 +316,7 @@ function PEARL.BroadcastRPCToShards(rpc_id, ...)
     return PEARL.SendRPCToShard(rpc_id, connected_shards, ...)
 end
 
---- Sends the given RPC to all connected shards except the current one.
+--- Sends the given RPC to all connected shards except the current one and the one provided.
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.BroadcastRPCToShardsExcept(rpc_id, except, ...)
@@ -293,8 +340,12 @@ end
 
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
-function PEARL.BroadcastRPCToClients(rpc_id, ...)
+function PEARL.BroadcastRPCToShardClients(rpc_id, ...)
     return PEARL.SendRPCToClient(rpc_id, nil, ...)
+end
+
+function PEARL.BroadcastRPCToAllClients(rpc_id, ...)
+    return PEARL.SendRPCToShard(PEARL.RPC.BroadcastClientRPC, nil, rpc_id, nil, ...)
 end
 
 ------------------------------------
@@ -392,20 +443,13 @@ end
 local RPC_QUEUE_RATE_LIMIT = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_QUEUE_RATE_LIMIT")
 local RPC_Queue_Limiter = UpvalueHacker:GetUpvalue(HandleModRPC, "RPC_Queue_Limiter")
 
---- There are two main aproaches to this. One is using a PreCall, where
---- we handle the server mod rpcs all ourselves. The second one is using a PostCall
---- and if the rpc handled was ours, call TickRPCQueue afterwards. This however, can how
---- some side effects since the tick will not just call our RPCs but also the game's.
-
--- This one is only called on the server.
--- Also we need to handle rate limits here because these are not trusted.
-PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace, code, data)
+local function CustomHandleRPC(sender, tick, code, data, namespace)
     -- This is not our RPC so we do not care. How selfish...
-    if namespace ~= PEARL.RPC_NAME or RAW_RPCS[code] ~= nil then
+    if namespace ~= PEARL.RPC_NAME and RAW_RPCS[code] == nil then
         return -- Leave the game handle it.
     end
 
-    local ns_handlers = MOD_RPC_HANDLERS[namespace]
+    local ns_handlers = namespace and MOD_RPC_HANDLERS[namespace] or nil
     local handler = ns_handlers and ns_handlers[code] or RAW_RPCS[code]
     if type(handler) ~= "function" then
         return
@@ -425,7 +469,25 @@ PEARL.AddGlobalFunctionPreCall("HandleModRPC", function(sender, tick, namespace,
     PEARL.SafeRun(TheNet.CallRPC, TheNet, handler, userid, data)
 
     return false
-end)
+end
+
+local function CustomHandleModRPC(sender, tick, namespace, code, data)
+    return CustomHandleRPC(sender, tick, code, data, namespace)
+end
+
+--- There are two main aproaches to this. One is using a PreCall, where
+--- we handle the server mod rpcs all ourselves. The second one is using a PostCall
+--- and if the rpc handled was ours, call TickRPCQueue afterwards. This however, can how
+--- some side effects since the tick will not just call our RPCs but also the game's.
+
+-- These two is only called on the server.
+-- Also we need to handle rate limits here because these are not trusted.
+
+PEARL.AddGlobalFunctionPreCall("HandleRPC", CustomHandleRPC)
+
+PEARL.AddGlobalFunctionPreCall("HandleModRPC", CustomHandleModRPC)
+
+-----------------------------------------------------------------------------------------
 
 PEARL.AddGlobalFunctionPreCall("HandleShardModRPC", function(sender, tick, namespace, code, data)
     if not SHARD_MOD_RPC_HANDLERS[namespace] then

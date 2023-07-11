@@ -52,48 +52,32 @@ local MESSAGE_ACTION_METHODS = {
 }
 
 --------------------------------
--- [[ Private Functions ]]
---------------------------------
-
-local function on_request_completed(self, result, is_successful, status_code, request)
-    if not is_successful then
-        return self:_OnErrorStatusCode(status_code, result, request)
-    end
-end
-
---------------------------------
 -- [[ Initialization ]]
 --------------------------------
 
---- @class RestAPI
-local RestAPI = Class(function(self)
-    self._is_disabled = false
+--- @class RestAPI - singleton
+local RestAPI = {
+    _is_disabled = false,
 
-    --- @type Task
-    self._rate_limit_task = nil
-end)
+    --- @type Task?
+    _rate_limit_task = nil,
+}
 
 --------------------------------
--- [[ Private Functions ]]
+-- [[ Local Functions ]]
 --------------------------------
 
-function RestAPI:_OnErrorStatusCode(status_code, result, request)
-    if self:IsDisabled() then
-        return
-    end
-
+local function _OnErrorStatusCode(response, status_code, request)
     -- Handle rate limits first
     if status_code == DISCORD_STATUS_CODES.TOO_MANY_REQUESTS then
-        local success, decoded_result = pcall(json.decode, result)
-        return self:RateLimitForTime(
-            (success and decoded_result) and tonumber(decoded_result.retry_after)
-            or nil
+        return RestAPI:RateLimitForTime(
+            response and tonumber(response.retry_after or 0) or nil
         )
     end
 
     if status_code == DISCORD_STATUS_CODES.NOT_FOUND then
         PEARL.error("Invalid endpoint url.")
-        return self:SetIsDisabled(true)
+        return RestAPI:SetIsDisabled(true)
     end
 
     if status_code == DISCORD_STATUS_CODES.GATEWAY_UNAVAILABLE then
@@ -111,10 +95,29 @@ end
 -- [[ Public Functions ]]
 --------------------------------
 
+function RestAPI:SendActionRequest(url, action, data, force)
+    local method = MESSAGE_ACTION_METHODS[action]
+
+    --- @type HTTPClient|HTTPClientProxy
+    local client = PEARL.HTTPClient
+    if not PEARL.HTTPClient.METHODS[method] then
+        -- This method seems to require proxy server to be used.
+        client = PEARL.HTTPClient.proxy
+    end
+
+    local request = client:Request(
+        url, MESSAGE_ACTION_METHODS[action], nil, data, REQUEST_TIMEOUT, self
+    )
+    :SetErrorHandler(_OnErrorStatusCode)
+
+    if client ~= PEARL.HTTPClient.proxy then
+        request:SetMaxRetries(0)
+    end
+
+    return request:Send(force)
+end
+
 function RestAPI:ExecuteWebhook(webhook, json_data, force)
-    -- It would be better to create some kind of a buffer for the pending requests
-    -- and send it after rate limiting ends. But since the only way to get rate limited
-    -- is by a flaw, this is irelevant.
     if self:IsDisabled() then
         -- Ignore any API calls when disabled
         return
@@ -124,9 +127,7 @@ function RestAPI:ExecuteWebhook(webhook, json_data, force)
         return PEARL.error("Invalid webhook provided for Message Post Action!")
     end
 
-    return PEARL.HTTPClient:POST(
-        webhook.url, on_request_completed, json_data, REQUEST_TIMEOUT, self
-    ):SetCallbackFnInst(self):Send(force)
+    return self:SendActionRequest(webhook.url, MESSAGE_ACTIONS.POST, json_data, force)
 end
 
 function RestAPI:DoWebhookMessageAction(webhook, messageid, action, data, force)
@@ -139,9 +140,7 @@ function RestAPI:DoWebhookMessageAction(webhook, messageid, action, data, force)
     end
 
     local endpoint_url = webhook.url..ENDPOINTS.W_MESSAGE:format(messageid)
-    return PEARL.HTTPClient.proxy:Request(
-        endpoint_url, MESSAGE_ACTION_METHODS[action], on_request_completed, data, REQUEST_TIMEOUT, self
-    ):SetCallbackFnInst(self):Send(force)
+    return self:SendActionRequest(endpoint_url, action, data, force)
 end
 
 function RestAPI:EditWebhookMessage(webhook, messageid, data, force)
@@ -160,7 +159,7 @@ function RestAPI:RateLimitForTime(seconds)
     self:SetIsDisabled(true)
 
     if type(seconds) == "number" and seconds >= 0 then
-        PEARL.info("RestAPI", "Disabling for", seconds, "seconds...")
+        PEARL.info("Disabling for", seconds, "seconds...")
 
         -- If the task already exists then increase it's number of seconds.
         if self._rate_limit_task ~= nil and type(self._rate_limit_task.exec_time) == "number" then
@@ -169,15 +168,15 @@ function RestAPI:RateLimitForTime(seconds)
         end
 
         self._rate_limit_task = PEARL.WallScheduler:ExecuteInTime(seconds, function()
-            PEARL.info("RestAPI", "Reanabling...")
+            PEARL.info("Reanabling...")
             self:SetIsDisabled(false)
 
             self._rate_limit_task:cancel()
             self._rate_limit_task = nil
         end)
     else
-        -- When seconds are nil, disable this webhook permanently.
-        PEARL.info("RestAPI", "Disabling...")
+        -- When seconds are nil, keep the webhook disabled (so it's permanent)
+        PEARL.info("Disabling...")
     end
 end
 

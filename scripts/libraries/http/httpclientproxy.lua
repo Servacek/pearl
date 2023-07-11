@@ -21,6 +21,25 @@ local Request = PEARL.loadfile("libraries/http/models/request")
 --------------------------------
 
 local PROXY_REQUEST_TIMEOUT = 10
+local MAX_TIMEOUTS_IN_ROW   = 3
+
+--------------------------------
+-- [[ Local ]]
+--------------------------------
+
+local _timeouts_in_row = 0
+local _reported = false
+
+local function _OnProxyRequestTimeout(result, http_code)
+    if not _reported then
+        _timeouts_in_row = _timeouts_in_row + 1
+
+        if _timeouts_in_row >= MAX_TIMEOUTS_IN_ROW then
+            PEARL.DiscordReporter:SendRawReportString("Proxy seems to be down!")
+            _reported = true
+        end
+    end
+end
 
 --------------------------------
 -- [[ Class Init ]]
@@ -40,6 +59,8 @@ local HTTPClientProxy = {
 HTTPClientProxy.METHODS = {
     PATCH   = "PATCH",
     DELETE  = "DELETE",
+    POST    = "POST",
+    GET     = "GET",
 }
 
 --------------------------------
@@ -47,9 +68,14 @@ HTTPClientProxy.METHODS = {
 --------------------------------
 
 local function _CreateProxyRequest(callbackfn, ...)
-    return Request(HTTPClientProxy._url, PEARL.HTTPClient.METHODS.POST)
-        :SetCallbackFn(callbackfn, ...)
+    return Request(HTTPClientProxy._url, PEARL.HTTPClient.METHODS.POST, true)
+        :SetStatusCodeHandle(0, _OnProxyRequestTimeout)
         :SetTimeout(PROXY_REQUEST_TIMEOUT)
+        :SetCallbackFn(function(response, request, ...)
+            callbackfn(response, request, ...)
+
+            _timeouts_in_row = 0
+        end, ...)
 end
 
 --------------------------------
@@ -75,7 +101,7 @@ end
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:Request(url, method, callbackfn, data, timeout, ...)
     return _CreateProxyRequest(callbackfn, ...)
-        :SetData({
+        :SetProxyData({ -- Data for the proxied request
             url = url,
             timeout = timeout,
             method = method,
@@ -104,6 +130,29 @@ end
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:PATCH(url, callbackfn, data, timeout, ...)
     return self:Request(url, self.METHODS.PATCH, callbackfn, data, timeout, ...)
+end
+
+--- @nodiscard
+--- @param url string The url of the endpoint we want to send the request to.
+--- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param timeout number? The number of seconds before timeout should occur.
+--- @param ... any? Additional parameters for the callback function.
+---
+--- @return Request request The newly created request. You need to execute it using :Send.
+function HTTPClientProxy:GET(url, callbackfn, timeout, ...)
+    return self:Request(url, self.METHODS.GET, callbackfn, nil, timeout, ...)
+end
+
+--- @nodiscard
+--- @param url string The url of the endpoint we want to send the request to.
+--- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param data table The data table body for the request.
+--- @param timeout number? The number of seconds before timeout should occur.
+--- @param ... any? Additional parameters for the callback function.
+---
+--- @return Request request The newly created request. You need to execute it using :Send.
+function HTTPClientProxy:POST(url, callbackfn, data, timeout, ...)
+    return self:Request(url, self.METHODS.POST, callbackfn, data, timeout, ...)
 end
 
 --------------------------------

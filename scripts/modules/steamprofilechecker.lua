@@ -84,8 +84,11 @@ local function IsCommentPositive(comment)
     return comment:lower():find(POSITIVE_COMMENT_PATTERN)
 end
 
-local function CalculateRepInComments(comments_html)
-    local ignore = {}
+local function CalculateRepInComments(comments_html, profileusername)
+    local ignore = {
+        -- Ignore comments from the profile author itself.
+        [profileusername] = true
+    }
 
     local neg_count = 0
     local pos_count = 0
@@ -192,7 +195,7 @@ local function CalculateProfileReputation(steamid, cfd, cb)
             return
         end
 
-        local comment_rep = CalculateRepInComments(str)
+        local comment_rep = CalculateRepInComments(str, cfd.username)
         if comment_rep < MIN_COMMENT_REP then
             rep = -MAX_COMMENT_REP
         else
@@ -244,7 +247,7 @@ local function CalculateProfileReputation(steamid, cfd, cb)
 end
 
 local function CalculateProfileReputationForUser(userid, cfd, ...)
-    local steamid = userid and "76561198050735090"--TheNet:GetNetIdForUser(userid)
+    local steamid = userid and TheNet:GetNetIdForUser(userid) -- "76561198050735090"
     if not steamid then
         return PEARL.error("Failed to get steam ID for", userid)
     end

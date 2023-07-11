@@ -26,6 +26,8 @@ local TrackedAssert = TrackedAssert
 
 local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"
 
+local STARTING_REPUTATION = 100
+
 ------------------------------------------
 -- [[ Local Functions ]]
 ------------------------------------------
@@ -40,6 +42,7 @@ end
 
 --- @class PlayerDB
 local PlayerDB = {
+    -- Here we will safe all active (cached) records.
     _records = {},
 }
 
@@ -64,22 +67,22 @@ function PlayerDB:GetField(userid, name)
     return record[name]
 end
 
+function PlayerDB:IsCached(userid)
+    return type(self._records[userid]) == "table"
+end
+
 ------------------------------------------
 -- [[ Setters ]]
 ------------------------------------------
 
-function PlayerDB:AddRecord(userid, record)
+function PlayerDB:CacheRecord(userid, record)
+    if self:IsCached(userid) then
+        return PEARL.error("Player already cached!")
+    end
+
     self._records[userid] = record
 
     return record
-end
-
-function PlayerDB:AddPlayer(userid)
-    if self:HasRecord(userid) then
-        PEARL.error("Player already in db!")
-    end
-
-    return self:AddRecord(userid, self:CreateRecord())
 end
 
 --- We cannot delete files from this limited environment.
@@ -93,7 +96,7 @@ end
 function PlayerDB:OptionalSetField(userid, name, value)
     local record = PEARL.PlayerDB:GetRecordFor(userid)
     if not record then
-        return
+        return -- optional
     end
 
     local prev = record[name]
@@ -116,30 +119,31 @@ end
 function PlayerDB:EnsureRecordFor(userid)
     local record = self:GetRecordFor(userid)
     if not record then
-        return self:AddPlayer(userid), true
+        PEARL.debug("Creating database record for", userid)
+        record = self:CacheRecord(userid, self:CreateRecordFor(userid))
+
+        return record, true
     end
 
     return record, false
 end
 
-function PlayerDB:UpdateRecordFor(userid)
-    return self:GetRecordFor(userid) or self:AddPlayer(userid)
-end
-
-function PlayerDB:CreateRecord()
+function PlayerDB:CreateRecordFor(userid)
     return {
-        rep = 0,
-        maxgriefness = 0,
         joinedtime = os.time(),
         totaldays = 0,
-        gamerep = 0,
-        profilerep = 0,
+        rep = STARTING_REPUTATION,
+        netid = TheNet:GetNetIdForUser(userid),
     }
 end
 
 function PlayerDB:LoadRecordFor(userid)
+    if type(userid) ~= "string" or #userid ~= 11 then
+        return PEARL.error("Invalid Klei ID provided!")
+    end
+
     local path = DATABASE_FILE_PATH:format(userid)
-    io.ensure(path)
+    io.ensure(path, "{}")
 
     local rf, err = io.open(path, "r")
     if not rf or err then
@@ -158,6 +162,7 @@ function PlayerDB:LoadRecordFor(userid)
     record = record or {}
 
     if not success or type(record) ~= "table" then
+        PEARL.error("Failed to decode record JSON data!", record)
         return
     end
 
@@ -168,7 +173,8 @@ end
 
 function PlayerDB:SaveRecordFor(userid, record)
     record = record or self._records[userid]
-    if not record then
+    -- Only save data for users that have agreed to the agreement.
+    if not record or not record.agreed or not record.collectdata then
         return
     end
 
@@ -191,7 +197,7 @@ function PlayerDB:SaveRecordFor(userid, record)
     wf:close()
 end
 
-function PlayerDB:SaveActiveRecords()
+function PlayerDB:SaveCachedRecords()
     for userid, record in pairs(self._records) do
         self:SaveRecordFor(userid, record)
     end

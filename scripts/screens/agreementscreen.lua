@@ -13,16 +13,9 @@
 
 
 local Screen = require("widgets/screen")
-local Button = require "widgets/button"
--- local AnimButton = require "widgets/animbutton"
--- local ImageButton = require "widgets/imagebutton"
 local Text = require("widgets/text")
--- local Image = require "widgets/image"
 local Widget = require("widgets/widget")
--- local Menu = require "widgets/menu"
 local TrueScrollArea = require("widgets/truescrollarea")
--- local ScrollableList = require("widgets/scrollablelist")
-local RadioButtons = require("widgets/radiobuttons")
 local TEMPLATES = require("widgets/redux/templates")
 
 -- --------------------------------
@@ -44,11 +37,25 @@ local DIALOG_BUTTONS_TEXT_SIZE = 28
 local DIALOG_BUTTONS_TEXT_WIDTH = 250
 local DIALOG_BUTTONS_TEXT_OFFSET_X = 80
 local DIALOG_BUTTONS_TEXT_COLOUR = UICOLOURS.GOLD_UNIMPORTANT
-local DIALOG_BUTTONS_PADDING_TOP  = -30
+local DIALOG_BUTTONS_PADDING_TOP  = 130
 local DIALOG_BUTTONS_SPACING = 300
 local DIALOG_BUTTONS_PADDING_RIGHT = 30
 local DIALOG_BUTTONS_PADDING_LEFT = (DESCRIPTION_MAX_WIDTH - (DIALOG_BUTTONS_TEXT_WIDTH * 2) + DIALOG_BUTTONS_SPACING) / 2 - DIALOG_BUTTONS_PADDING_RIGHT
-local DIALOG_BUTTONS_PADDING_BOTTOM = 10
+local DIALOG_BUTTONS_PADDING_BOTTOM = 100 -- increasing this will move the buttons up!
+
+local CHECKBOX_TEXT_SIZE = 20
+local CHECKBOX_PADDING_LEFT = 25
+local CHECKBOX_PADDING_TOP = 40
+local CHECKBOX_TEXT_OFFSET = 25
+
+local FOOTER_LABELS_TEXT_SIZE = 18
+local FOOTER_LABELS_TEXT_FONT = CHATFONT
+local FOOTER_LABELS_SPACING = 20
+
+local BODY_LABELS_TEXT_SIZE = 24
+local BODY_LABELS_TEXT_FONT = CHATFONT
+local BODY_LABELS_TEXT_COLOUR = UICOLOURS.GOLD
+local BODY_LABELS_SPACING = 29
 
 local TITLE_FONT_SIZE = 68
 local TITLE_FONT = TITLEFONT
@@ -75,38 +82,50 @@ local SCROLLBAR_X = -(SIZE_X / 2 - SCROLLBAR_PADDING_LEFT)
 local SCROLLBAR_Y = -100 - SCROLLBAR_PADDING_TOP
 local SCROLLBAR_SPEED = 20 * 3
 
-local SEP_OFFSET_TOP = 104 -- ~ (a bit lower here because of the shadow)
+local SEP_OFFSET_TOP = 105 -- ~ (a bit lower here because of the shadow)
 local SEP_OFFSETB_BOTTOM = 107 -- ~
 
-local AGREEMENT_STATES = {
-    AGREED = 1,
-    DISAGREED = 0,
-}
-local AGREEMENT_OPTIONS = {
-    { text = STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_AGREE, data = AGREEMENT_STATES.AGREED },
-    { text = STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DISAGREE, data = AGREEMENT_STATES.DISAGREED },
-}
+--------------------------------
+-- [[ Local Functions ]]
+--------------------------------
 
-local AGREEMENT_BUTTON_SETTINGS = {
-    width = 140,
-    height = 40,
-    font = NEWFONT,
-    font_size = DESCRIPTION_FONT_SIZE,
-    image_scale = 0.7,
-    atlas = "images/ui.xml",
-    on_image = "radiobutton_on.tex",
-    off_image = "radiobutton_off.tex",
-}
+local blink_task
+local function BlinkButton(button, blink_colour)
+    if blink_task and blink_task.limit ~= 0 then
+        return
+    end
 
-local RADIO_BUTTON_WIDTH = #AGREEMENT_OPTIONS * 145
-local RADIO_BUTTON_HEIGHT = 50
+    blink_colour = blink_colour or button.textfocuscolour
+
+    local on = false
+    local origin_colour = button.text and button.text.colour
+    blink_task = PEARL.StaticScheduler:ExecutePeriodic(0.1, function()
+        if on then
+            on = false
+
+            if button.text then
+                button:SetTextColour(origin_colour)
+            end
+        else
+            on = true
+
+            if button.text then
+                button:SetTextColour(blink_colour)
+            end
+        end
+
+        button:Refresh()
+    end, 6)
+end
 
 --------------------------------
 -- [[ Class Declaration ]]
 --------------------------------
 
-local AgreementScreen = Class(Screen, function(self)
+local AgreementScreen = Class(Screen, function(self, readonly)
     Screen._ctor(self, "AgreementScreen")
+
+    --TheInputProxy:SetCursorVisible(true)
 
     self._on_continue_fn = nil
 
@@ -117,9 +136,19 @@ local AgreementScreen = Class(Screen, function(self)
 
     self._root = self:AddChild(TEMPLATES.ScreenRoot())
 
+    local bottom_buttons
+    if readonly then
+        bottom_buttons = {
+            {
+                text = STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE,
+                cb = function() self:Close() end,
+            },
+        }
+    end
+
     -- [[ Dialog Window Setup ]]
     self._dialog = self._root:AddChild(TEMPLATES.RectangleWindow(SIZE_X, SIZE_Y,
-        PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT[1].title
+        PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT[1].title, bottom_buttons
     ))
     self._dialog:SetBackgroundTint(unpack(UICOLOURS.BROWN_DARK))
 
@@ -127,27 +156,16 @@ local AgreementScreen = Class(Screen, function(self)
     self._dialog.title:SetFont(TITLE_FONT)
     self._dialog.title:SetColour(TITLE_COLOUR)
     self._dialog.title:SetSize(TITLE_FONT_SIZE)
-    --self._dialog.title:SetHorizontalSqueeze(0)
     -- Apply padding
     local x, y = self._dialog.title:GetPositionXYZ()
     self._dialog.title:SetPosition(x + TITLE_PADDING_X, y + TITLE_PADDING_Y)
     -- Adjust the region size to support very long titles.
-    local _, h = self._dialog.title:GetRegionSize()
     self._dialog.title:SetRegionSize(SIZE_X, TITLE_FONT_SIZE)
-
-
-    -- [[ Continue Button ]]
-    -- self._dialog.continue_button = self._dialog.actions.items[1]
-    -- self._dialog.continue_button:SetFont(DIALOG_BUTTONS_FONT)
-    -- -- Set the font as the disabled one as well to keep consistency.
-    -- self._dialog.continue_button:SetDisabledFont(DIALOG_BUTTONS_FONT)
-    -- self._dialog.continue_button:Disable() -- Disabled by default
 
     -- [[ Popup Window Body ]]
 
     self._scrollable = Widget("AgreementScrollArea")
 
-    local left = 0
     local height = 0
 
     -- [[ Header Description ]]
@@ -160,13 +178,15 @@ local AgreementScreen = Class(Screen, function(self)
         self._scrollable.body:SetHAlign(ANCHOR_LEFT)
         self._scrollable.body:SetVAlign(ANCHOR_TOP)
         self._scrollable.body:SetMultilineTruncatedString(header.description, DESCRIPTION_MAX_LINES, DESCRIPTION_MAX_WIDTH)
-        local x, y = self._scrollable.body:GetRegionSize()
-        self._scrollable.body:SetPosition(left + 0.5 * x, height - 0.5 * y)
+        x, y = self._scrollable.body:GetRegionSize()
+        self._scrollable.body:SetPosition(0.5 * x, height - 0.5 * y)
 
         height = height - y - SECTION_SPACING
     end
 
     -- [[ Sections ]]
+
+    local desc_pos_x = 0
 
     -- Skip the first index since that's the title
     for i = 2, #PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT do
@@ -176,8 +196,8 @@ local AgreementScreen = Class(Screen, function(self)
         ))
         title:SetHAlign(ANCHOR_LEFT)
 
-        local x, y = title:GetRegionSize()
-        title:SetPosition(left + 0.5 * x, height - 0.5 * y)
+        x, y = title:GetRegionSize()
+        title:SetPosition(0.5 * x, height - 0.5 * y)
         height = height - y - SUBTITLE_SPACING_BOTTOM
 
         local desc = self._scrollable:AddChild(Text(
@@ -187,100 +207,105 @@ local AgreementScreen = Class(Screen, function(self)
         desc:SetVAlign(ANCHOR_TOP)
         desc:SetMultilineTruncatedString(section.description, DESCRIPTION_MAX_LINES, DESCRIPTION_MAX_WIDTH)
         x, y = desc:GetRegionSize()
-        desc:SetPosition(left + 0.5 * x, height - 0.5 * y)
+        desc_pos_x = desc:GetPositionXYZ()
+        desc:SetPosition(0.5 * x, height - 0.5 * y)
 
         height = height - y - SECTION_SPACING
     end
 
-    -- [[ Agree/Disagree Checkboxes ]]
+    -- [[ Data Collection Checkbox ]]
+    local dc_checkbox_widget = self._scrollable:AddChild(Widget("DataCollectionCheckbox"))
+    self._scrollable.dc_checkbox_button = dc_checkbox_widget:AddChild(TEMPLATES.LabelCheckbox(
+        function(checkbox)
+            checkbox.checked = not checkbox.checked
+            checkbox:Refresh()
+        end,
+        false,
+        "" -- This needs to be here in order for the text widget to work correctly.
+    ))
 
-    -- Possible better alternative?
-    -- self._body.buttons = self._body:AddChild(RadioButtons(AGREEMENT_OPTIONS, RADIO_BUTTON_HEIGHT, RADIO_BUTTON_WIDTH, AGREEMENT_BUTTON_SETTINGS))
-    -- self._body.buttons:SetOnChangedFn(function(data)
-    --     self._dialog.continue_button:Enable()
-    -- end)
-    -- self._body.buttons:SetPosition(left + 0.5 * RADIO_BUTTON_WIDTH, height - 0.5 * RADIO_BUTTON_HEIGHT)
+    local dc_button_width = self._scrollable.dc_checkbox_button:GetSize()
+    self._scrollable.dc_checkbox_button:SetTextSize(CHECKBOX_TEXT_SIZE)
+    self._scrollable.dc_checkbox_button.text:SetMultilineTruncatedString(STRINGS.PEARL.UI.AGREEMENT_DC_CHECKBOX_TEXT, 3, DESCRIPTION_MAX_WIDTH - dc_button_width)
 
-    -- height = height - RADIO_BUTTON_HEIGHT
+    -- Re-adjust the text's position
+    local text_width = self._scrollable.dc_checkbox_button.text:GetRegionSize()
+    self._scrollable.dc_checkbox_button.text:SetPosition(CHECKBOX_TEXT_OFFSET + text_width/2, 0)
+
+    dc_checkbox_widget:SetPosition(desc_pos_x + CHECKBOX_PADDING_LEFT, height - CHECKBOX_PADDING_TOP)
+    dc_checkbox_widget.focus_forward = self._scrollable.dc_checkbox_button
+
+    if readonly then
+        self._scrollable.dc_checkbox_button.checked = true
+        self._scrollable.dc_checkbox_button:Disable()
+        self._scrollable.dc_checkbox_button:Refresh()
+    end
+
+    -------------------------------
+    -- [[ Accept/Decline Buttons ]]
+    -------------------------------
 
     self._scrollable.decline_button = self._scrollable:AddChild(TEMPLATES.MenuButton(
-        "Decline", function()
+        STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DECLINE, function()
             self:OnContinue(false)
         end
     ))
-    self._scrollable.decline_button.text:SetPosition(DIALOG_BUTTONS_TEXT_OFFSET_X, 0)
-    self._scrollable.decline_button.text_shadow:SetPosition(DIALOG_BUTTONS_TEXT_OFFSET_X, 0)
-    local w, h = self._scrollable.decline_button.text:GetRegionSize()
+    local text_region_width = 250
+    local text_len = string.utf8len(STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DECLINE)
+    local text_middle = (text_region_width - text_len) / 4
+    self._scrollable.decline_button.text:SetPosition(text_middle, 0)
+    self._scrollable.decline_button.text_shadow:SetPosition(text_middle, 0)
     self._scrollable.decline_button:SetPosition(
-        left + DIALOG_BUTTONS_PADDING_LEFT, height + DIALOG_BUTTONS_PADDING_TOP
+        DIALOG_BUTTONS_PADDING_LEFT, height - DIALOG_BUTTONS_PADDING_TOP
     )
 
-    self._scrollable.agree_button = self._scrollable:AddChild(TEMPLATES.MenuButton(
-        "Accept", function()
-            self:OnContinue(true)
+    self._scrollable.accept_button = self._scrollable:AddChild(TEMPLATES.MenuButton(
+        STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_ACCEPT, function()
+            if self._scrollable.dc_checkbox_button.checked == true then
+                return self:OnContinue(true)
+            end
+
+            -- Warn the user that this button needs to be checked before continuing...
+            BlinkButton(self._scrollable.dc_checkbox_button, WHITE)
         end
     ))
-    self._scrollable.agree_button.text:SetPosition(DIALOG_BUTTONS_TEXT_OFFSET_X, 0)
-    self._scrollable.agree_button.text_shadow:SetPosition(DIALOG_BUTTONS_TEXT_OFFSET_X, 0)
-    -- self._scrollable.agree_button:SetText("Accept")
-    -- self._scrollable.agree_button:SetTextSize(DIALOG_BUTTONS_TEXT_SIZE)
-    -- self._scrollable.agree_button:SetTextColour(unpack(DIALOG_BUTTONS_TEXT_COLOUR))
-    -- self._scrollable.agree_button:SetFont(DIALOG_BUTTONS_FONT)
-    -- self._scrollable.agree_button:SetDisabledFont(DIALOG_BUTTONS_FONT)
-    w, h = self._scrollable.agree_button.text:GetRegionSize()
-    self._scrollable.agree_button:SetPosition(
-        left + DIALOG_BUTTONS_PADDING_LEFT + DIALOG_BUTTONS_SPACING, height + DIALOG_BUTTONS_PADDING_TOP)
-    height = height - h - DIALOG_BUTTONS_SPACING + DIALOG_BUTTONS_PADDING_BOTTOM
+    self._scrollable.accept_button.text:SetPosition(DIALOG_BUTTONS_TEXT_OFFSET_X, 0)
+    self._scrollable.accept_button.text_shadow:SetPosition(DIALOG_BUTTONS_TEXT_OFFSET_X, 0)
+    local _, h = self._scrollable.accept_button.text:GetRegionSize()
+    self._scrollable.accept_button:SetPosition(
+        DIALOG_BUTTONS_PADDING_LEFT + DIALOG_BUTTONS_SPACING, height - DIALOG_BUTTONS_PADDING_TOP
+    )
 
-    -- self._scrollable.agreement_checkbox = self._scrollable:AddChild(TEMPLATES.LabelCheckbox(
-    --     function(checkbox)
-    --         if self._scrollable.disagreement_checkbox.checked then
-    --             self._scrollable.disagreement_checkbox.checked = false
-    --         end
+    if readonly then
+        self._scrollable.accept_button:Hide()
+        self._scrollable.decline_button:Hide()
 
-    --         checkbox.checked = not checkbox.checked
-    --         self._scrollable.disagreement_checkbox:Refresh()
-    --         checkbox:Refresh()
+        local label_x = DESCRIPTION_MAX_WIDTH / 2 + 25
+        self._scrollable.nomodif_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
+        self._scrollable.nomodif_label:SetString(STRINGS.PEARL.UI.AGREEMENT_NO_MODIFICATION_LABEL)
+        self._scrollable.nomodif_label:SetColour(BODY_LABELS_TEXT_COLOUR)
+        self._scrollable.nomodif_label:SetPosition(
+            label_x, height - DIALOG_BUTTONS_PADDING_TOP
+        )
 
-    --         if checkbox.checked then
-    --             self._dialog.continue_button:Enable()
-    --         else
-    --             self._dialog.continue_button:Disable()
-    --         end
-    --         -- Keep unchecked by default
-    --     end, false, STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_AGREE)
-    -- )
-    -- local w, h = self._scrollable.agreement_checkbox.text:GetRegionSize()
-    -- self._scrollable.agreement_checkbox:SetPosition(left + RADIO_BUTTON_PADDING_LEFT,
-    --     height - (h / 2) - RADIO_BUTTON_PADDING_TOP)
-    -- height = height - h - RADIO_BUTTON_PADDING_TOP
+        local tm = PEARL.AgreementManager:GetLocalLastAgreeTime()
+        if type(tm) == "string" and #tm > 1 then
+            self._scrollable.accept_time_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
+            self._scrollable.accept_time_label:SetColour(BODY_LABELS_TEXT_COLOUR)
+            self._scrollable.accept_time_label:SetString(STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL:format(
+                PEARL.TimestampToFancyDateString(tm)
+            ))
+            self._scrollable.accept_time_label:SetPosition(
+                label_x, height - DIALOG_BUTTONS_PADDING_TOP - BODY_LABELS_SPACING
+            )
+        end
+    end
 
-    -- self._scrollable.disagreement_checkbox = self._scrollable:AddChild(TEMPLATES.LabelCheckbox(
-    --     function(checkbox)
-    --         if self._scrollable.agreement_checkbox.checked then
-    --             self._scrollable.agreement_checkbox.checked = false
-    --         end
+    height = math.abs(height - h - DIALOG_BUTTONS_SPACING - DIALOG_BUTTONS_PADDING_BOTTOM)
 
-    --         checkbox.checked = not checkbox.checked
-    --         self._scrollable.agreement_checkbox:Refresh()
-    --         checkbox:Refresh()
-
-    --         if checkbox.checked then
-    --             self._dialog.continue_button:Enable()
-    --         else
-    --             self._dialog.continue_button:Disable()
-    --         end
-    --         -- Keep unchecked by default
-    --     end, false, STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_DISAGREE)
-    -- )
-    -- w, h = self._scrollable.disagreement_checkbox.text:GetRegionSize()
-    -- self._scrollable.disagreement_checkbox:SetPosition(left + RADIO_BUTTON_PADDING_LEFT,
-    --     height - (h / 2) - RADIO_BUTTON_SPACING)
-    -- height = height - h - RADIO_BUTTON_SPACING - RADIO_BUTTON_PADDING_BOTTOM
-
-    -- [[ Scroll Area ]]
-
-    height = math.abs(height)
+    -------------------------------
+    -- [[ Scrollable Area ]]
+    -------------------------------
 
     -- Scrolling configurations.
     local scissor_data = {
@@ -302,24 +327,44 @@ local AgreementScreen = Class(Screen, function(self)
 
     self._dialog.top_hline = self._dialog:AddChild(Image("images/ui.xml", "line_horizontal_6.tex"))
 	self._dialog.top_hline:SetScale(2.4, .5)
-    self._dialog.top_hline:SetPosition(-10, SCROLLBAR_Y + SCROLLBAR_HEIGHT - SEP_OFFSETB_BOTTOM, 0)
+    self._dialog.top_hline:SetPosition(-10, SCROLLBAR_Y + SCROLLBAR_HEIGHT - SEP_OFFSET_TOP, 0)
 
     self._dialog.bot_hline = self._dialog:AddChild(Image("images/ui.xml", "line_horizontal_6.tex"))
 	self._dialog.bot_hline:SetScale(2.4, .5)
     self._dialog.bot_hline:SetPosition(-10, SCROLLBAR_Y - SEP_OFFSETB_BOTTOM, 0)
 
+    self._dialog.version_label = self._dialog:AddChild(Text(FOOTER_LABELS_TEXT_FONT, FOOTER_LABELS_TEXT_SIZE))
+    self._dialog.version_label:SetString(STRINGS.PEARL.UI.AGREEMENT_VERSION_LABEL:format(
+        PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version or "1.0"
+    ))
+    self._dialog.version_label:SetPosition(desc_pos_x, SCROLLBAR_Y - SEP_OFFSETB_BOTTOM - 20 - FOOTER_LABELS_SPACING, 0)
+
+    if PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.lmt then
+        self._dialog.last_update_label = self._dialog:AddChild(Text(FOOTER_LABELS_TEXT_FONT, FOOTER_LABELS_TEXT_SIZE))
+        self._dialog.last_update_label:SetString(STRINGS.PEARL.UI.AGREEMENT_LAST_UPDATE_LABEL:format(
+            PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.lmt or "1.0"
+        ))
+        self._dialog.last_update_label:SetPosition(desc_pos_x, SCROLLBAR_Y - SEP_OFFSETB_BOTTOM - FOOTER_LABELS_SPACING, 0)
+    end
+
     -- [[ Focus Setup ]]
-    self.default_focus = self._scrollable.decline_button
-    self.focus_forward = self._scrollable.decline_button
+    self.default_focus = self._scrollable.accept_button
+    self.focus_forward = self._scrollable.accept_button
 end)
 
+--- @param fn fun(self: AgreementScreen, data: table<string, any>)
 function AgreementScreen:SetOnContinue(fn)
     self._on_continue_fn = fn
 end
 
 function AgreementScreen:OnContinue(agreed)
     if self._on_continue_fn then
-        return self._on_continue_fn(self, agreed or false)
+        local data = {
+            agreed = agreed or false,
+            datacollection = self._scrollable.dc_checkbox_button.checked
+        }
+
+        return self._on_continue_fn(self, data)
     end
 
     -- If there is no special handler just close the screen
@@ -327,7 +372,11 @@ function AgreementScreen:OnContinue(agreed)
 end
 
 function AgreementScreen:Close()
-    TheFrontEnd:PopScreen(self)
+    return TheFrontEnd:PopScreen(self)
 end
+
+-------------------------------------
+-- [[ Return ]]
+-------------------------------------
 
 return AgreementScreen

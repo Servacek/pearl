@@ -23,14 +23,10 @@
 --]]
 
 
-if not TheShard:IsMaster() then
-    return
-end
-
 local PEARL = PEARL
 local APP_VERSION, json, LoadingStates = APP_VERSION, json, LoadingStates
 local TheNet = TheNet
-local tonumber, tostring, pcall = tonumber, tostring, pcall
+local tonumber, pcall = tonumber, pcall
 
 -------------------------------------
 -- [[ Constants ]]
@@ -102,7 +98,7 @@ local function StartServerUpdate()
         --- @TODO debug a bit more since it seems to not work properly
         TheNet:NotifyLoadingState(LoadingStates.Loading, "")
 
-        PEARL.BroadcastRPCToShards(PEARL.RPC.BroadcastLua, "c_shutdown()")
+        PEARL.BroadcastRPCToConnectedShards(PEARL.RPC.BroadcastLua, "c_shutdown()")
         PEARL.WallScheduler:ExecuteInTime(0, function()
             c_shutdown()
         end)
@@ -155,21 +151,15 @@ local function CheckAppVersion()
         return false
     end
 
-    PEARL.info("Version up-to-date!")
+    PEARL.debug("Version up-to-date!")
     return true
 end
 
-local function OnVersionCheckQueryComplete(result, isSuccessful, resultCode)
-    if not (isSuccessful and result and #result > 1) then
-        return PEARL.error(
-            "Wasn't able to fetch the most current build version! Query failed with reason:", result
-        )
-    end
-
+local function OnVersionCheckQueryComplete(response)
     -- Try to use the optimized string based approach first, if that fails
     -- use the default json one or return zero.
-    target_version = tonumber(get_target_version_from_string(result))
-        or tonumber(get_target_version(result))
+    target_version = tonumber(get_target_version_from_string(response))
+        or tonumber(get_target_version(response))
         or 0
 
     if target_version < 1 then
@@ -184,7 +174,7 @@ local function DoVersionCheckTask()
     if target_version == 0 or CheckAppVersion() then
         PEARL.HTTPClient:GET(
             PEARL.CONSTS.DST_BUILDS, OnVersionCheckQueryComplete, VERSION_QUERY_TIMEOUT
-        ):Send()
+        ):SetIsRaw(true):Send()
     end
 end
 
@@ -200,4 +190,4 @@ end
 -- [[ Setup ]]
 -------------------------------------
 
-PEARL.AddGamePostInit(StartVersionCheckTask)
+PEARL.AddSimPostInit(StartVersionCheckTask)

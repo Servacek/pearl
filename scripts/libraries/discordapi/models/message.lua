@@ -173,6 +173,10 @@ function Message:IsValid()
     return self:HasLogLines() or self:HasContent() or self:HasEmbed()
 end
 
+function Message:GetEmbed(index)
+    return self._embeds and self._embeds[index]
+end
+
 ------------------------------------------
 -- [[ Setters ]]
 ------------------------------------------

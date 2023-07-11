@@ -15,7 +15,7 @@
 
 name = "Pearl"
 author = "Fi7iP"
-version = "Review 2.4.3d"
+version = "Review 2.5"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -60,23 +60,32 @@ configuration_options = {
             INVITE = nil,
             -- The IDs NEEDS to be strings because they could overflow
             LHOOK = {
-                ID = "",
-                TOKEN = "",
-                ENABLED = true,
-                BUFFER_TIMEOUT = 4,
+                ID              = "",
+                TOKEN           = "",
+                ENABLED         = true,
+                BUFFER_TIMEOUT  = 4,
             },
             RHOOK = {
-                ID = "",
-                TOKEN = "",
+                ID      = "",
+                TOKEN   = "",
                 ENABLED = true,
             },
             BHOOK = {
-                ID = "",
-                TOKEN = "",
+                ID      = "",
+                TOKEN   = "",
                 ENABLED = true,
 
                 MESSAGE_ID = "",
             },
+
+            INPUT_PROXY = {
+                URL                 = nil,
+
+                CHAT_ENABLED        = false,
+                COMMANDS_ENABLED    = false,
+
+                SYNC_INTERVAL       = 10, -- Every 10 seconds
+            }
         },
         type = "table<string, any>",
         public = "DISCORD.INVITE",
@@ -98,6 +107,19 @@ configuration_options = {
             VERIFY_NEW_ACCOUNTS = true,
         },
         type = "table<string, any>",
+    },
+
+    --------------------
+    -- Leadeboard
+    --------------------
+
+    {
+        name = "LEADERBOARD",
+        default = {
+            ENABLED = false,
+            ENCODE_DATA = false,
+        },
+        type = "table",
     },
 
     --------------------
@@ -290,6 +312,16 @@ configuration_options = {
     --------------------
     -- Other Modules
     --------------------
+
+    {
+        name = "SUPPORTED_CLIENT_PLATFORMS",
+        default = { -- We do only support Steam as the platform by default
+            "WIN32_STEAM",
+            "LINUX_STEAM",
+            "OSX_STEAM",
+        },
+        type = "table",
+    },
 
     {
         name="INVENTORY_REPORTER",

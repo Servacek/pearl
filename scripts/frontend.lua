@@ -20,14 +20,27 @@ PEARL.SafeModTableExtend("CONSTS", {
     AGREEMENT_FILE_PATH = "AGREEMENT",
 
     LT_TYPES = {
-        ["survival"]    = STRINGS.UI.LOADING_SCREEN_SURVIVAL_TIPS,
-        ["lore"]        = STRINGS.UI.LOADING_SCREEN_LORE_TIPS,
-        ["control"]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS,
-        ["console"]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_CONSOLE,
-        ["noconsole"]   = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_NOT_CONSOLE,
-        ["other"]       = STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
-    }
+        SURVIVAL    = "survival",
+        LORE        = "lore",
+        CONTROL     = "control",
+        CONSOLE     = "console",
+        NOCONSOLE   = "noconsole",
+        OTHER       = "other",
+        WELCOME     = "welcome",
+    },
 })
+
+local LT_TYPES = PEARL.CONSTS.LT_TYPES
+PEARL.CONSTS.LT_TYPE_TABLES = {
+    [LT_TYPES.SURVIVAL]    = STRINGS.UI.LOADING_SCREEN_SURVIVAL_TIPS,
+    [LT_TYPES.LORE]        = STRINGS.UI.LOADING_SCREEN_LORE_TIPS,
+    [LT_TYPES.CONTROL]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS,
+    [LT_TYPES.CONSOLE]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_CONSOLE,
+    [LT_TYPES.NOCONSOLE]   = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_NOT_CONSOLE,
+    [LT_TYPES.OTHER]       = STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
+    -- Loadings tips for new players.
+    [LT_TYPES.WELCOME]     = STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
+}
 
 ----------------------------------
 -- Config
@@ -70,6 +83,16 @@ PEARL.SafeModTableExtend("CONTROLS", {
 })
 
 ----------------------------------
+-- Game Extensions
+----------------------------------
+
+PEARL.info("Loading game extensions...")
+PEARL.loadfile("extensions/modindex")
+PEARL.loadfile("extensions/chathistory")
+
+PEARL.loadfile("extensions/scripts/entityscript")
+
+----------------------------------
 -- Agreement Manager
 ----------------------------------
 
@@ -99,14 +122,18 @@ PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 ----------------------------------
 -- Assets
 ----------------------------------
-
+--- @unexpected end of data - Check these when this error hapens.
+--- The XML files may be wrongly formatted
 PEARL.info("Loading assets...")
 Assets = {
-    Asset("IMAGE", "images/announcements.tex"),
     Asset("IMAGE", "images/dcbutton.tex"),
-
     Asset("ATLAS", "images/dcbutton.xml"),
+
+    Asset("IMAGE", "images/announcements.tex"),
     Asset("ATLAS", "images/announcements.xml"),
+
+    Asset("IMAGE", "images/dft_flairs.tex"),
+    Asset("ATLAS", "images/dft_flairs.xml"),
 }
 
 ----------------------------------
@@ -133,33 +160,62 @@ PEARL.loadfile("constants/strings")
 ]]
 -- Loading screen tips setup
 if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
-    if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
-        PEARL.info("Removing default loading tips...")
-        PEARL.RemoveAllLoadingTips()
+    local default_removed = false
+    local function RemoveDefaultLoadingTips()
+        if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override ~= true then
+            return
+        end
+
+        if not default_removed then
+            PEARL.info("Removing default loading tips...")
+            PEARL.RemoveAllLoadingTips()
+        end
+
+        default_removed = true
+    end
+
+    local novice = PEARL.ClientNetwork:IsNovice()
+    local function OptionalAddLoadingTip(name, lt)
+        local type = PEARL.CONSTS.LT_TYPE_TABLES[lt.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
+
+        if novice then
+            print(lt.type, LT_TYPES.WELCOME)
+            if lt.type ~= LT_TYPES.WELCOME then
+                return
+            else
+                -- For novices keep default loading tips
+                -- until some welcome tip is found.
+                -- So when no welcome tips are set,
+                -- the default ones will stay.
+                RemoveDefaultLoadingTips()
+                type = PEARL.CONSTS.LT_TYPE_TABLES["survival"]
+            end
+        end
+
+        print("ADDING LOADING TIP:", type, name, lt.text, lt.data)
+        AddLoadingTip(type, name, lt.text, lt.data)
+    end
+
+    if not novice then
+        RemoveDefaultLoadingTips()
     end
 
     PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
+
     for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
-        local type = PEARL.CONSTS.LT_TYPES[lt.type] or PEARL.CONSTS.LT_TYPES["other"]
         local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
-        PEARL.AddLoadingTip(type, name, lt.text, lt.data)
+        OptionalAddLoadingTip(name, lt)
     end
 end
-
-----------------------------------
--- Game Extensions
-----------------------------------
-
-PEARL.info("Loading game extensions...")
-PEARL.loadfile("extensions/modindex")
-
-PEARL.loadfile("extensions/scripts/entityscript")
 
 ----------------------------------
 -- UI Extensions
 ----------------------------------
 
 PEARL.info("Loading user interface extensions...")
+PEARL.loadfile("extensions/ui/templates")
+
+PEARL.loadfile("extensions/ui/playerlist")
 PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 

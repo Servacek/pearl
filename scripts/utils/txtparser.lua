@@ -21,6 +21,7 @@ local COMMENT_PREFIX = "//"
 local ESCAPE_PREFIX = "\\"
 local TITLE_PREFIX = "#"
 local VERSION_PREFIX = "@v"
+local LMT_PREFIX = "@>"
 
 -- local COMMENT_SUBITLES = [[
 -- This is a file used for storing content for UI screens.
@@ -64,6 +65,7 @@ return function(fname, create_if_needed, subtitles)
     --- @type table<string, string>?
     local open_section
     local version
+    local lmt
 
     --- @type table<string, string>
     local result = {}
@@ -84,13 +86,21 @@ return function(fname, create_if_needed, subtitles)
     local function ParseLine(tbl, raw_line, subtitles)
         local line = raw_line:strip()
 
-        if line:startswith(VERSION_PREFIX) and not version then
-            version = line
+        if line == "" and not open_section then
+            return -- Ignore leading new lines and spaces
         end
 
         -- Comments
         if line:startswith(COMMENT_PREFIX) then
             return
+        end
+
+        if line:startswith(VERSION_PREFIX) and not version then
+            version = RemoveLinePrefix(line, VERSION_PREFIX)
+        end
+
+        if line:startswith(LMT_PREFIX) and not lmt then
+            lmt = RemoveLinePrefix(line, LMT_PREFIX)
         end
 
         -- The title and subtitles
@@ -124,10 +134,9 @@ return function(fname, create_if_needed, subtitles)
 
     result.version = version
 
-    --- @TODO: looks like this doesn't work correctly on Linux
+    --- @TODO: looks like this doesn't work correctly on Linux (seems to be a bug)
     -- TheSim:GetFileModificationTime returns a hexadecimal string representing the timestamp
-    --- @type number
-    --result.lmt = tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
+    result.lmt = lmt --tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
 
     return result
 end

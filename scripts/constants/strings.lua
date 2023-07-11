@@ -116,6 +116,20 @@ STRINGS.PEARL = {
             },
         },
 
+        LEADERBOARD = {
+            TITLE_ABS = "Leaderboard",
+            TITLE_CUR = "Month Leaderboard",
+
+            FD_NAMES = {
+                INDEX_COL   = "Place",
+                NAME_COL    = "Name",
+                REP_COL     = "Reputation",
+            },
+
+            THMB_ABS_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1127332594766331974/trophy.png",
+            THMB_CUR_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1127332501858291732/daychanges.png",
+        },
+
         INV = {
             TITLE = "%s %s `%s`",
             INVENTORY = MARKDOWN.bold("Inventory"),
@@ -284,6 +298,23 @@ STRINGS.PEARL = {
         ["none"] = "no precipitation",
     },
 
+    DATE_FORMAT = "%s. of %s %s",
+
+    MONTHS = {
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    },
+
     -- Create a copy of the game's seasons so we do not modify the actual table when translating
     SEASONS = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.SEASONS),
     PHASES  = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.PHASES),
@@ -395,17 +426,25 @@ STRINGS.PEARL = {
 
         INTRO_POPUP_BUTTON_CONTINUE = "Continue",
         AGREEMENT_SCREEN_BUTTON_FINISH = "Finish",
-        AGREEMENT_SCREEN_BUTTON_AGREE = "I agree",
-        AGREEMENT_SCREEN_BUTTON_DISAGREE = "I disagree",
+        AGREEMENT_SCREEN_BUTTON_ACCEPT = "Accept",
+        AGREEMENT_SCREEN_BUTTON_DECLINE = "Decline",
+        AGREEMENT_SCREEN_BUTTON_CLOSE = "Close",
 
         AGREEMENT_UPDATED_POPUP_TITLE = "Server Agreement Update",
         AGREEMENT_UPDATED_POPUP_BODY = "The server agreement has been updated and needs your review.",
         AGREEMENT_UPDATED_POPUP_CONTINUE = "Continue",
 
         AGREEMENT_DECLINE_POPUP_TITLE = "Decline the Server Agreement?",
-        AGREEMENT_DECLINE_POPUP_BODY = "You will not be able to play on the server. Are you sure?",
+        AGREEMENT_DECLINE_POPUP_BODY = "You won't be able to play on the server. Are you sure?",
         AGREEMENT_DECLINE_BUTTON_YES = "Yes",
         AGREEMENT_DECLINE_BUTTON_NO  = "No",
+
+        AGREEMENT_DC_CHECKBOX_TEXT = "*I consent to the collection of my gaming data by the us - the Czechoslovak Community for improving our servers and services.",
+
+        AGREEMENT_VERSION_LABEL = "Version: %s",
+        AGREEMENT_LAST_UPDATE_LABEL = "Last updated on: %s",
+        AGREEMENT_LAST_AGREE_LABEL = "Agreed on %s",
+        AGREEMENT_NO_MODIFICATION_LABEL = "No modifications can be made at this point."
     },
 
     GRIEFER_WARNINGS        = {
@@ -481,4 +520,9 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_USERNAME_BLOCKED",
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PROFILE_REP_TOO_LOW",
     "Reputation Too Low",
     "Your gaming reputation seems to be too low for this server."
+)
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PLATFORM_NOT_SUPPORTED",
+    "Platform Not Supported",
+    "Your platform is not supported by this server... Sorry!"
 )

@@ -12,7 +12,7 @@
 
 
 if type(PEARL.CONFIG.STEAM.API_KEY) ~= "string" or #PEARL.CONFIG.STEAM.API_KEY < PEARL.CONSTS.STEAM_API_KEY_LENGTH then
-    return PEARL.error("Invalid Steam API key provided!")
+    return error("Invalid Steam API key provided!")
 end
 
 -------------------------------------
@@ -47,16 +47,8 @@ SteamAPI.QUERIES = {
 -------------------------------------
 
 local function HandleQueryResult(query, result)
-    if not query.raw then
-        local success
-        success, result = pcall(json.decode, result)
-        if not success then
-            return PEARL.error("Failed to decode Steam query data!")
-        end
-    end
-
-    if query.cb then
-        query.cb(result)
+    if type(query.cb) == "function" then
+        return query.cb(result)
     end
 end
 
@@ -116,7 +108,8 @@ function SteamAPI:ExecuteDataQuerySequenceFor(steamid, finishcb)
             if finishcb and #seq == 0 then
                 finishcb()
             end
-        end):Send(true)
+        -- We want the response to be raw in case of
+        end):SetIsRaw(query.raw):Send(true)
     end
 end
 

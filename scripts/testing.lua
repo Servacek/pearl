@@ -20,7 +20,7 @@ function PEARL.EXT(testset_name, testname)
             tests[index] = value
         end
     })
-    PEARL.loadfile("tests/"..testset_name, env)
+    tests = PEARL.loadfile("tests/"..testset_name, env)
 
     if IsTableEmpty(tests) then
         return PEARL.error("The specified test set does not contain any tests!")

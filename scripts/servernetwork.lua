@@ -96,8 +96,25 @@ function ServerNetwork:SendCommandResponse(userid, message, ...)
         return
     end
 
-    PEARL.info("ServerNetwork:SendCommandResponse<"..userid..">", message)
-    return PEARL.SendRPCToClient(PEARL.RPC.CommandResponse, userid, message)
+    PEARL.debug("ServerNetwork:SendCommandResponse<"..userid..">", message)
+    if self:IsPlayerOnThisShard(userid) then
+        return PEARL.SendRPCToClient(PEARL.RPC.AddToChatHistory, userid, nil, ChatTypes.CommandResponse, nil, nil, nil, message)
+    end
+
+    return PEARL.BroadcastRPCToAllShards(PEARL.RPC.AddToChatHistory, userid, nil, ChatTypes.CommandResponse, nil, nil, nil, message, ...)
+end
+
+function ServerNetwork:DisplayChatMessageFor(userids, name, message, name_color, message_color, ...)
+    message_color = message_color and PEARL.RGBToDecimal(message_color) or nil
+    name_color = name_color and PEARL.RGBToDecimal(name_color) or nil
+
+    return PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, PEARL.RPC.AddToChatHistory, userids,
+        message_color, 1, nil, nil, name, message, name_color, ...
+    )
+end
+
+function ServerNetwork:DisplayChatMessage(...)
+    return self:DisplayChatMessageFor(nil, ...)
 end
 
 function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
@@ -206,6 +223,10 @@ function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
 end
 
+function ServerNetwork:IsPlayerOnThisShard(userid)
+    return LookupPlayerInstByUserID(userid) ~= nil
+end
+
 function ServerNetwork:IsAnySecondaryShardConnected()
     return not IsTableEmpty(ShardList)
 end
@@ -267,7 +288,7 @@ end
 
 --- Client tables are the same between shards!
 function ServerNetwork:IsUserConnected(userid)
-    return userid and type(TheNet:GetClientTableForUser(userid)) == "table"
+    return userid and TheNet:GetClientTableForUser(userid) ~= nil
 end
 
 function ServerNetwork:IsClientInactive(userid)
@@ -292,7 +313,7 @@ function ServerNetwork:IsAdmin(userid)
 end
 
 function ServerNetwork:IsClientPriviliged(userid)
-    return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid)
+    return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid) or TheNet:GetUserID() == userid
 end
 
 ----------------------------------
@@ -444,6 +465,10 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
         end
     end
 
+    if TheWorld then
+        TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
+    end
+
     _OnConnectionFiltersFinished(userid, allowed, reason)
 end
 
@@ -499,7 +524,7 @@ PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
         if allowed == false then -- Check for explicit false
             if TheWorld then
                 TheWorld:PushModEvent("clientconnectionclosed", {
-                    userid = userid, reason = reason
+                    userid = userid, reason = reason or "ID_DST_SLOT_RESERVATION"
                 })
             end
 
