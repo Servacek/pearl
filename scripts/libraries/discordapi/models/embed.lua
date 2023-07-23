@@ -235,8 +235,7 @@ function Embed:ToTable()
 end
 
 function Embed:ToJson()
-    local success, result = pcall(json.encode_compliant, self:ToTable())
-    return success, success and utf8.decode_string(result) or result
+    return json.encode_sanitized(self:ToTable())
 end
 
 ------------------------------------------

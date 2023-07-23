@@ -203,6 +203,14 @@ function Message:AddEmbed(embed)
     return self
 end
 
+function Message:AddEmbeds(embeds)
+    for i = 1, #embeds do
+        self:AddEmbed(embeds[i])
+    end
+
+    return self
+end
+
 --- @param logline LogLine The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddLogLine(logline)
@@ -287,7 +295,7 @@ function Message:ToTable()
     -- Send as few data here as possible since for every
     -- character we need to send one byte of data.
     return {
-        content = self:GetContent(),
+        content = utf8.decode_string(self:GetContent()),
         embeds = not table.empty(self._embeds) and self._embeds or nil,
         flags = self._flags,
         allowed_mentions = not table.empty(self._allowed_mentions) and self._allowed_mentions or nil,
@@ -298,8 +306,7 @@ end
 --- @return boolean success true on success otherwise false
 --- @return any result the json result on success otherwise the error message
 function Message:ToJson()
-    local success, result = pcall(json.encode_compliant, self:ToTable())
-    return success, success and utf8.decode_string(result) or result
+    return json.encode_compliant(self:ToTable())
 end
 
 ------------------------------------------

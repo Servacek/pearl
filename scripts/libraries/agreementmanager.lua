@@ -160,10 +160,10 @@ function AgreementManager:UpdateRecord()
     local record = self:GetRecord(userid, netid) or self:CreateRecord()
 
     -- This data here will be only used for verifying the client and version of the agreement.
-    record[RECORD.VERSION] = normalize(self:GetGlobalVersion()) or ""
-    record[RECORD.USERID] = userid or ""
-    record[RECORD.NETID] = netid or ""
-    record[RECORD.TIME] = os.time()
+    record[RECORD.VERSION]  = normalize(self:GetGlobalVersion()) or ""
+    record[RECORD.USERID]   = tostring(userid or "")
+    record[RECORD.NETID]    = tostring(netid or "")
+    record[RECORD.TIME]     = tostring(os.time())
 
     return record
 end

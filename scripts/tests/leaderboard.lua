@@ -12,16 +12,6 @@
 
 
 
---- @class PlayerRepManager
-local PlayerRepManager = {}
-
-function PlayerRepManager:Give(userid, reputation)
+function LDAdd()
 
 end
-
-function PlayerRepManager:Take(userid, reputation)
-
-end
-
-
-return PlayerRepManager

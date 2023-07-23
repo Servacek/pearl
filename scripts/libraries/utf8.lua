@@ -62,7 +62,7 @@ function utf8.validate(s)
         elseif i == sfind(s, "\224[\160-\191][\128-\191]", i)
             or i == sfind(s, "[\225-\236][\128-\191][\128-\191]", i)
             or i == sfind(s, "\237[\128-\159][\128-\191]", i)
-            or i == sfind(s,  "[\238-\239][\128-\191][\128-\191]", i) then i = i + 3
+            or i == sfind(s, "[\238-\239][\128-\191][\128-\191]", i) then i = i + 3
         elseif i == sfind(s, "\240[\144-\191][\128-\191][\128-\191]", i)
             or i == sfind(s, "[\241-\243][\128-\191][\128-\191][\128-\191]", i)
             or i == sfind(s, "\244[\128-\143][\128-\191][\128-\191]", i) then i = i + 4
@@ -80,6 +80,10 @@ function utf8.decode(char)
 end
 
 function utf8.decode_string(s)
+    if not s or #s <= 1 then
+        return s
+    end
+
     return s:gsub(UTF8_PATTERN, function(char)
         if utf8.ascii(char) then
             return char

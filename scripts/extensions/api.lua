@@ -97,8 +97,8 @@ end
 
 function PEARL.OverrideReturnValue(t, funcname, func, noraw)
     local origin
-    origin = PEARL.OverrideValue(t, funcname, function(self, ...)
-        local old_ret = (type(origin) == "function") and origin(self, ...) or nil
+    origin = PEARL.OverrideValue(t, funcname, function(...)
+        local old_ret = (type(origin) == "function") and origin(...) or nil
         return func(old_ret, ...)
     end, noraw)
 end
@@ -454,12 +454,12 @@ end
 --- whether to send the message to the game as well
 --- or just to discord (according to the configurations).
 ---
----@param message string The content text of the announcement (supports multiline).
+---@param str string The content text of the announcement (supports multiline).
 ---@param tp string? The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
 ---@param entity? unknown The entity the announcement is about.
 ---@param silent? boolean Whether the announcement should be sent to game or not.
 ---@param ... any Additional arguments to the TheNet:Announce function.
-function PEARL.AnnounceWithType(message, tp, entity, silent, ...)
+function PEARL.AnnounceWithType(str, tp, entity, silent, ...)
     local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
     -- Everything overrides the default value
     if type(PEARL.CONFIG.ANNOUNCEMENTS[tp]) == "boolean" then
@@ -478,10 +478,10 @@ function PEARL.AnnounceWithType(message, tp, entity, silent, ...)
     -- Check for explicit false so by default is everything enabled.
     if enabled ~= false and silent ~= true then
         -- When we announce the message it will be logged to discord implicitly.
-        return TheNet:Announce(message, entity, nil, tp, ...)
+        return TheNet:Announce(str, entity, nil, tp, ...)
     end
 
-    PEARL.DiscordLogger:LogString(message, PEARL.ICONS.ANNOUNCEMENTS[tp])
+    PEARL.DiscordLogger:LogString(str, PEARL.ICONS.ANNOUNCEMENTS[tp])
 end
 
 --------------------------------

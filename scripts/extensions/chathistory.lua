@@ -19,7 +19,7 @@ local ChatTypesCount = GetTableSize(ChatTypes)
 ChatTypes.DiscordMessage = ChatTypesCount + 1
 
 --- Add support for changing the colour of the text.
-PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_message, type, sender_userid, sender_netid, sender_name, message, colour)
+PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_message, self, type, sender_userid, sender_netid, sender_name, message, colour)
     chat_message.m_colour = colour and colour.message or chat_message.m_colour or SAY_COLOR
 
     return chat_message

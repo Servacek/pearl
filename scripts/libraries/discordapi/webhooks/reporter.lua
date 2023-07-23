@@ -101,11 +101,7 @@ end
 --- @param message Message
 --- @param force boolean?
 function Reporter:SendRawReportMessage(message, force)
-    local _, json_data = message:ToJson()
-
-    return PEARL.DiscordRestAPI:ExecuteWebhook(
-        self._webhook, json_data, force
-    )
+    return self._webhook:PostMessage(message, force)
 end
 
 --- @param str string

@@ -727,6 +727,15 @@ msgstr "%s **%s (`%s`)**\n> Počet prežitých dní: `%s`\n> Podozrenie: `%d%%`"
 msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLATFORM"
 msgstr "Platforma"
 
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA"
+msgstr "*Nedostatok Údajov*"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.TITLE_ABS"
+msgstr "Najlepší Hráči Celkovo"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.TITLE_CUR"
+msgstr "Najlepší Hráči Mesiaca"
+
 msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"
 msgstr "Privítajme %s! Je tu po prvý krát!"
 
@@ -744,6 +753,24 @@ msgstr "%s vstúpil/a do konštanty nášho servera!"
 
 msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.6"
 msgstr "Privítajme %s! Je tu po prvý krát!"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.TITLE_ARCHIVED"
+msgstr "Archivované"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.MONTH"
+msgstr "Mesiac"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.CREATED"
+msgstr "Údaje Od"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.INDEX_COL"
+msgstr "#"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL"
+msgstr "Hráč"
+
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL"
+msgstr "Reputácia"
 
 msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.7"
 msgstr "Po prvý krát je tu %s!"
@@ -768,6 +795,9 @@ msgstr "Neznámy"
 
 msgctxt "STRINGS.PEARL.LOGS.SHARD_LOADED_SECONDARY"
 msgstr "Shard `%s` bol načítaný. Pripájanie k shardu `%s`..."
+
+msgctxt "STRINGS.PEARL.LOGS.OFFLINE_CLIENT_BANNED"
+msgstr "%s pridané do zoznamu blokovaných hráčov!"
 
 msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.SEED"
 msgstr "Seed Sveta"

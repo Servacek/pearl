@@ -80,7 +80,8 @@ return {
 		["ruinshat"] 			= .8,
 		["ruins_bat"] 			= .8,
 		["armorruins"] 			= .8,
-		["thulecite"] 			= .3,
+		--- TOO Spammy
+		--["thulecite"] 			= .3,
 		["greenstaff"]			= .8,
 		["orangestaff"]			= .8,
 		["walrushat"]			= .4,

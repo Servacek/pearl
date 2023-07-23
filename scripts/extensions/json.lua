@@ -12,26 +12,12 @@
 
 
 
-local tests = {}
+local utf8 = PEARL.loadfile("libraries/utf8")
 
-function tests.test_onopen()
-    if TheShard:IsMaster() then
-        return
-    end
+local json = json
 
-    PEARL._sdc.onopenfn()
-    assert()
-    PEARL.Scheduler:ExecuteInTime(1, function()
-    end)
+
+function json.encode_sanitized(data)
+    local success, result = pcall(json.encode_compliant, data)
+    return success, success and utf8.decode_string(result) or result
 end
-
-function tests.test_onclose()
-    if TheShard:IsMaster() then
-        return
-    end
-
-    PEARL._sdc.onclose()
-    assert()
-end
-
-return tests

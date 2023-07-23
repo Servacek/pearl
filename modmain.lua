@@ -72,6 +72,10 @@
 
     - inst.persists does modify the saving behavior for an entity.
 
+    - Do not use "return PEARL.log(...)" because that counts as a new scope.
+
+    - CWD - Current Working Directory
+
     - Built-in utf8 library:
         string.utf8char = utf8char -- decode a codepoint
         string.utf8sub = utf8substr -- "byte-aware" string.sub
@@ -172,6 +176,10 @@ GLOBAL.PEARL = setmetatable({
     IMAGES_DIR_NAME     = "images",
 
     DEFAULT_LANGUAGE    = "english",
+    LANGUAGES = {
+        SK = "slovak",
+        EN = "english",
+    },
 
     FRONTEND            = TheNet:GetIsClient(),
 
@@ -278,6 +286,8 @@ PEARL.loadfile("extensions/standard/math")
 PEARL.loadfile("extensions/standard/io")
 PEARL.loadfile("extensions/standard/string")
 PEARL.loadfile("extensions/standard/os")
+
+PEARL.loadfile("extensions/json")
 
 ----------------------------------
 -- [[ Static Scheduler ]]
@@ -471,28 +481,3 @@ end
 
 PEARL.OnModPostInit()
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
-
--- PEARL.OverrideVariable("WallUpdate", function() end, _G)
--- PEARL.OverrideVariable("PostUpdate", function() end, _G)
--- PEARL.OverrideVariable("PostPhysicsWallUpdate", function() end, _G)
--- PEARL.OverrideVariable("StaticUpdate", function() end, _G)
--- PEARL.OverrideVariable("Update", function() end, _G)
-
--- local _FindEntities = TheSim.FindEntities
--- getmetatable(TheSim).__index.FindEntities = function(...)
---     print("FIND")
---     TheSim:ProfilerPush("TheSim:FindEntities")
---     local result = _FindEntities(...)
---     TheSim:ProfilerPop()
-
---     --getmetatable(TheSim).__index.FindEntities = _FindEntities
-
---     return result
--- end
--- PEARL.AddUserDataFunctionPreCall("FindEntities", function(self, x, y, z, radius)
---     TheSim:ProfilerPush("TheSim:FindEntities")
--- end, TheSim)
-
--- PEARL.AddUserDataFunctionPostCall("FindEntities", function()
---     TheSim:ProfilerPop()
--- end, TheSim)

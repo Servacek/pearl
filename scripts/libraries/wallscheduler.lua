@@ -102,7 +102,7 @@ local function add_task(task, nosort)
         return PEARL.error("Attempted to add an invalid task!")
     end
 
-    PEARL.debug("Registering task:", task)
+    --PEARL.debug("Registering task:", task)
     local prev = tasks[tasks.n]
     tasks.n = tasks.n + 1
     tasks[tasks.n] = task
@@ -129,7 +129,7 @@ end
 --- @param id any? The identifier of the task. Used for debugging purposes only.
 --- @param ... any? All the additional parameters for the callback function.
 local function create_task(time, fn, limit, initialdelay, id, ...)
-    PEARL.debug("create_task", time, fn, limit, initialdelay, id)
+    --PEARL.debug("create_task", time, fn, limit, initialdelay, id)
     if type(fn) ~= "function" or type(time) ~= "number" then
         return PEARL.error("Attempted to create a task with invalid parameters!")
     end
@@ -180,7 +180,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
     -- Even running tasks can be restarted.
     function task:restart()
         --print("task:restart", self:tostring())
-        if type(limit) == "number" or type(self._time) ~= "number" then
+        if type(self._time) ~= "number" then
             return PEARL.warn("This task doesn't support restarting...")
         end
 
@@ -198,10 +198,6 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
         if not self.running then
             return PEARL.warn("Task already stopped!")
-        end
-
-        if limit ~= nil then
-            return PEARL.error("This type of task doesn't support stopping!")
         end
 
         -- Our reference to the task should be removed soon, but we assume

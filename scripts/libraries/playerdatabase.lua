@@ -18,15 +18,31 @@
 
 local TheSim = TheSim
 local json = json
-local TrackedAssert = TrackedAssert
 
 ------------------------------------------
 -- [[ Constants ]]
 ------------------------------------------
 
 local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"
+local DATABASE_LISTING_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/userids"
 
-local STARTING_REPUTATION = 100
+local STARTING_REPUTATION = PEARL.CONSTS.STARTING_REPUTATION
+
+local RECORD_TEMPLATE = {
+    joinedtime = nil,
+    totaldays = 0,
+    netid = nil,
+    reputation = {
+        value = STARTING_REPUTATION,
+        peak = STARTING_REPUTATION,
+        lowest = STARTING_REPUTATION,
+        monthgains = 0,
+        daygains = 0,
+    },
+    agreement = {
+        collectdata = false,
+    },
+}
 
 ------------------------------------------
 -- [[ Local Functions ]]
@@ -44,38 +60,83 @@ end
 local PlayerDB = {
     -- Here we will safe all active (cached) records.
     _records = {},
+    _userids = {},
 }
 
 ------------------------------------------
 -- [[ Getters ]]
 ------------------------------------------
 
+--- @return boolean
+function PlayerDB:IsDataCollectionEnabledFor(userid)
+    local record = self:GetRecordFor(userid)
+    return record and record.agreement and record.agreement.collectdata == true or false
+end
+
+--- The total number of records saved in this database.
+--- @return number
+function PlayerDB:GetTotalRecordCount()
+    return self._userids.count or 0
+end
+
+--- Checks whether the provided userid has a record file created.
+--- @param userid string The Klei ID of the user you want the record from.
+--- @return boolean
 function PlayerDB:HasRecord(userid)
     return io.exists(DATABASE_FILE_PATH:format(userid))
 end
 
+--- @param userid string The Klei ID of the user you want the record from.
+--- @return table<string, any>? record The record of the provided player.
 function PlayerDB:GetRecordFor(userid)
     return self._records[userid] or self:LoadRecordFor(userid)
 end
 
-function PlayerDB:GetField(userid, name)
+function PlayerDB:GetField(userid, name, default)
     local record = self:GetRecordFor(userid)
-    if not record then
-        return
+    if not record or record[name] == nil then
+        if default == nil then
+            return RECORD_TEMPLATE[name]
+        end
+
+        return default
     end
 
     return record[name]
+end
+
+function PlayerDB:GetSubField(userid, field, name, default)
+    local tbl = self:GetField(userid, field)
+    if not tbl or tbl[name] == nil then
+        return default or RECORD_TEMPLATE[field] and RECORD_TEMPLATE[field][name]
+    end
+
+    return tbl[name]
 end
 
 function PlayerDB:IsCached(userid)
     return type(self._records[userid]) == "table"
 end
 
+function PlayerDB:AddUserid(userid)
+    if not self._userids[userid] then
+        self._userids[userid] = true
+        self._userids.count = (self._userids.count or 0) + 1
+    end
+end
+
 ------------------------------------------
 -- [[ Setters ]]
 ------------------------------------------
 
+--- @return table<string, any>?
 function PlayerDB:CacheRecord(userid, record)
+    PEARL.debug("CacheRecord", userid, record)
+
+    if type(userid) ~= "string" or #userid ~= 11 then
+        return PEARL.error("Invalid Klei ID provided!")
+    end
+
     if self:IsCached(userid) then
         return PEARL.error("Player already cached!")
     end
@@ -86,6 +147,8 @@ function PlayerDB:CacheRecord(userid, record)
 end
 
 --- We cannot delete files from this limited environment.
+--- Used to free the memory of record after the player leaves.
+--- @return table<string, any>?
 function PlayerDB:UnloadRecord(userid)
     local record = self._records[userid]
     self._records[userid] = nil
@@ -116,11 +179,31 @@ end
 ------------------------------------------
 
 --- Returns the record and a boolean determining whether the record was created or not.
+--- This doesn't save the newly created record.
 function PlayerDB:EnsureRecordFor(userid)
+    if type(userid) ~= "string" or #userid ~= 11 then
+        return PEARL.error("Invalid Klei ID provided!", PEARL.CalledFrom(5))
+    end
+
     local record = self:GetRecordFor(userid)
     if not record then
         PEARL.debug("Creating database record for", userid)
+
+        self:AddUserid(userid)
         record = self:CacheRecord(userid, self:CreateRecordFor(userid))
+        if type(record) ~= "table" then
+            return PEARL.error("Failed to create record for", userid)
+        end
+
+        -- Make sure the file exists
+        -- And the initial data are always recorded.
+        self:SaveRecordFor(userid, record, true)
+
+        -- Also save the userid list here, because this is the only place
+        -- where we are modifying it in some way.
+        -- We want to make sure that the info there is always up-to-date
+        -- with the record files created in case of some unexcpected shutdowns or crashes.
+        self:SaveUseridList()
 
         return record, true
     end
@@ -129,25 +212,53 @@ function PlayerDB:EnsureRecordFor(userid)
 end
 
 function PlayerDB:CreateRecordFor(userid)
-    return {
-        joinedtime = os.time(),
-        totaldays = 0,
-        rep = STARTING_REPUTATION,
-        netid = TheNet:GetNetIdForUser(userid),
-    }
+    local record = deepcopy(RECORD_TEMPLATE)
+    record.joinedtime = os.time()
+    record.netid = TheNet:GetNetIdForUser(userid)
+
+    return record
 end
 
-function PlayerDB:LoadRecordFor(userid)
-    if type(userid) ~= "string" or #userid ~= 11 then
-        return PEARL.error("Invalid Klei ID provided!")
+function PlayerDB:SaveToDatabaseFile(path, data, ensure, encode)
+    if ensure then
+        io.ensure(path, "{}")
     end
 
-    local path = DATABASE_FILE_PATH:format(userid)
-    io.ensure(path, "{}")
+    encode = encode ~= nil and encode
+    if not encode then
+        encode = PEARL.CONFIG.DATABASE.ENCODE_DATA
+    end
 
+    local data_str = json.encode(data)
+    if encode then
+        -- Only encode and zip the data in production
+        data_str = TheSim:ZipAndEncodeString(data_str)
+    end
+
+    if type(data_str) ~= "string" then
+        return false
+    end
+
+    local wf, err = io.open(path, "w")
+    if not wf or err then
+        return false, err
+    end
+
+    wf:write(data_str)
+    return wf:close()
+end
+
+--- @return table?
+function PlayerDB:LoadDatabaseFile(path, ensure)
+    if ensure then
+        io.ensure(path, "{}")
+    end
+
+    -- Klei has some weird checks here when opening files with special characters in path.
+    -- This throws an error when the path cotains a ':' for example.
     local rf, err = io.open(path, "r")
     if not rf or err then
-        PEARL.error(err)
+        PEARL.error(err or rf)
         return
     end
 
@@ -158,54 +269,69 @@ function PlayerDB:LoadRecordFor(userid)
     local decoded = TheSim:DecodeAndUnzipString(str)
     str = decoded and #decoded > 0 and decoded or str
 
-    local success, record = pcall(json.decode, str)
-    record = record or {}
-
-    if not success or type(record) ~= "table" then
-        PEARL.error("Failed to decode record JSON data!", record)
+    local success, data = pcall(json.decode, str)
+    if not success or type(data) ~= "table" then
         return
     end
 
-    self._records[userid] = record
-
-    return record
+    return data
 end
 
-function PlayerDB:SaveRecordFor(userid, record)
+function PlayerDB:LoadUseridList()
+    self._userids = self:LoadDatabaseFile(DATABASE_LISTING_FILE_PATH, true) or self.userids
+    return self._userids
+end
+
+function PlayerDB:SaveUseridList()
+    return self:SaveToDatabaseFile(DATABASE_LISTING_FILE_PATH, self._userids, true)
+end
+
+function PlayerDB:LoadRecordFor(userid)
+    self._records[userid] = self:LoadDatabaseFile(DATABASE_FILE_PATH:format(userid))
+    return self._records[userid]
+end
+
+function PlayerDB:SaveRecordFor(userid, record, force)
     record = record or self._records[userid]
     -- Only save data for users that have agreed to the agreement.
-    if not record or not record.agreed or not record.collectdata then
+    if not record or (not self:IsDataCollectionEnabledFor(userid) and force ~= true) then
         return
     end
 
-    local str = json.encode(record)
-    if PEARL.CONFIG.DATABASE.ENCODE_DATA then
-        -- Only encode and zip the data in production
-        str = TheSim:ZipAndEncodeString(str)
-    end
-
-    if type(str) ~= "string" then
-        return false
-    end
-
-    local wf, err = io.open(DATABASE_FILE_PATH:format(userid), "w")
-    if not wf or err then
-        return false, err
-    end
-
-    wf:write(str)
-    wf:close()
-end
-
-function PlayerDB:SaveCachedRecords()
-    for userid, record in pairs(self._records) do
-        self:SaveRecordFor(userid, record)
-    end
+    return self:SaveToDatabaseFile(
+        DATABASE_FILE_PATH:format(userid), record, true
+    )
 end
 
 function PlayerDB:PrintDebugInfo()
     tdump(self._records)
 end
+
+------------------------------------------
+-- [[ Event Handlers ]]
+------------------------------------------
+
+local function OnSave()
+    PEARL.info("Saving the database...")
+
+    -- Save lastseentime, lastdays here as well, because we may be shutting down,
+    -- or the server may crash during restarting/rollbacking
+    local time_now = os.time()
+    for userid, _ in pairs(PlayerDB._records) do
+        if PEARL.ServerNetwork:IsUserConnected(userid) then
+            PlayerDB:OptionalSafeSetField(userid, "lastseentime", time_now)
+        end
+
+        PlayerDB:SaveRecordFor(userid)
+    end
+end
+
+------------------------------------------
+-- [[ Event Listeners ]]
+------------------------------------------
+
+PEARL.EventProcessor:AddSafeEventHandler("save", OnSave)
+PEARL.EventProcessor:AddSafeEventHandler("quit", OnSave)
 
 ------------------------------------------
 -- [[ Return ]]

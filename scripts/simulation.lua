@@ -60,6 +60,15 @@ PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
     PEARL.ModShutdown()
 end)
 
+-- This is some additional server side check in case someone gets around our Agreement Screen.
+PEARL.AddGlobalFunctionPreCall("VerifySpawnNewPlayerOnServerRequest", function(userid)
+    if PEARL.ServerNetwork:IsClientPriviliged(userid) or not PEARL.ServerNetwork:IsAgreementEnabled() then
+        return
+    end
+
+    return type(PEARL.PlayerDB:GetField(userid, "agreement")) == "table"
+end)
+
 PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
 PEARL.AddUserDataFunctionPreCall("Crash", OnShardCrashed, TheSim)
 PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)

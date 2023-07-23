@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
+-- Do not use "return PEARL.log(...)" because that counts as a new scope.
 
 local TheSim = TheSim
 local toarrayornil, tostring  = toarrayornil, tostring
@@ -110,10 +110,10 @@ function PEARL.warn(...)
 end
 
 --- @param ... any Anything you want to log on the ERROR level.
-function PEARL.error(msg, ...)
+function PEARL.error(...)
     -- if PEARL.CONFIG.DEBUG_MODE then
     --     return error(msg)
     -- end
 
-    return PEARL.log(LOG_LEVELS.ERROR, msg, ...)
+    return PEARL.log(LOG_LEVELS.ERROR, ...)
 end

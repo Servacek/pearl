@@ -80,8 +80,9 @@ local function OnPlayerFinishedAgreement(data)
 
     local agreed = data.agreed or false
     local agreedintime = agreed and (os.time() - (_t_agreementstart or 0)) or nil
+    local agreed_version = PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version
 
-    PEARL.SendRPCToServer(PEARL.RPC.AgreementFinished, agreed, data.datacollection, agreedintime)
+    PEARL.SendRPCToServer(PEARL.RPC.AgreementFinished, agreed, data.datacollection, agreedintime, agreed_version)
 end
 
 local function OnDisagreeConfirmed(data)
@@ -119,15 +120,12 @@ local function WarnOnDecline(data)
 end
 
 local function OnAgreed(data)
-    PEARL.debug("OnAgreed")
     OnPlayerFinishedAgreement(data)
 
     PEARL.AgreementManager:OnAgreed()
 end
 
 local function OnAgreementContinue(self, data)
-    PEARL.debug("OnPlayerFinishedAgreement")
-
     if data.agreed == true then
         return OnAgreed(data)
     end
@@ -137,7 +135,6 @@ local function OnAgreementContinue(self, data)
 end
 
 local function CreateAgreementScreen()
-    print("CreateAgreementScreen")
     if _agreement_screen then
         return PEARL.error("Agreement screen already exists!")
     end
@@ -155,7 +152,7 @@ CloseAgreement = function()
         _active_screen = nil
     end
 
-    _agreement_screen:Close()
+    _agreement_screen:DoClose()
 end
 
 HideAgreement = function()

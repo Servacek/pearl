@@ -11,10 +11,8 @@
 --]==]====================================================]]
 
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
 --------------------------------
 -- [[ Class Initialization ]]
@@ -29,29 +27,11 @@ local LeaderBoarder = Class(function(self)
 
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.BHOOK.ID, PEARL.CONFIG.DISCORD.BHOOK.TOKEN)
 
-    self._embeds = {
-        [self.EMBED_TYPES.ABS] = Embed()
-            :SetTitle("Zoznam Najlepších Hráčov")
-            :SetDescription("The cool leaderboard!"),
-        [self.EMBED_TYPES.CUR] = Embed()
-            :SetTitle("Zoznam Najlepších Hráčov Mesiaca")
-            :SetDescription("The cool monthly leaderboard!")
-    }
+    self._embeds = {}
 
-    --- @type table
-    self._message_data = Message()
-        :SetContent("")
-        :ToTable()
+    --- @type string
+    self._message_id = nil
 end)
-
--------------------------------------
--- [[ Static ]]
--------------------------------------
-
-LeaderBoarder.EMBED_TYPES = {
-    ABS = 1,
-    CUR = 2,
-}
 
 -------------------------------------
 -- [[ Setters ]]
@@ -63,8 +43,22 @@ function LeaderBoarder:SetIsDisabled(disabled)
     return self
 end
 
-function LeaderBoarder:SetEmbed(type, embed)
-    self._embeds[type] = embed
+function LeaderBoarder:SetEmbed(pos, embed)
+    PEARL.debug("SetEmbed", pos, embed, embed.title)
+
+    if pos then
+        self._embeds[pos] = embed
+    else
+        self._embeds[#self._embeds+1] = embed
+    end
+
+    return embed
+end
+
+function LeaderBoarder:SetUpdateMessageID(message_id)
+    self._message_id = tostring(message_id)
+
+    return self
 end
 
 -------------------------------------
@@ -79,61 +73,52 @@ function LeaderBoarder:IsEnabled()
     return not self._disabled
 end
 
-function LeaderBoarder:UpdateEmbedData()
-    self._message_data.embeds = self._message_data.embeds or {}
-
-    for i, embed in ipairs(self._embeds) do
-        self._message_data.embeds[i] = embed:ToTable()
-    end
-
-    return self._message_data
-end
-
-function LeaderBoarder:GetMessageData()
-    return self:UpdateEmbedData()
-end
-
 -------------------------------------
 -- [[ Public Methods ]]
 -------------------------------------
 
 function LeaderBoarder:DoUpdate(force)
+    PEARL.debug("DoUpdate", force)
+
     if self:IsDisabled() then
         return
     end
 
-    return PEARL.DiscordRestAPI:EditWebhookMessage(
-        self._webhook, PEARL.CONFIG.DISCORD.BHOOK.MESSAGE_ID, self:GetMessageData(), force
+    return self._webhook:EditMessage(
+        self._message_id, Message():AddEmbeds(self._embeds), force
     )
 end
 
-function LeaderBoarder:PostUpdatingMessage()
-    return PEARL.HTTPClient.proxy:POST(self._webhook.url, function(message)
-            if type(message.id) ~= "string" then
-                return
-            end
-
-            PEARL.DiscordRestAPI:EditWebhookMessage(self._webhook, message.id, {
-                content = MARKDOWN.bold("Add to modoverrides.lua under \"BHOOK\" option:\n")..MARKDOWN.codeblock(
-                    "MESSAGE_ID = \""..message.id.."\",", "lua"
-                ).."\nAnd restart the server :)"
-            })
-        end, Message("PLACEHOLDER"):ToTable())
-        :SetParameters({ ["wait"] = true })
-        :Send()
-end
-
-function LeaderBoarder:PostNotification(message)
-    local success, json_data = message:ToJson()
-    if not success or type(json_data) ~= "string" then
-        return PEARL.error("Failed to encode notification message to JSON format!")
+--- @return Request? request
+function LeaderBoarder:PostUpdatingMessage(cb)
+    if self:IsDisabled() or not PEARL.HTTPClient.proxy or not PEARL.HTTPClient.proxy:IsEnabled() then
+        return
     end
 
-    return PEARL.DiscordRestAPI:ExecuteWebhook(self._webhook, json_data)
+    local request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, self:GetMessageData())
+    if request then
+        -- We need the ID of this message to keep it updated so use the wait parameter.
+        request:SetParameters({ ["wait"] = true })
+        request:Send()
+    end
+
+    return request
 end
 
-function LeaderBoarder:AnnounceNewPOTM(netid)
+function LeaderBoarder:PostNotification(message, ...)
+    if self:IsDisabled() then
+        return
+    end
 
+    return self._webhook:PostMessage(message, ...)
+end
+
+function LeaderBoarder:Announce(text)
+    if self:IsDisabled() then
+        return
+    end
+
+    return self:PostNotification(Message(text))
 end
 
 --------------------------------

@@ -24,6 +24,11 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 STRINGS.PEARL = {
     ACTIONS     = {
         -- Prefer subftm over string.format when there are multiple versions
+        -- Here we use the following order:
+        -- 1. The Doer's Display Name
+        -- 2. Target Name(s)
+        -- 3. Name of the Tool/Item used for the action
+        -- The number of parameters can be bigger than needed but not smaller.
         EAT                     = "%s ate %s!",
         FEED                    = "%s feed %s with %s!",
         TURNOFF                 = "%s turned off %s!",
@@ -32,8 +37,9 @@ STRINGS.PEARL = {
         READ                    = "%s read %s!",
         ACTIVATE                = "%s activated %s!",
         COOK                    = "%s cooked %s!",
-        --DEFEAT                  = "%s defeated %s!",
 
+        -- Here we do not care about the order at all.
+        -- Also not matching every field will not crash.
         TAKE_ITEM = {
             GENERIC     = "{doer} took {item}!",
             FROM        = "{doer} took {items} from {target}!",
@@ -117,17 +123,26 @@ STRINGS.PEARL = {
         },
 
         LEADERBOARD = {
-            TITLE_ABS = "Leaderboard",
+            TITLE_ABS = "Total Leaderboard",
             TITLE_CUR = "Month Leaderboard",
+            TITLE_ARCHIVED = "Archived",
 
             FD_NAMES = {
                 INDEX_COL   = "Place",
                 NAME_COL    = "Name",
                 REP_COL     = "Reputation",
+                MONTH       = "Month",
+                CREATED     = "Data From",
             },
 
-            THMB_ABS_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1127332594766331974/trophy.png",
+            FD_VALUES = {
+                MONTH = "%s %s",
+            },
+
+            THMB_ABS_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1129005246027419648/trophy-big.png",
             THMB_CUR_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1127332501858291732/daychanges.png",
+
+            NOT_ENOUGH_DATA = "*Not enough data*"
         },
 
         INV = {
@@ -173,6 +188,7 @@ STRINGS.PEARL = {
         DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s as %s.",
         DISCONNECT_REASON       = "%s was disconnected from shard %s as %s. %s",
         CONNECTED_TO_SHARD      = "%s was connected to shard %s as %s.",
+        OFFLINE_CLIENT_BANNED   = "%s was added to the banlist!",
         CAVES_STATE_UPDATE      = "Secondary shard Caves has been %s.",
         LOCALIZATION_TIMEOUT    = "Localization process for client %s has timed out!",
         MIGRATING               = "%s is migrating to shard %s.",
@@ -299,6 +315,7 @@ STRINGS.PEARL = {
     },
 
     DATE_FORMAT = "%s. of %s %s",
+    FULL_MONTH_NAME = "%s %s", -- First is fancy month name and then the year number
 
     MONTHS = {
         "January",

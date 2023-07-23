@@ -20,6 +20,13 @@
 --]]
 
 ---------------------------
+-- [[ Localization ]]
+---------------------------
+
+local type, tostring = type, tostring
+local string = string
+
+---------------------------
 -- [[ Constants ]]
 ---------------------------
 
@@ -27,8 +34,15 @@
 --- Note: doesn't work for multiple hyperlinks
 --local HYPERLINK_PATTERN = "%[.+%]%(.+%)"
 
+local LINK_ESCAPE_PATTERN = "<%s>"
+
+local ZERO_WIDTH_SPACE = "​"
+local HAIR_WIDTH_SPACE = " "
+
+local HAIRS_PER_SPACE  = 2
+
 --------------------------------
--- [[ Initialization ]]
+-- [[ Intialization ]]
 --------------------------------
 
 local MARKDOWN = {
@@ -47,6 +61,7 @@ local MARKDOWN = {
         HEADER_BIG          = "# %s",
         HEADER_MED          = "## %s",
         HEADER_SML          = "### %s",
+        SPOILER             = "||%s||",
         LIST_ITEM           = "- %s", -- Use this instead of the asterisk to prevent any conflicts.
     }
 }
@@ -54,22 +69,6 @@ local MARKDOWN = {
 --------------------------------
 -- [[ Functions ]]
 --------------------------------
-
---- @deprecated
--- function string:escape(target_char)
---     if not self or not target_char or string.len(target_char) ~= 1 then
---         return self
---     end
-
---     local last_char
---     return self:gsub("%"..target_char, function(char)
---         if char and last_char ~= ESCAPE_CHAR then
---             return ESCAPE_TEMPLATE:format(char)
---         end
-
---         last_char = char
---     end)
--- end
 
 --- Escapes all known markdown symbols from the given string.
 --- @param s string The string you want remove makrdown from.
@@ -81,7 +80,15 @@ end
 -- https://some.host/ -> <https://some.host>
 -- The result link is clickable but doesn't create the embed when posted.
 function MARKDOWN.escape_link_embeds(link)
-    return string.format("<%s>", link)
+    return LINK_ESCAPE_PATTERN:format(link)
+end
+
+function MARKDOWN.underline(s)
+    return MARKDOWN.PATTERNS.UNDERLINE:format(s)
+end
+
+function MARKDOWN.spoiler(s)
+    return MARKDOWN.PATTERNS.SPOILER:format(s)
 end
 
 --- Formats a string to the codeline format using the discord markdown characters
@@ -118,6 +125,15 @@ end
 
 function MARKDOWN.strikethrough(s)
     return MARKDOWN.PATTERNS.STRYKETHROUGH:format(s)
+end
+
+function MARKDOWN.spacestohairs(spaces)
+    return spaces * HAIRS_PER_SPACE
+end
+
+-- Supports very low resulution spacing.
+function MARKDOWN.initspacing(s, count, hairs)
+    return ZERO_WIDTH_SPACE..string.rep(HAIR_WIDTH_SPACE, hairs or 0)..string.rep(" ", count or 0)..s
 end
 
 -- Do not use this with user's input

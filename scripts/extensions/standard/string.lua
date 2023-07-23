@@ -79,7 +79,7 @@ function string.emojify(str)
 end
 
 -- Returns a discord emoji string or the input string if no result was found
-function string.to_emoji(utf8_icon)
+function string.toemoji(utf8_icon)
     return PEARL.EMOTES.DISCORD[utf8_icon] or utf8_icon
 end
 
@@ -117,6 +117,8 @@ end
 
 function string:count(word)
     local count = 0
+
+    --- @type number?
     local startPos = 0
     while startPos do
         startPos = self:find(word, startPos + 1, true)
@@ -124,6 +126,7 @@ function string:count(word)
             count = count + 1
         end
     end
+
     return count
 end
 
@@ -131,45 +134,10 @@ function string:escape(char)
     return self:gsub(char, "\\%1")
 end
 
--- -- https://github.com/kikito/utf8_validator.lua/blob/master/utf8_validator.lua
--- local find = string.find
--- local function utf8validate(s)
---     while i <= len do
---     if     i == find(s, "[%z\1-\127]", i) then
---         i = i + 1
---     elseif i == find(s, "[\194-\223][\128-\191]", i) then i = i + 2
---     elseif i == find(s,        "\224[\160-\191][\128-\191]", i)
---         or i == find(s, "[\225-\236][\128-\191][\128-\191]", i)
---         or i == find(s,        "\237[\128-\159][\128-\191]", i)
---         or i == find(s, "[\238-\239][\128-\191][\128-\191]", i) then i = i + 3
---     elseif i == find(s,        "\240[\144-\191][\128-\191][\128-\191]", i)
---         or i == find(s, "[\241-\243][\128-\191][\128-\191][\128-\191]", i)
---         or i == find(s,        "\244[\128-\143][\128-\191][\128-\191]", i) then i = i + 4
---     else
---         return false, i
---     end
---     end
-
---   return true
--- end
-
--- --- @TODO: Filter out invalid byte sequences!
--- function string:utf8decode()
---     return self:gsub("[\128-\255]+", function(h)
---         -- If we a have a byte sequence
---         if #h > 1 then
---             if not utf8validate(h) then
---                 return "?"
---             end
-
---             return h
---         end
-
---         local byte = sbyte(h)
---         return byte and utf8char(byte) or "?"
---     end)
--- end
-
 function string:raw()
     return self.format("%q", self)
+end
+
+function string:nformat(map)
+    return (self:gsub("{([^}]+)}", map))
 end

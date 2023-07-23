@@ -21,8 +21,8 @@ end
 function io.create(fp, init_txt)
     local f = io.open(fp, "w")
     if f ~= nil then
-        if type(init_txt) == "string" or type(init_txt) == "number" then
-            f:write(init_txt)
+        if init_txt ~= nil then
+            f:write(tostring(init_txt))
         end
 
         return f:close()
@@ -36,7 +36,7 @@ function io.line(fp)
 end
 
 function io.ensure(fp, init_txt)
-    return io.exists(fp) or io.create(fp, init_txt)
+    return not io.exists(fp) and io.create(fp, init_txt)
 end
 
 function io.strippedlines(...)

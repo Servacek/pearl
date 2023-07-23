@@ -23,6 +23,8 @@ local Message = PEARL.loadfile('libraries/discordapi/models/message')
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
+local ActionLog = PEARL.loadfile("libraries/actionlog")
+
 function PEARL.PrintTests()
     local i = 1
     for name, func in pairs(PEARL.TESTS) do
@@ -320,6 +322,30 @@ function PEARL.TESTS.AltDentifier()
 end
 
 --------------------------------
+-- [[ Action Queue Tests ]]
+--------------------------------
+
+function PEARL.TESTS.ActionLogQueue()
+    local log = c_spawn("log")
+    log.components.stackable:SetStackSize(11)
+
+    ActionLog:QueueAction("%s lit %s!", "KU_TEST")
+        :AddTarget(c_spawn("pigman"))
+        :AddTarget(c_spawn("rocks"))
+        :AddTarget(log)
+        :AddTarget(c_spawn("log"))
+        :AddTarget(c_spawn("pigman"))
+        :SetLogType("ignite")
+        :SetStringFunction(function(action)
+            return action.pattern:format(
+                "Fi7iP", action:GetTargetString()
+            )
+        end)
+    --PEARL.ActionLogQueue:AddAction({GUID = "test"}, "ignite", c_findnext("pigman"), nil, function(targets) return targets end)
+    --PEARL.ActionLogQueue:AddAction({GUID = "test"}, "ignite", c_findnext("rocks"), nil, function(targets) return targets end)
+end
+
+--------------------------------
 -- [[ Server Tags ]]
 --------------------------------
 
@@ -580,8 +606,8 @@ end
 
 function PEARL.TESTS.TestChatLogs()
     -- SAY
-    DSay(":wave: **Hello World!** @everyone")
-    DSay("__Odkaz [tu](https://google.com)__", true)
+    DSay(":wave: **Hello World!** @everyone", true)
+    DSay("__Odkaz [tu](https://google.com)__")
 
     DSay("󰀜  󰀔")
 
@@ -745,4 +771,9 @@ end
 function PEARL.CalledFrom(level)
     local info = debug.getinfo(level or 3)
     return getformatinfo(info)
+end
+
+local charset = "%d%a"
+function PEARL.GenerateRandomKleiID()
+    return "KU_"..string.random(8, charset)
 end

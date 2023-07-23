@@ -20,9 +20,13 @@ function PEARL.EXT(testset_name, testname)
             tests[index] = value
         end
     })
-    tests = PEARL.loadfile("tests/"..testset_name, env)
 
-    if IsTableEmpty(tests) then
+    local result = PEARL.loadfile("tests/"..testset_name, env)
+    if type(result) == "table" then
+        tests = MergeMaps(tests, result)
+    end
+
+    if table.empty(tests) then
         return PEARL.error("The specified test set does not contain any tests!")
     end
 
@@ -35,7 +39,10 @@ function PEARL.EXT(testset_name, testname)
     end
 
     for name, test in pairs(tests) do
+        print(string.rep("-", 30))
         PEARL.info("Executing test", name)
         test()
+        PEARL.info("Test succeseded!")
+        print(string.rep("-", 30))
     end
 end

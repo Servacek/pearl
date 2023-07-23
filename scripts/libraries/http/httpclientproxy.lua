@@ -72,7 +72,9 @@ local function _CreateProxyRequest(callbackfn, ...)
         :SetStatusCodeHandle(0, _OnProxyRequestTimeout)
         :SetTimeout(PROXY_REQUEST_TIMEOUT)
         :SetCallbackFn(function(response, request, ...)
-            callbackfn(response, request, ...)
+            if type(callbackfn) == "function" then
+                callbackfn(response, request, ...)
+            end
 
             _timeouts_in_row = 0
         end, ...)
@@ -84,6 +86,10 @@ end
 
 function HTTPClientProxy:SetURL(url)
     self._url = url
+end
+
+function HTTPClientProxy:IsEnabled()
+    return self._enabled
 end
 
 function HTTPClientProxy:SetEnabled(enabled)
@@ -98,8 +104,12 @@ end
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
---- @return Request request The newly created request. You need to execute it using :Send.
+--- @return Request? request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:Request(url, method, callbackfn, data, timeout, ...)
+    if not self:IsEnabled() then
+        return
+    end
+
     return _CreateProxyRequest(callbackfn, ...)
         :SetProxyData({ -- Data for the proxied request
             url = url,
@@ -115,7 +125,7 @@ end
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
---- @return Request request The newly created request. You need to execute it using :Send.
+--- @return Request? request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:DELETE(url, callbackfn, timeout, ...)
     return self:Request(url, self.METHODS.DELETE, callbackfn, nil, timeout, ...)
 end
@@ -127,7 +137,7 @@ end
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
---- @return Request request The newly created request. You need to execute it using :Send.
+--- @return Request? request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:PATCH(url, callbackfn, data, timeout, ...)
     return self:Request(url, self.METHODS.PATCH, callbackfn, data, timeout, ...)
 end
@@ -138,7 +148,7 @@ end
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
---- @return Request request The newly created request. You need to execute it using :Send.
+--- @return Request? request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:GET(url, callbackfn, timeout, ...)
     return self:Request(url, self.METHODS.GET, callbackfn, nil, timeout, ...)
 end
@@ -150,7 +160,7 @@ end
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
---- @return Request request The newly created request. You need to execute it using :Send.
+--- @return Request? request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:POST(url, callbackfn, data, timeout, ...)
     return self:Request(url, self.METHODS.POST, callbackfn, data, timeout, ...)
 end

@@ -80,7 +80,7 @@ local SCROLLBAR_WIDTH = DESCRIPTION_MAX_WIDTH + SCROLLBAR_PADDING_RIGHT
 local SCROLLBAR_HEIGHT = SIZE_Y - SCROLLBAR_PADDING_BOTTOM - SCROLLBAR_PADDING_TOP
 local SCROLLBAR_X = -(SIZE_X / 2 - SCROLLBAR_PADDING_LEFT)
 local SCROLLBAR_Y = -100 - SCROLLBAR_PADDING_TOP
-local SCROLLBAR_SPEED = 20 * 3
+local SCROLLBAR_SPEED = 25 * 3
 
 local SEP_OFFSET_TOP = 105 -- ~ (a bit lower here because of the shadow)
 local SEP_OFFSETB_BOTTOM = 107 -- ~
@@ -141,7 +141,7 @@ local AgreementScreen = Class(Screen, function(self, readonly)
         bottom_buttons = {
             {
                 text = STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE,
-                cb = function() self:Close() end,
+                cb = function() self:DoClose() end,
             },
         }
     end
@@ -289,7 +289,7 @@ local AgreementScreen = Class(Screen, function(self, readonly)
         )
 
         local tm = PEARL.AgreementManager:GetLocalLastAgreeTime()
-        if type(tm) == "string" and #tm > 1 then
+        if (type(tm) == "string" and #tm > 1) or type(tm) == "number" then
             self._scrollable.accept_time_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
             self._scrollable.accept_time_label:SetColour(BODY_LABELS_TEXT_COLOUR)
             self._scrollable.accept_time_label:SetString(STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL:format(
@@ -368,11 +368,17 @@ function AgreementScreen:OnContinue(agreed)
     end
 
     -- If there is no special handler just close the screen
-    self:Close()
+    self:DoClose()
 end
 
-function AgreementScreen:Close()
-    return TheFrontEnd:PopScreen(self)
+function AgreementScreen:DoClose()
+    TheFrontEnd:PopScreen(self)
+
+    -- Make sure we try to enable the screen behind this
+    local screen = TheFrontEnd:GetActiveScreen()
+    if screen then
+        screen:Enable()
+    end
 end
 
 -------------------------------------

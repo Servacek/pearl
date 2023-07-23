@@ -67,18 +67,24 @@ end
 -- [[ Public Functions ]]
 -------------------------------------
 
-function ProfanityFilter:Apply(text)
+-- repl can be either a pattern for replacing the slur word or a character replacing it.
+function ProfanityFilter:Apply(text, repl, pattern)
     if type(text) ~= "string" or #text <= 1 then
         return text
     end
 
+    repl = repl or REPL_CHAR
     -- Replace profanity with asterisks
     text = text:gsub(WORD_PATTERN, function(word)
         -- Plase no changes to the strings here except of censoring it.
         word = lower(word)
         for i = 1, #patterns do
             if word:find(patterns[i]) ~= nil then
-                return string.rep(REPL_CHAR, len(word))
+                if pattern == true then
+                    return repl:format(word)
+                else
+                    return string.rep(repl, len(word))
+                end
             end
         end
     end)

@@ -158,8 +158,10 @@ local SERVER_USERID_RPCS = {
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
 
-    AgreementFinished = function(userid, agreed, datacollection, agreedintime)
-        if not optbool(agreed) or not optbool(datacollection) or not optnumber(agreedintime) then
+    AgreementFinished = function(userid, agreed, datacollection, agreedintime, agreed_version)
+        PEARL.debug("AgreementFinished", userid, agreed, datacollection, agreedintime, agreed_version)
+
+        if not optbool(agreed) or not optbool(datacollection) or not optnumber(agreedintime) or not optstring(agreed_version) then
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementFinished", userid)
         end
 
@@ -167,7 +169,8 @@ local SERVER_USERID_RPCS = {
             userid = userid,
             agreed = agreed,
             datacollection = datacollection,
-            agreedintime = agreedintime
+            agreedintime = agreedintime,
+            version = agreed_version,
         })
 
         if not agreed then

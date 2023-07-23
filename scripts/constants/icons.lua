@@ -23,6 +23,7 @@ return {
     DISABLED = "<:disabled:1071821625470746686>",
     STEAM = "<:steam:1076608091656814643>",
     LOCAL = "<:local:1076609330905878588>",
+    GAINS = "<:arrow_up_green:1130590082349400084>",
 
     PLAYER_PREFABS = {
         -- DST
@@ -45,7 +46,7 @@ return {
         walter =            "<:Walter:722146045735469187>",
         wanda =             "<:wanda:885865311105089536>",
 
-        wonkey =            "<:wonkey:1069314072941695106>",
+        wonkey =            "<:wonkey:988082378541002802>",
 
         ---------------------------------------------------------
         -- Support for mods that add characters from the DLCS
@@ -66,6 +67,12 @@ return {
 
         -- Server
         ["server"] =        "<:dedicated:1001104949524041788>",
+    },
+
+    LEADERBOARD_PLACES = {
+        [1] = "<:1st:1129353293357912105>",
+        [2] = "<:2nd:1129353938848723065>",
+        [3] = "<:3place:1129348645741924358>",
     },
 
     PRECIPITATION = {

@@ -18,6 +18,9 @@
     This is like an higher level 'TheNet' for dedicated servers.
 --]]
 
+--- @TODO: There is some weird error when a player connecting during a restart
+--- passes through this checks without the need to provide filter data.
+
 local Ents = Ents
 local TheNet, TheInput = TheNet, TheInput
 
@@ -181,17 +184,9 @@ function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
     cfd = cfd or self:GetCachedCFDFor(userid)
 
     local count = 0
-    local allowed, reason
     local total_count = #async_conn_filters
-    local handle_async_filter = function(_allowed, _reason)
+    local handle_async_filter = function(allowed, reason)
         count = count + 1
-
-        if allowed == false then
-            return
-        end
-
-        allowed = _allowed
-        reason = _reason
         if count == total_count or allowed == false then
             finishcb(userid, allowed, reason)
         end
@@ -205,6 +200,7 @@ function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
         if PEARL.SafeRun(
             async_conn_filters[i], userid, cfd, handle_async_filter
         ) == false then
+            count = count + 1
             -- Allowed should be the error message in this case.
             PEARL.error("Failed to execute an async connection data filter!")
         end
@@ -225,6 +221,14 @@ end
 
 function ServerNetwork:IsPlayerOnThisShard(userid)
     return LookupPlayerInstByUserID(userid) ~= nil
+end
+
+function ServerNetwork:IsClientBanned(userid)
+    return PEARL.BlackList:Contains(userid)
+end
+
+function ServerNetwork:IsAgreementEnabled()
+    return PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil
 end
 
 function ServerNetwork:IsAnySecondaryShardConnected()
@@ -559,6 +563,16 @@ end)
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
     return ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.COMMAND_BLOCKLIST[cmd] ~= true
 end)
+
+PEARL.AddUserDataFunctionPreCall("Ban", function(self, userid)
+    if not ServerNetwork:IsClientBanned(userid) then
+        PEARL.debug("User banned", userid)
+
+        PEARL.EventProcessor:HandleEvent("clientbanned", userid)
+    else
+        print("CLIENT ALREADY BANNED!")
+    end
+end, TheNet)
 
 -- We want to have full control over this function on servers.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)

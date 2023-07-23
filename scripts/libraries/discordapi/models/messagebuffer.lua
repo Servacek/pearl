@@ -103,7 +103,7 @@ function MessageBuffer:Start()
     end
 
     if self._task then
-        PEARL.debug("Restarting the buffer task!")
+        --PEARL.debug("Restarting the buffer task!")
         return self._task:restart()
     end
 

@@ -73,19 +73,35 @@ local function OnClientDataRecevied(userid, data)
     return RecordClientConnectionData(userid, data)
 end
 
+local function OnClientBanned(userid)
+    PEARL.Reputation:SetFor(userid, PEARL.CONSTS.STARTING_REPUTATION)
+end
+
 local function OnClientAgreementFinished(data)
+    local record = PEARL.PlayerDB:GetRecordFor(data.userid)
+    if not record then
+        return
+    end
+
+    record.agreement = {
+        collectdata = data.agreed and data.datacollection or false,
+        version = data.version,
+        lastdate = os.time(),
+    }
+
     -- Only record data if we have agreed and enabled data collection
     if data.agreed and data.datacollection then
-        -- Create record if needed here!
-        local record = PEARL.PlayerDB:GetRecordFor(data.userid)
-        if record and not record.agreedintime then
+        if not record.agreement.agreedafter then
             -- Note only the first agreed-in time
-            record.agreedintime = data.agreedintime
+            record.agreement.agreedafter = data.agreedintime
         end
-
-        -- Here we can finally save the data with clear mind.
-        PEARL.PlayerDB:SaveRecordFor(data.userid, record)
+    else -- User has disagreed or turned off datacollection (which is the same)
+        record.agreement.collectdata = false
     end
+
+    -- Here we can finally save the data with clear mind.
+    -- On disagreement this will be the last saved data for this record.
+    PEARL.PlayerDB:SaveRecordFor(data.userid, record, true)
 end
 
 local function OnClientConnected(world, player)
@@ -114,21 +130,6 @@ local function OnPlayerSpawned(world, player)
     end
 end
 
-local function OnSave()
-    PEARL.info("Saving the database...")
-
-    -- Save lastseentime, lastdays here as well, because we may be shutting down,
-    -- or the server may crash during restarting/rollbacking
-    local time_now = os.time()
-    for _, client in ipairs(TheNet:GetClientTable()) do
-        -- Skip the host
-        if client.performance == nil then
-            PEARL.PlayerDB:OptionalSafeSetField(client.userid, "lastseentime", time_now)
-            PEARL.PlayerDB:SaveRecordFor(client.userid)
-        end
-    end
-end
-
 --------------------------------------
 -- [[ Hooks ]]
 --------------------------------------
@@ -144,12 +145,11 @@ PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, count
     end
 end)
 
-PEARL.EventProcessor:AddSafeEventHandler("save", OnSave)
-PEARL.EventProcessor:AddSafeEventHandler("quit", OnSave)
-
 PEARL.EventProcessor:AddSafeEventHandler("clientagreementfinished", OnClientAgreementFinished)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
+
+PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 
 PEARL.AddWorldPostInit(function(world)
     world:ListenForModEvent("ms_clientconnected", OnClientConnected)

@@ -45,6 +45,22 @@ function Webhook:IsValid()
 end
 
 -------------------------------------
+-- [[ Public Methods ]]
+-------------------------------------
+
+function Webhook:PostMessage(message, ...)
+    return PEARL.DiscordRestAPI:PostWebhookMessage(self.url, message, ...)
+end
+
+function Webhook:EditMessage(message_id, edited, ...)
+    return PEARL.DiscordRestAPI:EditWebhookMessage(self.url, message_id, edited, ...)
+end
+
+function Webhook:DeleteMessage(message_id, ...)
+    return PEARL.DiscordRestAPI:DeleteWebhookMessage(self.url, message_id, ...)
+end
+
+-------------------------------------
 -- [[ Return ]]
 -------------------------------------
 

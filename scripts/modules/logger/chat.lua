@@ -100,8 +100,10 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         return
     end
 
+    -- Escape here so even profanity filter is safe when using spoilers
+    message = MARKDOWN.escape(message)
     if ProfanityFilter and PEARL.CONFIG.PROFANITY_FILTERS.enabled then
-        message = ProfanityFilter:Apply(message)
+        message = ProfanityFilter:Apply(message, MARKDOWN.PATTERNS.SPOILER, true)
     end
 
     local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..string.capitalize(prefab).."]")
@@ -109,7 +111,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         -- This is all user input so it can contain some encoded stuff.
         -- This should be handled when we encode the message as JSON string.
         MARKDOWN.escape(name),
-        MARKDOWN.escape(message):emojify()
+        message:emojify()
     )
 
     PEARL.DiscordLogger:LogStringRaw(message, icon)

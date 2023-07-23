@@ -101,29 +101,80 @@ function EMBEDS.SuspiciousInventory(pwd, suspiciousness)
     return embed
 end
 
-function EMBEDS.Leaderboard(leaderboard, cur)
-    local index_col, name_col, rep_col = "", "", ""
-
-    for i, userid in ipairs(leaderboard) do
-        local name = PEARL.PlayerDB:GetField(userid, "username") or "UNKNOWN"
-        local netid = PEARL.PlayerDB:GetField(userid, "netid") or nil
-        local rep = PEARL.PlayerDB:GetField(userid, "rep")
-
-        index_col = index_col..MARKDOWN.codeline(tostring(i)..".").."\n"
-        name_col = name_col..MARKDOWN.hlink(
-            MARKDOWN.codeline(tostring(name)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
-        ).."\n"
-        rep_col = rep_col..MARKDOWN.codeline(tostring(rep)).."\n"
-    end
-
+function EMBEDS.LeaderboardArchived()
     return Embed()
+        :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD.TITLE_ARCHIVED)
+        :SetColor(Embed.COLORS.LIGHT_GREY)
+end
+
+function EMBEDS.Leaderboard(leaderboard, cur, notenoughdata)
+    --- @type Embed
+    local embed = Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD[cur and "TITLE_CUR" or "TITLE_ABS"])
         :SetThumbnail(STRINGS.PEARL.EMBEDS.LEADERBOARD[cur and "THMB_CUR_URL" or "THMB_ABS_URL"])
         :SetTimestamp(os.time())
 
-        :AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.INDEX_COL, index_col, true)
-        :AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL, name_col, true)
-        :AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL, rep_col, true)
+    if notenoughdata then
+        embed:SetDescription(STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA)
+    else
+        local max_rep_len = 0
+        local index_col, name_col, rep_col = "", "", ""
+        for i, userid in ipairs(leaderboard.players) do
+            local name = tostring(PEARL.PlayerDB:GetField(userid, "username") or "UNKNOWN")
+            local netid = PEARL.PlayerDB:GetField(userid, "netid") or nil
+            local rep = tostring(PEARL.Reputation:GetRepFieldOf(userid, cur and "monthgains" or "value"))
+
+            if i == 1 then
+                max_rep_len = #rep
+            end
+
+            -- This fixes the indexes text for centering
+            local index = PEARL.ICONS.LEADERBOARD_PLACES[i] or MARKDOWN.initspacing(tostring(i), 1, 2)
+            index_col = index_col..index.."\n"
+            name_col = name_col..MARKDOWN.hlink(
+                MARKDOWN.codeline(tostring(name)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
+            ).."\n"
+
+            local rep_fd_len = #STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL
+            local hairs = (rep_fd_len - #rep) * 3 + (max_rep_len - #rep) * 4
+            rep_col = rep_col..MARKDOWN.initspacing(MARKDOWN.codeline(rep), 0, hairs).."\n"
+        end
+
+        embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.INDEX_COL, index_col, true)
+        embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL, name_col, true)
+        embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL, rep_col, true)
+
+        if leaderboard.dayleader then
+            local netid = PEARL.PlayerDB:GetField(leaderboard.dayleader, "netid")
+            local username = tostring(PEARL.PlayerDB:GetField(leaderboard.dayleader, "username") or "UNKNOWN")
+            local gains = PEARL.Reputation:GetTodayGainsOf(leaderboard.dayleader)
+            local reputation = PEARL.Reputation:GetOf(leaderboard.dayleader)
+            local percent = math.round(gains / reputation, 2)
+
+            embed:AddField("Hráč Dňa", string.format("%s %s +%s (%s%%)",
+                PEARL.ICONS.GAINS, MARKDOWN.hlink(
+                MARKDOWN.codeline(tostring(username)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
+            ), gains, percent))
+        end
+    end
+
+    local date = leaderboard.monthstart or leaderboard.timecreated
+    if date then
+        local date_tbl = PEARL.TimestampToTable(date)
+        local month_name = PEARL.GetMonthFancyName(date_tbl.month)
+        local fd_name = cur and STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.MONTH or STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.CREATED
+        embed:AddField(
+            fd_name, MARKDOWN.codeblock(
+                STRINGS.PEARL.FULL_MONTH_NAME:format(month_name, date_tbl.year)
+            ), false
+        )
+    end
+
+    local total_count = leaderboard.recordcount or PEARL.PlayerDB:GetTotalRecordCount()
+    local local_count = notenoughdata and 0 or #leaderboard.players
+    embed:SetFooter(("%s/%s"):format(local_count, total_count))
+
+    return embed
 end
 
 --- @return Embed
@@ -142,7 +193,7 @@ function EMBEDS.ServerBoot()
         :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
         :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT)
+        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
 end
 
 --- @return Embed
@@ -193,12 +244,13 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         description = description.."\n"
     end
 
+    local showcount = #enabled_mods
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
         :SetColor(Embed.COLORS.RED)
         :SetTimestamp(os.time())
         :SetDescription(description)
-        :SetFooter(string.format("%s/%s", #enabled_mods, tostring(enabled_mods.count)))
+        :SetFooter(string.format("%s/%s", #enabled_mods, tostring(enabled_mods.count or showcount)))
 end
 
 

@@ -41,11 +41,11 @@ local STEAM_ID_PATTERN = string.rep("[%d", 17)
 -- [[ Inventory ]]
 --------------------------------
 
-function PEARL.GetStackSize(item)
-    if item.components and item.components.stackable then
-        return item.components.stackable:StackSize()
-    elseif item.data and item.data.stackable then
-        return item.data.stackable.stack
+function PEARL.GetStackSize(stack)
+    if stack.components and stack.components.stackable then
+        return stack.components.stackable:StackSize()
+    elseif stack.data and stack.data.stackable then
+        return stack.data.stackable.stack
     else
         return 1
     end
@@ -403,6 +403,10 @@ end
 -- [[ Utils ]]
 --------------------------------
 
+function PEARL.IsKleiIDValid(kleid)
+    return kleid:match(KLEI_ID_PATTERN) ~= nil
+end
+
 function PEARL.GetKleiIDFromString(str)
 
 end
@@ -411,12 +415,20 @@ function PEARL.GetSteamIDFromString(str)
 
 end
 
+function PEARL.TimestampToTable(timestamp)
+    return timestamp and os.date("*t", timestamp)
+end
+
+function PEARL.GetMonthFancyName(month_number)
+    return STRINGS.PEARL.MONTHS[month_number]
+end
+
 function PEARL.TimestampToFancyDateString(timestamp)
-    local date_tbl = os.date("*t", timestamp)
+    local date_tbl = PEARL.TimestampToTable(timestamp)
 
     return STRINGS.PEARL.DATE_FORMAT:format(
         date_tbl.day,
-        STRINGS.PEARL.MONTHS[date_tbl.month],
+        PEARL.GetMonthFancyName(date_tbl.month),
         date_tbl.year
     )
 end
@@ -446,8 +458,7 @@ end
 --     return kleid and type(kleid) == "string" and kleid:match()
 -- end
 
-function PEARL.BuildFancyStringForEntities(entities)
-    local grouped = PEARL.GroupEntitiesByPrefab(entities)
+function PEARL.BuildFancyStringFor(grouped)
     local fancy_names = {}
     for name, count in pairs(grouped) do
         fancy_names[#fancy_names+1] = STRINGS.PEARL.LOGS.ITEM:format(
@@ -458,66 +469,75 @@ function PEARL.BuildFancyStringForEntities(entities)
     return PEARL.FancyTableConcat(fancy_names)
 end
 
-function PEARL.FormatSortedPrefabs(prefabs)
-    local result = ""
-    local sep = ""
-    local first = true
-    for name, count in pairs(prefabs) do
-        -- if we are on the last prefab
-        if not first and next(prefabs, name) == nil then
-            result = result.." "..STRINGS.PEARL.LOGS.AND.." "
-            sep = ""
-        end
-
-        name = STRINGS.NAMES[string.upper(name)] or name
-        if count and count > 1 then
-            result = result..count.."x "..name..sep
-        else
-            result = result..name..sep
-        end
-
-        if first then
-            first = false
-            sep = ", "
-        end
-    end
-
-    return result
+function PEARL.BuildFancyStringForEntities(entities)
+    return PEARL.BuildFancyStringFor(PEARL.GroupEntitiesByPrefab(entities))
 end
 
-function PEARL.SortPrefabs(list, center)
-    local prefabs = {}
-    local length = 0
-    for _, ent in pairs(list) do
-        if ent ~= center then -- shouldn't be needed
-            -- Try to use the basic names here since it's not possible
-            -- to find name for all avaible prefabs in STRINGS.NAMES.
-            -- Example is flower_cave_double - Light Flower
-            if not prefabs[ent:GetBasicDisplayName()] then
-                prefabs[ent:GetBasicDisplayName()] = 1
-                length = length + 1
-            else
-                prefabs[ent:GetBasicDisplayName()] = prefabs[ent:GetBasicDisplayName()] + 1
-            end
-        end
-    end
-
-    return PEARL.FormatSortedPrefabs(prefabs)
+function PEARL.GetStandardizedNameFor(entity)
+    return entity and (STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName())
 end
 
+--- @deprecated
+-- function PEARL.FormatSortedPrefabs(prefabs)
+--     local result = ""
+--     local sep = ""
+--     local first = true
+--     for name, count in pairs(prefabs) do
+--         -- if we are on the last prefab
+--         if not first and next(prefabs, name) == nil then
+--             result = result.." "..STRINGS.PEARL.LOGS.AND.." "
+--             sep = ""
+--         end
 
-local function format_grouped(grouped)
-    local fancy_names = {}
-    for name, count in pairs(grouped) do
-        if count > 1 then
-            fancy_names[#fancy_names + 1] = STRINGS.PEARL.LOGS.ITEM:format(count, name)
-        else
-            fancy_names[#fancy_names + 1] = name
-        end
-    end
+--         name = STRINGS.NAMES[string.upper(name)] or name
+--         if count and count > 1 then
+--             result = result..count.."x "..name..sep
+--         else
+--             result = result..name..sep
+--         end
 
-    return table.fconcat(fancy_names)
-end
+--         if first then
+--             first = false
+--             sep = ", "
+--         end
+--     end
+
+--     return result
+-- end
+
+-- function PEARL.SortPrefabs(list, center)
+--     local prefabs = {}
+--     local length = 0
+--     for _, ent in pairs(list) do
+--         if ent ~= center then -- shouldn't be needed
+--             -- Try to use the basic names here since it's not possible
+--             -- to find name for all avaible prefabs in STRINGS.NAMES.
+--             -- Example is flower_cave_double - Light Flower
+--             if not prefabs[ent:GetBasicDisplayName()] then
+--                 prefabs[ent:GetBasicDisplayName()] = 1
+--                 length = length + 1
+--             else
+--                 prefabs[ent:GetBasicDisplayName()] = prefabs[ent:GetBasicDisplayName()] + 1
+--             end
+--         end
+--     end
+
+--     return PEARL.FormatSortedPrefabs(prefabs)
+-- end
+
+
+-- local function format_grouped(grouped)
+--     local fancy_names = {}
+--     for name, count in pairs(grouped) do
+--         if count > 1 then
+--             fancy_names[#fancy_names + 1] = STRINGS.PEARL.LOGS.ITEM:format(count, name)
+--         else
+--             fancy_names[#fancy_names + 1] = name
+--         end
+--     end
+
+--     return table.fconcat(fancy_names)
+-- end
 
 function PEARL.GroupEntitiesByPrefab(entities)
     local grouped = {}

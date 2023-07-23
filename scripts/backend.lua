@@ -91,6 +91,16 @@ PEARL.SafeModTableExtend("CONSTS", {
     EXTINGUISH_AFTER            = 5,
     MONITORED_POPULATION_LIMIT  = 5,
 
+    LEADERBOARD_MAX_LEN         = 5,
+    STARTING_REPUTATION         = 100,
+
+    REPUTATION_TABLES           = {
+        REVIVE              = 35,
+        DIED                = -15,
+        EXTINGUISH_STRUCT   = 5,
+        BOSS_DAMAGE         = 0.01, -- Per HP dealt
+    },
+
     SHARD_ID = {
         MASTER = 1,
     },
@@ -313,6 +323,7 @@ end
 
 --- @TODO: This seems to not be sufficient
 PEARL.OverrideValue(_G, "METRICS_ENABLED", PEARL.CONFIG.SEND_KLEI_METRICS)
+PEARL.OverrideValue(_G, "STATS_ENABLE", PEARL.CONFIG.SEND_KLEI_METRICS)
 if PEARL.CONFIG.SEND_KLEI_METRICS == false then
     PEARL.OverrideUserdataVariable("SendProfileStats", function() end, TheNet)
 end
@@ -370,7 +381,6 @@ PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
 
 PEARL.info("Setting up the webhooks...")
 
-
 --- @type Logger
 PEARL.DiscordLogger = PEARL.loadfile("libraries/discordapi/webhooks/logger")()
 
@@ -415,6 +425,8 @@ local function LoadExtensions()
     if PEARL.CONFIG.PERFORMANCE_MODE then
         PEARL.loadfile("extensions/components/updatelooper")
         PEARL.loadfile("extensions/components/timer")
+
+        --PEARL.loadfile("extensions/class")
     end
 
     PEARL.info("Loading game script extensions...")
@@ -479,9 +491,10 @@ PEARL.AdminList:Load()
 --- @TODO: Add some configs here
 --- @type PlayerDB
 PEARL.PlayerDB = PEARL.loadfile("libraries/playerdatabase")
+PEARL.PlayerDB:LoadUseridList()
 
---- @type PlayerRepManager
-PEARL.PlayerRepManager = PEARL.loadfile("libraries/repmanager")
+--- @type Reputation
+PEARL.Reputation = PEARL.loadfile("libraries/reputation")
 
 --------------------------------
 -- [[ Debug Mode ]]
@@ -547,7 +560,10 @@ ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
-    ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED)
+
+    if PEARL.CONFIG.PROXY.ENABLED then
+        ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED)
+    end
 end
 
 -- Logger Modules
@@ -559,6 +575,8 @@ if PEARL.DiscordLogger:IsEnabled() then
     ModuleManager:AddModule("logger/chat", true)
     ModuleManager:AddModule("logger/server", true)
 end
+
+ModuleManager:AddModule("timeupdates", true)
 
 ModuleManager:LoadAllModules()
 

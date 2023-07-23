@@ -87,13 +87,14 @@ end
 function EntityScript:GetFancyName()
     local stacksize = PEARL.GetStackSize(self)
 
+    local name = PEARL.GetStandardizedNameFor(self)
     if stacksize and stacksize > 1 then
         return STRINGS.PEARL.LOGS.ITEM:format(
-            stacksize, self:GetBasicDisplayName()
+            stacksize, name
         )
     end
 
-    return self:GetBasicDisplayName()
+    return name
 end
 
 -----------------------------------

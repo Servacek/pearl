@@ -43,6 +43,15 @@ local function OnShutdown(error)
     )
 end
 
+local function OnClientBanned(userid)
+    -- Log offline players being banned.
+    if userid and not PEARL.ServerNetwork:IsUserConnected(userid) then
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.OFFLINE_CLIENT_BANNED:format(
+            userid
+        ), PEARL.ICONS.ANNOUNCEMENTS["banned_from_game"])
+    end
+end
+
 local function OnShardStateUpdate(world_id, state, ...)
     if not (state and TheWorld) then
         return
@@ -148,3 +157,5 @@ end)
 
 PEARL.EventProcessor:AddSafeEventHandler("invalidrpc", OnInvalidClientRPC)
 PEARL.EventProcessor:AddSafeEventHandler("shard_shutdown", OnShutdown)
+
+PEARL.EventProcessor:AddEventHandler("clientbanned", OnClientBanned)

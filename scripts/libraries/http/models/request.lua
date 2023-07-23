@@ -248,10 +248,12 @@ end
 
 function Request:Send(force)
     if force then
-        return PEARL.HTTPClient:ForceSend(self)
+        PEARL.HTTPClient:ForceSend(self)
+    else
+        PEARL.HTTPClient:HandleRequest(self)
     end
 
-    PEARL.HTTPClient:HandleRequest(self)
+    return self
 end
 
 -------------------------------------

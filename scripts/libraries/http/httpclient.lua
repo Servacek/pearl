@@ -97,7 +97,7 @@ end
 --------------------------------
 
 local function OnFinishCooldown()
-    PEARL.debug("Cooldown task finished!")
+    --PEARL.debug("Cooldown task finished!")
 
     HTTPClient:StopCooldown()
     HTTPClient:ProcessNextRequest()
@@ -216,6 +216,8 @@ end
 
 function HTTPClient:Setup()
     if PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
+        PEARL.info("Setting up the proxy...")
+
         self.proxy:SetEnabled(true)
         self.proxy:SetURL(PEARL.CONFIG.PROXY.URL)
     end
@@ -236,10 +238,10 @@ function HTTPClient:StartCooldown(force)
     end
 
     if self._cooldown_task then
-        PEARL.debug("Restarting the cooldown task...")
+        --PEARL.debug("Restarting the cooldown task...")
         self._cooldown_task:restart()
     else
-        PEARL.debug("Starting the cooldown task...", "Frequency:", self._frequency)
+        --PEARL.debug("Starting the cooldown task...", "Frequency:", self._frequency)
         self._cooldown_task = PEARL.WallScheduler:ExecutePeriodic(
             self._frequency, OnFinishCooldown, nil, nil, nil, self
         )
@@ -258,7 +260,6 @@ function HTTPClient:ProcessNextRequest(force)
 end
 
 function HTTPClient:HandleRequest(request)
-    print(self:IsWaiting(), self:IsOnCooldown())
     -- If we are not waiting for anything or the queue is disabled
     -- then send the request immediately
     if not (self:IsWaiting() or self:IsOnCooldown()) or self:IsQueueDisabled() or self:IsShuttingDown() then
@@ -270,7 +271,7 @@ function HTTPClient:HandleRequest(request)
         self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
     end
 
-    PEARL.debug("Adding request to the queue...")
+    --PEARL.debug("Adding request to the queue...")
     if not self._queue:push(request) then
         return PEARL.error("Failed to push the request to the queue!", request)
     end
@@ -278,6 +279,8 @@ end
 
 function HTTPClient:ForceSend(request)
     if self._force_threshold <= 0 then
+        PEARL.warn("Max force count reached!")
+
         return false
     end
 

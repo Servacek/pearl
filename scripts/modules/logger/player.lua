@@ -16,6 +16,9 @@
 Temporary solution for logging.
 --]]
 
+--- @type ActionLog
+local ActionLog = PEARL.loadfile("libraries/actionlog")
+
 ------------------------
 -- [[ Global Localization ]]
 ------------------------
@@ -29,6 +32,8 @@ local removearrayvalue = table.removearrayvalue
 ------------------------
 
 local MAX_COMMAND_LENGTH = 500
+
+local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
 ------------------------
 -- [[ Check Functions ]]
@@ -213,6 +218,18 @@ RegisterPlayerItemActionHandler(ACTIONS.COOK, function(doer, target, item)
             doer:GetDisplayName(), item:GetBasicDisplayName()
         ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)
     end
+end)
+
+RegisterPlayerActionHandler(ACTIONS.EXTINGUISH, function(doer, target, item)
+    if target:HasTag("structure") then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
+    end
+
+    return PEARL.AnnounceWithType(
+        STRINGS.PEARL.ACTIONS[item and "EXTINGUISH_WITH" or "EXTINGUISH"]:format(
+            doer:GetDisplayName(), target:GetBasicDisplayName(), item and item:GetBasicDisplayName()
+        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EXTINGUISH
+    )
 end)
 
 local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
@@ -442,9 +459,9 @@ onburntup = function(target)
     local workable = target.components and target.components.workable or nil
     -- Only announce when a player creation burns up.
     if workable and workable:HasBuilder() then
-        PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED, {
-            target = target:GetFancyName(), owner = workable:GetBuilderName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN, target.entity)
+        ActionLog:QueueAction(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED, workable:GetBuilderName())
+            :AddTarget(target)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
     end
 end
 
@@ -457,6 +474,38 @@ AddComponentPostInit("burnable", function(self, inst)
     -- Announce when a structure burnts up
     inst:SafeListenForEvent("burntup", onburntup)
 end)
+
+-------------------
+-- PLAYER STATES --
+-------------------
+
+local function onrespawnfromghost(inst, data)
+    if data.user and data.user.userid then
+        PEARL.Reputation:EarnFor(data.user.userid, REPUTATIONS.REVIVE)
+    end
+end
+
+local function ondeath(inst)
+    if inst and inst.userid then
+        PEARL.Reputation:GiveTo(inst.userid, REPUTATIONS.DIED)
+    end
+end
+
+-------------------
+-- Killers --
+-------------------
+-- Track damage dealt to bosses.
+--- @TODO: Rework the defeat announcement to contain all attackers.
+local function onhitother(inst, data)
+    if not data or not data.target or not data.target:IsValid() or not data.target:HasTag("epic") then
+        return
+    end
+
+    local dmg = math.max(data.damageresolved or data.damage or 1, 1)
+    PEARL.Reputation:EarnFor(
+        inst.userid, dmg * REPUTATIONS.BOSS_DAMAGE
+    )
+end
 
 -------------------
 -- THIEFS --
@@ -536,6 +585,11 @@ PEARL.AddPlayerPostInit(function(player)
     player:ListenForModEvent("tookrareitem", ontookrareitem)
     player:ListenForModEvent("tookrarecontainer", ontookrarecontainer)
     player:ListenForModEvent("finishedlooting", onfinishedlooting)
+
+    player:SafeListenForEvent("respawnfromghost", onrespawnfromghost)
+    player:SafeListenForEvent("death", ondeath)
+
+    player:SafeListenForEvent("onhitother", onhitother)
 
     -- if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
     --     player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)

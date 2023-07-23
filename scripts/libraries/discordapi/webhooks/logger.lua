@@ -67,14 +67,7 @@ function Logger:_LogBufferedMessage(force)
         return PEARL.error("Attempted to send an invalid or non-existent buffered message!")
     end
 
-    local _, json_data = self._buffer:ToJson()
-    if not json_data then
-        return PEARL.error("JSON failed to encode the message!")
-    end
-
-    return PEARL.DiscordRestAPI:ExecuteWebhook(
-        self._webhook, json_data, force
-    )
+    return self._webhook:PostMessage(self._buffer, force)
 end
 
 function Logger:_ForceLogBuffer()
