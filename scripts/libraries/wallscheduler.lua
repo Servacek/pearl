@@ -134,6 +134,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         return PEARL.error("Attempted to create a task with invalid parameters!")
     end
 
+    --- @class Task
     local task = {
         _time = time / wtdelta,
         _delayed = type(initialdelay) == "number",
@@ -178,14 +179,14 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
     end
 
     -- Even running tasks can be restarted.
-    function task:restart()
+    function task:restart(_time)
         --print("task:restart", self:tostring())
-        if type(self._time) ~= "number" then
+        if type(self._time) ~= "number" and not _time then
             return PEARL.warn("This task doesn't support restarting...")
         end
 
         self.running = true
-        self._ext = wtime + self._time
+        self._ext = wtime + (_time or self._time)
 
         if not has_task(self) then
             -- Re-Add the task back to the stack since we were removed.

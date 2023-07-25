@@ -24,6 +24,7 @@ local Message = PEARL.loadfile('libraries/discordapi/models/message')
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local ActionLog = PEARL.loadfile("libraries/actionlog")
+local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
 
 function PEARL.PrintTests()
     local i = 1
@@ -141,6 +142,24 @@ function PEARL.TESTS.AnnouncementIconTest()
     if string.len(result) <= 0 then
         return PEARL.error("No results!")
     end
+
+    return PEARL.DiscordLogger:LogStringRaw(result)
+end
+
+function PEARL.TESTS.IconTest()
+    local result = ""
+
+    local function traverse_icons(t)
+        for name, icon in pairs(t) do
+            if type(icon) == "table" then
+               traverse_icons(icon)
+            else
+                result = result.."\n"..icon.." -> "..name
+            end
+        end
+    end
+
+    traverse_icons(PEARL.ICONS)
 
     return PEARL.DiscordLogger:LogStringRaw(result)
 end
@@ -329,20 +348,30 @@ function PEARL.TESTS.ActionLogQueue()
     local log = c_spawn("log")
     log.components.stackable:SetStackSize(11)
 
-    ActionLog:QueueAction("%s lit %s!", "KU_TEST")
+    ActionLog:QueueEntAct("{doer} lit {target}!", "Fi7iP")
         :AddTarget(c_spawn("pigman"))
         :AddTarget(c_spawn("rocks"))
         :AddTarget(log)
         :AddTarget(c_spawn("log"))
         :AddTarget(c_spawn("pigman"))
-        :SetLogType("ignite")
-        :SetStringFunction(function(action)
-            return action.pattern:format(
-                "Fi7iP", action:GetTargetString()
-            )
-        end)
-    --PEARL.ActionLogQueue:AddAction({GUID = "test"}, "ignite", c_findnext("pigman"), nil, function(targets) return targets end)
-    --PEARL.ActionLogQueue:AddAction({GUID = "test"}, "ignite", c_findnext("rocks"), nil, function(targets) return targets end)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE)
+
+    ActionLog:QueueAct("{target} burnt up!")
+        :AddTarget(log)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+end
+
+function PEARL.TESTS.RawActionLogQueue()
+    local log = c_spawn("log")
+    log.components.stackable:SetStackSize(11)
+
+    return ActionLog:QueueEntAct("{doer} lit {target}! Owner: {owner}", "Fi7iP",
+        QueuedLogAction.STATIC_FIELDS.OWNER, "Franta")
+        :AddTarget(c_spawn("rocks"))
+        :AddTarget(log)
+        :AddTarget(c_spawn("log"))
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+
 end
 
 --------------------------------

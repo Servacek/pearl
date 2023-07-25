@@ -100,6 +100,10 @@ local function OnFirstLaunch()
 end
 
 local function OnShardLoaded(master)
+    if POPULATING then
+        return
+    end
+
     local template = master and STRINGS.PEARL.LOGS.SHARD_LOADED_MASTER or STRINGS.PEARL.LOGS.SHARD_LOADED_SECONDARY
     PEARL.DiscordLogger:LogStringHighlighted(
         template:format(PEARL.GetShardFancyName(), STRINGS.PEARL.SHARDS.MASTER), PEARL.ICONS.CHECK, true

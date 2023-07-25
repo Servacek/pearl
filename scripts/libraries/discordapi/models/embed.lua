@@ -10,6 +10,10 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--[[
+    For the embed object, you can set every field except type (it will be rich regardless of if you try to set it),
+    provider, video, and any height, width, or proxy_url values for images.
+--]]
 
 --- @type utf8
 local utf8 = PEARL.loadfile("libraries/utf8")
@@ -20,6 +24,7 @@ local utf8 = PEARL.loadfile("libraries/utf8")
 
 --- @class Embed
 local Embed = Class(function(self)
+    self.author = nil
     self.title = nil
     self.url = nil
     self.description = nil
@@ -31,7 +36,7 @@ local Embed = Class(function(self)
     self.thumbnail = nil
     self.timestamp = nil
 
-    self.field = nil
+    self.fields = nil
 end)
 
 ------------------------------------------
@@ -76,6 +81,9 @@ Embed.COLORS = {
 ------------------------------------------
 -- ALWAYS return self in these
 
+--- @param title? string title of embed
+--- @param url?   string url of embed
+--- @return Embed
 function Embed:SetTitle(title, url)
     if not (type(title) == "string" and string.utf8len(title) < Embed.MAX_TITLE_LENGTH) then
         PEARL.warn("Attempted to set an invalid title!")
@@ -92,6 +100,26 @@ function Embed:SetTitle(title, url)
     return self
 end
 
+--- @param name	string	name of author
+--- @param url?	string	url of author (only supports http(s))
+--- @param icon_url?	string	url of author icon (only supports http(s) and attachments)
+--- @param proxy_icon_url?	string	a proxied url of author icon
+--- @return Embed
+function Embed:SetAuthor(name, url, icon_url, proxy_icon_url)
+    if not self.author then
+        self.author = {}
+    end
+
+    self.author.name = name
+    self.author.url = url
+    self.author.icon_url = icon_url
+    self.author.proxy_icon_url = proxy_icon_url
+
+    return self
+end
+
+--- @param description?	string	description of embed
+--- @return Embed
 function Embed:SetDescription(description)
     if not (type(description) == "string" and string.utf8len(description) < Embed.MAX_DESCRIPTION_LENGTH) then
         PEARL.warn("Attempted to set an invalid description! Cropping...")
@@ -103,13 +131,22 @@ function Embed:SetDescription(description)
     return self
 end
 
-function Embed:SetColor(int)
-    self.color = int
+--- @param color?	integer	color code of the embed
+--- @return Embed
+function Embed:SetColor(color)
+    self.color = color
 
     return self
 end
 
+--- @param url	string	source url of thumbnail (only supports http(s) and attachments)
+--- @return Embed
 function Embed:SetImage(url)
+    if type(url) ~= "string" then
+        PEARL.error("Invalid embed image URL provided!")
+        return self
+    end
+
     if not self.image then
         self.image = {}
     end
@@ -119,7 +156,14 @@ function Embed:SetImage(url)
     return self
 end
 
+--- @param url	string	source url of thumbnail (only supports http(s) and attachments)
+--- @return Embed
 function Embed:SetThumbnail(url)
+    if type(url) ~= "string" then
+        PEARL.error("Invalid embed thumbnail URL provided.")
+        return self
+    end
+
     if not self.thumbnail then
         self.thumbnail = {}
     end
@@ -129,6 +173,8 @@ function Embed:SetThumbnail(url)
     return self
 end
 
+--- @param timestamp?	number|string	timestamp of embed content
+--- @return Embed
 function Embed:SetTimestamp(timestamp)
     if type(timestamp) == "number" then
         -- Discord accepts only ISO8601 formatted timestamps
@@ -140,6 +186,10 @@ function Embed:SetTimestamp(timestamp)
     return self
 end
 
+--- @param text	string	footer text
+--- @param icon_url?	string	url of footer icon (only supports http(s) and attachments)
+--- @param proxy_icon_url?	string	a proxied url of footer icon
+--- @return Embed
 function Embed:SetFooter(text, icon_url, proxy_icon_url)
     if not (type(text) == "string" and string.utf8len(text) < Embed.MAX_FOOTER_LENGTH) then
         PEARL.warn("Attempted to set an invalid footer text!")
@@ -158,12 +208,18 @@ function Embed:SetFooter(text, icon_url, proxy_icon_url)
     return self
 end
 
+--- @param url string	url of embed
+--- @return Embed
 function Embed:SetUrl(url)
     self.url = url
 
     return self
 end
 
+--- @param name	string	name of the field
+--- @param value	string	value of the field
+--- @param inline?	boolean	whether or not this field should display inline
+--- @return Embed
 function Embed:AddField(name, value, inline)
     if not (type(name) == "string" and string.utf8len(name) < Embed.MAX_FIELD_NAME_LENGTH) then
         PEARL.warn("Attempted to set an invalid field name!")
@@ -196,6 +252,40 @@ end
 -- [[ Getters ]]
 ------------------------------------------
 
+--- The combined sum of characters in all title, description, field.name, field.value,
+--- footer.text, and author.name fields across all embeds
+--- attached to a message must not exceed 6000 characters.
+function Embed:GetTotalLength()
+    local length = 0
+
+    if self.title then
+        length = length + #self.title
+    end
+
+    if self.description then
+        length = length + #self.description
+    end
+
+    if self.fields and #self.fields > 0 then
+        for i = 1, #self.fields do
+            if self.fields[i] then
+                length = length + (self.fields[i].name and #self.fields[i].name or 0)
+                length = length + (self.fields[i].value and #self.fields[i].value or 0)
+            end
+        end
+    end
+
+    if self.footer then
+        length = length + (self.footer.text and #self.footer.text or 0)
+    end
+
+    if self.author then
+        length = length + (self.author.name and #self.author.name or 0)
+    end
+
+    return length
+end
+
 function Embed:HasTitle()
     return self.title ~= nil
 end
@@ -220,8 +310,21 @@ function Embed:HasFooter()
     return self.footer ~= nil and self.footer.text ~= nil
 end
 
+function Embed:HasAuthor()
+    return self.author ~= nil and self.author.name ~= nil
+end
+
+function Embed:HasFields()
+    return self.fields ~= nil and #self.fields > 0
+end
+
+function Embed:IsValid()
+    return self:HasTitle() or self:HasDescription() or self:HasFields()
+end
+
 function Embed:ToTable()
     return {
+        author = self.author,
         title = self.title,
         description = self.description,
         color = self.color,

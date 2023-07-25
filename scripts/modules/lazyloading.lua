@@ -67,10 +67,6 @@ end
 
 ------------------------------------------------------------------------
 
--- PEARL.AddGlobalFunctionPreCall("LoadPrefabFile", function(filename, ...)
---     print(filename)
--- end)
-
 -- Mod prefabs are being loaded first.
 -- All these prefabs are being loaded only on the first launch.
 _LoadPrefabs = PEARL.AddUserDataFunctionPreCall("LoadPrefabs", function(self, prefabs)

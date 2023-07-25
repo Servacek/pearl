@@ -17,7 +17,8 @@ Temporary solution for logging.
 --]]
 
 --- @type ActionLog
-local ActionLog = PEARL.loadfile("libraries/actionlog")
+local AL = PEARL.loadfile("libraries/actionlog")
+local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
 
 ------------------------
 -- [[ Global Localization ]]
@@ -83,6 +84,7 @@ local function RegisterActionHandler(action, handler, checkfn)
             end
         end
 
+        PEARL.debug("Ignoring action...")
         return success
     end
 end
@@ -113,6 +115,7 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         --PEARL.CONSTS.ENT_ONEOF_TAGS
     )
 
+    local silent = false
     if not ((
         -- The target is a structure or craftable item
         target:HasTag("structure") or type(AllRecipes[target.prefab]) == "table"
@@ -120,18 +123,19 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         -- Or the target is anything but it's near some plant's or structures
         near and (#near > 2 or table.find(near, structuresearchfn))
     )) then
-        return
+        silent = true
     end
 
     if near and #near > 0 then
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
+        return AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE, subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
             doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE, doer.entity)
+        }), silent)
     end
 
-    return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.IGNITE.GENERIC, {
-        doer = doer:GetDisplayName(), target = target:GetFancyName()
-    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE, doer.entity)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.IGNITE.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE)
+        :SetIsSilent(silent)
+        :AddTarget(target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
@@ -214,22 +218,23 @@ RegisterPlayerItemActionHandler(ACTIONS.COOK, function(doer, target, item)
     -- end
 
     if target and PEARL.PREFABS.RARE_ITEMS[target.prefab] ~= nil or PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil then
-        return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.COOK:format(
-            doer:GetDisplayName(), item:GetBasicDisplayName()
-        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)
+        return AL:QueueEntAct(STRINGS.PEARL.COOK, doer)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT)
+            :SetIsSilent(true)
+            :AddTarget(target)
     end
 end)
 
-RegisterPlayerActionHandler(ACTIONS.EXTINGUISH, function(doer, target, item)
+RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, item)
     if target:HasTag("structure") then
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
     end
 
-    return PEARL.AnnounceWithType(
-        STRINGS.PEARL.ACTIONS[item and "EXTINGUISH_WITH" or "EXTINGUISH"]:format(
-            doer:GetDisplayName(), target:GetBasicDisplayName(), item and item:GetBasicDisplayName()
-        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EXTINGUISH
-    )
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
+        QueuedLogAction.STATIC_FIELDS.TOOL, item)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.EXTINGUISH)
+        :SetIsSilent(true)
+        :AddTarget(target)
 end)
 
 local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
@@ -389,11 +394,12 @@ local function onentitydeath(world, data)
     end
 
     -- Bosses (announce their deaths even if they were not killed by a player)
-    if target:HasTag("epic") then
+    -- Handle special transition case for Klaus.
+    if target:HasTag("epic") and not (target.sg and target.sg:HasTag("transition")) then
         local doer_name = (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans"
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.BOSS, {
-            doer = doer_name, target = target:GetFancyName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT, doer and doer.entity)
+        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.BOSS, doer_name)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT)
+            :AddTarget(target)
     end
 
     if not (doer and doer:HasTag("player")) then
@@ -403,37 +409,40 @@ local function onentitydeath(world, data)
     -- NOT RESPAWNABLE MOB
     local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
-        --- @TODOv2.1 This is not ideal (also it works only for the current shard)
+        --- This works for the current shard only, but is just enough for our use cases currently.
         local remaining = c_countprefabs(target.prefab, false) - 1 or -1
         if remaining < 0 or remaining > pop_threshold then
             return
         end
 
         if remaining == 0 then
-            return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.LAST, {
-                doer = doer:GetDisplayName(), target = target:GetFancyName()
-            }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+            -- Queue to make sure this will be announced after the last remaining announcement.
+            return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.LAST, doer)
+                :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+                :AddTarget(target)
         end
 
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.REMAINING, {
-            doer = doer:GetDisplayName(), target = target:GetFancyName(), remaining = remaining
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.REMAINING, doer)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+            :AddTarget(target)
+            :SetDynamicField(QueuedLogAction.DYNAMIC_FIELDS.REMAINING, remaining)
     end
 
 
     -- COMPANION
     if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.GENERIC, {
-            doer = doer:GetDisplayName(), target = target:GetFancyName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+            :AddTarget(target)
     end
 
     -- FOLLOWER
     local leader = target.components.follower and target.components.follower:GetLeader() or nil
     if leader and leader:HasTag("player") and leader ~= doer then
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, {
-            doer = doer:GetDisplayName(), target = target:GetFancyName(), owner = leader:GetDisplayName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL, doer.entity)
+        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
+            QueuedLogAction.STATIC_FIELDS.OWNER, leader)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+            :AddTarget(target)
     end
 end
 
@@ -459,9 +468,10 @@ onburntup = function(target)
     local workable = target.components and target.components.workable or nil
     -- Only announce when a player creation burns up.
     if workable and workable:HasBuilder() then
-        ActionLog:QueueAction(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED, workable:GetBuilderName())
-            :AddTarget(target)
+        AL:QueueAct(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED,
+            QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName())
             :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+            :AddTarget(target)
     end
 end
 
@@ -478,7 +488,7 @@ end)
 -------------------
 -- PLAYER STATES --
 -------------------
-
+--- These are already announced by the game.
 local function onrespawnfromghost(inst, data)
     if data.user and data.user.userid then
         PEARL.Reputation:EarnFor(data.user.userid, REPUTATIONS.REVIVE)
@@ -543,10 +553,10 @@ local function ontookrareitem(doer, item)
         return
     end
 
-    local silent = not item.components.inventoryitem:IsVeryRare()
-    PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, {
-        doer = doer:GetDisplayName(), item = item:GetFancyName()
-    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity, silent)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE)
+        :SetIsSilent(not item.components.inventoryitem:IsVeryRare())
+        :AddTarget(item)
 end
 
 local function ontookrarecontainer(doer, data)
@@ -555,9 +565,9 @@ local function ontookrarecontainer(doer, data)
     end
 
     local items_str = PEARL.BuildFancyStringForEntities(data.items)
-    PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH, {
-        doer = doer:GetDisplayName(), item = data.container:GetFancyName(), with = items_str
-    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity)
+    AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH:nformat{
+        doer = doer:GetStandardizedName(), source = data.container:GetStandardizedName(), target = items_str
+    })
 end
 
 local function onfinishedlooting(doer, data)
@@ -565,10 +575,11 @@ local function onfinishedlooting(doer, data)
         return PEARL.warn("Called onfinishedlooting with invalid arguments!")
     end
 
+    -- Do not queue this action
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
-    PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM, {
+    AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
         doer = doer:GetDisplayName(), items = loot_string, target = data.container:GetFancyName()
-    }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, doer.entity, not data.items.rare)
+    }), not data.items.rare)
 end
 
 -------------------------------

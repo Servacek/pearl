@@ -11,135 +11,91 @@
 --]==]====================================================]]
 
 
---- @TODO: Make doer optional to support environmental actions like structures burned out.
-
-
 local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
-
---------------------------------
--- [[ Constants ]]
---------------------------------
-
-local QUEUE_TIME = 3
-local MAX_DELAY  = 8
 
 --------------------------------
 -- [[ Class Declaration ]]
 --------------------------------
 
-
 --- @class ActionLog
 local ActionLog = {
     --- @type table<userid, table<string, any>>
-    _queue = {}
+    _queue = {},
 }
 
 --------------------------------
--- [[ Local Functions ]]
+-- [[ Private Methods ]]
 --------------------------------
 
-local function _defaultstrfn(action)
-    return action.pattern:nformat{
-        doer = PEARL.GetStandardizedNameFor(action:GetDoer()) or action.GUID,
-        target = action:GetTargetString(),
-        owner = action.GUID, -- GUID in this case is the owner's name, because the player is offline
-    }
-end
+--- @param action QueuedLogAction
+--- @return QueuedLogAction
+function ActionLog:_QueueAction(pattern, action)
+    self._queue[pattern] = action
 
-local function _OnActionRepeated(action)
-    if not action.task or not action.timestart then
-        return
-    end
-
-    local timediff = os.time() - action.timestart
-    if (timediff + QUEUE_TIME) < MAX_DELAY then
-        return action.task:restart()
-    end
-
-    -- Send it immediately.
-    ActionLog:ExecuteAction(action)
+    return action:SetQueueTask(PEARL.WallScheduler:ExecuteInTime(action.queuetime, function()
+        self:RemoveAction(pattern)
+        self:LogAction(
+            action.colorentity, action.logtype, action:GetString(), action.silent
+        )
+    end))
 end
 
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
 
-function ActionLog:CreateActionFor(pattern, GUID)
-    local action = QueuedLogAction(pattern, GUID)
-    action:SetQueueTask(PEARL.WallScheduler:ExecuteInTime(QUEUE_TIME, function()
-        self:RemoveAction(pattern, GUID)
+--- @param pattern string Retrive the specific action bound to the provided pattern.
+--- Pattern should be always unique per action.
+function ActionLog:GetQueuedAction(pattern)
+    return self._queue[pattern]
+end
 
-        action.strfn = action.strfn or _defaultstrfn
-        if type(action.strfn) == "function" then
-            self:LogAction(GUID, action.logtype, action.strfn(action))
-        end
-    end))
-
+--- @param pattern string Removes from the queue action with the provided pattern.
+--- @return QueuedLogAction? action The action that was removed from the queue.
+function ActionLog:RemoveAction(pattern)
+    local action = self._queue[pattern]
+    self._queue[pattern] = nil
     return action
 end
 
-function ActionLog:QueueActionFor(pattern, GUID)
-    if not self._queue[pattern] then
-        self._queue[pattern] = {}
+function ActionLog:LogAction(entity, tp, actionstr, ...)
+    return PEARL.AnnounceWithType(
+        actionstr, tp, (entity and entity.entity or entity), ...
+    )
+end
+
+--- @param p string The initial pattern of the action.
+--- @param sn string|table<string, string>? The name of the static field in the pattern or the formatting table for the given pattern.
+--- @param sv string? The value of the "sn" field, if provided.
+--- @return QueuedLogAction action The current action for the given pattern built up from the static data provided.
+function ActionLog:QueueAct(p, sn, sv)
+    if sn then
+        --- @TODO: handle sv being an entity.
+        -- This will handle the case where "sn" is a table of fields as well.
+        p = p:nformat(sn, sv)
     end
 
-    self._queue[pattern][GUID] = self:CreateActionFor(pattern, GUID)
-    return self._queue[pattern][GUID]
-end
-
-function ActionLog:GetQueuedAction(pattern, GUID)
-    return self._queue[pattern] and self._queue[pattern][GUID]
-end
-
-function ActionLog:ExecuteAction(action)
-    if action and action.task then
-        return action.task:run()
-    end
-end
-
-function ActionLog:RemoveAction(pattern, GUID)
-    local action = self:GetQueuedAction(pattern, GUID)
-    if action then
-        self._queue[pattern][GUID] = nil
-    end
-
-    return action
-end
-
-function ActionLog:LogEntityAction(entity, tp, actionstr, ...)
-    return PEARL.AnnounceWithType(actionstr, tp, entity and entity.entity or entity, ...)
-end
-
-function ActionLog:LogAction(GUID, ltp, actionstr, ...)
-    return self:LogEntityAction(Ents[GUID], ltp, actionstr, ...)
-end
-
---- Same pattern means same type!
-function ActionLog:QueueAction(pattern, GUID)
-    GUID = GUID or ""
-
-    local queued = self:GetQueuedAction(pattern, GUID)
+    local queued = self:GetQueuedAction(p)
     if queued then
-        _OnActionRepeated(queued)
-
-        return queued
+        return queued:Repeat()
     end
 
-    return self:QueueActionFor(pattern, GUID)
+    return self:_QueueAction(p, QueuedLogAction(p))
 end
 
 --------------------------------
 -- [[ Wrapper Methods ]]
 --------------------------------
 
-function ActionLog:QueueWorldAction(pattern)
-    return self:QueueAction(pattern, nil)
-end
+--- @return QueuedLogAction
+function ActionLog:QueueEntAct(p, ent, sn, sv)
+    if ent then
+        p = p:nformat(QueuedLogAction.STATIC_FIELDS.DOER,
+            EntityScript.is_instance(ent) and ent:GetStandardizedName() or ent
+        )
+    end
 
---- @param entity Entity
---- This function should return the string that should be logged. Taking some stacked action atributes as an argument.
-function ActionLog:QueueEntityAction(entity, pattern)
-    return self:QueueAction(pattern, entity and entity.GUID or entity)
+    return self:QueueAct(p, sn, sv):SetColorEntity(ent)
 end
 
 --------------------------------

@@ -19,9 +19,6 @@
 
 local TheNet = TheNet
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
-
 local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
 --------------------------
@@ -137,22 +134,12 @@ local SERVER_USERID_RPCS = {
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("PlayerReportMessage", userid)
         end
 
-        local client = userid and TheNet:GetClientTableForUser(userid)
-        if not client then
-            return
-        end
-
         -- In case the webhook reporter was disabled during runtime
         if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
             return PEARL.ServerNetwork:SendCommandResponse(userid, STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK)
         end
 
-        --- @TODO: Maybe use an embed instead.
-        PEARL.DiscordReporter:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
-            PEARL.ICONS.ANNOUNCEMENTS["default"], userid, MARKDOWN.escape(client.name), MARKDOWN.escape(message or "")
-        )):SetAllowedMentionTypes({
-            Message.MENTION_TYPES.EVERYONE
-        }))
+        PEARL.DiscordReporter:SendPlayerReportMessage(userid, message)
 
         -- Anounce it so it logs the message and also other players can see it as well.
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)

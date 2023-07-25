@@ -16,11 +16,9 @@
 -- So these icons should work on all discord servers.
 
 return {
-    X = "<:x_:1063767987456315472>",
-    CHECK = "<:check:998561107776122900>",
+    X = "<:x_:999294448045408277>",
+    CHECK = "<:check:999294412972625940>",
     PING = "<:connection:1064114008698916864>",
-    ENABLED = "<:enabled:1071821645427261450>",
-    DISABLED = "<:disabled:1071821625470746686>",
     STEAM = "<:steam:1076608091656814643>",
     LOCAL = "<:local:1076609330905878588>",
     GAINS = "<:arrow_up_green:1130590082349400084>",
@@ -72,7 +70,7 @@ return {
     LEADERBOARD_PLACES = {
         [1] = "<:1st:1129353293357912105>",
         [2] = "<:2nd:1129353938848723065>",
-        [3] = "<:3place:1129348645741924358>",
+        [3] = "<:3rd:1129348645741924358>",
     },
 
     PRECIPITATION = {
@@ -99,7 +97,6 @@ return {
     },
 
     SERVER_STATE = {
-        START       = "<:check:998561107776122900>",
         STOP        = "<:save:998561362710110328>",
         CRASH       = "<:warn:1076451075126734878>",
         PAUSE       = "<:pause:998561335463907459>",
@@ -153,6 +150,15 @@ return {
         ["hammer"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HAMMER],
         ["defeat"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.TROPHY],
         ["deploy"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.EYEPLANT],
-        ["welcome"]=    PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.WAVE]
+        ["welcome"]=    PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.WAVE],
+
+        ["extinguish"]= "<:extinguish:1133083578381643818>",
+        ["build"]=      "<:build:1133086015146438686>",
+        ["craft"]=      PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.SCIENCEMACHINE],
+        ["dig"]=        PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.SHOVEL],
+        ["plant"]=      PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.BERRY],
+        ["give"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.PIG],
+        ["sleep"]=      "<:tent:1133091346371072040>",
+        ["chop"]=       "<:axe:1133094231972515910>",
     },
 }

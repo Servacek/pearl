@@ -274,6 +274,12 @@ local function OnResetCountDownStop(self)
     end
 end
 
+local function OnPlayerSpawnedAt(player, x, y, z)
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN_AT:format(
+        player:GetDisplayName(), x, y, z
+    ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+end
+
 local function OnReset(self)
     PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.RESET:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName())
@@ -348,6 +354,15 @@ PEARL.AddWorldPostInit(function(world)
         world:ListenForModEvent("world_restart", OnRestart)
         world:ListenForModEvent("world_reset", OnReset)
         world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
+
+        if world.components.playerspawner then
+            --- Use precall because some data may be cleared during the original function execution.
+            PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
+                if player and x and y and z then
+                    OnPlayerSpawnedAt(player, x, y, z)
+                end
+            end, world.components.playerspawner)
+        end
     end
 end)
 

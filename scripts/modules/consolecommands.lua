@@ -16,14 +16,27 @@
     This module adds a bunch of console commands (prefixed with c_) to the global environment.
 ]]
 
-PEARL.OverrideVariable("c_inv", PEARL.LogInventoryFor)
 PEARL.OverrideVariable("c_fire", PEARL.ExtinguishFiresNearAll)
 PEARL.OverrideVariable("c_fireall", PEARL.ExtinguishAllFires)
 PEARL.OverrideVariable("c_repair", PEARL.RepairStructuresNearAll)
 PEARL.OverrideVariable("c_unban", PEARL.UnbanUserByID)
 PEARL.OverrideVariable("c_daysback", PEARL.RollbackByDays)
 PEARL.OverrideVariable("c_hasreedtrap", PEARL.CheckForReedTrap)
-PEARL.OverrideVariable("c_mods", PEARL.LogModsFor)
+
+PEARL.OverrideVariable("c_mods", function(userid)
+    local mods = PEARL.PlayerDB:GetField(userid, "lastmods")
+    if not mods then
+        return PEARL.info("No mods found for player", userid)
+    end
+
+    PEARL.info("Sending player's mods report to discord...")
+    PEARL.DiscordReporter:ReportMods(userid, mods)
+end)
+
+PEARL.OverrideVariable("c_inv", function(userid)
+    PEARL.info("Sending player's inventory to discord...")
+    PEARL.DiscordReporter:ReportInventory(userid)
+end)
 
 -- This is here mainly for debugging purposes, so we do not have to wait
 -- for the Master shard to be restarted.

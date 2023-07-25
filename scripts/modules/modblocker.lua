@@ -133,7 +133,6 @@ PEARL.AddFrontEndPreInit(function()
         end
     end
 
-    print("PROHIBITED", prohibited_count, count)
     if prohibited_count > 0 then
         -- Save the changes made to the mod configurations
         SaveModIndex()

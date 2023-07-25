@@ -23,8 +23,8 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 -- A text representation of an discord emoji, ex. '<:refresh:997496890625118250>'
 -- 32 characters reserved for ID and prefix/postfix stuff
 -- Note: Icons contain only ASCII characters. So 1 character == 1 byte.
-local MAX_ICON_LENGTH = PEARL.CONSTS.DISCORD.MAX_EMOJI_NAME_LENGTH + 32
-local MAX_CONTENT_LENGTH = 1800
+local MAX_ICON_LENGTH = 64
+local MAX_CONTENT_LENGTH = 2000 - 13 -- Decrement by the length of the timestamp
 local MAX_TAG_LENGTH = 32
 -- header = tag + icon
 local MAX_HEADER_LENGTH = MAX_TAG_LENGTH + MAX_ICON_LENGTH
@@ -32,9 +32,11 @@ local MAX_TIMESTAMP_LENGTH = 12
 
 local TIMESTAMP_TEMPLATE = MARKDOWN.codeline("[%H:%M:%S]:")
 -- timestamp and content
-local TEMPLATE = (PEARL.CONFIG.DEBUG_MODE and
-    "%s ["..MARKDOWN.codeline(string.upper(PEARL.GetShardFancyName())).."] %s" or "%s %s"
-)
+local DEFAULT_TEMPLATE = "%s %s"
+local TEMPLATE = PEARL.CONFIG.DEBUG_MODE and
+    "%s ["..MARKDOWN.codeline(string.utf8upper(PEARL.GetShardFancyName())).."] %s"
+    or DEFAULT_TEMPLATE
+
 -- timestamp, (icon OR tag) and content
 local TEMPLATE_HEADER_HALF = TEMPLATE.." %s"
 -- timestamp, header (icon AND tag) and content
@@ -56,7 +58,11 @@ local LogLine = Class(function(self, content)
     -- Timestamp should refer to the creation time of this object
     -- This should not change.
     self._timestamp = os.time()
-    self._is_long = false
+
+    --- A boolean representing whether this logline should have a default
+    --- timestamp header or if it should be just the content and icon.
+    --- @type boolean
+    self._raw = false
 
     --assert(type(self._content) == "string", "Attempted to create a LogLine instance without suppling a valid content.")
 
@@ -92,12 +98,12 @@ function LogLine:GetHeaderLength()
     return (self._tag and string.utf8len(self._tag) + 1 or 0) + (self._icon and #self._icon + 1 or 0) + 1
 end
 
-function LogLine:GetLength()
-    return MAX_TIMESTAMP_LENGTH + self:GetHeaderLength() + string.utf8len(self._content)
+function LogLine:GetTotalLength()
+    return MAX_TIMESTAMP_LENGTH + self:GetHeaderLength() + (self._content and string.utf8len(self._content) or 0)
 end
 
 function LogLine:GetReadableTimestamp()
-    if not self._timestamp then
+    if not self._timestamp or self._raw then
         return ""
     end
 
@@ -120,6 +126,10 @@ function LogLine:GetSize()
     return self._size
 end
 
+function LogLine:IsValid()
+    return self._content ~= nil and #self._content > 0
+end
+
 ------------------------------------------
 -- [[ Setter Methods ]]
 ------------------------------------------
@@ -133,6 +143,8 @@ end
 function LogLine:SetContent(content)
     if type(content) == "string" and #content > 0 then
         self._content = content
+    else
+        PEARL.error("Invalid or empty content provided!", content)
     end
 
     return self
@@ -162,8 +174,8 @@ function LogLine:SetHeader(tag, icon)
 end
 
 -- For long texts divided into multiple loglines
-function LogLine:RemoveTimestamp()
-    self._timestamp = nil
+function LogLine:SetIsRaw(raw)
+    self._raw = raw
 
     return self
 end
@@ -175,11 +187,7 @@ end
 function LogLine:_BuildString()
     -- We do not have a header
     if not (self._icon or self._tag) then
-        if PEARL.CONFIG.DEBUG_MODE then
-            TEMPLATE = "%s ["..MARKDOWN.codeline(string.utf8upper(PEARL.GetShardFancyName())).."] %s"
-        end
-
-        return TEMPLATE:format(
+        return (self._raw and DEFAULT_TEMPLATE or TEMPLATE):format(
             self:GetReadableTimestamp(), self._content
         )
     end

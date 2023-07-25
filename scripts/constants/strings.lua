@@ -21,7 +21,7 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 ------------------------------------
 -- Mod Specific Strings
-STRINGS.PEARL = {
+local STRINGS = {
     ACTIONS     = {
         -- Prefer subftm over string.format when there are multiple versions
         -- Here we use the following order:
@@ -29,21 +29,44 @@ STRINGS.PEARL = {
         -- 2. Target Name(s)
         -- 3. Name of the Tool/Item used for the action
         -- The number of parameters can be bigger than needed but not smaller.
-        EAT                     = "%s ate %s!",
-        FEED                    = "%s feed %s with %s!",
-        TURNOFF                 = "%s turned off %s!",
-        TURNON                  = "%s turned on %s!",
-        TEACH                   = "%s learnt %s!",
-        READ                    = "%s read %s!",
+        -- We can keep non-stackable actions in this format...
         ACTIVATE                = "%s activated %s!",
-        COOK                    = "%s cooked %s!",
 
         -- Here we do not care about the order at all.
         -- Also not matching every field will not crash.
         TAKE_ITEM = {
-            GENERIC     = "{doer} took {item}!",
-            FROM        = "{doer} took {items} from {target}!",
-            WITH        = "{doer} took {item} with {with}!"
+            GENERIC     = "{doer} took {target}!",
+            FROM        = "{doer} took {targets} from {source}!",
+            WITH        = "{doer} took {source} with {target}!"
+        },
+
+        FEED = {
+            GENERIC     = "{doer} feed {target}.",
+            WITH        = "{doer} feed {target} with {tool}.",
+        },
+
+        EAT = {
+            GENERIC     = "{doer} ate {target}.",
+            FULL        = "{doer} overeated with {target}."
+        },
+
+        READ = {
+            GENERIC     = "{doer} read {target}.",
+            NEAR        = "{doer} read {target} near {near}!",
+        },
+
+        TEACH = {
+            GENERIC     = "{doer} learnt {target}.",
+        },
+
+        COOK = {
+            GENERIC     = "{doer} cooked {target}!",
+            ON          = "{doer} cooked {target} on {tool}!",
+        },
+
+        EXTINGUISH = {
+            GENERIC     = "{doer} extinguished {target}.",
+            WITH        = "{doer} extinguished {target} using {tool}.",
         },
 
         KILL = {
@@ -53,6 +76,10 @@ STRINGS.PEARL = {
             LAST        = "{doer} killed the last {target}!",
             FOLLOWER    = "{doer} killed {target}! Owner: {owner}",
             BOSS        = "{doer} defeated {target}!"
+        },
+
+        CHOP = {
+            GENERIC     = "{doer} chopped down {target}.",
         },
 
         IGNITE = {
@@ -69,13 +96,33 @@ STRINGS.PEARL = {
         },
 
         BUILD = {
-            GENERIC     = "{doer} built {target}!",
-            NEAR        = "{doer} built {target} near {near}!",
+            GENERIC     = "{doer} built {target}.",
+            NEAR        = "{doer} built {target} near {near}.",
+        },
+
+        GIVE = {
+            GENERIC     = "{doer} gave {tool} to {target}.",
+        },
+
+        SLEEP = {
+            GENERIC     = "{doer} slept in {target}."
         },
 
         DEPLOY = {
             GENERIC     = "{doer} placed {item}!",
             NEAR        = "{doer} placed {item} near {near}!",
+        },
+
+        PLANT = {
+            GENERIC     = "{doer} planted {target}.",
+        },
+
+        DIG = {
+            GENERIC     = "{doer} dug up {target}.",
+        },
+
+        CRAFT = {
+            GENERIC     = "{doer} constructed {target}."
         },
 
         BURNTUP = {
@@ -84,8 +131,8 @@ STRINGS.PEARL = {
         },
 
         HAMMER = {
-            GENERIC     = "{doer} hammered {target}!",
-            OWNED       = "{doer} hammered {target}! Owner: {owner}"
+            GENERIC     = "{doer} hammered down {target}!",
+            OWNED       = "{doer} hammered down {target}! Owner: {owner}"
         }
     },
 
@@ -198,6 +245,8 @@ STRINGS.PEARL = {
         --DAY                     = "Day %d - %s (%s °C) - %d/%d Players",
         DAY                     = "Day %d - %s (%s °C)",
         PHASE                   = "%s",
+
+        SPAWN_AT                = "Spawning %s at: X: %d Y: %2.2f Z: %2.2f",
 
         PRECIPITATION_START     = "It started %s!",
         PRECIPITATION_STOP      = "It stopped %s.",
@@ -484,7 +533,6 @@ STRINGS.PEARL = {
         BAN = "There we go again...",
     },
 
-    --- @TODO: Add a bit more strings here.
     NOVICE_ANNOUNCEMENTS = {
         "Say welcome to %s! It's their first time on the server!",
         "Say hi to %s! He is new here!",
@@ -493,7 +541,7 @@ STRINGS.PEARL = {
         "%s joined for the first time! Welcome!",
         "Glad you are here %s!",
         "Finaly %s has arrived! Welcome!"
-    }--"Say welcome to %s! It's their first time on the server!"
+    }
 }
 
 ------------------------------------
@@ -543,3 +591,6 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PLATFORM_NOT_SUPPORTED",
     "Platform Not Supported",
     "Your platform is not supported by this server... Sorry!"
 )
+
+
+return STRINGS

@@ -11,6 +11,7 @@
 --]==]====================================================]]
 --- @category FrontEnd & BackEnd
 
+--- @TODO: Add some "requires" flag for commands that require a specific webhook to run.
 
 local TheNet = TheNet
 
@@ -257,7 +258,7 @@ AddCommand("inv", {
         end
 
         local userid = UserToClientID(params.userid) or params.userid
-        if PEARL.LogInventoryFor(userid) then
+        if PEARL.DiscordReporter:ReportInventory(userid) then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
                 STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
             )
@@ -335,6 +336,7 @@ AddCommand("inv-find", {
     end,
 })
 
+--- @TODO: Check if this works properly
 AddCommand("daysback", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
@@ -411,16 +413,20 @@ AddCommand("mods", {
             return
         end
 
-        local cfd = PEARL.ServerNetwork:GetCachedCFDFor(params.userid)
-        if not cfd then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_CFD)
+        -- We are sending this to the report channel not to the log channel.
+        if PEARL.DiscordReporter:IsDisabled() then
+            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
+                STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
+            )
         end
 
-        if type(cfd.enabled_mods) ~= "table" or IsTableEmpty(cfd.enabled_mods) or (cfd.enabled_mods.count or 1) <= 1 then
+        local mods = PEARL.PlayerDB:GetField(params.userid, "lastmods")
+        if type(mods) == "table" then
             return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS)
         end
 
-        PEARL.LogModsFor(params.userid, cfd)
+        PEARL.DiscordReporter:ReportMods(params.userid, mods)
+        return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS)
     end,
 })
 

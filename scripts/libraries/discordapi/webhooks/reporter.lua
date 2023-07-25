@@ -15,6 +15,7 @@
 --- @TODO: Think about a way to reduce duplication here...
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local EMBEDS   = PEARL.loadfile("utils/embeds")
 
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
@@ -233,6 +234,45 @@ function Reporter:ReportClientLuaError(userid, data)
     return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
         :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
     )
+end
+
+function Reporter:ReportInventory(userid, player_reference)
+    if type(userid) ~= "string" then
+        PEARL.error("Invalid userid parameter")
+
+        return false
+    end
+
+    local player_meta = player_reference or PEARL.GetPlayerMetadataFor(userid)
+    local message = Message()
+    -- Maybe even calculate the suspiciousness here?
+    message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta))
+
+    self:SendRawReportMessage(message)
+
+    return true
+end
+
+function Reporter:ReportMods(userid, mods)
+    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
+    local owner_name = client and client.name or userid
+    local embed = EMBEDS.ClientMods(mods, owner_name)
+
+    local message = Message()
+    message:AddEmbed(embed)
+    self:SendRawReportMessage(message)
+end
+
+function Reporter:SendPlayerReportMessage(userid, message)
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    local username = client and client.name or "UNKNOWN"
+
+    --- @TODO: Maybe use an embed instead.
+    self:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
+        PEARL.ICONS.ANNOUNCEMENTS["default"], userid, MARKDOWN.escape(username), MARKDOWN.escape(message or "")
+    )):SetAllowedMentionTypes({
+        Message.MENTION_TYPES.EVERYONE
+    }))
 end
 
 -------------------------------------

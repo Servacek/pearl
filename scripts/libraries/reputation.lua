@@ -80,6 +80,11 @@ function Reputation:GetLowestOf(userid)
     return userid and self:GetRepFieldOf(userid, "lowest") or 0
 end
 
+--- @TODO: Handle special case for non-reputable users trying to display they own reputation.
+function Reputation:IsReputable(userid)
+    return not PEARL.AdminList:Contains(userid)
+end
+
 --------------------------------------
 -- [[ Setters ]]
 --------------------------------------

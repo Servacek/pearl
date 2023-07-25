@@ -51,6 +51,28 @@ function string:strip()
     return self:match("^%s*(.-)%s*$")
 end
 
+--- Slices a string into two parts.
+--- If char is provided, it will attempt to slice the string
+--- at the last possible position of the char.
+--- The char won't be contained in the result.
+function string:slice(pos, char)
+    -- Special optimization case for short strings.
+    if #self < pos then
+        return self
+    end
+
+    local lslice = self:sub(1, pos)
+    if char then
+        for i = #lslice, 1, -1 do
+            if self:sub(i, i) == char then
+                return self:sub(1, i - 1), self:sub(i + 1)
+            end
+        end
+    end
+
+    return lslice, self:sub(pos + 1)
+end
+
 --- Checks if string starts with the given prefix
 --
 --- @BYTEAWARE
@@ -138,6 +160,15 @@ function string:raw()
     return self.format("%q", self)
 end
 
-function string:nformat(map)
-    return (self:gsub("{([^}]+)}", map))
+--- If name is a table, all formattings in that table will be applied.
+--- Otherwise, if it's a string then a only specific formatting with that name
+--- will be replaced with the value string provided.
+--- @param name table<string, any>|string
+--- @param value string?
+function string:nformat(name, value)
+    if type(name) == "table" then
+        return (self:gsub("{([^}]+)}", name))
+    end
+
+    return self:gsub("{"..name.."}", value, 1)
 end

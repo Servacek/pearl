@@ -569,8 +569,6 @@ PEARL.AddUserDataFunctionPreCall("Ban", function(self, userid)
         PEARL.debug("User banned", userid)
 
         PEARL.EventProcessor:HandleEvent("clientbanned", userid)
-    else
-        print("CLIENT ALREADY BANNED!")
     end
 end, TheNet)
 

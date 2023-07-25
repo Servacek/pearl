@@ -156,18 +156,28 @@ function Logger:LogLine(logline, force)
         return PEARL.error("Attempted to send an invalid logline!", logline)
     end
 
-    -- Returns nil if adding the embed has failed.
+    local success, rest = self._buffer:AddLogLine(logline)
+    if rest then
+        self._buffer:Timeout()
+
+        PEARL.info("Sending the rest of the message...")
+        return self:LogLine(rest:SetIsRaw(true), force)
+    end
+
+    -- Returns nil if adding the logline has failed.
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
-    if not self._buffer:AddLogLine(logline) then
+    if not success then
+        -- Send and clear the current buffer.
         self._buffer:Timeout()
 
         -- Retry with a cleared buffered message
         if not self._buffer:AddLogLine(logline) then
-            -- If still no success, the embed is most likely invalid.
+            -- If still no success, the logline is most likely invalid.
             return PEARL.error("Attempted to add an invalid logline!", logline)
         end
     end
 
+    -- Start new buffer cycle if message was sent successfully.
     return self:_OnNewLog(force)
 end
 

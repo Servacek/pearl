@@ -84,10 +84,14 @@ function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, c
     end)
 end
 
+function EntityScript:GetStandardizedName()
+    return PEARL.GetStandardizedNameFor(self)
+end
+
 function EntityScript:GetFancyName()
     local stacksize = PEARL.GetStackSize(self)
 
-    local name = PEARL.GetStandardizedNameFor(self)
+    local name = self:GetStandardizedName()
     if stacksize and stacksize > 1 then
         return STRINGS.PEARL.LOGS.ITEM:format(
             stacksize, name

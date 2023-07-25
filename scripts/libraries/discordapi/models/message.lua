@@ -26,6 +26,8 @@
 --- @type utf8
 local utf8 = PEARL.loadfile("libraries/utf8")
 
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+
 -------------------------------------
 -- [[ Global Localization ]]
 -------------------------------------
@@ -33,7 +35,6 @@ local utf8 = PEARL.loadfile("libraries/utf8")
 local PEARL = PEARL
 local table = table
 local json, bit = json, bit
-local pcall = pcall
 local type = type
 
 local shallowcopy = shallowcopy
@@ -50,15 +51,18 @@ local CROP_POSTFIX = "..."
 -- [[ Class Declarations ]]
 -------------------------------------
 
+-- The order of message elements being displayed:
+-- 1. The raw content of the message.
+-- 2. The loglines.
+-- 3. The embeds.
+-- (Currently loglines and raw content are combined)
+
 -- A message object can contain multiple log lines
 --- @param content string? The content of the message
 --- @class Message
 local Message = Class(function(self, content)
     -- Create the table only when it's needed
     -- for embed only messages
-    -- Contains the already built loglines
-    --- @type table?
-    self._loglines = nil
 
     --- @type string?
     self._content = content
@@ -89,10 +93,12 @@ end)
 
 -- Note: Discord's limit is based on characters not bytes.
 -- So use utf8len to determine the actual number of characters.
-Message.MAX_CONTENT_LENGTH_LIMIT        = 2000
+Message.MAX_CONTENT_LENGTH        = 2000
+Message.MAX_TOTAL_LENGTH                = 6000
 Message.CONTENT_LENGTH_LIMIT_RESERVE    = 100
-Message.CONTENT_LENGHT_LIMIT            = Message.MAX_CONTENT_LENGTH_LIMIT - Message.CONTENT_LENGTH_LIMIT_RESERVE
+Message.CONTENT_LENGHT_LIMIT            = Message.MAX_CONTENT_LENGTH - Message.CONTENT_LENGTH_LIMIT_RESERVE
 Message.EMBED_COUNT_LIMIT               = 10
+--- @TODO: Possible optimization since the json rarely changes.
 Message.JSON_STRING                     = [[
     {
         "content": "%q",
@@ -126,25 +132,52 @@ Message.DEFAULT_ALLOWED_MENTIONS = {
 -- [[ Getters ]]
 ------------------------------------------
 
-function Message:GetLength()
-    if not self._loglines then
+function Message:GetContentLength()
+    if not self._content then
         return 0
     end
 
-    local length = self._content and string.utf8len(self._content) or 0
-    for i = 1, #self._loglines do
-        length = string.utf8len(self._loglines[i])
+    local length = 0
+    if self._content then
+        length = length + string.utf8len(self._content)
     end
 
     return length
+end
+
+function Message:GetEmbedTextLength()
+    if not self._embeds or #self._embeds <= 0 then
+        return 0
+    end
+
+    local length = 0
+    for i = 1, #self._embeds do
+        if self._embeds[i] then
+            length = length + self._embeds[i]:GetTotalLength()
+        end
+    end
+
+    return length
+end
+
+function Message:GetTotalLength()
+    return (self:GetContentLength() + self:GetEmbedTextLength())
 end
 
 function Message:AcceptsEmbeds()
     return not self._embeds or #self._embeds < PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT
 end
 
-function Message:HasLogLines()
-    return self._loglines ~= nil and #self._loglines > 0
+function Message:CanAcceptEmbed(embed)
+    return embed:IsValid() and self:AcceptsEmbeds() and
+    (self:GetTotalLength() + embed:GetTotalLength()) < self.MAX_TOTAL_LENGTH
+end
+
+function Message:CanAcceptLogLine(logline)
+    local length = logline:GetTotalLength()
+
+    return logline:IsValid() and (self:GetContentLength() + length) < self.MAX_CONTENT_LENGTH and
+    (self:GetTotalLength() + length) < self.MAX_TOTAL_LENGTH
 end
 
 function Message:HasEmbed()
@@ -153,16 +186,15 @@ end
 
 function Message:HasContent()
     -- Maybe just blank characters are not counted as a content?
-    return self._content ~= nil and #self._content > 0
+    return self._content ~= nil and #self._content:strip() > 0
 end
 
 function Message:GetFreeCharCount()
-    return Message.CONTENT_LENGHT_LIMIT - self:GetLength()
+    return Message.CONTENT_LENGHT_LIMIT - self:GetContentLength()
 end
 
 function Message:GetContent()
-    return self:HasLogLines() and table.concat(self._loglines, "\n")
-    or self._content
+    return self._content
 end
 
 -- A Message is valid if it has at least one of the main attributes:
@@ -170,7 +202,7 @@ end
 -- - File
 -- - Embed
 function Message:IsValid()
-    return self:HasLogLines() or self:HasContent() or self:HasEmbed()
+    return self:HasContent() or self:HasEmbed()
 end
 
 function Message:GetEmbed(index)
@@ -187,11 +219,13 @@ function Message:SetContent(content)
     return self
 end
 
+--- @nonchainable
 --- @param embed Embed The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddEmbed(embed)
-    if not self:AcceptsEmbeds() then
-        return PEARL.error("Attempted to add more than", PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT, "embeds to a message.")
+    if not self:CanAcceptEmbed(embed) then
+        PEARL.error("Attempted to add more than", PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT, "embeds to a message.")
+        return
     end
 
     if not self._embeds then
@@ -203,6 +237,7 @@ function Message:AddEmbed(embed)
     return self
 end
 
+--- @nonchainable
 function Message:AddEmbeds(embeds)
     for i = 1, #embeds do
         self:AddEmbed(embeds[i])
@@ -211,18 +246,27 @@ function Message:AddEmbeds(embeds)
     return self
 end
 
+--- @nonchainable
 --- @param logline LogLine The logline to be added.
---- @return Message? self Return self on success, nil on error.
+--- @return boolean success, LogLine? rslice on success, nil on error.
 function Message:AddLogLine(logline)
-    if not self._loglines then
-        self._loglines = {} -- Leave allocation on lua for small messages.
+    if not logline:IsValid() then
+        PEARL.error("Attempted to add an invalid logline or the message is full!")
+        return false
     end
 
-    self._loglines[#self._loglines + 1] = logline
-        :Build()
-        :ltake(self:GetFreeCharCount(), nil, CROP_POSTFIX)
+    if self._content then
+        self._content = self._content.."\n"
+    end
 
-    return self
+    local lslice, rslice = logline:Build():slice(self:GetFreeCharCount(), "\n")
+    self._content = (self._content or "")..lslice
+
+    if rslice and rslice:strip() ~= "" then
+        return true, LogLine(rslice)
+    end
+
+    return true
 end
 
 function Message:AddFlag(flag)

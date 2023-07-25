@@ -36,6 +36,7 @@ return {
 		},
 
 		-- table<prefab, pop_threshold>
+		-- The population number under which we will start to announce killing these.
 		MONITOR_POPULATION = {
 			["beefalo"] = 5,
 			["lightninggoat"] = 1,

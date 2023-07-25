@@ -17,11 +17,8 @@
 -- This is really required!
 require("stacktrace")
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local UserCommands = require("usercommands")
+--- Load as little stuff here as possible since this is loaded at the start.
 local EncodeBase64 = PEARL.loadfile('utils/base64encoder')
-local EMBEDS = PEARL.loadfile("utils/embeds")
-
 local PlayerReference = PEARL.loadfile("models/playermetadata")
 
 --------------------------------
@@ -461,9 +458,9 @@ end
 function PEARL.BuildFancyStringFor(grouped)
     local fancy_names = {}
     for name, count in pairs(grouped) do
-        fancy_names[#fancy_names+1] = STRINGS.PEARL.LOGS.ITEM:format(
+        fancy_names[#fancy_names+1] = count > 1 and STRINGS.PEARL.LOGS.ITEM:format(
             count, name
-        )
+        ) or name
     end
 
     return PEARL.FancyTableConcat(fancy_names)
@@ -474,6 +471,15 @@ function PEARL.BuildFancyStringForEntities(entities)
 end
 
 function PEARL.GetStandardizedNameFor(entity)
+    if type(entity) ~= "table" then
+        return  tostring(entity)
+    end
+
+    --- For players
+    if entity.userid then
+        return entity:GetDisplayName()
+    end
+
     return entity and (STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName())
 end
 
@@ -701,32 +707,4 @@ function PEARL.UnbanUserByID(userid)
 
     PEARL.info("Attempt to unban", userid, "failed.")
     return false
-end
-
-function PEARL.LogInventoryFor(userid)
-    if type(userid) ~= "string" then
-        PEARL.error("Invalid userid parameter")
-
-        return false
-    end
-
-    local player_meta = PEARL.GetPlayerMetadataFor(userid)
-    local message = Message()
-    -- Maybe even calculate the suspiciousness here?
-    message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta))
-
-    PEARL.DiscordReporter:SendRawReportMessage(message)
-
-    return true
-end
-
-function PEARL.LogModsFor(userid, cfd)
-    cfd = cfd or PEARL.ServerNetwork:GetCachedCFDFor(userid)
-    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    local owner_name = client and client.name or userid
-    local embed = EMBEDS.ClientMods(cfd.enabled_mods, owner_name)
-
-    local message = Message()
-    message:AddEmbed(embed)
-    PEARL.DiscordReporter:SendRawReportMessage(message)
 end

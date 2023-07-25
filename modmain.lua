@@ -74,6 +74,8 @@
 
     - Do not use "return PEARL.log(...)" because that counts as a new scope.
 
+    - LookupIdValue seems to be a C implemetation of my table lookup by string path.
+
     - CWD - Current Working Directory
 
     - Built-in utf8 library:
@@ -392,7 +394,8 @@ end
 --------------------------------
 
 PEARL.info("Loading strings...")
-PEARL.loadfile("constants/strings")
+-- Store this in the Global string table so we can apply translations more easily.
+STRINGS.PEARL = PEARL.loadfile("constants/strings")
 
 -- With this implementation we are not limited to a hard coded set of languages
 -- but we are able to add our own languages without changing the code instead.
@@ -401,6 +404,12 @@ local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
 if PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE and io.exists(path) then
     PEARL.info("Loading translations...")
     LoadPOFile(path, PEARL.CONFIG.LANGUAGE)
+
+    if PEARL.CONFIG.DEBUG_MODE and TheNet:IsDedicated() then
+        local TRANSLATED_STRINGS = LanguageTranslator.languages[PEARL.CONFIG.LANGUAGE]
+        local ORIGINAL_STRINGS = PEARL.loadfile("constants/strings", nil, true)
+        PEARL.loadfile("languages/createstringspo")(path, ORIGINAL_STRINGS, TRANSLATED_STRINGS)
+    end
 else
     PEARL.error("Language", PEARL.CONFIG.LANGUAGE, "not supported!")
 end
@@ -440,6 +449,15 @@ PEARL.AddAnnouncementCategory("activate")
 PEARL.AddAnnouncementCategory("teach")
 PEARL.AddAnnouncementCategory("read")
 PEARL.AddAnnouncementCategory("welcome")
+
+--- These do not log in-game
+PEARL.AddAnnouncementCategory("extinguish")
+PEARL.AddAnnouncementCategory("build")
+PEARL.AddAnnouncementCategory("craft")
+PEARL.AddAnnouncementCategory("dig")
+PEARL.AddAnnouncementCategory("plant")
+PEARL.AddAnnouncementCategory("give")
+PEARL.AddAnnouncementCategory("sleep")
 
 --------------------------------
 -- [[ Instance Param Manager]]

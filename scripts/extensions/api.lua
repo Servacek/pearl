@@ -149,6 +149,8 @@ function PEARL.AddRPCHandlerPreCall(name, precb)
 end
 
 function PEARL.AddClassFunctionPreCall(name, precb, class)
+    PEARL.debug("PEARL.AddClassFunctionPreCall", name, class)
+
     class = type(class) == "string" and require(class) or class
 
     if type(class) ~= "table" then

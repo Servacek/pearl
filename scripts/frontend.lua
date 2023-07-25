@@ -179,7 +179,6 @@ if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUST
         local type = PEARL.CONSTS.LT_TYPE_TABLES[lt.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
 
         if novice then
-            print(lt.type, LT_TYPES.WELCOME)
             if lt.type ~= LT_TYPES.WELCOME then
                 return
             else
@@ -192,7 +191,6 @@ if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUST
             end
         end
 
-        print("ADDING LOADING TIP:", type, name, lt.text, lt.data)
         AddLoadingTip(type, name, lt.text, lt.data)
     end
 

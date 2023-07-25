@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
+--- @TODO: Send empty response if no data to save some bytes.
 
 ----------------------------------
 -- Constants
@@ -39,7 +39,7 @@ end
 
 local function HandleChatMessages(messages)
     if IsTableEmpty(messages) then
-        return print("NO MESSAGES!")
+        return
     end
 
     for _, message in ipairs(messages) do
