@@ -121,11 +121,10 @@ PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 
 ----------------------------------
 -- Assets
-----------------------------------
---- @unexpected end of data - Check these when this error hapens.
---- The XML files may be wrongly formatted
-PEARL.info("Loading assets...")
-Assets = {
+----------------------------------¨
+
+PEARL.info("Registering assets...")
+PEARL.ENV.Assets = {
     Asset("IMAGE", "images/dcbutton.tex"),
     Asset("ATLAS", "images/dcbutton.xml"),
 
@@ -134,7 +133,18 @@ Assets = {
 
     Asset("IMAGE", "images/dft_flairs.tex"),
     Asset("ATLAS", "images/dft_flairs.xml"),
+
+    -- Asset("IMAGE", "images/bg_loading_space.tex"),
+    -- Asset("ATLAS", "images/bg_loading_space.xml"),
 }
+
+PEARL.info("Loading preload assets...")
+PEARL.ENV.PreloadAssets = {
+    Asset("PKGREF", "images/bg_loading_space.tex"),
+    Asset("DYNAMIC_ATLAS", "images/bg_loading_space.xml"),
+}
+
+PEARL.ENV.ReloadPreloadAssets()
 
 ----------------------------------
 -- User Interface
@@ -146,66 +156,6 @@ PEARL.POPUPS = {}
 
 PEARL.loadfile("constants/strings")
 
---[[
-    <string_table> can be one of the following:
-    LOADING_SCREEN_SURVIVAL_TIPS
-    LOADING_SCREEN_LORE_TIPS
-    LOADING_SCREEN_CONTROL_TIPS
-    LOADING_SCREEN_CONTROL_TIPS_CONSOLE
-    LOADING_SCREEN_CONTROL_TIPS_NOT_CONSOLE
-    STRINGS.UI.LOADING_SCREEN_OTHER_TIPS (It is recommended to use this table as it is reserved for custom loading tips.)
-    <tip_id> must be a unique ID name.
-    <tip_string> is the actual tip string to be displayed.
-    <controltipdata> is a table containing input control bindings to be used in the tip string. Refer to LOADING_SCREEN_CONTROL_TIP_KEYS in constants.lua and LOADING_SCREEN_CONTROL_TIPS in strings.lua for an example usage.
-]]
--- Loading screen tips setup
-if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
-    local default_removed = false
-    local function RemoveDefaultLoadingTips()
-        if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override ~= true then
-            return
-        end
-
-        if not default_removed then
-            PEARL.info("Removing default loading tips...")
-            PEARL.RemoveAllLoadingTips()
-        end
-
-        default_removed = true
-    end
-
-    local novice = PEARL.ClientNetwork:IsNovice()
-    local function OptionalAddLoadingTip(name, lt)
-        local type = PEARL.CONSTS.LT_TYPE_TABLES[lt.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
-
-        if novice then
-            if lt.type ~= LT_TYPES.WELCOME then
-                return
-            else
-                -- For novices keep default loading tips
-                -- until some welcome tip is found.
-                -- So when no welcome tips are set,
-                -- the default ones will stay.
-                RemoveDefaultLoadingTips()
-                type = PEARL.CONSTS.LT_TYPE_TABLES["survival"]
-            end
-        end
-
-        AddLoadingTip(type, name, lt.text, lt.data)
-    end
-
-    if not novice then
-        RemoveDefaultLoadingTips()
-    end
-
-    PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
-
-    for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
-        local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
-        OptionalAddLoadingTip(name, lt)
-    end
-end
-
 ----------------------------------
 -- UI Extensions
 ----------------------------------
@@ -216,6 +166,8 @@ PEARL.loadfile("extensions/ui/templates")
 PEARL.loadfile("extensions/ui/playerlist")
 PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
+
+PEARL.loadfile("extensions/ui/loadingwidget")
 
 ----------------------------------
 -- Other Modules

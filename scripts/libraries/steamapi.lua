@@ -52,6 +52,31 @@ local function HandleQueryResult(query, result)
     end
 end
 
+local function OnQueryFinished(result, request, steamid, index)
+    local seq = SteamAPI._query_sequences[steamid]
+    if not seq then
+        return PEARL.error("Query finished for invalid sequence!")
+    end
+
+    local query = seq[index]
+    if not query then
+        return PEARL.error("Invalid query finished!")
+    end
+
+    seq[index] = nil
+
+    -- We do not care if this errors, our work here is to just call it.
+    HandleQueryResult(query, result)
+
+    if #seq == 0 then
+        SteamAPI:RemoveDataQuerySequenceFor(steamid)
+
+        if type(seq.finishcb) == "function" then
+            seq.finishcb()
+        end
+    end
+end
+
 -------------------------------------
 -- [[ Public Methods ]]
 -------------------------------------
@@ -78,13 +103,19 @@ function SteamAPI:AddRawQueryToSequence(steamid, query, cb, ...)
     return qr
 end
 
-function SteamAPI:CreateDataQuerySequenceFor(steamid)
+function SteamAPI:RemoveDataQuerySequenceFor(steamid)
+    self._query_sequences[steamid] = nil
+end
+
+function SteamAPI:CreateDataQuerySequenceFor(steamid, finishcb)
     if type(self._query_sequences[steamid]) ~= "table" then
-        self._query_sequences[steamid] = { n = 0 }
+        self._query_sequences[steamid] = {
+            finishcb = finishcb
+        }
     end
 end
 
-function SteamAPI:ExecuteDataQuerySequenceFor(steamid, finishcb)
+function SteamAPI:ExecuteDataQuerySequenceFor(steamid)
     if type(self._query_sequences[steamid]) ~= "table" then
         return PEARL.error("Attempted to execute an invalid query sequence.")
     end
@@ -94,22 +125,11 @@ function SteamAPI:ExecuteDataQuerySequenceFor(steamid, finishcb)
     for i = #seq, 1, -1 do
         query = seq[i]
 
-        PEARL.HTTPClient:GET(query.url:format(steamid, unpack(query.args)), function(result, success, http_code)
-            query = seq[i]
-            seq[i] = nil
-
-            if not (success and type(result) == "string") then
-                return
-            end
-
-            -- We do not care if this errors, our work here is to just call it.
-            HandleQueryResult(query, result)
-
-            if finishcb and #seq == 0 then
-                finishcb()
-            end
-        -- We want the response to be raw in case of
-        end):SetIsRaw(query.raw):Send(true)
+        if query then
+            PEARL.HTTPClient:GET(
+                query.url:format(steamid, unpack(query.args)), OnQueryFinished, nil, steamid, i
+            ):SetIsRaw(query.raw):Send(true)
+        end
     end
 end
 

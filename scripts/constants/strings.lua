@@ -382,6 +382,7 @@ local STRINGS = {
     },
 
     -- Create a copy of the game's seasons so we do not modify the actual table when translating
+    -- THESE translations should NOT display on the client.
     SEASONS = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.SEASONS),
     PHASES  = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.PHASES),
 

@@ -133,3 +133,8 @@ function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname,
         mod = mod,
     }), ...)
 end
+
+if TheNet:IsDedicated() then
+    -- No widgets on a dedicated server.
+    PEARL.OverrideValue(_G, "SetGlobalErrorWidget", function() end)
+end

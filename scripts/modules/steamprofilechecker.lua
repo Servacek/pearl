@@ -130,7 +130,11 @@ end
 local function CalculateProfileReputation(steamid, cfd, cb)
     local rep = MAX_PROFILE_REP
 
-    PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid)
+    PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
+        if type(cb) == "function" then
+            cb(rep)
+        end
+    end)
 
     -- VAC - Valve Anti-Cheat
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_BANS, function(data)
@@ -239,11 +243,7 @@ local function CalculateProfileReputation(steamid, cfd, cb)
         end
     end)
 
-    PEARL.SteamAPI:ExecuteDataQuerySequenceFor(steamid, function()
-        if type(cb) == "function" then
-            cb(rep)
-        end
-    end)
+    PEARL.SteamAPI:ExecuteDataQuerySequenceFor(steamid)
 end
 
 local function CalculateProfileReputationForUser(userid, cfd, ...)

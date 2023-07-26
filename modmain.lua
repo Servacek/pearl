@@ -74,8 +74,6 @@
 
     - Do not use "return PEARL.log(...)" because that counts as a new scope.
 
-    - LookupIdValue seems to be a C implemetation of my table lookup by string path.
-
     - CWD - Current Working Directory
 
     - Built-in utf8 library:

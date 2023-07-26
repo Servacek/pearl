@@ -277,14 +277,15 @@ function PEARL.AddFrontEndPreInit(precb)
     table.insert(frontend_preinits, precb)
 end
 
-function PEARL.AddGlobalClassPreConstruct(filename, classname, precb)
+function PEARL.AddClassPreConstruct(filename, classname, precb)
     require(filename)
+
 	local classdef = rawget(_G, classname)
-	if classdef == nil then
+	if not classdef then
 		classdef = require(filename)
 	end
 
-	assert(type(classdef) == "table", "Class '"..classname.."' wasn't loaded to global from '"..filename.."'.")
+	assert(type(classdef) == "table", "Class '"..tostring(classname).."' wasn't loaded to global from '"..filename.."'.")
 
     PEARL.AddClassFunctionPreCall("_ctor", precb, classdef)
 end
@@ -381,7 +382,7 @@ PEARL.AddGlobalFunctionPostCall("RegisterPrefabsImpl", function(inst)
     end
 end)
 
-PEARL.AddGlobalClassPreConstruct("frontend", "FrontEnd", function(...)
+PEARL.AddClassPreConstruct("frontend", "FrontEnd", function(...)
     if TheFrontEnd then
         return false
     end

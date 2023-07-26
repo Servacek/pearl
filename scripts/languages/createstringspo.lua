@@ -20,40 +20,75 @@
 	ONLY USE WHEN YOU KNOW WHAT ARE YOU DOING!
 --]]
 
-local function PrintTranslatedStringTableV2(base, original, translated, file)
+local function getvbypath(t, path)
+    local value = t
+    for key in path:gmatch("[^%.]+") do
+        if type(value) ~= "table" then
+            return nil -- If any intermediate value is not a table, return nil
+        end
+
+        value = value[key] or value[tonumber(key)]
+        if value == nil then
+            return nil -- If any key doesn't exist, return nil
+        end
+    end
+
+    return value
+end
+
+local function PrintUntranslatedStringTableV2(base, original, translated, file)
 	local path
 
 	for k, v in pairs(original) do
-		path = base and base.."."..k or k
+		path = base and base.."."..tostring(k) or k
 
 		if type(v) == "table" then
-			PrintTranslatedStringTableV2(path, v, translated, file)
-		else
-			local msgstr = translated[path]
-			if msgstr then
-				msgstr = string.gsub(msgstr, "\n", "\\n")
-				msgstr = string.gsub(msgstr, "\r", "\\r")
-				msgstr = string.gsub(msgstr, "\"", "\\\"")
-			else
-				msgstr = ""
-			end
-
-			local msgid = v
+			PrintUntranslatedStringTableV2(path, v, translated, file)
+		elseif not translated[path] then
+			local msgid = path
 			msgid = string.gsub(msgid, "\n", "\\n")
 			msgid = string.gsub(msgid, "\r", "\\r")
 			msgid = string.gsub(msgid, "\"", "\\\"")
 
-			if msgid ~= "" then
-				file:write("#. "..path)
-				file:write("\n")
-				file:write("msgctxt \""..path.."\"")
-				file:write("\n")
-				file:write("msgid \""..msgid.."\"")
-				file:write("\n")
-				file:write("msgstr \""..msgstr.."\"")
-				file:write("\n\n")
-			end
+			file:write("#. "..path)
+			file:write("\n")
+			file:write("msgctxt \""..path.."\"")
+			file:write("\n")
+			file:write("msgid \""..msgid.."\"")
+			file:write("\n")
+			file:write("msgstr \"\"")
+			file:write("\n\n")
 		end
+	end
+end
+
+local function PrintTranslatedStringTableV2(base, original, translated, file)
+	for path, string in pairs(translated) do
+		-- if type(v) == "table" then
+		-- 	PrintTranslatedStringTableV2(path, v, translated, file)
+
+		local msgstr = string
+		if msgstr then
+			msgstr = string.gsub(msgstr, "\n", "\\n")
+			msgstr = string.gsub(msgstr, "\r", "\\r")
+			msgstr = string.gsub(msgstr, "\"", "\\\"")
+		else
+			msgstr = ""
+		end
+
+		local msgid = getvbypath(original, path:sub(#base + 2)) or ""
+		msgid = string.gsub(msgid, "\n", "\\n")
+		msgid = string.gsub(msgid, "\r", "\\r")
+		msgid = string.gsub(msgid, "\"", "\\\"")
+
+		file:write("#. "..path)
+		file:write("\n")
+		file:write("msgctxt \""..path.."\"")
+		file:write("\n")
+		file:write("msgid \""..msgid.."\"")
+		file:write("\n")
+		file:write("msgstr \""..msgstr.."\"")
+		file:write("\n\n")
 	end
 end
 
@@ -79,6 +114,7 @@ return function(filename, original, translated)
 	file:write("\n")
 
 	PrintTranslatedStringTableV2("STRINGS.PEARL", original, translated, file)
+	PrintUntranslatedStringTableV2("STRINGS.PEARL", original, shallowcopy(translated), file)
 
 	file:close()
 end

@@ -46,16 +46,7 @@ function PEARL.RecordProfileData(userid, cb)
         end
     end
 
-    PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid)
-
-    PEARL.SteamAPI:AddQueryToSequence(
-        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_TOGETHER_APPID
-    )
-    PEARL.SteamAPI:AddQueryToSequence(
-        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_APPID
-    )
-
-    PEARL.SteamAPI:ExecuteDataQuerySequenceFor(steamid, function()
+    PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
         -- This is in minutes!
         PEARL.PlayerDB:OptionalSafeSetField(userid, "gameplaytime", gameplaytime)
 
@@ -63,6 +54,13 @@ function PEARL.RecordProfileData(userid, cb)
             cb()
         end
     end)
+
+    PEARL.SteamAPI:AddQueryToSequence(
+        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_TOGETHER_APPID
+    )
+    PEARL.SteamAPI:AddQueryToSequence(
+        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_APPID
+    )
 end
 
 --------------------------------------
@@ -105,7 +103,7 @@ local function OnClientAgreementFinished(data)
 end
 
 local function OnClientConnected(world, player)
-    PEARL.PlayerDB:OptionalSafeSetFild(player.userid, "lastjoinedtime", os.time())
+    PEARL.PlayerDB:OptionalSafeSetField(player.userid, "lastjoinedtime", os.time())
 
     local client = TheNet:GetClientTableForUser(player.userid)
     if not client or not client.name then
