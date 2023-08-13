@@ -1,0 +1,24 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+-------------------------------------
+-- [[ Username Profanity Filter ]]
+-------------------------------------
+
+PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
+    if type(data.username) ~= "string" then
+        return
+    end
+
+    return not ProfanityFilter:Detect(data.username), "ID_DST_USERNAME_BLOCKED"
+end)

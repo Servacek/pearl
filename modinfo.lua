@@ -85,6 +85,9 @@ configuration_options = {
                 COMMANDS_ENABLED    = false,
 
                 SYNC_INTERVAL       = 10, -- Every 10 seconds
+                SYNC_INTERVAL_FAST  = 4,
+
+                BOOST_DELAY         = 2 * 60,  -- 5 minutes
             }
         },
         type = "table<string, any>",
@@ -153,10 +156,10 @@ configuration_options = {
     --------------------
     -- REST API
     --------------------
-
+    -- The number of seconds per one request.
     {
-        name="REQUEST_FREQUENCY", -- In seconds
-        default=2,
+        name = "REQUEST_FREQUENCY", -- In seconds
+        default = 1,
         type = "number",
     },
 
@@ -316,9 +319,12 @@ configuration_options = {
     {
         name = "SUPPORTED_CLIENT_PLATFORMS",
         default = { -- We do only support Steam as the platform by default
-            "WIN32_STEAM",
-            "LINUX_STEAM",
-            "OSX_STEAM",
+            -- Commented out for now so the checker is disabled by default since
+            -- cross-platform is not supported currently.
+            -- But in can be still enabled via modoverrides.lua in case something changes...
+            --"WIN32_STEAM",
+            --"LINUX_STEAM",
+            --"OSX_STEAM",
         },
         type = "table",
     },

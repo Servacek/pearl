@@ -15,9 +15,6 @@
     provider, video, and any height, width, or proxy_url values for images.
 --]]
 
---- @type utf8
-local utf8 = PEARL.loadfile("libraries/utf8")
-
 ------------------------------------------
 -- [[ Class Declaration ]]
 ------------------------------------------

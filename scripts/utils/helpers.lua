@@ -621,11 +621,23 @@ function PEARL.PercentToRGB(percent)
     return math.floor(percent[1] * 255), math.floor(percent[2] * 255), math.floor(percent[3] * 255)
 end
 
+-- The input can be either individual numbers or a RGB table.
 function PEARL.RGBToDecimal(r, g, b)
-    return bit.lshift(r, 16) + bit.lshift(g, 8) + b
+    if type(r) == "table" then
+        b = r.b or r[3]
+        g = r.g or r[2]
+        r = r.r or r[1]
+    end
+
+    return bit.lshift((r or 0), 16) + bit.lshift((g or 0), 8) + (b or 0)
 end
 
+-- Does return r, g, b separately, use GetColorFromDecimal for a color table.
 function PEARL.DecimalToRGB(decimal)
+    if type(decimal) ~= "number" then
+        return
+    end
+
     return bit.band(bit.rshift(decimal, 16), 0xFF), bit.band(bit.rshift(decimal, 8), 0xFF), bit.band(decimal, 0xFF)
 end
 
@@ -668,6 +680,10 @@ function PEARL.ExtinguishAllFires()
 end
 
 function PEARL.ExtinguishFiresNearAll()
+    if #AllPlayers > 0 then
+        return PEARL.info("Server is empty")
+    end
+
     for _, v in ipairs(AllPlayers) do
         if v.Transform then
             PEARL.ExtinguishFires(v.Transform:GetWorldPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
@@ -701,6 +717,8 @@ end
 function PEARL.UnbanUserByID(userid)
     if PEARL.BlackList:RemovePlayerByID(userid) then
         PEARL.info("Successfully removed", userid, "from the blocklist!")
+
+        PEARL.EventProcessor:HandleEvent("clientunbanned", userid)
 
         return true
     end

@@ -11,6 +11,9 @@
 --]==]====================================================]]
 
 
+
+local utf8 = PEARL.loadfile("libraries/utf8")
+
 -------------------------------------
 -- [[ Global Localization ]]
 -------------------------------------
@@ -276,7 +279,22 @@ function Request:OnCompleted(response, is_successful, http_code)
         end
     end
 
+    -- Status Code Handlers
+    local handlers = self.rcode_handlers[http_code]
+    if type(handlers) == "table" and not table.empty(handlers) then
+        -- If custom handlers exist, do not call the default callbacks.
+        for _, handle in ipairs(handlers) do
+            handle(response, self, unpack(self.callbackfn_args))
+        end
+
+        return
+    end
+
     if (is_successful and http_code < 400) == false then
+        if type(self.errfn) == "function" then
+            self.errfn(response, http_code, self, unpack(self.callbackfn_args))
+        end
+
         local reason
         if http_code == 0 then
             reason = "Operation timed out!"
@@ -295,25 +313,12 @@ function Request:OnCompleted(response, is_successful, http_code)
                 self.host or "unknown", http_code, reason
             ), tonumber(http_code or 0) > 0 and self.data
         )
-
-        if type(self.errfn) == "function" then
-            self.errfn(response, http_code, self, unpack(self.callbackfn_args))
-        end
-
     -- Call the request's callback, if provided
     -- Only call the callback if we have successesed!
     elseif type(self.callbackfn) == "function" then
         self.callbackfn(
             response, self, unpack(self.callbackfn_args)
         )
-    end
-
-    -- Status Code Handlers
-    local handlers = self.rcode_handlers[http_code]
-    if type(handlers) == "table" and not table.empty(handlers) then
-        for _, handle in ipairs(handlers) do
-            handle(response, self, unpack(self.callbackfn_args))
-        end
     end
 end
 

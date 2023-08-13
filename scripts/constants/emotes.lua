@@ -1,10 +1,10 @@
 --[[====================================================[==[
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
-    
+
     Copyright (c) 2023 Fi7iP
     All rights reserved.
-    
+
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
@@ -121,6 +121,11 @@ return {
         ["󰀭"] = "<a:trophy:997509395309150238>", -- :trophy:
         ["󰀮"] = "<a:wave:997511183085097050>", -- :wave:
         ["󰀯"] = "<a:wormhole:997509414636507156>", -- :wormhole:
+
+        -- These are internal but can still be used in the chat using the UTF8 codes.
+        -- Or in messages sent from discord.
+        ["󰀰"] = "<:endless:1093462962397794314>",
+        ["󰀱"] = "<:touchstone:1134905297278877766>",
 
         -- Status announcements mod
         [""] = "<a:lmb:997499438077591593>",

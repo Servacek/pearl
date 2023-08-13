@@ -114,6 +114,11 @@ return {
         CAVE_LEAVE          = "<:cave_leave:998568758647988244>",
         FORCE_DISCONNECTED  = "<:disconnect:1030926979463135313>",
         DROP_ITEMS          = "<:drop:1096807866167480401>",
+        UNBAN               = "<:unban:1138547740410908824>",
+    },
+
+    PLAYER_VANITY = {
+        ["dft_discord"] = "<:discord:1135176871655522374>",
     },
 
     SIM_STATE = {

@@ -84,19 +84,17 @@ function MARKDOWN.escape_link_embeds(link)
 end
 
 function MARKDOWN.underline(s)
-    return MARKDOWN.PATTERNS.UNDERLINE:format(s)
+    return s and MARKDOWN.PATTERNS.UNDERLINE:format(s)
 end
 
 function MARKDOWN.spoiler(s)
-    return MARKDOWN.PATTERNS.SPOILER:format(s)
+    return s and MARKDOWN.PATTERNS.SPOILER:format(s)
 end
 
 --- Formats a string to the codeline format using the discord markdown characters
 --- @return string result The formatted string
 function MARKDOWN.codeline(s)
-    s = tostring(s):gsub("`", "ˋ")
-
-    return MARKDOWN.PATTERNS.CODE_LINE:format(s)
+    return s and MARKDOWN.PATTERNS.CODE_LINE:format(tostring(s):gsub("`", "ˋ"))
 end
 
 --- Formats a string to the codeblock format using the discord markdown characters

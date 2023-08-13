@@ -50,7 +50,7 @@ local ClientNetwork = {
 -- Public
 ----------------------------------
 
-function ClientNetwork:Disconnect(reason, from_server, immediate)
+function ClientNetwork:Disconnect(reason, from_server, immediate, reason_title)
     PEARL.info("ClientNetwork:Disconnect", reason, from_server)
 
     if self:IsDisconnected() then
@@ -60,7 +60,6 @@ function ClientNetwork:Disconnect(reason, from_server, immediate)
     disconnected_by_server = from_server == true or false
     force_disconnected = true
 
-    --self:SetIsWaitingForResponse(false)
     if not self:HasSentCFD() then
         -- In case we have been disconnected for invalid mods
         -- we still want to inform the server what mods did we used.
@@ -71,8 +70,17 @@ function ClientNetwork:Disconnect(reason, from_server, immediate)
     self:CancelTimeout()
     self.loader:DefferLoad()
 
+    if type(reason_title) == "string" and type(reason) == "string" then
+        local reason_body = reason
+        reason = "ID_DST_DYNAMIC_REASON"
+
+        STRINGS.UI.NETWORKDISCONNECT.TITLE[reason] = reason_title
+        STRINGS.UI.NETWORKDISCONNECT.BODY[reason] = reason_body
+    end
+
     -- Call this before the actual disconnecting so the RPCs can be sent.
     -- It should be safe to call it here because missing FE should be handled at this point.
+    -- This should be the hooked up version.
     OnNetworkDisconnect(reason, true, immediate)
 
     TheNet:JoinServerResponse(true) -- true when disconnecting...
@@ -274,7 +282,8 @@ end, TheNet)
 -- Also try to let the server known why we have been disconnected.
 -- In the tick this is being called, we should be able to still send some rpcs
 -- if the server didn't kick our connetion already.
-PEARL.OverrideVariable("OnNetworkDisconnect", function(reason, should_reset, immediate, ...)
+PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_reset, immediate, ...)
+    PEARL.debug("ClientNetwork: OnNetworkDisconnect")
     ClientNetwork:CancelTimeout()
 
     -- We have already showed a disconnection popup to the user
@@ -304,7 +313,7 @@ PEARL.OverrideVariable("OnNetworkDisconnect", function(reason, should_reset, imm
     -- If we have no FE then do not execute this yet.
     -- It would cause a crash...
     PEARL.debug("Deffering OnNetworkDisconnect")
-end, _G)
+end)
 
 ----------------------------------
 -- RPCs

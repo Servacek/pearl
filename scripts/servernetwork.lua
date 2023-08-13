@@ -66,7 +66,7 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason)
     end
 
     if allowed == false then
-        return ServerNetwork:SendUserDisconnectFor(userid, reason)
+        return ServerNetwork:CloseConnectionFor(userid, reason)
     end
 
     -- If all the filters have successfully passed, then the connection should be allowed.
@@ -107,27 +107,49 @@ function ServerNetwork:SendCommandResponse(userid, message, ...)
     return PEARL.BroadcastRPCToAllShards(PEARL.RPC.AddToChatHistory, userid, nil, ChatTypes.CommandResponse, nil, nil, nil, message, ...)
 end
 
-function ServerNetwork:DisplayChatMessageFor(userids, name, message, name_color, message_color, ...)
-    message_color = message_color and PEARL.RGBToDecimal(message_color) or nil
-    name_color = name_color and PEARL.RGBToDecimal(name_color) or nil
-
-    return PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, PEARL.RPC.AddToChatHistory, userids,
-        message_color, 1, nil, nil, name, message, name_color, ...
+-- Display to chosen clients or all if "userids" is nil.
+function ServerNetwork:DisplayChatMessageFor(userids, name, message, name_colour, message_colour, flair, ...)
+    PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, PEARL.RPC.AddToChatHistory, userids,
+        PEARL.RGBToDecimal(message_colour), 1, nil, nil, name, message, PEARL.RGBToDecimal(name_colour), flair, ...
     )
+
+    -- We have to call the global version since that one is hooked.
+    -- local Networking_Say = PEARL.GetGlobal("Networking_Say")
+    -- if type(Networking_Say) == "function" then
+    --     PEARL.error("Invalid Networking_Say function!")
+    --     return
+    -- end
+
+    local vanity = { [2] = flair }
+    local colour = ChatHistory:GetColourForMessage(name_colour, message_colour)
+    Networking_Say(nil, "", name, nil, message, colour, false, false, vanity)
 end
 
-function ServerNetwork:DisplayChatMessage(...)
-    return self:DisplayChatMessageFor(nil, ...)
+-- Display to all connected clients
+function ServerNetwork:DisplayChatMessage(name, message, name_colour, message_colour, flair, ...)
+    return self:DisplayChatMessageFor(nil, name, message, name_colour, message_colour, flair, ...)
 end
 
-function ServerNetwork:SendUserDisconnectFor(userid, reason, ...)
+function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason_title)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
-    if type(reason) ~= "string" then
-        PEARL.warn("Invalid reason provided!")
-    end
+    PEARL.SendRPCToClient(PEARL.RPC.Disconnect, userid, reason, immediately, reason_title)
 
-    PEARL.SendRPCToClient(PEARL.RPC.Disconnect, userid, reason, ...)
+    -- Since we are shutting down, the disconnect event
+    -- wont be pushed anymore so do it now.
+    if TheWorld ~= nil and PEARL.IsShuttingDown() then
+        TheWorld:PushModEvent("ms_clientdisconnected", {
+            userid = userid, reason = reason
+        })
+    end
+end
+
+-- This is a more forcefull version of SendUserDisconnectFor
+function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_title)
+    self:SendUserDisconnectFor(userid, reason, immediately, reason_title)
+
+    -- If not reason is specified and it's immediate disconnect, keep it silent.
+    -- Because we can use the disconnection internally (e. g. server updates)
     if TheWorld ~= nil then
         TheWorld:PushModEvent("clientconnectionclosed", {
             userid = userid, reason = reason
@@ -152,6 +174,14 @@ end
 function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
     PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, ...)
     return PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, ...)
+end
+
+function ServerNetwork:DisconnectAllClients(reason, immediately)
+    for _, client in pairs(self:GetConnectedClients()) do
+        if client.userid then
+            self:SendUserDisconnectFor(client.userid, reason, immediately)
+        end
+    end
 end
 
 --- @param userid string The Klei ID of the user you want to run filters for.
@@ -217,6 +247,10 @@ end
 
 function ServerNetwork:GetCachedClientTableFor(userid)
     return client_cache[userid]
+end
+
+function ServerNetwork:GetConnectedClients()
+    return GetPlayerClientTable()
 end
 
 function ServerNetwork:IsPlayerOnThisShard(userid)
@@ -333,6 +367,7 @@ function ServerNetwork:AddConnectionFilter(filter)
     return table.insert(conn_filters, filter)
 end
 
+--- NOTE: Async filters ALWAYS require a response by calling the filter function!
 --- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
 function ServerNetwork:AddAsyncConnectionFilter(filter)
     PEARL.debug("ServerNetwork:AddAsyncConnectionFilter", filter)
@@ -399,7 +434,7 @@ function ServerNetwork:OnClientFilterDataFailed(userid)
 
     if not PEARL.CONFIG.FAIL_SAFE_NETWORK then
         -- Show the authentication failed popup and disconnect the client.
-        self:SendUserDisconnectFor(userid, "ID_DST_GAME_SESSION_AUTH_FAILED")
+        self:CloseConnectionFor(userid, "ID_DST_GAME_SESSION_AUTH_FAILED")
     end
 end
 
@@ -554,7 +589,7 @@ end)
 PEARL.EventProcessor:AddEventHandler("quit", function()
     for userid, joining in pairs(joining_clients) do
         if joining and not ServerNetwork:IsClientPriviliged(userid) then
-            ServerNetwork:SendUserDisconnectFor(userid, "ID_DST_GAME_SESSION_AUTH_FAILED")
+            ServerNetwork:CloseConnectionFor(userid, "ID_DST_GAME_SESSION_AUTH_FAILED")
         end
     end
 end)

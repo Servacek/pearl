@@ -11,19 +11,34 @@
 --]==]====================================================]]
 
 
+require("chathistory")
 
 --- @type ChatHistoryManager
 local ChatTypes = ChatTypes
+local ChatHistory = ChatHistory
 local ChatTypesCount = GetTableSize(ChatTypes)
 
 ChatTypes.DiscordMessage = ChatTypesCount + 1
 
---- Add support for changing the colour of the text.
-PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_message, self, type, sender_userid, sender_netid, sender_name, message, colour)
-    chat_message.m_colour = colour and colour.message or chat_message.m_colour or SAY_COLOR
+---------------------------
+-- [[ Constats ]]
+---------------------------
 
-    return chat_message
-end, true)
+local DEFAULT_CHAT_MESSAGE_COLOR = WHITE
+
+---------------------------
+-- [[ Public Methods ]]
+---------------------------
+
+function ChatHistory:GetColourForMessage(s_colour, m_colour)
+    s_colour = type(s_colour) == "number" and PEARL.GetColorFromDecimal(s_colour) or s_colour
+    m_colour = type(m_colour) == "number" and PEARL.GetColorFromDecimal(m_colour) or m_colour
+
+    s_colour = s_colour or DEFAULT_CHAT_MESSAGE_COLOR
+    s_colour.message = m_colour
+
+    return s_colour
+end
 
 ---------------------------
 -- [[ UI ]]
@@ -52,6 +67,17 @@ _GetProfileFlairAtlasAndTex = PEARL.OverrideValue(_G, "GetProfileFlairAtlasAndTe
 
     return _GetProfileFlairAtlasAndTex(item_key)
 end)
+
+---------------------------
+-- [[ Overrides ]]
+---------------------------
+
+--- Add support for changing the colour of the text.
+PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_message, self, type, sender_userid, sender_netid, sender_name, message, colour)
+    chat_message.m_colour = colour and colour.message or chat_message.m_colour or SAY_COLOR
+
+    return chat_message
+end, true)
 
 ---------------------------
 -- [[ Setup ]]

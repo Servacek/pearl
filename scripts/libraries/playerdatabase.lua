@@ -11,6 +11,13 @@
 --]==]====================================================]]
 
 
+--[[
+    @TODOS:
+        - Make database records shard specific (they would be unloaded upon migration despawn)
+        - Rethink the data collection dilema.
+        - Maybe we save the lastinv as well?
+]]
+
 
 ------------------------------------------
 -- [[ Localization ]]
@@ -86,9 +93,12 @@ function PlayerDB:HasRecord(userid)
     return io.exists(DATABASE_FILE_PATH:format(userid))
 end
 
+--- Supports Steam ID as well as Klei ID.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return table<string, any>? record The record of the provided player.
 function PlayerDB:GetRecordFor(userid)
+    userid = self:MapNetID(userid) or userid
+
     return self._records[userid] or self:LoadRecordFor(userid)
 end
 
@@ -116,18 +126,26 @@ end
 
 function PlayerDB:IsCached(userid)
     return type(self._records[userid]) == "table"
+
 end
 
-function PlayerDB:AddUserid(userid)
-    if not self._userids[userid] then
-        self._userids[userid] = true
-        self._userids.count = (self._userids.count or 0) + 1
-    end
+function PlayerDB:MapNetID(netid)
+    return self._userids[netid]
 end
 
 ------------------------------------------
 -- [[ Setters ]]
 ------------------------------------------
+
+-- Userids are mapped by Steam IDs for easier access.
+-- We store the whole list of IDs so we can traverse all records if needed,
+-- since we cannot list files.
+function PlayerDB:AddUserid(userid, netid)
+    if not self._userids[netid] then
+        self._userids[netid] = userid
+        self._userids.count = (self._userids.count or 0) + 1
+    end
+end
 
 --- @return table<string, any>?
 function PlayerDB:CacheRecord(userid, record)
@@ -159,19 +177,21 @@ end
 function PlayerDB:OptionalSetField(userid, name, value)
     local record = PEARL.PlayerDB:GetRecordFor(userid)
     if not record then
-        return -- optional
+        return false -- optional
     end
 
     local prev = record[name]
     record[name] = value
 
-    return prev
+    return true, prev
 end
 
 function PlayerDB:OptionalSafeSetField(userid, name, value)
     if not IsClearValue(value) then
         return self:OptionalSetField(userid, name, value)
     end
+
+    return false
 end
 
 ------------------------------------------
@@ -189,11 +209,13 @@ function PlayerDB:EnsureRecordFor(userid)
     if not record then
         PEARL.debug("Creating database record for", userid)
 
-        self:AddUserid(userid)
         record = self:CacheRecord(userid, self:CreateRecordFor(userid))
         if type(record) ~= "table" then
             return PEARL.error("Failed to create record for", userid)
         end
+
+        -- Netid should never be nil
+        self:AddUserid(userid, record.netid)
 
         -- Make sure the file exists
         -- And the initial data are always recorded.
@@ -214,7 +236,15 @@ end
 function PlayerDB:CreateRecordFor(userid)
     local record = deepcopy(RECORD_TEMPLATE)
     record.joinedtime = os.time()
-    record.netid = TheNet:GetNetIdForUser(userid)
+    record.userid = userid
+
+    local netid = TheNet:GetNetIdForUser(userid)
+    if not netid then
+        PEARL.error("Failed to retrive Steam ID for ", userid)
+    end
+
+    -- This should ALWAYS be string but just in case it's not...
+    record.netid = netid and tostring(netid)
 
     return record
 end
@@ -294,7 +324,9 @@ end
 function PlayerDB:SaveRecordFor(userid, record, force)
     record = record or self._records[userid]
     -- Only save data for users that have agreed to the agreement.
-    if not record or (not self:IsDataCollectionEnabledFor(userid) and force ~= true) then
+    --- @TODO: Re-think the data collection complication.
+    --- @TODO: Make the first agreement screen popup up before joining the server.
+    if not record then --or (not self:IsDataCollectionEnabledFor(userid) and force ~= true) then
         return
     end
 

@@ -12,6 +12,7 @@
 
 --- Some attempts to optimize the Class function :P
 
+require("class")
 
 local IGNORE_LIST = {
     ["_"] = true,

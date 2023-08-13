@@ -492,6 +492,14 @@ if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
 end
 
 --------------------------------
+-- [[ Commmon Modules ]]
+--------------------------------
+-- Modules loaded on both, Fronted and Backend.
+
+-- local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+-- ModuleManager:SetLoader(PEARL.loadfile)
+
+--------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------
 

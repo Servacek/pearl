@@ -158,6 +158,10 @@ function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message, force
         return
     end
 
+    if message and not message:IsValid() then
+        PEARL.error("Attempted to", action, "an invalid message!")
+    end
+
     local data = message and message:ToTable()
     local endpoint_url = message_id and wurl..ENDPOINTS.W_MESSAGE:format(message_id) or wurl
     return _SendActionRequest(endpoint_url, action, data, force)

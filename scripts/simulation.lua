@@ -70,7 +70,8 @@ PEARL.AddGlobalFunctionPreCall("VerifySpawnNewPlayerOnServerRequest", function(u
 end)
 
 PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
-PEARL.AddUserDataFunctionPreCall("Crash", OnShardCrashed, TheSim)
+-- This is not being called by the game itself, but we use this to force a reboot from inside.
+PEARL.AddUserDataFunctionPreCall("Crash", OnShardShutdown, TheSim)
 PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
 
 ----------------------------------

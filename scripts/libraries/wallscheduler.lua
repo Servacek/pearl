@@ -110,7 +110,7 @@ local function add_task(task, nosort)
     -- If this is called from inside the wall update loop then deffer the sort.
     if looping then
         srt_def = true
-    elseif not nosort and prev and prev._ext and prev._ext < task._ext then
+    elseif not nosort then
         -- Else sort immediately if it's required.
         sort_tasks()
     end
@@ -137,13 +137,13 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
     --- @class Task
     local task = {
         _time = time / wtdelta,
-        _delayed = type(initialdelay) == "number",
+        _sort_deffered = type(initialdelay) == "number" and initialdelay ~= 0,
         _ext = wtime + (initialdelay or time) / wtdelta,
         _fn = fn,
         _limit = limit,
         -- Leave this public
         running = true, -- The task is running from the start by default
-        _id = id,
+        id = id,
         _args = toarrayornil(...),
     }
 
@@ -167,36 +167,48 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
         if (self._limit or 1) <= 0 then
             self:cancel()
+            return
         end
 
-        self._ext = wtime + self._time
-
-        if self._delayed then
-            -- This is for tasks that have initial_delay
-            self._delayed = false
-            sort_tasks()
+        -- If we are still running then this is a periodic task, so restart it.
+        if self.running then
+            self:restart()
         end
     end
 
     -- Even running tasks can be restarted.
-    function task:restart(_time)
+    function task:restart()
         --print("task:restart", self:tostring())
-        if type(self._time) ~= "number" and not _time then
+        if type(self._time) ~= "number" then
             return PEARL.warn("This task doesn't support restarting...")
         end
 
         self.running = true
-        self._ext = wtime + (_time or self._time)
+        self._ext = wtime + self._time
 
         if not has_task(self) then
             -- Re-Add the task back to the stack since we were removed.
             add_task(self)
+        elseif self._sort_deffered then
+            -- This is for tasks that have initial_delay
+            self._sort_deffered = false
+            sort_tasks()
+        end
+    end
+
+    function task:gettime()
+        return self._time
+    end
+
+    function task:settime(t)
+        if self._time ~= t then
+            self._time = t
+            -- Our execution time will change as well so we need to re-sort.
+            self._sort_deffered = true
         end
     end
 
     function task:stop()
-        --print("task:stop", CalledFrom())
-
         if not self.running then
             return PEARL.warn("Task already stopped!")
         end
@@ -208,22 +220,21 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     function task:tostring()
         return string.format("Task[%s]<limit=%s,time=%s,ext=%s,running=%s>",
-            tostring(self._id), tostring(self._limit), tostring(self._time), tostring(self._ext), tostring(self.running)
+            tostring(self.id), tostring(self._limit), tostring(self._time), tostring(self._ext), tostring(self.running)
         )
     end
 
     function task:cancel()
-        --print("task:cancel", self:tostring())
         self._time = 0
         self._fn = nil
         self._ext = nil
         self._limit = 0 -- Disable the task.
-        self._id = nil
+        self.id = nil
 
         self._args = nil
 
         self.running = false
-        self._delayed = false
+        self._sort_deffered = false
     end
 
     return task
@@ -305,6 +316,17 @@ end
 --- @return table<Task> tasks
 function WallScheduler:GetTasks()
     return tasks
+end
+
+--- Returns a task with the given ID.
+--- @param id integer The ID of the target task.
+--- @return Task? task The target task or nil if not found.
+function WallScheduler:GetTask(id)
+    for i = 1, tasks.n do
+        if tasks[i].id == id then
+            return tasks[i]
+        end
+    end
 end
 
 --- Executes the given function after the given n seconds and stops the task

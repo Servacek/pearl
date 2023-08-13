@@ -27,18 +27,20 @@ local UserCommands = require("usercommands")
 -----------------------------
 
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
-    -- Ignore emote commands
     if not (userid and cmd and guid) then
         return
     end
 
+    -- Skip emote commands
     local command = UserCommands.GetCommandFromName(cmd)
     if not command or command.emote then
         return
     end
 
     PEARL.DiscordLogger:LogStringRaw(
-        STRINGS.PEARL.LOGS.SAY_COMMAND:format(tostring(UserToName(userid) or userid), cmd),
+        STRINGS.PEARL.LOGS.SAY_COMMAND:format(
+            MARKDOWN.escape(UserToName(userid) or userid), cmd
+        ),
         PEARL.ICONS.PLAYER_STATE.CMD_SEND
     )
 end)
@@ -58,26 +60,27 @@ PEARL.AddGlobalFunctionPreCall("Networking_Announcement", function(message, colo
         )
     )
 end)
+
 -- Debug with d_test_skins_announce([skin_name])
-PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_name, user_colour, skin_name)
+PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_name, user_colour, skin_prefab)
     -- Skin received events are broadcasted between all shards
-    if not (user_name and skin_name and TheShard:IsMaster()) then
+    if not (user_name and skin_prefab and TheShard:IsMaster()) then
         return
     end
 
     PEARL.DiscordLogger:LogEmbed(Embed()
-        :SetDescription(MARKDOWN.escape(GetSkinDescription(skin_name)))
+        :SetDescription(MARKDOWN.escape(GetSkinDescription(skin_prefab)))
         :SetColor(PEARL.RGBToDecimal(PEARL.PercentToRGB(
-            GetColorForItem(skin_name)
+            GetColorForItem(skin_prefab)
         )))
         :SetThumbnail(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
             -- Looks like the database uses upper case for naming...
-            string.upper(skin_name), "small"
+            string.upper(skin_prefab), "small"
         ))
         :SetTitle(
             PEARL.ICONS.ANNOUNCEMENTS["skin"].." "..STRINGS.PEARL.LOGS.SKIN_RECEIVED
             :format(
-                user_name, GetSkinName(skin_name)
+                MARKDOWN.escape(user_name), MARKDOWN.escape(GetSkinName(skin_prefab))
             )
         )
 
@@ -88,14 +91,13 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
     )
 end)
 
---- @TODO: Handle unicode characters properly here since JSON doesn't accept it.
---- Normalize it before sending to discord.
-PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, prefab, message, colour, whisper)
-    if not (message and name and userid and prefab) then
+PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, prefab, message, colour, whisper, isemote, vanity)
+    if not (message and name) then
         return
     end
 
     -- Whispers aren't broadcasted to other shards
+    -- Everything else is, so handly whispers per shard.
     if not whisper and TheShard:IsSecondary() then
         return
     end
@@ -106,7 +108,11 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         message = ProfanityFilter:Apply(message, MARKDOWN.PATTERNS.SPOILER, true)
     end
 
-    local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..string.capitalize(prefab).."]")
+    local icon = PEARL.ICONS.PLAYER_VANITY[vanity[2]]
+    if not icon and type(prefab) == "string" then
+        icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..prefab:capitalize().."]")
+    end
+
     message = (whisper and STRINGS.PEARL.LOGS.SAY_WHISPER or STRINGS.PEARL.LOGS.SAY):format(
         -- This is all user input so it can contain some encoded stuff.
         -- This should be handled when we encode the message as JSON string.
@@ -114,7 +120,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         message:emojify()
     )
 
-    PEARL.DiscordLogger:LogStringRaw(message, icon)
+    PEARL.DiscordLogger:LogStringRaw(message, icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
@@ -124,6 +130,6 @@ PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
     end
 
     PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.SAY:format(
-        "[Server]", message
+        "[Server]", MARKDOWN.escape(message):emojify()
     ), PEARL.ICONS.PLAYER_PREFABS["server"])
 end)

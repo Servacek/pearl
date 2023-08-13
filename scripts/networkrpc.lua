@@ -35,13 +35,19 @@ local CLIENT_RPCS = {
         return ChatHistory and ChatHistory:SendCommandResponse(...)
     end,
 
-    AddToChatHistory = function(dec_m_color, tp, userid, netid, name, message, dec_s_color, ...)
-        PEARL.debug("AddToChatHistory:", dec_m_color, tp, userid, netid, name, message, dec_s_color, ...)
+    -- type, sender_userid, sender_netid, sender_name, message, colour, icondata, whisper, localonly, text_filter_context
+    AddToChatHistory = function(dec_m_colour, tp, userid, netid, name, message, dec_s_colour, ...)
+        PEARL.debug("AddToChatHistory:", dec_m_colour, tp, userid, netid, name, message, dec_s_colour, ...)
 
-        local color = PEARL.GetColorFromDecimal(dec_s_color)
-        color.message = PEARL.GetColorFromDecimal(dec_m_color, SAY_COLOR)
+        if not ChatHistory then
+            return PEARL.error("Chat history not loaded yet!")
+        end
 
-        return ChatHistory and ChatHistory:AddToHistory(tp, userid, netid, name, message, color, ...)
+        local s_colour = PEARL.GetColorFromDecimal(dec_s_colour)
+        local m_colour = PEARL.GetColorFromDecimal(dec_m_colour, SAY_COLOR)
+        local colour = ChatHistory:GetColourForMessage(s_colour, m_colour)
+
+        return ChatHistory:AddToHistory(tp, userid, netid, name, message, colour, ...)
     end,
 
     Disconnect = function(reason, ...)
@@ -115,8 +121,7 @@ local SERVER_USERID_RPCS = {
         local entity = player and player.entity or nil
         if kicked then
             -- Make sure we close the connection
-            --- @TODO: This logs two times.
-            PEARL.ServerNetwork:SendUserDisconnectFor(userid, "ID_DST_USER_INACTIVE")
+            PEARL.ServerNetwork:CloseConnectionFor(userid, "ID_DST_USER_INACTIVE")
 
             return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
@@ -340,7 +345,7 @@ end
 
 ------------------------------------
 
-function PEARL.AddRPC(name)
+function PEARL.RegisterRPC(name)
     PEARL.RPC._size = PEARL.RPC._size + 1
     PEARL.RPC[name] = PEARL.RPC._size
 
@@ -348,28 +353,32 @@ function PEARL.AddRPC(name)
 end
 
 function PEARL.AddServerUseridRPCHandler(name, handler)
-    local id = PEARL.AddRPC(name)
+    local id = PEARL.RegisterRPC(name)
 
     AddModRPCHandler(PEARL.RPC_NAME, id, handler)
     MarkUserIDRPC(PEARL.RPC_NAME, id)
 end
 
+function PEARL.RegisterServerUseridRPC(name)
+    MarkUserIDRPC(PEARL.RPC_NAME, PEARL.RegisterRPC(name))
+end
+
 function PEARL.AddServerRPCHandler(name, handler)
     return AddModRPCHandler(
-        PEARL.RPC_NAME, PEARL.AddRPC(name), handler
+        PEARL.RPC_NAME, PEARL.RegisterRPC(name), handler
     )
 end
 
 function PEARL.AddShardRPCHandler(name, handler)
     return AddShardModRPCHandler(
-        PEARL.RPC_NAME, PEARL.AddRPC(name), handler
+        PEARL.RPC_NAME, PEARL.RegisterRPC(name), handler
     )
 end
 
 function PEARL.AddClientRPCHandler(name, handler)
-    PEARL.AddRPC(name)
+    PEARL.RegisterRPC(name)
     return AddClientModRPCHandler(
-        PEARL.RPC_NAME, PEARL.AddRPC(name), handler
+        PEARL.RPC_NAME, PEARL.RegisterRPC(name), handler
     )
 end
 

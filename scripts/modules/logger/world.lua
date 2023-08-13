@@ -105,7 +105,7 @@ local function OnClientAuthenticationComplete(world, data)
         return
     end
 
-    PEARL.DiscordLogger:LogStringRaw(MARKDOWN.hlink(
+    local logline = LogLine(MARKDOWN.hlink(
         MARKDOWN.codeline(
             STRINGS.PEARL.LOGS.AUTH:format(
                 client.name, client.userid
@@ -113,7 +113,13 @@ local function OnClientAuthenticationComplete(world, data)
         ), client.netid and MARKDOWN.escape_link_embeds(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(
             client.netid
         )) or nil
-    ), PEARL.ICONS.PLAYER_STATE.AUTH)
+    )):SetIcon(PEARL.ICONS.PLAYER_STATE.AUTH)
+
+    if client.name and ProfanityFilter:Detect(client.name) then
+        logline:Censor()
+    end
+
+    PEARL.DiscordLogger:LogLine(logline)
 end
 
 local function OnClientConnectionClosed(userid, reason)
@@ -136,28 +142,21 @@ local function OnClientDisconnected(userid, expected, reason)
 
     local client = TheNet:GetClientTableForUser(userid)
     local name = client and client.name
+    local pattern_spec = (type(name) ~= "string" or #name < 3) and "DISCONNECT_GENERIC" or
+                    (type(reason) == "string" and #reason > 1) and "DISCONNECT_REASON" or
+                    (expected == false) and "DISCONNECT_UNEXPECTED" or "DISCONNECT"
 
-    if type(name) ~= "string" or #name < 3 then
-        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_GENERIC:format(
-                userid, PEARL.GetShardFancyName()
-        ))
+    local shardname = PEARL.GetShardFancyName()
+    local pattern = STRINGS.PEARL.LOGS[pattern_spec]
+    local logline = LogLine(
+        MARKDOWN.codeline(pattern:format((name or userid), shardname, userid, reason or ""))
+    )
+
+    if name and ProfanityFilter:Detect(name) then
+        logline:Censor()
     end
 
-    if type(reason) == "string" and #reason > 1 then
-        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_REASON:format(
-                name, PEARL.GetShardFancyName(), userid, reason
-        ))
-    end
-
-    if expected == false then
-        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED:format(
-                name, PEARL.GetShardFancyName(), userid
-        ))
-    end
-
-    return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DISCONNECT:format(
-            name, PEARL.GetShardFancyName(), userid
-    ))
+    PEARL.DiscordLogger:LogLine(logline)
 end
 
 -- data.player, data.portalid, data.worldid

@@ -105,6 +105,10 @@ PEARL.SafeModTableExtend("CONSTS", {
         MASTER = 1,
     },
 
+    TASK_ID = {
+        INPUTPROXY_FETCH = 3,
+    },
+
     ------------------------------------
     SKINS_PREVIEW_URL           = "https://items.kleientertainment.com/images/DST/%s/%s", -- .../DST/<skin prefab>/<size>
     --- @deprecated: use steam's API instead
@@ -412,6 +416,10 @@ PEARL.SteamAPI = PEARL.loadfile("libraries/steamapi")
 --------------------------------
 
 local function LoadExtensions()
+    PEARL.loadfile("extensions/usercommands")
+    PEARL.loadfile("extensions/profanityfilter")
+    PEARL.loadfile("extensions/chathistory")
+
     PEARL.info("Loading game component extensions...")
     PEARL.loadfile("extensions/components/inventory")
     PEARL.loadfile("extensions/components/workable")
@@ -496,6 +504,13 @@ PEARL.PlayerDB:LoadUseridList()
 --- @type Reputation
 PEARL.Reputation = PEARL.loadfile("libraries/reputation")
 
+-------------------------------------
+-- [[ Commands ]]
+-------------------------------------
+
+PEARL.info("Loading commands...")
+PEARL.loadfile("extensions/commands")
+
 --------------------------------
 -- [[ Debug Mode ]]
 --------------------------------
@@ -505,8 +520,8 @@ if PEARL.CONFIG.DEBUG_MODE then
     PEARL.loadfile("debugtools")
     PEARL.loadfile("testing")
 
-    -- PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
-    -- PEARL.CreateWordFilterFile("czech.txt", "czech.lua")
+    PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
+    PEARL.CreateWordFilterFile("czech.txt", "czech.lua")
 
     require("profiler")
     PEARL.Profiler = newProfiler("time", 10^6)
@@ -544,17 +559,17 @@ ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.INVENTORY_REPORTER.ENABLED)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
-ModuleManager:AddModule("profanityfilter", PEARL.CONFIG.PROFANITY_FILTERS.enabled)
-ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
-ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
+-- ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
+-- ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
 ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
+ModuleManager:AddModule("usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)
 --- Looks like currently only Steam is supported as a platform.
---ModuleManager:AddModule("platformchecker", not table.empty(PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS))
+ModuleManager:AddModule("platformchecker", not table.empty(PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS))
 
 --- Master-only Modules
 if TheShard:IsMaster() then

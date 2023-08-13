@@ -155,7 +155,8 @@ function QueuedLogAction:SetQueueTime(time)
         self.queuetime = time
 
         if self.task then
-            self.task:restart(self.queuetime)
+            self.task:settime(self.queuetime)
+            self.task:restart()
         end
     end
 
@@ -255,7 +256,8 @@ function QueuedLogAction:Repeat()
     end
 
     if (os.time() - self.timestart) < MAX_DELAY then
-        self.task:restart(self.queuetime * self.queuetimemult)
+        self.task:settime(self.queuetime * self.queuetimemult)
+        self.task:restart()
 
         return self
     end

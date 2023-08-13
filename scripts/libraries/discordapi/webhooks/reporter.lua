@@ -16,6 +16,7 @@
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS   = PEARL.loadfile("utils/embeds")
+local MESSAGES = PEARL.loadfile("utils/messages")
 
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
@@ -108,6 +109,10 @@ end
 --- @param str string
 --- @param force boolean?
 function Reporter:SendRawReportString(str, force)
+    if type(str) ~= "string" then
+        return PEARL.error("Invalid report string provided!")
+    end
+
     return self:SendRawReportMessage(Message(str), force)
 end
 
@@ -243,24 +248,13 @@ function Reporter:ReportInventory(userid, player_reference)
         return false
     end
 
-    local player_meta = player_reference or PEARL.GetPlayerMetadataFor(userid)
-    local message = Message()
-    -- Maybe even calculate the suspiciousness here?
-    message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta))
-
-    self:SendRawReportMessage(message)
+    self:SendRawReportMessage(MESSAGES.InvReport(userid, player_reference))
 
     return true
 end
 
 function Reporter:ReportMods(userid, mods)
-    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    local owner_name = client and client.name or userid
-    local embed = EMBEDS.ClientMods(mods, owner_name)
-
-    local message = Message()
-    message:AddEmbed(embed)
-    self:SendRawReportMessage(message)
+    self:SendRawReportMessage(MESSAGES.ModsReport(userid, mods))
 end
 
 function Reporter:SendPlayerReportMessage(userid, message)

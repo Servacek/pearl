@@ -205,7 +205,20 @@ local STRINGS = {
 
         MODS = {
             TITLE = "%s's Enabled Mods"
-        }
+        },
+
+        PROFILE = {
+            -- Prefab + Username
+            TITLE = "%s %s",
+            FOOTER = "Klei ID: %s Steam ID: %s Root Klei ID: %s",
+            FD_NAMES = {
+                PLAYED = "Total Days Played",
+                REP    = "Reputation",
+                JOINED = "Joined At",
+                LOCALE = "Locale",
+                SEEN   = "Last Time Seen",
+            },
+        },
     },
 
     LOGS        = {
@@ -232,10 +245,11 @@ local STRINGS = {
         AUTH                    = "%s authenticated as %s",
         DISCONNECT_GENERIC      = "%s was disconnected from shard %s.",
         DISCONNECT              = "%s was disconnected from shard %s as %s.",
-        DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s as %s.",
+        DISCONNECT_UNEXPECTED   = "%s was unexpectedly disconnected from shard %s as %s. %s",
         DISCONNECT_REASON       = "%s was disconnected from shard %s as %s. %s",
         CONNECTED_TO_SHARD      = "%s was connected to shard %s as %s.",
         OFFLINE_CLIENT_BANNED   = "%s was added to the banlist!",
+        CLIENT_UNBANNED         = "%s was removed from the banlist!",
         CAVES_STATE_UPDATE      = "Secondary shard Caves has been %s.",
         LOCALIZATION_TIMEOUT    = "Localization process for client %s has timed out!",
         MIGRATING               = "%s is migrating to shard %s.",
@@ -265,15 +279,16 @@ local STRINGS = {
         SHARD_LOADED_MASTER     = "Shard `%s` was loaded.",
         SHARD_LOADED_SECONDARY  = "Shard `%s` was loaded. Connecting to shard `%s`...",
 
-        AUTO_UPDATE_FIRST       = "Server's version is outdated, new players aren't able to connect. It will be automatically updated in %s seconds.",
+        AUTO_UPDATE_FIRST       = "Server's version is outdated, new players aren't able to connect.\nIt will be automatically updated in %s minute(s).",
         AUTO_UPDATE_FIRST_DIS   = "Server's version is outdated, new players aren't able to connect.",
-        AUTO_UPDATE_SECOND      = "Server will be automatically updated in 15 seconds. All your current progress will remain untouched. Don't forget to update your game as well :)",
+        AUTO_UPDATE_SECOND      = "Server will be automatically updated in 15 seconds.\nAll your progress will remain untouched. Don't forget to update your game as well :)",
         AUTO_UPDATE_START       = "Updating the server to version %s...",
 
         GAME_LOADED             = "Shard %s was loaded.",
         RESTART                 = "Restarting the server...",
-        ROLLBACK                = "Rolling server %s snapshots back!",
+        ROLLBACK                = "Rolling server %s snapshot(s) back!",
         ROLLBACK_DAYS           = "Rolling server back to day %s!",
+        ROLLBACK_AFTER          = "Rolling server %s snapshot(s) back in %s second(s)!",
         SAVE                    = "Saving world on shard %s...",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
@@ -325,6 +340,16 @@ local STRINGS = {
         REPAIR                  = "Burnt structures were restored!",
         REPAIR_NEAR             = "Burnt structures near %s were restored!",
         REPAIR_ALL              = "%s restored burnt structures near all players!",
+
+        PROXY_SERVER_STARTED    = "Proxy server has successfully started!",
+        PROXY_SERVER_STOPPED    = "Stopping the proxy server...",
+        PROXY_SERVER_UNREACH    = "Proxy server seems to be unreachable.",
+        PROXY_SERVER_RESTARTED  = "Restarting the proxy server...",
+        PROXY_SERVER_ERROR      = "Internal proxy server error.",
+
+        PROXY_MESSAGE_FAILED    = "There was an error processing the message!",
+
+        PROXY_COMMAND_FAILED    = "There was an error processing the command!",
 
         -- Anti AFK system
         USER_ACTIVE             = "%s came back!",
@@ -387,6 +412,10 @@ local STRINGS = {
     PHASES  = shallowcopy(STRINGS.UI.SERVERLISTINGSCREEN.PHASES),
 
     SEASON_UNKNOWN          = "Unknown Season",
+
+    COMMAND_RESPONSES = {
+        INVALID = "Invalid command provided!",
+    },
 
     UI = {
         CONSOLE_DISABLED = "Disabled :)",
@@ -591,6 +620,11 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PROFILE_REP_TOO_LOW",
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PLATFORM_NOT_SUPPORTED",
     "Platform Not Supported",
     "Your platform is not supported by this server... Sorry!"
+)
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_NO_COMMUNITY_PROFILE",
+    "Missing Community Profile",
+    "In order for participating in this server,\nplease set up a community profile for your Steam account."
 )
 
 

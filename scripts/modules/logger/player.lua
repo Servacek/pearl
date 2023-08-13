@@ -84,7 +84,6 @@ local function RegisterActionHandler(action, handler, checkfn)
             end
         end
 
-        PEARL.debug("Ignoring action...")
         return success
     end
 end

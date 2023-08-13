@@ -29,6 +29,7 @@ local ASCII_LAST    = 0x80
 local ASCII_FIRST   = 0
 local MAX_UTF_BYTES = 4
 
+-- Pattern for matching all non-ascii characters
 local UTF8_PATTERN  = "[\128-\255]+"
 
 --------------------------------
@@ -85,10 +86,26 @@ function utf8.decode_string(s)
     end
 
     return s:gsub(UTF8_PATTERN, function(char)
-        if utf8.ascii(char) then
-            return char
+        -- Should not be needed
+        -- if utf8.ascii(char) then
+        --     return char
+        -- end
+
+        -- If we a have a byte sequence
+        if #char > 1 then
+            return utf8.validate(char) and char or "?"
         end
 
+        return utf8.decode(char) or "?"
+    end)
+end
+
+function utf8.encode_string(s)
+    if not s or #s <= 1 then
+        return s
+    end
+
+    return s:gsub(UTF8_PATTERN, function(char)
         -- If we a have a byte sequence
         if #char > 1 then
             return utf8.validate(char) and char or "?"

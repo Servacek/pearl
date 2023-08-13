@@ -112,7 +112,8 @@ function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
 
     if not PEARL.PlayerDB:HasRecord(userid) then
-        return PEARL.error("Record not found for", userid)
+        PEARL.error("Record not found for", userid)
+        return
     end
 
     local rep = self:GetOf(userid)

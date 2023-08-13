@@ -12,6 +12,7 @@
 
 
 
+--- @type Embed
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
@@ -253,6 +254,21 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         :SetFooter(string.format("%s/%s", #enabled_mods, tostring(enabled_mods.count or showcount)))
 end
 
+--- @return Embed
+function EMBEDS.ClientProfile(userid, dbr)
+    local P_STRINGS = STRINGS.PEARL.EMBEDS.PROFILE
+
+    local icon = PEARL.ICONS.PLAYER_PREFABS[dbr.lastprefab or ""]
+
+    return Embed()
+        :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username))
+        :SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
+        :SetColor(Embed.COLORS.BLUE)
+        :SetThumbnail(dbr.avatar)
+        :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(dbr.totaldays), true)
+        :AddField(P_STRINGS.FD_NAMES.REPUTATION, MARKDOWN.codeline(dbr.reputation.value))
+        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootid))
+end
 
 -------------------------------------
 -- [[ Return ]]

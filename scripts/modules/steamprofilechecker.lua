@@ -127,57 +127,63 @@ local function CalculateRepInComments(comments_html, profileusername)
     return math.min((pos_count * REP_PER_POSITIVE_COMMENT) + (neg_count * REP_PER_NEGATIVE_COMMENT), MAX_COMMENT_REP)
 end
 
-local function CalculateProfileReputation(steamid, cfd, cb)
-    local rep = MAX_PROFILE_REP
+local function CalculateProfileData(steamid, cfd, cb)
+    -- Keep these in sync with the names in the DB.
+    local data = {
+        profilerep = MAX_PROFILE_REP,
+        communityprofile = false,
+    }
 
     PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
         if type(cb) == "function" then
-            cb(rep)
+            cb(data)
         end
     end)
 
     -- VAC - Valve Anti-Cheat
-    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_BANS, function(data)
+    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_BANS, function(query)
         -- Handle Player Ban Data
-        print("P_BANS:", rep)
-        if not data or not data.players or not data.players[1] then
+        print("P_BANS:", data.profilerep)
+
+        local player = query and query.players and query.players[1]
+        if not player then
+            PEARL.error("Invalid query response received!")
             return
         end
 
-        local player = data.players[1]
         if player.CommunityBanned then
-            rep = rep + REP_PER_COMMUNITY_BAN
+            data.profilerep = data.profilerep + REP_PER_COMMUNITY_BAN
         end
 
         if type(player.EconomyBan) == "string" and player.EconomyBan ~= "none" then
-            rep = rep + REP_PER_ECONOMY_BAN
+            data.profilerep = data.profilerep + REP_PER_ECONOMY_BAN
         end
 
         if type(player.NumberOfVACBans) == "number" and player.NumberOfVACBans > 0 then
-            rep = rep + (player.NumberOfVACBans * REP_PER_VAC_BAN)
+            data.profilerep = data.profilerep + (player.NumberOfVACBans * REP_PER_VAC_BAN)
         end
 
         if type(player.NumberOfGameBans) == "number" and player.NumberOfGameBans > 0 then
-            rep = rep + (player.NumberOfGameBans * REP_PER_GAME_BAN)
+            data.profilerep = data.profilerep + (player.NumberOfGameBans * REP_PER_GAME_BAN)
         end
     end)
 
     -- This will also check the currently used name.
     PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_NAMEHISTORY, function(str)
-        print("P_NAMEHISTORY:", str, rep)
+        print("P_NAMEHISTORY:", str, data.profilerep)
 
-        local toxicity_count = ProfanityFilter:CountInappropriateWords(str)
+        local toxicity_count = ProfanityFilter:CountSwears(str)
         if toxicity_count > 0 then
             OnToxicNameDetected(steamid)
 
-            rep = rep + (toxicity_count * REP_PER_TOXIC_NAME)
+            data.profilerep = data.profilerep + (toxicity_count * REP_PER_TOXIC_NAME)
         end
     end)
 
-    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_FRIENDLIST, function(data)
-        print("P_FRIENDLIST:", rep)
+    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_FRIENDLIST, function(query)
+        print("P_FRIENDLIST:", data.rep)
         local banned_count = 0
-        for _, friend in pairs(data.friendslist.friends) do
+        for _, friend in pairs(query.friendslist.friends) do
             if PEARL.BlackList:Contains(friend.steamid) then
                 banned_count = banned_count + 1
             end
@@ -186,14 +192,14 @@ local function CalculateProfileReputation(steamid, cfd, cb)
         if banned_count > 0 then
             OnBannedFriendsDetected(steamid, banned_count)
 
-            rep = rep + (banned_count * REP_PER_BANNED_FRIEND)
+            data.profilerep = data.profilerep + (banned_count * REP_PER_BANNED_FRIEND)
         end
 
         PEARL.info("User's friends are fine")
     end)
 
     PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_COMMENTS, function(str)
-        print("P_COMMENTS", rep)
+        print("P_COMMENTS", data.profilerep)
 
         if type(str) ~= "string" then
             return
@@ -201,18 +207,22 @@ local function CalculateProfileReputation(steamid, cfd, cb)
 
         local comment_rep = CalculateRepInComments(str, cfd.username)
         if comment_rep < MIN_COMMENT_REP then
-            rep = -MAX_COMMENT_REP
+            data.profilerep = -MAX_COMMENT_REP
         else
-            rep = rep + comment_rep
+            data.profilerep = data.profilerep + comment_rep
         end
     end, MAX_COMMENTS_CHECK_COUNT)
 
-    --- @TODO: Maybe we should save timecreated and countrycode.
-    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_SUMMARIES, function(data)
-        local player = data and data.response and data.response.players and data.response.players[1]
+    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_SUMMARIES, function(query)
+        local player = query and query.response and query.response.players and query.response.players[1]
         if not player then
+            PEARL.error("Invalid query response received!")
             return
         end
+
+        data.loccountrycode = player.loccountrycode
+        data.timecreated    = player.timecreated
+        data.profilerep     = MAX_PROFILE_REP
 
         -- If the locale on profile doesn't match the locale
         -- set on the steam profile (only if set).
@@ -221,7 +231,7 @@ local function CalculateProfileReputation(steamid, cfd, cb)
             type(cfd.locale) == "string" and
             player.loccountrycode ~= cfd.locale
         ) then
-            rep = rep + REP_PER_UNMATCHED_LOCALE
+            data.profilerep = data.profilerep + REP_PER_UNMATCHED_LOCALE
         end
 
         --- Maybe we should check all the clans here?
@@ -229,7 +239,7 @@ local function CalculateProfileReputation(steamid, cfd, cb)
         if PEARL.CONFIG.STEAM_GROUP_BLOCKLIST[primaryclanid] == true or
             table.contains(PEARL.CONFIG.STEAM_GROUP_BLOCKLIST, primaryclanid)
         then
-            rep = rep + REP_PER_BANNED_CLAN
+            data.profilerep = data.profilerep + REP_PER_BANNED_CLAN
         end
 
         if player.timecreated then
@@ -238,49 +248,67 @@ local function CalculateProfileReputation(steamid, cfd, cb)
             -- Usually older accounts mean older audience which means
             -- less probability for griefing.
             if acc_years >= MIN_REP_PROFILE_AGE then
-                rep = rep + (acc_years * REP_PER_ACCOUNT_YEAR)
+                data.profilerep = data.profilerep + (acc_years * REP_PER_ACCOUNT_YEAR)
             end
         end
+
+        if tostring(player.profilestate) == "1" then
+            data.communityprofile = true
+        end
+
+        data.avatar = player.avatarfull or player.avatarmedium or player.avatar
     end)
 
     PEARL.SteamAPI:ExecuteDataQuerySequenceFor(steamid)
 end
 
-local function CalculateProfileReputationForUser(userid, cfd, ...)
+local function CalculateProfileDataForUser(userid, cfd, ...)
     local steamid = userid and TheNet:GetNetIdForUser(userid) -- "76561198050735090"
     if not steamid then
         return PEARL.error("Failed to get steam ID for", userid)
     end
 
-    return CalculateProfileReputation(steamid, cfd, ...)
+    return CalculateProfileData(steamid, cfd, ...)
 end
 
-local function FilterByReputation(userid, rep, filtercb)
-    if rep < MIN_PROFILE_REP then
-        PEARL.info("VERY BAD PROFILE REP!!")
-        return filtercb(false, "ID_DST_PROFILE_REP_TOO_LOW")
+local function RunSteamProfileFilters(data, filtercb)
+    -- Check both because if we have only one set then the query most likely just failed.
+    if data.communityprofile == nil and data.profilerep == nil then
+        filtercb(true)
+        return false -- There is still some data to be catched up
+    end
+
+    if data.communityprofile == false then
+        filtercb(false, "ID_DST_NO_COMMUNITY_PROFILE")
+        return true
+    end
+
+    if type(data.profilerep) == "number" and data.profilerep < MIN_PROFILE_REP then
+        filtercb(false, "ID_DST_PROFILE_REP_TOO_LOW")
+        return true
     end
 
     filtercb(true)
+    return true
 end
 
 --------------------------------
 -- [[ Setup - Server ]]
 --------------------------------
 
-PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, cb)
-    local rep = PEARL.PlayerDB:GetField(userid, "profilerep")
-    if type(rep) == "number" then
-        return FilterByReputation(userid, rep, cb)
+PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cfd, cb)
+    local record = PEARL.PlayerDB:GetRecordFor(userid)
+    if RunSteamProfileFilters(record, cb) then
+        return -- We already have all the required data to complete the verification.
     end
 
-    CalculateProfileReputationForUser(userid, data, function(_rep)
-        PEARL.PlayerDB:OptionalSafeSetField(userid, "profilerep", _rep)
+    CalculateProfileDataForUser(userid, cfd, function(pdata)
+        PEARL.EventProcessor:HandleEvent("clientprofiledata", userid, pdata)
 
-        if _rep < BAD_PROFILE_REP then
+        if pdata.profilerep < BAD_PROFILE_REP then
             OnBadProfileRep(userid)
         end
 
-        FilterByReputation(userid, _rep, cb)
+        RunSteamProfileFilters(pdata, cb)
     end)
 end)

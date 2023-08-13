@@ -273,7 +273,7 @@ function HTTPClient:HandleRequest(request)
 
     --PEARL.debug("Adding request to the queue...")
     if not self._queue:push(request) then
-        return PEARL.error("Failed to push the request to the queue!", request)
+        return PEARL.error("Failed to push the request to the queue! Queue probably full.", request)
     end
 end
 

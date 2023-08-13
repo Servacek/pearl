@@ -92,6 +92,10 @@ PEARL.loadfile("extensions/chathistory")
 
 PEARL.loadfile("extensions/scripts/entityscript")
 
+if PEARL.CONFIG.SLASH_COMMANDS then
+    PEARL.loadfile("extensions/commands")
+end
+
 ----------------------------------
 -- Agreement Manager
 ----------------------------------
@@ -180,16 +184,12 @@ local ModuleManager = PEARL.loadfile("libraries/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
-ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(
         -- Only load the modblocker if we have any mods enabled.
         "modblocker", PEARL.CONFIG.MOD_BLOCKER.ENABLED and KnownModIndex:GetAllEnabledModsCount() > 1
-    )
-    ModuleManager:AddModule(
-        "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
     ModuleManager:AddModule(
         "agreement", type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" or type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table"

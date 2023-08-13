@@ -20,6 +20,7 @@ local QUERIES = PEARL.SteamAPI.QUERIES
 -- [[ Local Functions ]]
 --------------------------------------
 
+-- RECORDS ARE CREATED HERE
 local function RecordClientConnectionData(userid, data)
     -- This is the place where we want to create the record if needed.
     PEARL.PlayerDB:EnsureRecordFor(userid)
@@ -120,6 +121,14 @@ local function OnClientDisconnected(world, player)
     PEARL.PlayerDB:UnloadRecord(player.userid) -- Free the memory
 end
 
+local function OnClientProfileData(userid, data)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "profilecountrycode", data.loccountrycode)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "profiletimecreated", data.timecreated)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "profilerep", data.profilerep)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "communityprofile", data.communityprofile)
+    PEARL.PlayerDB:OptionalSafeSetField(userid, "avatar", data.avatar)
+end
+
 local function OnPlayerSpawned(world, player)
     if player.prefab ~= "" then
         PEARL.PlayerDB:OptionalSetField(
@@ -148,6 +157,8 @@ PEARL.EventProcessor:AddSafeEventHandler("clientagreementfinished", OnClientAgre
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
+
+PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
 
 PEARL.AddWorldPostInit(function(world)
     world:ListenForModEvent("ms_clientconnected", OnClientConnected)

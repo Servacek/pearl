@@ -32,6 +32,8 @@ local file_pre_loads = {}
 local frontend_preinits = {}
 local prefab_post_registers = {}
 
+local usercommand_post_inits = {}
+
 ----------------------------------
 -- Function Pre/Post call adders
 ----------------------------------
@@ -70,8 +72,11 @@ local function WrapFunctionPreCall(origin, precb)
     end
 end
 
+--- @param t table The lookup table for the value.
+--- @param name table The name of the table field holding the value.
+--- @param noraw boolean? Whether we should call the table's metamethods when looking up the value or not.
 function PEARL.GetValue(t, name, noraw)
-    return noraw and t[name] or rawget(t or _G, name)
+    return noraw and t[name] or rawget(t, name)
 end
 
 function PEARL.SetValue(t, name, value, noraw)
@@ -116,24 +121,28 @@ function PEARL.AddFunctionPostCall(name, postcb, t, with_res, noraw)
 end
 
 -- A wrapper function for AddFunctionPostCall for global functions
-function PEARL.AddGlobalFunctionPostCall(name, postcb)
-    -- Use _G override functions in the game's environment
-    local _, repl = PEARL.AddFunctionPostCall(name, postcb, _G)
+function PEARL.AddGlobalFunctionPostCall(name, postcb, ignoremodenv)
+    -- Override in the global environment
+    local origin, repl = PEARL.AddFunctionPostCall(name, postcb, _G)
 
     -- Sync with mod's global environment since the reference there still refers to
     -- the origin.
-    PEARL.OverrideVariable(name, repl)
+    if not ignoremodenv then
+        PEARL.OverrideVariable(name, repl, PEARL.ENV)
+    end
+
+    return origin
 end
 
 -- A wrapper function for AddFunctionPreCall for global functions
 function PEARL.AddGlobalFunctionPreCall(name, precb, ignoremodenv)
-    -- Use _G override functions in the game's environment
+    -- Override in the global environment
     local origin, repl = PEARL.AddFunctionPreCall(name, precb, _G)
 
     -- Sync with mod's global environment since the reference there still refers to
     -- the origin.
     if not ignoremodenv then
-        PEARL.OverrideVariable(name, repl)
+        PEARL.OverrideVariable(name, repl, PEARL.ENV)
     end
 
     return origin
@@ -225,6 +234,14 @@ function PEARL.AddFilePreLoad(filename, fn)
     table.insert(file_pre_loads[filename], fn)
 end
 
+function PEARL.AddUserCommandPostInit(name, postcb)
+    if not usercommand_post_inits[name] then
+        usercommand_post_inits[name] = {}
+    end
+
+    table.insert(usercommand_post_inits[name], postcb)
+end
+
 --- WARNING: can cause a lot of nasty issues so do not use if not required!
 -- function PEARL.AddMetaMethodPostCall(name, tbl, postcb)
 --     if KnownModIndex:IsModInitPrintEnabled() then
@@ -311,6 +328,11 @@ function PEARL.OverrideVariable(name, value, tbl, optional)
     return rawset(tbl, name, value)
 end
 
+function PEARL.OverrideGlobalVariable(name, value, optional)
+    PEARL.OverrideVariable(name, value, _G, optional)
+    PEARL.OverrideVariable(name, value, PEARL.ENV, optional)
+end
+
 function PEARL.OverrideUserdataVariable(name, value, userdata, optional)
     local mt = type(userdata) == "userdata" and getmetatable(userdata) or nil
     assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
@@ -371,6 +393,16 @@ function PEARL.OnModPostInit(...)
         fn(...)
     end
 end
+
+PEARL.AddGlobalFunctionPostCall("AddUserCommand", function(name, ...)
+    if not usercommand_post_inits[name] then
+        return
+    end
+
+    for _, fn in ipairs(usercommand_post_inits[name]) do
+        fn(...)
+    end
+end)
 
 PEARL.AddGlobalFunctionPostCall("RegisterPrefabsImpl", function(inst)
     if not inst or not prefab_post_registers[inst.name] then

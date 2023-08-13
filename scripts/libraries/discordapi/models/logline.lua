@@ -180,6 +180,12 @@ function LogLine:SetIsRaw(raw)
     return self
 end
 
+function LogLine:Censor()
+    self._content = MARKDOWN.spoiler(self._content)
+
+    return self
+end
+
 ------------------------------------------
 -- [[ Private Methods ]]
 ------------------------------------------

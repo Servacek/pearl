@@ -30,7 +30,7 @@ local MAX_TIMEOUTS_IN_ROW   = 3
 local _timeouts_in_row = 0
 local _reported = false
 
-local function _OnProxyRequestTimeout(result, http_code)
+local function _OnProxyRequestTimeout()
     if not _reported then
         _timeouts_in_row = _timeouts_in_row + 1
 

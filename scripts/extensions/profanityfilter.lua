@@ -10,7 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category BackEnd
---- @TODO: Filter usernames containing profanity.
 
 require("util/profanityfilter")
 
@@ -24,15 +23,15 @@ local string = string
 local lower = string.utf8lower
 local len = string.utf8len
 
+local strhash = smallhash
+
 -------------------------------------
 -- [[ Contants ]]
 -------------------------------------
 
--- We don't care about some punctuation or space characters around the letters
--- of the filtered word.
--- local IGNORE_NON_LETTERS = "[%p%s]*"
-local REPL_CHAR = "*"
-local WORD_PATTERN = "%S+"
+local DEFAULT_REPL_CHAR = "*"
+-- Word is a sequence of visible characters.
+local WORD_PATTERN = "[%S%C%Z]+"
 
 local FILTER_PATH = PEARL.SRCDIR.."languages/filters/%s.lua"
 local FILTER_RPATH = "languages/filters/%s"
@@ -41,25 +40,34 @@ local FILTER_RPATH = "languages/filters/%s"
 -- [[ Private ]]
 -------------------------------------
 
-local patterns = {}
+local lose_patterns = {}
+local exact_patterns = {}
 
 -------------------------------------
 -- [[ Local Functions ]]
 -------------------------------------
 
 local function normalize(s)
-    return s:gsub("[%p%s]", "")
+    return s:gsub("%p", "")
 end
 
 local function addpattern(self, name)
     local dict = self.dictionaries[name]
-    if type(dict) ~= "table" or type(dict.loose_match) ~= "table" then
+    if type(dict) ~= "table" then
         return PEARL.error("Dictionary is invalid or not existent!")
     end
 
-    for i = 1, #dict.loose_match do
-        -- Just to make sure all alphanumeric characters in the pattern are lower case.
-        patterns[#patterns + 1] = lower(dict.loose_match[i])
+    if dict.loose_match then
+        for i = 1, #dict.loose_match do
+            -- Just to make sure all alphanumeric characters in the pattern are lower case.
+            lose_patterns[#lose_patterns + 1] = lower(dict.loose_match[i])
+        end
+    end
+
+    if dict.exact_match then
+        for hash, _ in pairs(dict.exact_match) do
+            exact_patterns[tonumber(hash)] = true
+        end
     end
 end
 
@@ -73,18 +81,14 @@ function ProfanityFilter:Apply(text, repl, pattern)
         return text
     end
 
-    repl = repl or REPL_CHAR
-    -- Replace profanity with asterisks
+    repl = repl or DEFAULT_REPL_CHAR
     text = text:gsub(WORD_PATTERN, function(word)
-        -- Plase no changes to the strings here except of censoring it.
-        word = lower(word)
-        for i = 1, #patterns do
-            if word:find(patterns[i]) ~= nil then
-                if pattern == true then
-                    return repl:format(word)
-                else
-                    return string.rep(repl, len(word))
-                end
+        -- No lowering or other changes here. Keep the word as is.
+        if self:Detect(word) then
+            if pattern == true then
+                return repl:format(word)
+            else
+                return string.rep(repl, len(word))
             end
         end
     end)
@@ -95,29 +99,41 @@ end
 -- We use our custom function for this since the default one doesn't support patterns.
 function ProfanityFilter:Detect(text)
     if type(text) ~= "string" or #text <= 1 then
-        return
+        return false
     end
 
-    text = normalize(lower(text))
-    for i = 1, #patterns do
-        if text:find(patterns[i]) ~= nil then
+    for word in normalize(lower(text)):gmatch(WORD_PATTERN) do
+        if exact_patterns[strhash(word)] then
             return true
+        end
+
+        -- Plase no changes to the strings here except of censoring it.
+        for i = 1, #lose_patterns do
+            if word:find(lose_patterns[i]) then
+                return true
+            end
         end
     end
 
     return false
 end
 
-function ProfanityFilter:CountInappropriateWords(text)
+function ProfanityFilter:CountSwears(text)
     if type(text) ~= "string" or #text <= 1 then
-        return
+        return 0
     end
 
     local count = 0
-    text = normalize(lower(text))
-    for i = 1, #patterns do
-        for _ in text:gmatch(patterns[i]) do
+    for word in normalize(lower(text)):gmatch(WORD_PATTERN) do
+        if exact_patterns[strhash(word)] then
             count = count + 1
+        else
+            for i = 1, #lose_patterns do
+                if word:find(lose_patterns[i]) ~= nil then
+                    count = count + 1
+                    break -- There is just one possible profanity per word.
+                end
+            end
         end
     end
 
@@ -137,7 +153,6 @@ PEARL.AddSimPostInit(function()
         ProfanityFilter:RemoveDictionary("default")
     end
 
-    --- @TODO: Add more words to the czech filter.
     for _, pf in ipairs(PEARL.CONFIG.PROFANITY_FILTERS) do
         local path = FILTER_PATH:format(pf)
         if not io.exists(path) then
@@ -157,18 +172,3 @@ PEARL.AddSimPostInit(function()
         end
     end
 end)
-
-
--------------------------------------
--- [[ Username Profanity Filter ]]
--------------------------------------
-
-if PEARL.CONFIG.FILTER_USERNAMES then
-    PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
-        if type(data.username) ~= "string" then
-            return
-        end
-
-        return not ProfanityFilter:Detect(data.username), "ID_DST_USERNAME_BLOCKED"
-    end)
-end
