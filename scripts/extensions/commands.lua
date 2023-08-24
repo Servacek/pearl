@@ -34,8 +34,9 @@ local REQUIRED_FIELDS = {
     params = {},
 }
 
-local SLASH_COMMAND_DELIM = "/"
-local KLEI_ID_DELIM = "K"
+local SLASH_COMMAND_DELIM   = "/"
+local KLEI_ID_DELIM         = "K"
+local PLAYER_NAME_DELIM     = "@"
 
 local DAYSBACK_DELAY = 3
 local ROLLBACK_DELAY = 3
@@ -75,6 +76,43 @@ end
 -- When executed from STDIN, these are always in a protected call.
 local function AddConsoleCommand(name, fn)
     PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), fn)
+end
+
+local function AddSlashCommand(name, command)
+    local _serverfn = command.serverfn
+    command.serverfn = make_safe_cb(name, function(params, caller, ...)
+        local responses = command.mainfn and {command.mainfn(params, caller, ...)}
+
+        local response = responses and responses[1]
+        if type(_serverfn) == "function" then
+            response = _serverfn(params, caller, PEARL.unpack(responses))
+        end
+
+        if type(response) == "string" then
+            -- Handle slash command response
+            PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
+        end
+    end)
+
+    if command.localfn then
+        command.localfn = make_safe_cb(name, command.localfn)
+    end
+
+    if command.canstartfn then
+        command.canstartfn = make_safe_cb(name, command.canstartfn)
+    end
+
+    AddUserCommand(name, command)
+
+    if name then
+        table.insert(SLASH_COMMANDS, name)
+
+        if command.aliases then
+            for _, alias in ipairs(command.aliases) do
+                table.insert(SLASH_COMMANDS, alias)
+            end
+        end
+    end
 end
 
 local function ParseParamsArray(command, params_array)
@@ -122,19 +160,33 @@ local function AddCommand(name, command, ...)
     PEARL.info("Registering command", name)
 
     command.slash = command.slash ~= false and PEARL.CONFIG.SLASH_COMMANDS
+    command.console = command.console ~= false and PEARL.CONFIG.CONSOLE_COMMANDS
+    command.discord = command.discord ~= false and PEARL.CONFIG.DISCORD_COMMANDS
+
+    -- Console commands are server-only.
+    if not TheNet:GetIsServer() then
+        command.console = false
+    end
 
     -- By default we will register console accessible function for each admin command.
     if command.console ~= false and command.permission == COMMAND_PERMISSION.ADMIN then
-        local consolefn = command.consolefn or command.mainfn or command.serverfn
-        if type(consolefn) ~= "function" then
-            return error("Invalid admin console command callback! Command: "..name)
-        end
-
         AddConsoleCommand(command.consolename or name, function(...)
-            consolefn(ParseParamsArray(command, toarrayornil(...)))
+            local params = ParseParamsArray(command, toarrayornil(...))
+            local response = command.mainfn and {command.mainfn(params)}
+
+            if type(command.consolefn) == "function" then
+                return command.consolefn(params, nil, PEARL.unpack(response))
+            end
+
+            if response and response[1] then
+                -- Handle console command response
+                PEARL.info(response[1])
+            end
+
+            return PEARL.unpack(response)
         end)
 
-        if command.consolename then
+        if command.consolename and command.consolename ~= name then
             if not command.aliases then
                 command.aliases = {}
             end
@@ -146,33 +198,8 @@ local function AddCommand(name, command, ...)
         end
     end
 
-    local _serverfn = command.serverfn
-    command.serverfn = make_safe_cb(name, function(params, caller, ...)
-        local response = command.mainfn and command.mainfn(params, caller, ...)
-
-        if type(_serverfn) == "function" then
-            return _serverfn(params, caller, response)
-        end
-    end)
-
-    if command.localfn then
-        command.localfn = make_safe_cb(name, command.localfn)
-    end
-
-    if command.canstartfn then
-        command.canstartfn = make_safe_cb(name, command.canstartfn)
-    end
-
-    AddUserCommand(name, command)
-
-    if name and command.slash then
-        table.insert(SLASH_COMMANDS, name)
-
-        if command.aliases then
-            for _, alias in ipairs(command.aliases) do
-                table.insert(SLASH_COMMANDS, alias)
-            end
-        end
+    if command.slash == true or command.usermenu or command.servermenu then
+        AddSlashCommand(name, command)
     end
 end
 
@@ -180,31 +207,99 @@ end
 -- Slash commands [ADMIN]
 ------------------------------------
 
+local function extinguish_near(pos, radius)
+    local onfire = TheSim:FindEntities(pos.x, pos.y, pos.z, radius,
+        nil, -- must-have tags
+        {'wildfireprotected', 'campfire', 'NOCLICK', 'FX','DECOR','INLIMBO','burnt'}, -- cant-have tags
+        {'fire','smolder'} -- must-have-one tags
+    )
+
+    for i = 1, #onfire do
+        if onfire[i].components and onfire[i].components.burnable then
+            onfire[i].components.burnable:Extinguish()
+        end
+    end
+end
+
 AddCommand("fire", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
+    params = {"user"},
+    paramsoptional = {true},
 
     mainfn = function(params, caller)
-        PEARL.ExtinguishFiresNearAll()
+        local pt_postfix = caller and "_DOER" or ""
 
-        TheNet:Announce(STRINGS.PEARL.LOGS.EXTINGUISH_ALL:format(
+        if params.user then
+            local player = UserToPlayer(params.user)
+            if player ~= nil then
+                extinguish_near(player:GetPosition())
+
+                TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
+                    caller and caller:GetDisplayName() or player:GetDisplayName(), player:GetDisplayName()
+                ), caller and caller.entity)
+                return
+            end
+
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        extinguish_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
+
+        TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH"..pt_postfix]:format(
             caller and caller:GetDisplayName() or "Shenanigans"
         ), caller and caller.entity)
     end,
 })
+
+local function repair_near(pos, radius)
+    local burned_entities = TheSim:FindEntities(
+        pos.x, pos.y, pos.z, radius, {'burnt','structure'}, {'INLIMBO'}
+    )
+
+    for _, ent in ipairs(burned_entities) do
+        if ent.components.workable and ent.components.workable:HasBuilder() then
+            -- Inherit the builder for player-made structures.
+            local builder = ent.components.workable and ent.components.workable:GetBuilder()
+            local inst = ReplacePrefab(ent, ent.prefab, ent.skinname, ent.skin_id)
+            if inst and inst.components.workable then
+                inst.components.workable:SetBuilder(builder)
+            end
+        end
+    end
+end
 
 AddCommand("repair", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
+    params = {"user"},
+    paramsoptional = {true},
 
     mainfn = function(params, caller)
-        PEARL.RepairStructuresNearAll()
+        local pt_postfix = caller and "_DOER" or ""
 
-        TheNet:Announce(STRINGS.PEARL.LOGS.REPAIR_ALL:format(
+        if params.user then
+            local player = UserToPlayer(params.user)
+            if player ~= nil then
+                repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
+
+                TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_NEAR"..pt_postfix]:format(
+                    caller and caller:GetDisplayName() or "Shenanigans"
+                ), caller and caller.entity)
+
+                return
+            end
+
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        repair_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
+
+        TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_ALL"..pt_postfix]:format(
             caller and caller:GetDisplayName() or "Shenanigans"
         ), caller and caller.entity)
     end,
@@ -216,23 +311,21 @@ AddCommand("unban", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     params = {"userid"},
-    params_optional= { false },
-
-    discordfn = function(params, caller, response)
-        return Message(response)
-    end,
+    paramsoptional= { false },
 
     mainfn = function(params, caller)
-        local success = PEARL.UnbanUserByID(UserToClientID(params.userid) or params.userid)
-        return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN[success and "ON_SUCCESS" or "ON_NOTFOUND"]
-    end,
+        local userid = UserToClientID(params.userid) or params.userid
+        if PEARL.BlackList:RemovePlayerByID(userid) then
+            PEARL.info("Successfully removed", userid, "from the blocklist!")
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS
+        end
 
-    serverfn = function(params, caller, response)
-        PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
+        PEARL.info("Attempt to unban", userid, "failed.")
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND
     end,
 })
 
-AddCommand("allow", {
+AddCommand("grant", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
@@ -240,14 +333,10 @@ AddCommand("allow", {
     cantargetself = false,
     cantargetadmin = false,
     params = {"userid"},
-    params_optional= { false },
-
-    discordfn = function(params, caller, response)
-        return Message(response)
-    end,
+    paramsoptional= { false },
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.user) or params.user
+        local userid = UserToClientID(params.userid) or params.userid
         if PEARL.BlackList:Contains(userid) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED
         end
@@ -263,49 +352,30 @@ AddCommand("allow", {
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_FAILURE:format(userid)
     end,
-
-    serverfn = function(params, caller, response)
-        return PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
-    end,
 })
 
-AddCommand("allowlist-remove", {
-    aliases = {"deny"},
-    consolename = "deny",
+AddCommand("revoke", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     params = {"userid"}, -- Net/Klei ID
-    params_optional= { false },
-    console = false,
+    paramsoptional= { false },
 
-    serverfn = function(params, caller)
-        if not (params and caller and params.userid) then
-            return
-        end
-
+    mainfn = function(params, caller)
         local userid = UserToClientID(params.userid) or params.userid
         if not PEARL.AllowList:Contains(userid) then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
-                STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
-            )
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
         end
 
         PEARL.AllowList:Remove(userid)
         TheNet:Kick(userid)
 
         if PEARL.AllowList:Save() then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, string.format(
-                    STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS,
-                    userid
-                )
-            )
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS:format(userid)
         end
 
-        return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
-            STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_FAILURE
-        )
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_FAILURE
     end,
 })
 
@@ -315,7 +385,7 @@ AddCommand("inv", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     params = {"userid"}, -- Net/Klei ID
-    params_optional= { false },
+    paramsoptional= { false },
 
     discordfn = function(params, caller, userid)
         return MESSAGES.InvReport(userid)
@@ -327,21 +397,20 @@ AddCommand("inv", {
 
     -- Called via slash commands, requires report webhook
     serverfn = function(params, caller, userid)
-        local response
-
         -- We are sending this to the report channel not to the log channel.
         if PEARL.DiscordReporter:IsDisabled() then
-            response = STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
-        elseif PEARL.DiscordReporter:ReportInventory(userid) then
-            response = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
-        else
-            response = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND
+            return STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
         end
 
-        return PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
+        if PEARL.DiscordReporter:ReportInventory(userid) then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS
+        end
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND
     end,
 })
 
+--- @TODO: Add discord support.
 AddCommand("inv-find", {
     aliases = {"item-find", "invf"},
     consolename = "invf",
@@ -349,9 +418,10 @@ AddCommand("inv-find", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
+    discord = false,
     console = false,
     params = {"prefab"},
-    params_optional = { false },
+    paramsoptional = { false },
 
     serverfn = function(params, caller)
         if not (params and caller and params.prefab) then
@@ -411,30 +481,30 @@ AddCommand("inv-find", {
 })
 
 --- @TODO: Check if this works properly
-AddCommand("daysback", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
-    permission = COMMAND_PERMISSION.ADMIN,
-    slash = true,
-    confirm = true,
-    console = false,
-    params = { "days" },
-    params_optional= { false },
+-- AddCommand("daysback", {
+--     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
+--     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
+--     permission = COMMAND_PERMISSION.ADMIN,
+--     slash = true,
+--     confirm = true,
+--     console = false,
+--     params = { "days" },
+--     paramsoptional= { false },
 
-    serverfn = function(params, caller)
-        if not (params and caller and params.days) then
-            return
-        end
+--     serverfn = function(params, caller)
+--         if not (params and caller and params.days) then
+--             return
+--         end
 
-        PEARL.RollbackByDays(tonumber(params.days), function(success, result)
-            if success then
-                return TheNet:Announce(result)
-            end
+--         PEARL.RollbackByDays(tonumber(params.days), function(success, result)
+--             if success then
+--                 return TheNet:Announce(result)
+--             end
 
-            PEARL.ServerNetwork:SendCommandResponse(caller.userid, result)
-        end, DAYSBACK_DELAY)
-    end,
-})
+--             PEARL.ServerNetwork:SendCommandResponse(caller.userid, result)
+--         end, DAYSBACK_DELAY)
+--     end,
+-- })
 
 AddCommand("admins", {
     aliases = {"staff", "sos"},
@@ -485,18 +555,19 @@ AddCommand("mods", {
     paramsoptional = { false },
 
     discordfn = function(params, caller, userid, mods, response)
-        if response then
-            return Message(response)
+        if not response then
+            return MESSAGES.ModsReport(userid, mods)
         end
-
-        return MESSAGES.ModsReport(userid, mods)
     end,
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.userid) or params.userid
         local mods = PEARL.PlayerDB:GetField(userid, "lastmods")
 
-        local response = type(mods) ~= "table" and STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS
+        local response
+        if type(mods) ~= "table" or #mods <= 0 then
+            response = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS
+        end
 
         return userid, mods, response
     end,
@@ -504,17 +575,15 @@ AddCommand("mods", {
     serverfn = function(params, caller, userid, mods, response)
         -- We are sending this to the report channel not to the log channel.
         if PEARL.DiscordReporter:IsDisabled() then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
-                STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
-            )
+            return STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
         end
 
         if response then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
+            return response
         end
 
         PEARL.DiscordReporter:ReportMods(userid, mods)
-        return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS)
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS
     end,
 })
 
@@ -523,18 +592,15 @@ AddCommand("save", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    console = false,
+    console = false, -- Already implemented by the game.
 
     mainfn = function()
         TheWorld:PushEvent("ms_save")
     end,
-
-    discordfn = function()
-        return Message("You have saved the world! Thank you!")
-    end
 })
 
 AddCommand("reboot", {
+    permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
     console = false,
 
@@ -546,70 +612,56 @@ AddCommand("reboot", {
 })
 
 AddCommand("shutdown", {
+    permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
-    console = false,
+    console = false, -- already implemented by the game
 
     mainfn = function()
+        -- Make sure the world is being saved before shutdown!
         c_shutdown(true)
     end
 })
 
 AddCommand("setrep", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.DESC,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     params = {"userid", "value"},
-    params_optional = {false, false},
+    paramsoptional = {false, false},
     slash = true,
     console = true,
 
     mainfn = function(params, caller)
         if PEARL.PlayerDB:OptionalSafeSetField(params.userid, "rep", params.value) then
-            return "Reputation set!"
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS
         end
 
-        return "Failed to set reputation."
+        return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
     end,
-
-    discordfn = function(params, caller, response)
-        PEARL.DiscordLogger:LogString(response)
-    end,
-
-    serverfn = function(params, caller, response)
-        PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
-    end
 })
 
 AddCommand("giverep", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.DESC,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.DESC,
     permission = COMMAND_PERMISSION.USER,
     params = {"user"},
-    params_optional = {false, false},
+    paramsoptional = {false},
     slash = true,
-    console = false,
+    console = false, -- This is meant to be a user-only command.
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.user) or params.user
         if PEARL.Reputation:GiveTo(userid, GIVEREP_AMOUNT) then
-            return "Player's reputation has increased!"
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SUCCESS
         end
 
-        return "Player not found!"
+        return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
     end,
-
-    discordfn = function(params, caller, response)
-        PEARL.DiscordLogger:LogStringRaw(response)
-    end,
-
-    serverfn = function(params, caller, response)
-        PEARL.ServerNetwork:SendCommandResponse(caller.userid, response)
-    end
 })
 
 AddCommand("reload", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.DESC,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.RELOAD.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.RELOAD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = true,
@@ -623,25 +675,27 @@ AddCommand("boost", {
     console = false,
 
     discordfn = function()
-        print("DISCORD FN!")
-
         local task = PEARL.WallScheduler:GetTask(PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH)
         if not task then
             return "Task not found!"
         end
 
         local _time = task:gettime()
-        task:settime(PEARL.CONFIG.DISCORD.INPUT_PROXY.SYNC_INTERVAL_FAST)
+        task:settime(PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL_FAST)
         task:restart()
 
-        PEARL.WallScheduler:ExecuteInTime(PEARL.CONFIG.DISCORD.INPUT_PROXY.BOOST_DELAY, function()
-            task:settime(_time or PEARL.CONFIG.DISCORD.INPUT_PROXY.SYNC_INTERVAL)
+        PEARL.WallScheduler:ExecuteInTime(PEARL.CONFIG.DISCORD.PROXY.BOOST_DELAY, function()
+            task:settime(_time or PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL)
             task:restart()
 
+            print("_____________RETURNING____")
+            PEARL.WallScheduler:DisplayTasks()
             PEARL.DiscordLogger:LogString("Server response latency back to normal.")
+            PEARL.WallScheduler:DisplayTasks()
+            print("_____________RETURNING____")
         end)
 
-        return PEARL.DiscordLogger:LogString("Lower server latency for 2 minutes!")
+        return "Lower server latency for 2 minutes!"
     end,
 })
 
@@ -661,13 +715,280 @@ AddCommand("profile", {
     end,
 })
 
+--- @TODO: Maybe make these for offline players by simulating the inventory?
+AddCommand("give", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = false, -- Already implemented for console by the game.
+    params = {"userid", "prefab", "count"},
+    paramsoptional = {false, false, true},
+
+    mainfn = function(params, caller)
+        local userid = UserToClientID(params.userid) or params.userid
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.inventory then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        local prefab = string.lower(params.prefab)
+        local item = SpawnPrefab(prefab)
+        if not item or not item.components.inventoryitem then
+            return STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID
+        end
+
+        -- Get rid of the initial checking item first
+        player.components.inventory:GiveItem(item)
+
+        if type(params.count) == "number" and params.count > 1 then
+            local count = params.count
+
+            if item.components.stackable then
+                while count > 0 do
+                    -- Between 1 - maxsize
+                    local stacksize = math.max(math.min(item.components.stackable.maxsize, count), 1)
+
+                    item.components.stackable:SetStackSize(stacksize)
+                    player.components.inventory:GiveItem(item)
+
+                    -- At first we have the inital item used for checking purposes.
+                    item = SpawnPrefab(prefab)
+                    count = count - stacksize
+                end
+            else
+                -- Handle non-stackable items
+                for _ = 1, count do
+                    player.components.inventory:GiveItem(SpawnPrefab(prefab))
+                end
+            end
+        end
+
+        local count = type(params.count) == "number" and params.count or 1
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ON_SUCCESS:format(
+            count, item:GetBasicDisplayName(), player:GetDisplayName()
+        )
+    end,
+})
+
+AddCommand("take", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"userid", "prefab", "count"},
+    paramsoptional = {false, false, true},
+
+    mainfn = function(params, caller)
+        local userid = UserToClientID(params.userid) or params.userid
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.inventory then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        local prefab = string.lower(params.prefab)
+
+        -- Take all items by default.
+        local count = type(params.count) == "number" and params.count or math.huge
+        local items = player.components.inventory:GetItemByName(prefab, count, false)
+        if not items or table.empty(items) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.ITEM_NOT_FOUND
+        end
+
+        local item_name
+        for item, _ in pairs(items) do
+            if not item_name then
+                item_name = item:GetBasicDisplayName()
+            end
+
+            -- Remove the items completely.
+            player.components.inventory:RemoveItem(item):Remove()
+        end
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.ON_SUCCESS:format(
+            GetTableSize(items), item_name or "UNKNOWN", player:GetDisplayName()
+        )
+    end,
+})
+
+AddCommand("drop", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"userid", "prefab", "count"},
+    paramsoptional = {false, true, true},
+
+    mainfn = function(params, caller)
+        local userid = UserToClientID(params.userid) or params.userid
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.inventory then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        -- If no item specified, drop everything.
+        if type(params.prefab) ~= "string" then
+            player.components.inventory:DropEverything()
+
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP_ALL:format(
+                player:GetDisplayName()
+            )
+        end
+
+        local prefab = string.lower(params.prefab)
+
+        local count = type(params.count) == "number" and params.count or math.huge
+        local items = player.components.inventory:GetItemByName(prefab, count, false)
+        if not items or table.empty(items) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.ITEM_NOT_FOUND
+        end
+
+        local item_name
+        for item, _ in pairs(items) do
+            if not item_name then
+                item_name = item:GetBasicDisplayName()
+            end
+
+            -- Remove the items completely.
+            player.components.inventory:DropItem(item)
+        end
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP:format(
+            GetTableSize(items), item_name or "UNKNOWN", player:GetDisplayName()
+        )
+    end,
+})
+
+AddCommand("kill", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"userid"},
+    paramsoptional = {false},
+
+    mainfn = function(params, caller)
+        local userid = UserToClientID(params.userid) or params.userid
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.health then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        player:PushEvent("death")
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.ON_SUCCESS
+    end,
+})
+
+AddCommand("revive", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"userid"},
+    paramsoptional = {false},
+
+    mainfn = function(params, caller)
+        local userid = UserToClientID(params.userid) or params.userid
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        player:PushEvent("respawnfromghost", {})
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS
+    end,
+})
+
+AddCommand("despawn", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"userid"},
+    paramsoptional = {false},
+
+    mainfn = function(params, caller)
+        local userid = UserToClientID(params.userid) or params.userid
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        -- Make sure we drop the inventory before it's too late.
+        if player.components.inventory then
+            player.components.inventory:DropEverything()
+        end
+
+        TheWorld:PushEvent("ms_playerdespawnanddelete", player)
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS
+    end,
+})
+
+-- This is here mainly for debugging purposes, so we do not have to wait
+-- for the Master shard to be restarted.
+AddCommand("reloadshard", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    discord = false,
+    slash = false,
+    usermenu = false,
+    servermenu = false,
+
+    mainfn = function()
+        StartNextInstance({
+            reset_action = RESET_ACTION.LOAD_SLOT,
+            save_slot = ShardGameIndex:GetSlot()
+        })
+    end
+})
+
+AddCommand("blockmod", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    slash = true,
+    params = {"id"},
+    paramsoptional = {false},
+
+    mainfn = function(params)
+        local modid = tostring(params.id)
+        PEARL.CONFIG.MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST or {}
+        if table.contains(PEARL.CONFIG.MOD_BLOCKLIST, modid) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.MOD_ALREADY_BLOCKED
+        end
+
+        table.insert(PEARL.CONFIG.MOD_BLOCKLIST, modid)
+        if PEARL.CONFIG.MOD_ALLOWLIST and table.removearrayvalue(PEARL.CONFIG.MOD_ALLOWLIST, modid) then
+            PEARL.SetPersistentStringLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_ALLOWLIST)
+        end
+
+        PEARL.SetPersistentStringLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_BLOCKLIST)
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.ON_SUCCESS
+    end
+})
+
 -------------------------------------------
 -- Command Post Inits
 -------------------------------------------
 
-PEARL.AddUserCommandPostInit("rollback", function(command)
+PEARL.AddUserCommandPreInit("rollback", function(command)
     command.mainfn = function(params, caller)
         local after = params.after ~= nil and tonumber(params.after) or ROLLBACK_DELAY
+        -- local days = params.days ~= nil and tonumber(params.days)
+        -- if days and days >= 0 then
+        --     return PEARL.RollbackByDays(days, nil, after)
+        -- end
+
         local snapshots = params.snapshots ~= nil and tonumber(params.snapshots)
 
         TheNet:Announce(STRINGS.PEARL.LOGS.ROLLBACK_AFTER:format(snapshots, after))
@@ -677,8 +998,19 @@ PEARL.AddUserCommandPostInit("rollback", function(command)
     end
 end)
 
-PEARL.AddUserCommandPostInit("kick", function(command)
+PEARL.AddUserCommandPreInit("regenerate", function(command)
+    if not command.aliases then
+        command.aliases = {}
+    end
+
+    table.insert(command.aliases, "regen")
+
+    command.mainfn = c_regenerateworld
+end)
+
+PEARL.AddUserCommandPreInit("kick", function(command)
     command.mainfn = function(params, caller)
+        PEARL.ServerNetwork:IsUserConnected(params.userid)
         if params.reason then
             -- Display the reason if any.
             PEARL.ServerNetwork:CloseConnectionFor(
@@ -694,7 +1026,7 @@ PEARL.AddUserCommandPostInit("kick", function(command)
     end
 end)
 
-PEARL.AddUserCommandPostInit("ban", function(command)
+PEARL.AddUserCommandPreInit("ban", function(command)
     command.mainfn = function(params, caller)
         if params.reason then
             -- Display the reason if any.
@@ -734,10 +1066,12 @@ AddClassPostConstruct("screens/chatinputscreen", function(self)
     end
 
     local userids = {}
+    local names = {}
     for _, v in ipairs(AllPlayers) do
         if v and v.userid then
             -- Remove the delim from the userid
             table.insert(userids, v.userid:sub(#KLEI_ID_DELIM + 1))
+            table.insert(names, v.name)
         end
     end
 
@@ -745,5 +1079,11 @@ AddClassPostConstruct("screens/chatinputscreen", function(self)
     self.chat_edit:AddWordPredictionDictionary({
         delim = KLEI_ID_DELIM,
         words = userids,
+    })
+
+    -- Auto-complete for player names
+    self.chat_edit:AddWordPredictionDictionary({
+        delim = PLAYER_NAME_DELIM,
+        words = names,
     })
 end)

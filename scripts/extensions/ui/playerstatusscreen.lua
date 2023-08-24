@@ -17,7 +17,7 @@
 ]]
 
 local PEARL = PEARL
-if type(PEARL.CONFIG.DISCORD.INVITE) ~= "string" or #PEARL.CONFIG.DISCORD.INVITE < 3 then
+if not PEARL.CONFIG.SOCIAL_LINKS or type(PEARL.CONFIG.SOCIAL_LINKS.DISCORD) ~= "string" or #PEARL.CONFIG.SOCIAL_LINKS.DISCORD < 3 then
     return
 end
 
@@ -53,7 +53,7 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
     self.servermenunumbtns = (self.servermenunumbtns or 0) + 1
 
     self.viewdiscord_button = self.root:AddChild(TEMPLATES.LinkButton(
-        PEARL.CONFIG.DISCORD.INVITE, STRINGS.PEARL.UI.DISCORD_BUTTON_HOVER,
+        PEARL.CONFIG.SOCIAL_LINKS.DISCORD, STRINGS.PEARL.UI.DISCORD_BUTTON_HOVER,
         VIEWDC_BUTTON_TEXT_ATLAS, VIEWDC_BUTTON_NORMAL_TEX, VIEWDC_BUTTON_FOCUS_TEX
     ))
     self.viewdiscord_button:SetPosition(VIEWDC_BUTTON_X + (self.servermenunumbtns * SCREEN_BUTTONS_OFFSET), VIEWDC_BUTTON_Y)

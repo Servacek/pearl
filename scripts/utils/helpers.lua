@@ -110,121 +110,6 @@ function PEARL.GetMaxStringSize(string_list, key, keyname)
 end
 
 --------------------------------
--- [[ Persistent String ]]
---------------------------------
--- A bunch of wrappers for nicer handling of persistent strings.
-
-function PEARL.PersistentStringExists(fp)
-    local file_exists = false
-    TheSim:CheckPersistentStringExists(fp, function(exists)
-        file_exists = exists
-    end)
-
-    return file_exists
-end
-
-function PEARL.CreatePersistentString(fp)
-    return PEARL.SetPersistentString(fp, "")
-end
-
-function PEARL.EnsurePersistentString(fp)
-    if not PEARL.PersistentStringExists(fp) then
-        if not PEARL.CreatePersistentString(fp) then
-            PEARL.error("Failed to create file", fp)
-            return false
-        end
-    end
-
-    return true
-end
-
-function PEARL.GetPersistentString(fp, ensure)
-    if ensure and not PEARL.EnsurePersistentString(fp) then
-        return false
-    end
-
-    local result, success
-    TheSim:GetPersistentString(fp, function(successfull, str)
-        success = successfull
-        result = str
-    end)
-
-    return success, result
-end
-
--- This runs synchronously actually.
-function PEARL.GetPersistentStringByLines(fp, fn, ensure)
-    if PEARL.PersistentStringExists(fp) ~= true then
-        if ensure == true then
-            PEARL.info("Creating file", fp)
-
-            return PEARL.CreatePersistentString(fp)
-        end
-
-        return PEARL.error("File not found!")
-    end
-
-    return TheSim:GetPersistentString(fp, function(success, str)
-        if not success or type(str) ~= "string" then
-            return PEARL.error("Failed to load the file!", fp)
-        end
-
-        local prefix = string.strip(PEARL.CONSTS.KLEI_DATA_PREFIX)
-        for _, line in ipairs(str:split("\n")) do
-            if string.strip(line) ~= prefix then
-                fn(line)
-            end
-        end
-    end)
-end
-
-function PEARL.GetAllPersistentStringLines(fp, ensure, strip)
-    local lines = {}
-    PEARL.GetPersistentStringByLines(fp, function(line)
-        if strip == true then
-            local stripped = string.strip(line)
-            if #stripped > 0 then
-                lines[#lines + 1] = stripped
-            end
-        else
-            lines[#lines + 1] = line
-        end
-    end, ensure)
-
-    return lines
-end
-
-function PEARL.SetPersistentString(fp, str, encode)
-    encode = encode or false
-
-    local s = false
-    TheSim:SetPersistentString(fp, str, encode, function(success)
-        s = success
-    end)
-
-    return s
-end
-
-function PEARL.LoadPersistentLuaString(fp, ensure, env)
-    if ensure and not PEARL.EnsurePersistentString(fp) then
-        return false, PEARL.error("Failed to create the file!")
-    end
-
-    local success, lua_str = PEARL.GetPersistentString(fp, ensure)
-    if not success or type(lua_str) ~= "string" then
-        return false, PEARL.error("Failed to load the given lua file!")
-    end
-
-    if type(env) == "table" then
-        return RunInEnvironmentSafe(function()
-            return loadstring(lua_str)()
-        end, env)
-    end
-
-    return RunInSandboxSafe(lua_str)
-end
-
---------------------------------
 -- [[ Server Commands ]]
 --------------------------------
 
@@ -238,27 +123,29 @@ function PEARL.RawRollbackByID(snapshot_id)
     return WorldRollbackFromSim(0)
 end
 
+--- @DONOTUSE
 --- @param days number The number of cycles to go back. (cycle = day - 1)
---- @param handler function<boolean, string>? The handler function for error messages.
---- @param delay number?
-function PEARL.RollbackByDays(days, handler, delay)
+---- @param handler function<boolean, string>? The handler function for error messages.
+--- @param after number?
+--- @return boolean success, string? reason
+function PEARL.RollbackByDays(days, handler, after)
     if not TheNet:GetIsServer() then
-        return PEARL.error("RollbackByDays works only on the server!")
+        return false, STRINGS.PEARL.UI.CMD_ERRORS.SERVER_ONLY
     end
 
-    handler = handler or function(success, message)
-        if success == false then
-            return PEARL.error(message)
-        end
+    -- handler = handler or function(success, message)
+    --     if success == false then
+    --         return PEARL.error(message)
+    --     end
 
-        return PEARL.info(message)
-    end
+    --     return PEARL.info(message)
+    -- end
 
     -- Note: This returns an array where the snapshots are sorted by the newest
     -- So the snapshot on index 1 is the latest, etc...
     local snapshots = TheNet:ListSnapshots(TheNet:GetSessionIdentifier(), true)
     if type(snapshots) ~= "table" then
-        return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.FAILED_SNAPHOTS_LOAD)
+        return false, STRINGS.PEARL.UI.CMD_ERRORS.FAILED_SNAPHOTS_LOAD
     end
 
     local target_cycle = math.max((TheWorld.state.cycles or 1) - days, 1)
@@ -280,19 +167,26 @@ function PEARL.RollbackByDays(days, handler, delay)
     local function tryloadsnapshot(index)
         local snapshot = snapshots[index]
         if type(snapshot) ~= "table" then
-            return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
+            return false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day)
         end
 
-        return TheSim:GetPersistentString(tostring(snapshot.world_file)..".meta", function(success, data)
+        local reason
+        local successfull = false
+
+        TheSim:GetPersistentString(tostring(snapshot.world_file)..".meta", function(success, data)
             local cycle = getsnapshotcycle(data)
             if type(cycle) ~= "number" then
-                return
+                -- successfull = false
+                -- reason = STRINGS.PEARL.
+                -- We should fail here as well...
             end
 
             if cycle == target_cycle and snapshot.snapshot_id ~= nil then
+                TheWorld:PushModEvent("world_rollback_days", days, after)
+
                 handler(true, STRINGS.PEARL.LOGS.ROLLBACK_DAYS:format(target_day))
                 return PEARL.WallScheduler:ExecuteInTime(
-                    delay or 0, PEARL.RawRollbackByID, nil, snapshot.snapshot_id
+                    after or 0, PEARL.RawRollbackByID, nil, snapshot.snapshot_id
                 )
             end
 
@@ -303,12 +197,15 @@ function PEARL.RollbackByDays(days, handler, delay)
                 return tryloadsnapshot(index + 1)
             end
 
-            return handler(false, STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day))
+            successfull = false
+            reason = STRINGS.PEARL.UI.CMD_ERRORS.NO_SNAPSHOT_FOUND:format(target_day)
         end)
+
+        return successfull, reason
     end
 
     -- We are starting from snapshot at index 1 which should be the newest.
-    tryloadsnapshot(1)
+    return tryloadsnapshot(1)
 end
 
 --------------------------------
@@ -566,15 +463,6 @@ function PEARL.GetBurnableEntitiesNearPos(pos, radius)
     )
 end
 
-function PEARL.GetFuncSrcStr(func)
-    local src_info = debug.getinfo(func, "S")
-    local filename = PEARL.GetFileNameFromPath(src_info.source) or "unknown"
-
-    return string.format("[%s]:%d:<%d>",
-        filename, src_info.linedefined or -1, src_info.currentline or -1
-    )
-end
-
 -- Runs a function and catches errors during the call.
 -- Return values are the same as for calling it via xpcall function.
 --
@@ -617,11 +505,19 @@ function PEARL.SafeRun(func, ...)
     return unpack(result)
 end
 
-function PEARL.PercentToRGB(percent)
-    return math.floor(percent[1] * 255), math.floor(percent[2] * 255), math.floor(percent[3] * 255)
+-- The input can be either individual numbers or a percent table.
+function PEARL.PercentToRGB(rp, gp, bp)
+    if type(rp) == "table" then
+        bp = rp.b or rp[3]
+        gp = rp.g or rp[2]
+        rp = rp.r or rp[1]
+    end
+
+    return math.floor(rp * 255), math.floor(gp * 255), math.floor(bp * 255)
 end
 
 -- The input can be either individual numbers or a RGB table.
+-- since RGB function returns RGB table as percenteges, let's do that as well.
 function PEARL.RGBToDecimal(r, g, b)
     if type(r) == "table" then
         b = r.b or r[3]
@@ -632,13 +528,29 @@ function PEARL.RGBToDecimal(r, g, b)
     return bit.lshift((r or 0), 16) + bit.lshift((g or 0), 8) + (b or 0)
 end
 
+function PEARL.PercentToDecimal(r, g, b)
+    if type(r) == "table" then
+        b = r.b or r[3] or 0
+        g = r.g or r[2] or 0
+        r = r.r or r[1] or 0
+    end
+
+    r, g, b = PEARL.PercentToRGB(r, g, b)
+
+    return bit.lshift(r, 16) + bit.lshift(g, 8) + b
+end
+
 -- Does return r, g, b separately, use GetColorFromDecimal for a color table.
 function PEARL.DecimalToRGB(decimal)
     if type(decimal) ~= "number" then
-        return
+        return 0, 0, 0
     end
 
     return bit.band(bit.rshift(decimal, 16), 0xFF), bit.band(bit.rshift(decimal, 8), 0xFF), bit.band(decimal, 0xFF)
+end
+
+function PEARL.DecimalToPercent(decimal)
+    return RGBToPercentColor(PEARL.DecimalToRGB(decimal))
 end
 
 function PEARL.RGBToHex(r, g, b)
@@ -646,7 +558,7 @@ function PEARL.RGBToHex(r, g, b)
 end
 
 function PEARL.GetColorFromDecimal(decimal, default)
-    return type(decimal) == "number" and {PEARL.DecimalToRGB(decimal)} or (default or WHITE)
+    return type(decimal) == "number" and RGB(PEARL.DecimalToRGB(decimal)) or (default or WHITE)
 end
 
 function PEARL.ToISO8601UTC(timestamp)
@@ -691,38 +603,4 @@ function PEARL.ExtinguishFiresNearAll()
     end
 
     PEARL.info("Fires near all", AllPlayers and #AllPlayers or 0, "players were extinguished!")
-end
-
-function PEARL.RepairStructuresNear(player)
-    local x,y,z = player.Transform:GetWorldPosition()
-    local burned_entities = TheSim:FindEntities(
-        x, y, z, PEARL.CONSTS.REPAIR_RADIUS, {'burnt','structure'}, {'INLIMBO'}
-    )
-
-    for _, ent in ipairs(burned_entities) do
-        --- @TODO: Does not inherit the builder
-        --- Also investigate the 'creator' parameter for TheSim:CreateEntity
-        ReplacePrefab(ent, ent.prefab, ent.skinname, ent.skin_id, player.userid)
-    end
-end
-
-function PEARL.RepairStructuresNearAll()
-    for _, player in ipairs(AllPlayers) do
-        PEARL.RepairStructuresNear(player)
-    end
-
-    PEARL.info("Burnt structures near all", AllPlayers and #AllPlayers or 0, "players were restored!")
-end
-
-function PEARL.UnbanUserByID(userid)
-    if PEARL.BlackList:RemovePlayerByID(userid) then
-        PEARL.info("Successfully removed", userid, "from the blocklist!")
-
-        PEARL.EventProcessor:HandleEvent("clientunbanned", userid)
-
-        return true
-    end
-
-    PEARL.info("Attempt to unban", userid, "failed.")
-    return false
 end

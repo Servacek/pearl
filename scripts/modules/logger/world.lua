@@ -17,7 +17,7 @@
 --]]
 
 
-local TheShard, TheNet = TheShard, TheNet
+local TheNet = TheNet
 local string, math = string, math
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
@@ -25,6 +25,7 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 local UserCommands = require("usercommands")
+local WorldSettings_Overrides = require("worldsettings_overrides")
 
 -------------------------------
 -- [[ World State Handlers ]]
@@ -285,13 +286,40 @@ local function OnReset(self)
     ), PEARL.ICONS.SIM_STATE.REGENERATE)
 end
 
-local function OnRollback(self, count)
-    if not count or count <= 0 then
+local function OnRollback(self, snapshots)
+    -- Zero snapshots means a regular reload.
+    if not snapshots or snapshots <= 0 then
         return
     end
 
     PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.ROLLBACK:format(
-        MARKDOWN.codeline(tostring(count))
+        MARKDOWN.codeline(tostring(snapshots))
+    ), PEARL.ICONS.SERVER_STATE.ROLLBACK)
+end
+
+local function OnDaysBack(self, days, after)
+    -- Zero days means a regular reload.
+    if not days or days <= 0 then
+        return
+    end
+
+    local pt_spec = "DAYSBACK"
+    local cycles = TheWorld and TheWorld.state and TheWorld.state.cycles
+    local target_day = cycles and (cycles + 1 - days)
+    if target_day and target_day > 0 then
+        pt_spec = pt_spec.."_COUNT"
+    else
+        target_day = nil
+    end
+
+    if type(after) == "number" and after > 0 then
+        pt_spec = pt_spec.."_AFTER"
+    else
+        after = nil
+    end
+
+    PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS[pt_spec]:format(
+        target_day or days, after
     ), PEARL.ICONS.SERVER_STATE.ROLLBACK)
 end
 
@@ -304,6 +332,14 @@ end
 local function OnWorldGenComplete(world)
     if not world then
         return
+    end
+
+    --- @TODO:
+    for name, _ in pairs(WorldSettings_Overrides.Pre) do
+        local difficulty = TheWorld.topology.overrides[name]
+        if difficulty and difficulty ~= "default" then
+            print("OVERRIDE: setting", name, "to", difficulty)
+        end
     end
 
     PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen(world))
@@ -350,6 +386,7 @@ PEARL.AddWorldPostInit(function(world)
 
         --> Mod Events
         world:ListenForModEvent("world_rollback", OnRollback)
+        world:ListenForModEvent("world_rollback_days", OnDaysBack)
         world:ListenForModEvent("world_restart", OnRestart)
         world:ListenForModEvent("world_reset", OnReset)
         world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)

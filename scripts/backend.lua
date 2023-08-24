@@ -35,6 +35,8 @@
 --------------------------------
 
 PEARL.SafeModTableExtend("CONSTS", {
+    DST_WEB_GAME_ID = "DontStarveTogether",
+
     --> The discord module
     DISCORD = {
         API_VERSION                 = 10, -- Currently the newest
@@ -125,6 +127,18 @@ PEARL.SafeModTableExtend("CONSTS", {
     ENT_MUST_HAVE_TAGS          = {"canlight"},
     ENT_CANT_HAVE_TAGS          = {"FX", "NOCLICK", "DECOR", "INLIMBO", "burnt", "player", "monster", "tree"},
     DANGER_ONOF_TAGS            = {"hostile", "_combat", "trapdamage"},
+
+    BURNABLE_MUST_TAGS          = {"canlight"},
+    BURNABLE_CANT_TAGS          = {"FX", "NOCLICK", "DECOR", "INLIMBO", "burnt", "player", "monster", "frozen"},
+
+    ------------------------------------
+
+    MOD_BLACKLIST_FILE_PATH     = "../../modblacklist.txt",
+    MOD_ALLOWLIST_FILE_PATH     = "../../modallowlist.txt",
+
+    SERVER_TOKEN_PATH           = "../../cluster_token.txt",
+
+    COMMON_CONFIG_PATH          = "../../commonconfig.lua"
 
     --- @deprecated
     -- MARKDOWN_PATTERN            = "%~%*%_%>%|%~%`%:%[]",
@@ -237,6 +251,72 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     end
 end
 
+--------------------------------
+-- [[ Common Config ]]
+--------------------------------
+
+local function apply_common_config(common, loaded, override)
+    loaded = loaded or PEARL.CONFIG
+    override = override or PEARL.CONFIG_OVERRIDES
+
+    for name, value in pairs(common) do
+        if type(value) == "table" and #value == 0 and not table.empty(value) then
+            -- Ensure the override for this option is a table as well.
+            if common[name] ~= nil and loaded[name] == nil then
+                loaded[name] = {}
+            end
+
+            apply_common_config(common[name], loaded[name], override[name])
+        else
+            -- If no override exists for this configuration
+            if override[name] == nil then
+                loaded[name] = common[name]
+            end
+        end
+    end
+end
+
+local function load_common_config()
+    local success, config_str = PEARL.GetPersistentString(PEARL.CONSTS.COMMON_CONFIG_PATH, true)
+    if not success or type(config_str) ~= "string" then
+        return error("Failed to load common config!")
+    end
+
+    local fn, message = loadstring(config_str)
+    if type(fn) ~= "function" then
+        return error("Failed to load common config string! Reason: "..tostring(message))
+    end
+
+    local success, config = RunInEnvironment(fn, {})
+    if not success or type(config) ~= "table" then
+        return PEARL.warn("No common configurations set.")
+    end
+
+    return config
+end
+
+if PEARL.CONFIG.COMMON_MOD_CONFIG then
+    local config = load_common_config()
+    if type(config) == "table" then
+        apply_common_config(config)
+    end
+end
+
+--------------------------------
+-- [[ Server Token ]]
+--------------------------------
+
+PEARL.info("Loading server token...")
+
+do
+    local success, token = PEARL.GetPersistentString(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
+    if not success or type(token) ~= "string" then
+        return error("Could not load the server token!")
+    end
+
+    PEARL.SERVER_TOKEN = token:strip()
+end
+
 ----------------------------------------------------------------
 -- [[ Agreement/Welcome screen configurations ]]
 ----------------------------------------------------------------
@@ -263,8 +343,8 @@ end
 if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     PEARL.info("Loading mod blocker configurations...")
 
-    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.GetAllPersistentStringLines("../../modblacklist.txt", true, true)
-    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.GetAllPersistentStringLines("../../modallowlist.txt", true, true)
+    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.GetAllPersistentStringLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.GetAllPersistentStringLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
 
     -- When the tables are empty, set them to nil to save some bytes when sending the config.
     -- Since these data are being zipped.
@@ -378,6 +458,15 @@ PEARL.info("Loading server network...")
 
 --- @type ServerNetwork
 PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
+
+--------------------------------
+-- [[ Server Listing ]]
+--------------------------------
+
+PEARL.info("Loading server listing...")
+
+--- @type ServerListing
+PEARL.ServerListing = PEARL.loadfile("serverlisting")
 
 --------------------------------
 -- [[ Webhooks ]]
@@ -496,10 +585,12 @@ PEARL.AdminList:Load()
 -- [[ Player Libraries ]]
 -------------------------------------
 
---- @TODO: Add some configs here
 --- @type PlayerDB
 PEARL.PlayerDB = PEARL.loadfile("libraries/playerdatabase")
-PEARL.PlayerDB:LoadUseridList()
+PEARL.PlayerDB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
+if PEARL.PlayerDB:IsEnabled() then
+    PEARL.PlayerDB:LoadUseridList()
+end
 
 --- @type Reputation
 PEARL.Reputation = PEARL.loadfile("libraries/reputation")
@@ -559,7 +650,6 @@ ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.INVENTORY_REPORTER.ENABLED)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
--- ModuleManager:AddModule("consolecommands", PEARL.CONFIG.CONSOLE_COMMANDS)
 -- ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
@@ -577,7 +667,7 @@ if TheShard:IsMaster() then
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
 
     if PEARL.CONFIG.PROXY.ENABLED then
-        ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED)
+        ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
     end
 end
 

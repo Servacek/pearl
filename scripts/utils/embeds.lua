@@ -217,11 +217,12 @@ end
 
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, owner_name)
+    local modlist = type(enabled_mods.list) == "table" and enabled_mods.list or {}
     local description = ""
-    local max_id_size = PEARL.GetMaxStringSize(enabled_mods, false, "id")
+    local max_id_size = PEARL.GetMaxStringSize(modlist, false, "id")
 
     -- Data processed here are untrusted.
-    for _, mod in ipairs(enabled_mods) do
+    for _, mod in ipairs(modlist) do
         local type_icon = mod.private and PEARL.ICONS.LOCAL or PEARL.ICONS.STEAM
         local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
         local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN, nil, "...") or "???")
@@ -245,13 +246,13 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         description = description.."\n"
     end
 
-    local showcount = #enabled_mods
+    local shown_count = #modlist
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
         :SetColor(Embed.COLORS.RED)
         :SetTimestamp(os.time())
         :SetDescription(description)
-        :SetFooter(string.format("%s/%s", #enabled_mods, tostring(enabled_mods.count or showcount)))
+        :SetFooter(STRINGS.PEARL.EMBEDS.MODS.FOOTER:format(shown_count, enabled_mods.count or shown_count))
 end
 
 --- @return Embed
@@ -261,13 +262,13 @@ function EMBEDS.ClientProfile(userid, dbr)
     local icon = PEARL.ICONS.PLAYER_PREFABS[dbr.lastprefab or ""]
 
     return Embed()
-        :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username))
+        :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
         :SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
         :SetColor(Embed.COLORS.BLUE)
         :SetThumbnail(dbr.avatar)
         :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(dbr.totaldays), true)
-        :AddField(P_STRINGS.FD_NAMES.REPUTATION, MARKDOWN.codeline(dbr.reputation.value))
-        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootid))
+        :AddField(P_STRINGS.FD_NAMES.REP, MARKDOWN.codeline(dbr.reputation.value), true)
+        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootuserid or "UNKNOWN"))
 end
 
 -------------------------------------

@@ -150,7 +150,7 @@ return {
         ["ignite"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.TORCH],
         ["burn"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FIRE],
         ["take"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.BACKPACK],
-        ["eat"]=        PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FAKETEETH],
+        ["swallow"]=    PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FAKETEETH],
         ["kill"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HAMBAT],
         ["hammer"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HAMMER],
         ["defeat"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.TROPHY],
@@ -165,5 +165,7 @@ return {
         ["give"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.PIG],
         ["sleep"]=      "<:tent:1133091346371072040>",
         ["chop"]=       "<:axe:1133094231972515910>",
+        ["eat"]=        PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HUNGER],
+        ["propagator"]= PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FIREPIT],
     },
 }

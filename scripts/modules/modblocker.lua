@@ -52,18 +52,18 @@ PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
         return
     end
 
-    -- if KnownModIndex:IsModEnabled(modname) then
-    --     PEARL.debug("Blocking mod "..modname)
-    --     -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
-    --     table.removearrayvalue(self.enabledmods, modname)
+    if KnownModIndex:IsModEnabled(modname) then
+        PEARL.debug("Blocking mod "..modname)
+        -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
+        table.removearrayvalue(self.enabledmods, modname)
 
-    --     -- Disable permanently so the popup does not show each time during shard migration or reset
-    --     KnownModIndex:Block(modname)
-    --     SaveModIndex()
-    -- end
+        -- Disable permanently so the popup does not show each time during shard migration or reset
+        KnownModIndex:Block(modname)
+        SaveModIndex()
+    end
 
-    -- -- Stop further execution
-    -- return false
+    -- Stop further execution
+    return false
 end, ModManager)
 
 --------------------------------------
@@ -73,10 +73,15 @@ end, ModManager)
 -- This is when the game loads for the client and we can start playing
 local function OnPlayerActivated()
     if KnownModIndex:AreAnyModsBlocked() and show_popup then
+        local all_blocked = KnownModIndex:AreAllModsBlocked()
+
+        local title = all_blocked and "MODS_BLOCKED_ALL_TITLE" or "MODS_BLOCKED_TITLE"
+        local body = all_blocked and "MODS_BLOCKED_ALL_BODY" or "MODS_BLOCKED_BODY"
+
         -- Inform the player that some of his mods were blocked by the server
         TheFrontEnd:PushScreen(
             PopupDialogScreen(
-                STRINGS.PEARL.UI.MODS_BLOCKED_TITLE, STRINGS.PEARL.UI.MODS_BLOCKED_BODY, {
+                STRINGS.PEARL.UI[title], STRINGS.PEARL.UI[body], {
                     {
                         text = STRINGS.UI.SERVERLISTINGSCREEN.CONTINUE,
                         cb = function()

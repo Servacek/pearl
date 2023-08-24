@@ -11,18 +11,18 @@
 --]==]====================================================]]
 
 
-
-local utf8 = PEARL.loadfile("libraries/utf8")
-
 -------------------------------------
 -- [[ Global Localization ]]
 -------------------------------------
 
 local PEARL = PEARL
-local Class = Class
 local string = string
-local unpack = unpack
+
+local tostring = tostring
 local tonumber = tonumber
+local type = type
+
+local toarrayornil = toarrayornil
 
 -------------------------------------
 -- [[ Constants ]]
@@ -34,33 +34,46 @@ local MAX_TIMEOUT_RETRY_SECONDS = 30
 local URL_HOST_PATTERN          = "%w+://([%w.]+)/?"
 local REQUEST_FAILED_HEADER     = "(%s) [%d] Request Failed! Reason: %s"
 
---- @TODO: Implement specific error code handling.
 -------------------------------------
 -- [[ Class Declarations ]]
 -------------------------------------
+
 --- @class Request
 --- url and method params are required.
 local Request = Class(function(self, url, method, proxy)
     assert(type(url) == "string", "Invalid request url supplied!")
     assert(PEARL.HTTPClient.METHODS[method], "Invalid request method supplied!")
 
+    -- Lazy load all the tables!
+
     --- @type string
     self.url = url
-    --- @type function?
-    self.callbackfn = nil
+    --- @type string
     self.method = method
     --- @type string?
     self.data = nil
     self.timeout = DEFAULT_REQUEST_TIMEOUT
-    --- Note: always a table if callback function is set.
-    --- @type table?
-    self.callbackfn_args = nil
+
+    --- @type boolean
     self.skipondeadline = true
 
-    --- @type fun(result, http_code, request, ...)
+    --- @type fun(response: table|string, self: Request, ...: any)
+    self.onsuccessfn = nil
+    --- @type table<number, any>?
+    self.onsuccessfn_args = nil
+
+    --- @type fun(response: table|string, success: boolean, code: number, self: Request, ...: any)
+    self.oncompletefn = nil
+    --- @type table<number, any>?
+    self.oncompletefn_args = nil
+
+    --- @type fun(result, http_code, request, ...)?
     self.errfn = nil
-    --- @type table<number, fun(result, request, ...)>
-    self.rcode_handlers = {}
+    --- @type table<number, any>?
+    self.errfn_args = nil
+
+    --- @type table<number, fun(result, request, ...)>?
+    self.rcode_handlers = nil
 
     --- @type number
     self.retries = 0
@@ -77,17 +90,25 @@ local Request = Class(function(self, url, method, proxy)
     self.proxydata = self.proxy and {} or nil
 
     --- Proxy Only
-    --- @type table<string, any>
+    --- @type table<string, any>?
     self.params = nil
-    --- @type table<string, any>
+    --- @type table<string, any>?
     self.headers = nil
 
     --- @type string?
     self.host = string.match(url, URL_HOST_PATTERN)
     if not self.host then
-        PEARL.error("Couldn't fetch host from request url.")
+        PEARL.error("Couldn't fetch host from request url.", url)
     end
 end)
+
+-------------------------------------
+-- [[ Static ]]
+-------------------------------------
+
+Request.NO_RETRY_CODES = {
+    [429] = true,
+}
 
 -------------------------------------
 -- [[ Meta Methods ]]
@@ -103,28 +124,38 @@ end
 -- Note: Always return 'self' in these setters so we can chain them
 
 function Request:SetTimeout(timeout)
-    if tonumber(timeout) ~= "number" then
+    if type(timeout) ~= "number" then
         --PEARL.error("Attempted to set an invalid request timeout!")
         return self
     end
 
-    self.timeout = tonumber(timeout)
+    self.timeout = timeout
 
     return self
 end
 
+--- @param code number The status code number.
+--- @param handler fun(response: table|string, request: Request, ...)?
+--- @return Request self
 function Request:SetStatusCodeHandle(code, handler)
+    if type(self.rcode_handlers) ~= "table" then
+        self.rcode_handlers = {}
+    end
+
     if type(self.rcode_handlers[code]) ~= "table" then
         self.rcode_handlers[code] = {}
     end
 
-    table.insert(self.rcode_handlers[code], handler)
+    table.insert(self.rcode_handlers[code], handler or function() end)
 
     return self
 end
 
-function Request:SetErrorHandler(errfn)
+--- @param errfn fun(response: table|string, code: number, request: Request, ...)
+--- @return Request self
+function Request:SetErrorHandler(errfn, ...)
     self.errfn = errfn
+    self.errfn_args = toarrayornil(...)
 
     return self
 end
@@ -192,9 +223,18 @@ function Request:SetProxyData(proxydata)
     return self
 end
 
-function Request:SetCallbackFn(callbackfn, ...)
-    self.callbackfn = callbackfn
-    self.callbackfn_args = {...}
+--- @param onsuccessfn fun(response: table|string, self: Request, ...: any)
+--- @param ... any
+function Request:SetOnSuccess(onsuccessfn, ...)
+    self.onsuccessfn = onsuccessfn
+    self.onsuccessfn_args = toarrayornil(...)
+
+    return self
+end
+
+function Request:SetOnComplete(oncompletefn, ...)
+    self.oncompletefn = oncompletefn
+    self.oncompletefn_args = {...}
 
     return self
 end
@@ -263,61 +303,72 @@ end
 -- [[ Handlers ]]
 -------------------------------------
 
-function Request:OnCompleted(response, is_successful, http_code)
-    http_code = tonumber(http_code or 0)
+--- @param datastr string?
+--- @param success boolean?
+--- @param code number?
+function Request:OnCompleted(datastr, success, code)
+    code = tonumber(code or 0)
+    datastr = datastr or ""
 
-    local raw_response = tostring(response or "")
-    if #raw_response <= 1 then
-        response = nil
+    --- @type string|table?
+    local response = datastr
+    if type(datastr) ~= "string" or datastr == "" then
+        response = self.raw and "" or {}
     end
 
-    if not self.raw and response then
-        local decoded
-        decoded, response = pcall(json.decode, raw_response)
-        if not decoded or type(response) ~= "table" then
-            PEARL.error("Failed to decode the request's response!", response, raw_response)
-        end
-    end
-
-    -- Status Code Handlers
-    local handlers = self.rcode_handlers[http_code]
-    if type(handlers) == "table" and not table.empty(handlers) then
-        -- If custom handlers exist, do not call the default callbacks.
-        for _, handle in ipairs(handlers) do
-            handle(response, self, unpack(self.callbackfn_args))
+    if not self.raw and type(response) ~= "table" then
+        local decoded, datatbl = pcall(json.decode, datastr)
+        if not decoded then
+            PEARL.error("Failed to decode the request's response!", datastr)
         end
 
-        return
+        response = type(datatbl) == "table" and datatbl or {}
     end
 
-    if (is_successful and http_code < 400) == false then
+    -- OnComplete handler gets called no matter if we successeded or not.
+    if type(self.oncompletefn) == "function" then
+        self.oncompletefn(response, success, code, self, PEARL.unpack(self.oncompletefn_args))
+    end
+
+    -- Handlers For Specific Status Codes
+    local handlers = self.rcode_handlers and self.rcode_handlers[code]
+    if type(handlers) == "table" and #handlers > 0 then
+        for i = 1, #handlers do
+            handlers[i](response, self)
+        end
+
+        return -- If custom handlers exist, do not call the default callbacks.
+    end
+
+    if success == false then
         if type(self.errfn) == "function" then
-            self.errfn(response, http_code, self, unpack(self.callbackfn_args))
+            self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
         end
 
         local reason
-        if http_code == 0 then
+        if code == 0 then
             reason = "Operation timed out!"
 
-            local retry_time = math.min(math.max(TIMEOUT_RETRY_SECONDS * self.retries, TIMEOUT_RETRY_SECONDS), MAX_TIMEOUT_RETRY_SECONDS)
-            if self:IsRetryable() then
-                PEARL.HTTPClient:RetryRequestAfter(self, retry_time)
+            if self:IsRetryable() and Request.NO_RETRY_CODES[code] == nil then
+                PEARL.HTTPClient:RetryRequestAfter(
+                    self, math.min(math.max(TIMEOUT_RETRY_SECONDS * self.retries, TIMEOUT_RETRY_SECONDS), MAX_TIMEOUT_RETRY_SECONDS)
+                )
             end
         else
-            reason = (#raw_response > 1 and raw_response) or "Reason unknown."
+            reason = (#datastr > 1 and datastr) or "Reason unknown."
         end
 
         -- Log only failed requests to reduce log spam
-        PEARL.info(
+        PEARL.error(
             REQUEST_FAILED_HEADER:format(
-                self.host or "unknown", http_code, reason
-            ), tonumber(http_code or 0) > 0 and self.data
+                self.host or "unknown", code, reason
+            ), tonumber(code or 0) > 0 and self.data
         )
     -- Call the request's callback, if provided
     -- Only call the callback if we have successesed!
-    elseif type(self.callbackfn) == "function" then
-        self.callbackfn(
-            response, self, unpack(self.callbackfn_args)
+    elseif type(self.onsuccessfn) == "function" then
+        self.onsuccessfn(
+            response, self, PEARL.unpack(self.onsuccessfn_args)
         )
     end
 end

@@ -64,6 +64,14 @@ end
 
 -- A wrapper function for registering action handlers
 local function RegisterActionHandler(action, handler, checkfn)
+    if type(action) ~= "table" then
+        error("invalid action")
+    end
+
+    if type(handler) ~= "function" then
+        error("invalid action handler")
+    end
+
     local _action = action.fn
     action.fn = function(act, ...)
         local success = _action(act, ...)
@@ -120,7 +128,7 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         target:HasTag("structure") or type(AllRecipes[target.prefab]) == "table"
     ) or (
         -- Or the target is anything but it's near some plant's or structures
-        near and (#near > 2 or table.find(near, structuresearchfn))
+        near and (#near > 4 or table.find(near, structuresearchfn))
     )) then
         silent = true
     end
@@ -138,46 +146,48 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
-    -- Check for explicit true
-    if not PEARL.PREFABS.RARE_ITEMS[item.prefab] then
-        return
-    end
+    local silent = not PEARL.PREFABS.RARE_ITEMS[item.prefab]
+    local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[silent and "EAT" or "SWALLOW"]
 
-    return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.EAT:format(
-        -- Use GetBasicDisplayName over GetFancyName because it causes problems
-        -- when eating from a stack of items.
-        doer:GetDisplayName(), item:GetBasicDisplayName()
-    ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT, doer.entity)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EAT.GENERIC, doer)
+        :SetLogType(type)
+        :SetIsSilent(silent)
+        :AddTarget(item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
-    -- Check for explicit true
-    if not item.is_rare then
-        return
-    end
-
-    return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.TEACH:format(
-        doer:GetDisplayName(), item:GetBasicDisplayName()
-    ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.TEACH, doer.entity)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.TEACH)
+        :SetIsSilent(item.is_rare ~= true)
+        :AddTarget(target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
     local workable = target.components and target.components.workable or nil
     if workable and workable.workleft and workable.workleft <= 0 then
+        local silent = false
         -- Only announce hammering when the structure was built by a player
         -- This makes sure we only log when a base structure get's hammered.
         if not workable:HasBuilder() or workable:IsBuildBy(doer.userid) then
-            return
+            silent = true
         end
 
         -- Ignore burned structures
         if target:HasTag("burnt") then
-            return
+            silent = true
         end
 
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, {
-            doer = doer:GetDisplayName(), target = target:GetBasicDisplayName(), owner = workable:GetBuilderName()
-        }), PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER, doer.entity)
+        local action
+        if workable:HasBuilder() then
+            action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, doer,
+            QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName())
+        else
+            action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.HAMMER.GENERIC, doer)
+        end
+
+        action:SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER)
+        action:SetIsSilent(silent)
+        action:AddTarget(target)
     end
 end)
 
@@ -188,12 +198,10 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
         return
     end
 
-    -- Check for explicit true
-    if PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] == true then
-        return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.READ:format(
-            doer:GetDisplayName(), item:GetBasicDisplayName()
-        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.READ, doer.entity)
-    end
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.READ.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.READ)
+        :SetIsSilent(PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] ~= true)
+        :AddTarget(item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
@@ -201,9 +209,11 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
     if target.is_on and PEARL.PREFABS.ACTIVATABLE[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
         target.components.activatable:SetLastPlayerActivator(doer)
 
-        return PEARL.AnnounceWithType(STRINGS.PEARL.ACTIONS.ACTIVATE:format(
+        -- No point in queuing this action since it's so specific.
+        AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.ACTIVATE, STRINGS.PEARL.ACTIONS.ACTIVATE:format(
+            -- No stacksize here
             doer:GetDisplayName(), target:GetBasicDisplayName()
-        ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.ACTIVATE, doer.entity)
+        ), false)
     end
 end)
 
@@ -216,12 +226,13 @@ RegisterPlayerItemActionHandler(ACTIONS.COOK, function(doer, target, item)
     --     end
     -- end
 
-    if target and PEARL.PREFABS.RARE_ITEMS[target.prefab] ~= nil or PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil then
-        return AL:QueueEntAct(STRINGS.PEARL.COOK, doer)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.EAT)
-            :SetIsSilent(true)
-            :AddTarget(target)
-    end
+    local prohibited = target and PEARL.PREFABS.RARE_ITEMS[target.prefab] ~= nil or PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil
+    local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[prohibited and "SWALLOW" or "COOK"]
+
+    AL:QueueEntAct(STRINGS.PEARL.COOK, doer)
+        :SetLogType(type)
+        :SetIsSilent(true)
+        :AddTarget(target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, item)
@@ -229,11 +240,72 @@ RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, ite
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
     end
 
+    print("TOOL", item)
     return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
         QueuedLogAction.STATIC_FIELDS.TOOL, item)
         :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.EXTINGUISH)
         :SetIsSilent(true)
         :AddTarget(target)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
+    local prohibited = PEARL.PREFABS.DO_NOT_CHOP[target.prefab]
+    if not prohibited then
+        return
+    end
+
+    local workable = target.components and target.components.workable or nil
+    if not (workable and workable.workleft and workable.workleft <= 0) then
+        return
+    end
+
+    -- Too spammy, announce only if prohibited.
+    if prohibited then
+        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
+            :SetIsSilent(not prohibited)
+            :AddTarget(target)
+    end
+end)
+
+RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.DIG)
+        :SetIsSilent(true)
+        :AddTarget(target)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.PLANT)
+        :SetIsSilent(true)
+        :AddTarget(target)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.SLEEP.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.SLEEP)
+        :SetIsSilent(true)
+        :AddTarget(target)
+end)
+
+RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
+    local prohibited = PEARL.PREFABS.DO_NOT_CHOP[target.prefab]
+
+    -- Too spammy, announce only if prohibited.
+    if prohibited then
+        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.GIVE)
+            :SetIsSilent(not prohibited)
+            :AddTarget(target)
+    end
+end)
+
+RegisterPlayerItemActionHandler(ACTIONS.PLAY, function(doer, target, item)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLAY.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.PLAY)
+        :SetIsSilent(true)
+        :AddTarget(item)
 end)
 
 local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
@@ -489,7 +561,7 @@ end)
 -------------------
 --- These are already announced by the game.
 local function onrespawnfromghost(inst, data)
-    if data.user and data.user.userid then
+    if data and data.user and data.user.userid then
         PEARL.Reputation:EarnFor(data.user.userid, REPUTATIONS.REVIVE)
     end
 end
@@ -515,6 +587,66 @@ local function onhitother(inst, data)
         inst.userid, dmg * REPUTATIONS.BOSS_DAMAGE
     )
 end
+
+-------------------
+-- Builders --
+-------------------
+
+local function onbuilditem(doer, data)
+
+end
+
+local function onbuildstructure(doer, data)
+    local target = data.item
+    if not target then
+        return
+    end
+
+    if target.components.propagator then
+        print("BUILD FIRE SOURCE")
+        local near = target:GetPropagableBurnableEntities()
+        if near and #near > 0 then
+            local silent = #near > 2 or table.find(near, structuresearchfn)
+            local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[silent and "PROPAGATOR" or "BURNT"]
+
+            AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, {
+                near = near
+            }):SetLogType(type)
+            :SetIsSilent(silent)
+            :AddTarget(target)
+        end
+    end
+
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+        :SetIsSilent(true)
+        :AddTarget(target)
+end
+
+RegisterPlayerActionHandler(ACTIONS.BUILD, function(doer, target, item)
+    if not item then
+        return
+    end
+
+    -- If the target is burning right from the start.
+    if item.components.burnable and item.components.burnable:IsBurning() then
+        print("BUILT FIRE SOURCE!")
+    end
+
+    print("BUILD", target, item)
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
+        :SetIsSilent(true)
+        :AddTarget(item)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.CONSTRUCT, function(doer, target, item)
+    print("CONSTRUCT", target, item)
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
+        :SetIsSilent(true)
+        :AddTarget(target)
+end)
 
 -------------------
 -- THIEFS --
@@ -600,6 +732,11 @@ PEARL.AddPlayerPostInit(function(player)
     player:SafeListenForEvent("death", ondeath)
 
     player:SafeListenForEvent("onhitother", onhitother)
+
+    if player.components.builder then
+        player:SafeListenForEvent("builditem", onbuilditem)
+        player:SafeListenForEvent("buildstructure", onbuildstructure)
+    end
 
     -- if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
     --     player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)

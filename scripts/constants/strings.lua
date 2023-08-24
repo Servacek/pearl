@@ -133,7 +133,11 @@ local STRINGS = {
         HAMMER = {
             GENERIC     = "{doer} hammered down {target}!",
             OWNED       = "{doer} hammered down {target}! Owner: {owner}"
-        }
+        },
+
+        PLAY = {
+            GENERIC     = "{doer} played on {target}!",
+        },
     },
 
     SHARDS = {
@@ -204,7 +208,8 @@ local STRINGS = {
         },
 
         MODS = {
-            TITLE = "%s's Enabled Mods"
+            TITLE = "%s's Enabled Mods",
+            FOOTER = "%s/%s",
         },
 
         PROFILE = {
@@ -287,8 +292,11 @@ local STRINGS = {
         GAME_LOADED             = "Shard %s was loaded.",
         RESTART                 = "Restarting the server...",
         ROLLBACK                = "Rolling server %s snapshot(s) back!",
-        ROLLBACK_DAYS           = "Rolling server back to day %s!",
         ROLLBACK_AFTER          = "Rolling server %s snapshot(s) back in %s second(s)!",
+        DAYSBACK                = "Rolling server back to day %s!",
+        DAYSBACK_AFTER          = "Rolling server back to day %s in %s second(s)!",
+        DAYSBACK_COUNT          = "Rolling server %s day(s) back!",
+        DAYSBACK_COUNT_AFTER    = "Rolling server %s day(s) back in %s second(s)!",
         SAVE                    = "Saving world on shard %s...",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
@@ -334,12 +342,17 @@ local STRINGS = {
         INVALIDRPC              = "Received invalid RPC %s from client %s!",
 
         EXTINGUISH              = "Fires were extinguished!",
+        EXTINGUISH_DOER         = "%s extinguished all fires!",
         EXTINGUISH_NEAR         = "Fire near %s were extinguished!",
+        EXTINGUISH_NEAR_DOER    = "%s extinguished fires near %s!",
         EXTINGUISH_ALL          = "%s extinguished fires near all players!",
 
         REPAIR                  = "Burnt structures were restored!",
         REPAIR_NEAR             = "Burnt structures near %s were restored!",
-        REPAIR_ALL              = "%s restored burnt structures near all players!",
+        REPAIR_NEAR_DOER        = "%s restored burnt structures near %s!",
+        REPAIR_NEAR_ALL         = "%s restored burnt structures near all players!",
+        REPAIR_ALL              = "All burnt structures were restored!",
+        REPAIR_ALL_DOER         = "%s restored all burnt structures!",
 
         PROXY_SERVER_STARTED    = "Proxy server has successfully started!",
         PROXY_SERVER_STOPPED    = "Stopping the proxy server...",
@@ -350,6 +363,7 @@ local STRINGS = {
         PROXY_MESSAGE_FAILED    = "There was an error processing the message!",
 
         PROXY_COMMAND_FAILED    = "There was an error processing the command!",
+        PROXY_COMMAND_FAILED_N  = "There was an error processing command %s!",
 
         -- Anti AFK system
         USER_ACTIVE             = "%s came back!",
@@ -422,7 +436,9 @@ local STRINGS = {
 
         -- Mod blocker popup
         MODS_BLOCKED_TITLE = "Mods Disabled",
+        MODS_BLOCKED_ALL_TITLE = "All Mods Blocked",
         MODS_BLOCKED_BODY  = "Some of the mods you are using were blocked by the server.",
+        MODS_DISABLED_ALL_BODY = "All of your mods were blocked by the server.",
 
         TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
 
@@ -431,6 +447,11 @@ local STRINGS = {
             NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",
             NO_SNAPSHOT_FOUND = "Couldn't find any snaphots for day %d.",
             FAILED_SNAPHOTS_LOAD = "Failed to load the snapshots for this session.",
+            SERVER_ONLY = "This command does only work on a server!",
+            PLAYER_NOT_FOUND = "Player not found!",
+            ITEM_PREFAB_INVALID = "Invalid item prefab provided!",
+            ITEM_NOT_FOUND = "Item not found!",
+            MOD_ALREADY_BLOCKED = "The specified mod is already blocked on the server.",
         },
 
         -- Add more translations
@@ -451,6 +472,66 @@ local STRINGS = {
 
                 ON_SUCCESS  = "Player was successfully removed the blacklist and can join back now!",
                 ON_NOTFOUND = "Player was not found on the blacklist...",
+            },
+
+            GIVE = {
+                PRETTYNAME = "Give Item",
+                DESC       = "Gives an item to any player you have specified.",
+
+                ON_SUCCESS = "Gave %sx %s to %s."
+            },
+
+            TAKE = {
+                PRETTYNAME = "Take Item",
+                DESC       = "Take an item from player you have specified.",
+
+                ON_SUCCESS = "Took %sx %s from %s.",
+            },
+
+            DROP = {
+                PRETTYNAME = "Drop Item(s)",
+                DESC       = "Drops an player's item or the whole inventory if no item was specified.",
+
+                DROP_ALL   = "%s's inventory was dropped!",
+                DROP       = "Dropped %sx %s from %s's inventory!",
+            },
+
+            KILL = {
+                PRETTYNAME = "Kill a Player",
+                DESC       = "Kills the specified player on spot.",
+
+                ON_SUCCESS = "Player was killed...",
+            },
+
+            REVIVE = {
+                PRETTYNAME = "Revive a Player",
+                DESC       = "Revives the specified player on spot.",
+
+                ON_SUCCESS = "Player was revived!",
+            },
+
+
+            DESPAWN = {
+                PRETTYNAME = "Despawn a Player",
+                DESC       = "Despawns the specified player on spot. Inventory is dropped.",
+
+                ON_SUCCESS = "Player was despawned and is now back in the lobby.",
+            },
+
+            SETREP = {
+                PRETTYNAME = "Set Player's Reputation",
+                DESC       = "Sets the reputation amount for the specified player to whatever number you want.",
+
+                ON_SUCCESS = "Reputation successfully set!",
+                ON_FAILURE = "Failed to set reputation.",
+            },
+
+            GIVEREP = {
+                PRETTYNAME = "Give Reputation",
+                DESC       = "Give reputation to someone who deserves it!",
+
+                ON_SUCCESS = "Increased player's reputation!",
+                ON_FAILURE = ".",
             },
 
             INV = {
@@ -516,9 +597,34 @@ local STRINGS = {
                 NO_MODS    = "This player does not use any mods now.",
                 ON_SUCCESS = "The mod list was sent to discord.",
             },
+
+            RELOAD = {
+                PRETTYNAME = "Reload the Server",
+                DESC       = "Internally restarts the server without disconnecting any players."
+            },
+
+            BLOCK_MOD = {
+                PRETTYNAME = "Block Mod",
+                DESC       = "Prohibit a modification for other players.",
+
+                ON_SUCCESS = "Mod added to the blocklist.",
+            },
+
+            ALLOW_MOD = {
+                PRETTYNAME = "Allow Mod",
+                DESC       = "Make sure this modification is allowed for players to use.",
+
+                ON_SUCCESS = "Mod added to the allowlist."
+            },
         },
 
-        DISCORD_BUTTON_HOVER = "View Discord",
+        SOCIAL_LINK_BUTTON_HOVERS = {
+            DISCORD = "View Discord",
+            TWITCH  = "View Twitch",
+            YOUTUBE = "View YouTube",
+        },
+
+        AGREEMENT_BUTTON_HOVER = "View Agreement",
 
         INTRO_POPUP_BUTTON_CONTINUE = "Continue",
         AGREEMENT_SCREEN_BUTTON_FINISH = "Finish",

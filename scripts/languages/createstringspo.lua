@@ -20,7 +20,27 @@
 	ONLY USE WHEN YOU KNOW WHAT ARE YOU DOING!
 --]]
 
+--- @param s string|stringlib
+local function normalize(s)
+	return (type(s) == "string" and s or ""):gsub("\n", "\\n")
+			:gsub("\r", "\\r")
+			:gsub("\t", "\\t")
+			:gsub("\"", "\\\"")
+end
+
+local function write_text(file, path, msgid, msgstr)
+	file:write("#. "..path)
+	file:write("\n")
+	file:write("msgctxt \""..path.."\"")
+	file:write("\n")
+	file:write("msgid \""..msgid.."\"")
+	file:write("\n")
+	file:write("msgstr \""..msgstr.."\"")
+	file:write("\n\n")
+end
+
 local function getvbypath(t, path)
+    --print(path)
     local value = t
     for key in path:gmatch("[^%.]+") do
         if type(value) ~= "table" then
@@ -36,16 +56,17 @@ local function getvbypath(t, path)
     return value
 end
 
-local function PrintUntranslatedStringTableV2(base, original, translated, file)
-	local path
-
+local function WriteUntranslatedModStrings(base, original, translated, file)
+    -- We are traversing the actual table from strings.lua
+    -- These always start with STRINGS.PEARL
 	for k, v in pairs(original) do
-		path = base and base.."."..tostring(k) or k
+		local path = base and base.."."..tostring(k) or k
 
+        -- Search for strings in our mod table that do not have translation
 		if type(v) == "table" then
-			PrintUntranslatedStringTableV2(path, v, translated, file)
-		elseif not translated[path] then
-			local msgid = path
+			WriteUntranslatedModStrings(path, v, translated, file)
+		elseif translated[path] == nil then
+			local msgid = getvbypath(original, path:sub(#base + 2)) or ""
 			msgid = string.gsub(msgid, "\n", "\\n")
 			msgid = string.gsub(msgid, "\r", "\\r")
 			msgid = string.gsub(msgid, "\"", "\\\"")
@@ -62,24 +83,13 @@ local function PrintUntranslatedStringTableV2(base, original, translated, file)
 	end
 end
 
-local function PrintTranslatedStringTableV2(base, original, translated, file)
-	for path, string in pairs(translated) do
-		-- if type(v) == "table" then
-		-- 	PrintTranslatedStringTableV2(path, v, translated, file)
+local function WriteTranslatedStrings(base, original, translated, file)
+    -- Here we traverse the translated strings.
+    -- Some of these may not base in STRINGS.PEARL
+	for path, msgstr in pairs(translated) do
+        msgstr = normalize(msgstr)
 
-		local msgstr = string
-		if msgstr then
-			msgstr = string.gsub(msgstr, "\n", "\\n")
-			msgstr = string.gsub(msgstr, "\r", "\\r")
-			msgstr = string.gsub(msgstr, "\"", "\\\"")
-		else
-			msgstr = ""
-		end
-
-		local msgid = getvbypath(original, path:sub(#base + 2)) or ""
-		msgid = string.gsub(msgid, "\n", "\\n")
-		msgid = string.gsub(msgid, "\r", "\\r")
-		msgid = string.gsub(msgid, "\"", "\\\"")
+		local msgid = normalize(getvbypath(original, path:sub(#base + 2)) or "")
 
 		file:write("#. "..path)
 		file:write("\n")
@@ -97,8 +107,6 @@ return function(filename, original, translated)
 		return error("No filename provided!")
 	end
 
-	--root = root or "STRINGS"
-
 	local file = io.open(filename, "w")
     if not file then
         return error("Failed to open the translation file!")
@@ -113,8 +121,8 @@ return function(filename, original, translated)
 	file:write("\n")
 	file:write("\n")
 
-	PrintTranslatedStringTableV2("STRINGS.PEARL", original, translated, file)
-	PrintUntranslatedStringTableV2("STRINGS.PEARL", original, shallowcopy(translated), file)
+	WriteTranslatedStrings("STRINGS", original, translated, file)
+	WriteUntranslatedModStrings("STRINGS.PEARL", original.PEARL, shallowcopy(translated), file)
 
 	file:close()
 end

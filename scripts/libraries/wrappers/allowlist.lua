@@ -77,6 +77,7 @@ function AllowList:Load()
     end, true)
 end
 
+-- We are being saved manually for now.
 function AllowList:Save()
     if not PEARL.EnsurePersistentString(ALLOWLIST_PATH) then
         PEARL.error("Couldn't create the allowlist file!")
@@ -108,6 +109,15 @@ function AllowList:Reload()
 end
 
 --------------------------------------
+-- [[ Event Handlers ]]
+--------------------------------------
+
+local function OnClientBanned(userid)
+    -- Make sure that user looses all the priviliges after being banned and unbanned.
+    AllowList:Remove(userid)
+end
+
+--------------------------------------
 -- [[ Setup ]]
 --------------------------------------
 
@@ -124,10 +134,12 @@ if TheShard:IsMaster() and PEARL.ServerNetwork then
             return false, "ID_DST_SLOT_RESERVATION"
         end
     end)
+
+    PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 end
 
--- PEARL.EventProcessor:AddSafeEventHandler("quit", function()
---     AllowList:Save()
--- end)
+--------------------------------------
+-- [[ Return ]]
+--------------------------------------
 
 return AllowList

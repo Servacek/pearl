@@ -89,9 +89,6 @@ local function OnDisagreeConfirmed(data)
     PEARL.debug("OnDisagreeConfirmed")
     OnPlayerFinishedAgreement(data)
 
-    -- This is what you get when you disagree with out agreement
-    PEARL.RemoveAllLoadingTips()
-
     PEARL.StaticScheduler:ExecuteInTime(0, function()
         PEARL.ClientNetwork:Disconnect("ID_DST_USER_DISAGREED", false, true)
     end)

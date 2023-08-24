@@ -24,7 +24,7 @@
 
 
 local PEARL = PEARL
-local APP_VERSION, json, LoadingStates = APP_VERSION, json, LoadingStates
+local APP_VERSION, json = APP_VERSION, json
 local TheNet = TheNet
 local tonumber, pcall = tonumber, pcall
 
@@ -97,15 +97,14 @@ local function StartServerUpdate()
     -- Make sure the world is saved at this point.
     TheWorld:PushEvent("ms_save")
 
-    PEARL.WallScheduler:ExecuteInTime(2, function()
-        -- This also makes the disconnect events being pushed this tick.
-        --- @TODO: The shutting down log doesn't show (probably because of the logger delay.)
-        PEARL.ModShutdown()
+    PEARL.ModShutdown()
 
+    PEARL.WallScheduler:ExecuteInTime(2, function()
+        -- Keep this here so the default disconnect event wont have a chance to reach the server.
         PEARL.ServerNetwork:DisconnectAllClients(nil, true)
 
         PEARL.BroadcastRPCToConnectedShards(PEARL.RPC.BroadcastLua, "TheSim:Crash()")
-        PEARL.WallScheduler:ExecuteInTime(0, function()
+        PEARL.WallScheduler:ExecuteInTime(1, function()
             TheSim:Crash()
         end)
     end)

@@ -58,9 +58,9 @@ function ActionLog:RemoveAction(pattern)
     return action
 end
 
-function ActionLog:LogAction(entity, tp, actionstr, ...)
+function ActionLog:LogAction(entity, tp, actionstr, silent, ...)
     return PEARL.AnnounceWithType(
-        actionstr, tp, (entity and entity.entity or entity), ...
+        actionstr, tp, (entity and entity.entity or entity), silent, ...
     )
 end
 
@@ -71,6 +71,10 @@ end
 function ActionLog:QueueAct(p, sn, sv)
     if sn then
         --- @TODO: handle sv being an entity.
+        if sv and EntityScript.is_instance(sv) then
+            sv = sv:GetFancyName()
+        end
+
         -- This will handle the case where "sn" is a table of fields as well.
         p = p:nformat(sn, sv)
     end

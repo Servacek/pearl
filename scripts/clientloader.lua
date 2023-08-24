@@ -27,17 +27,22 @@ local ClientLoader = {}
 -- [[ Private ]]
 ---------------------------------
 
-local load_fn = Profile.Load
+local load_fn = Profile and Profile.Load
 local load_fn_args = nil
 local loaded = false
 local load_deffered = false
+local should_deffer = false
 
 local function LoadOverride(...)
     -- Always save these args for the future.
     ClientLoader:SetLoadArgs(...)
 
-    if ClientLoader:IsLoadDeffered() then
+    -- If not deffered, then this is not being called but just to be sure.
+    -- In case we cachanged mind during that few frames.
+    if ClientLoader:ShouldDefferLoad() then
         PEARL.debug("Deffering further loading of the client...")
+
+        ClientLoader:SetLoadDeffered(true)
         return false
     end
 
@@ -46,6 +51,10 @@ local function LoadOverride(...)
 end
 
 local function OverrideLoader()
+    if type(Profile) ~= "table" then
+        return PEARL.error("Profile is invalid!")
+    end
+
     if Profile.Load == LoadOverride then
         return PEARL.warn("Loader already overriden!")
     end
@@ -54,6 +63,10 @@ local function OverrideLoader()
 end
 
 local function RestoreLoader()
+    if type(Profile) ~= "table" then
+        return PEARL.error("Profile is invalid!")
+    end
+
     if Profile.Load == load_fn then
         return PEARL.warn("Loader wasn't changed!")
     end
@@ -66,10 +79,15 @@ end
 ---------------------------------
 
 function ClientLoader:Load()
+    if not self:IsLoadDeffered() then
+        return PEARL.debug("Loading was not deffered.")
+    end
+
     if type(load_fn) ~= "function" then
         return PEARL.error("_load_fn is invalid!")
     end
 
+    -- This should actually never happen
     if type(load_fn_args) ~= "table" then
         return PEARL.error("Invalid _load_fn_args!")
     end
@@ -78,10 +96,21 @@ function ClientLoader:Load()
         return PEARL.debug("Client already loaded")
     end
 
+    -- In case this gets called in the future as well.
+    PEARL.debug("Restoring default load handler and cleaning up...")
+    RestoreLoader()
+
+    -- Cleanup
+    self:SetLoadDeffered(false)
+    self:SetShouldDeffer(false)
+
     PEARL.debug("Loading the client...")
 
     loaded = true
-    load_fn(unpack(load_fn_args))
+    load_fn(PEARL.unpack(load_fn_args))
+
+    -- Make sure we are not deffering garbage collection too!
+    load_fn_args = nil
 end
 
 function ClientLoader:ForceLoad()
@@ -93,22 +122,22 @@ end
 function ClientLoader:DefferLoad()
     PEARL.debug("ClientLoader:DefferLoad")
 
-    if self:IsLoadDeffered() then
+    if self:ShouldDefferLoad() then
         return --PEARL.warn("Loading of the client was already deffered!")
     end
 
-    self:SetLoadDeffered(true)
+    self:SetShouldDeffer(true)
     OverrideLoader()
 end
 
-function ClientLoader:CancelDeffer()
-    if not self:IsLoadDeffered() then
-        return PEARL.warn("The loading is not deffered!")
-    end
+-- function ClientLoader:CancelDeffer()
+--     if not self:ShouldDefferLoad() then
+--         return PEARL.warn("The loading is not deffered!")
+--     end
 
-    RestoreLoader()
-    self:SetLoadDeffered(false)
-end
+--     RestoreLoader()
+--     self:SetShouldDeffer(false)
+-- end
 
 ---------------------------------
 -- [[ Setters ]]
@@ -116,6 +145,10 @@ end
 
 function ClientLoader:SetLoadArgs(...)
     load_fn_args = {...}
+end
+
+function ClientLoader:SetShouldDeffer(deffer)
+    should_deffer = deffer
 end
 
 function ClientLoader:SetLoadDeffered(deffered)
@@ -128,6 +161,10 @@ end
 
 function ClientLoader:IsLoaded()
     return loaded == true
+end
+
+function ClientLoader:ShouldDefferLoad()
+    return should_deffer == true
 end
 
 function ClientLoader:IsLoadDeffered()

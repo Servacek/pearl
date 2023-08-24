@@ -32,7 +32,7 @@ local file_pre_loads = {}
 local frontend_preinits = {}
 local prefab_post_registers = {}
 
-local usercommand_post_inits = {}
+local usercommand_pre_inits = {}
 
 ----------------------------------
 -- Function Pre/Post call adders
@@ -234,12 +234,12 @@ function PEARL.AddFilePreLoad(filename, fn)
     table.insert(file_pre_loads[filename], fn)
 end
 
-function PEARL.AddUserCommandPostInit(name, postcb)
-    if not usercommand_post_inits[name] then
-        usercommand_post_inits[name] = {}
+function PEARL.AddUserCommandPreInit(name, postcb)
+    if not usercommand_pre_inits[name] then
+        usercommand_pre_inits[name] = {}
     end
 
-    table.insert(usercommand_post_inits[name], postcb)
+    table.insert(usercommand_pre_inits[name], postcb)
 end
 
 --- WARNING: can cause a lot of nasty issues so do not use if not required!
@@ -394,12 +394,12 @@ function PEARL.OnModPostInit(...)
     end
 end
 
-PEARL.AddGlobalFunctionPostCall("AddUserCommand", function(name, ...)
-    if not usercommand_post_inits[name] then
+PEARL.AddGlobalFunctionPreCall("AddUserCommand", function(name, ...)
+    if not usercommand_pre_inits[name] then
         return
     end
 
-    for _, fn in ipairs(usercommand_post_inits[name]) do
+    for _, fn in ipairs(usercommand_pre_inits[name]) do
         fn(...)
     end
 end)
@@ -463,6 +463,7 @@ end
 
 function PEARL.AddAnnouncementCategory(name, icon)
     assert(ANNOUNCEMENT_ICONS, "ANNOUNCEMENT_ICONS is nil!")
+    assert(ANNOUNCEMENT_ICONS[name] == nil, "ANNOUNCEMENT ICON already exists for type "..name)
 
     if icon then
         ANNOUNCEMENT_ICONS[name] = {
@@ -506,17 +507,18 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, ...)
         enabled = PEARL.CONFIG.ANNOUNCEMENTS.all
     end
 
-    if type(ANNOUNCEMENT_ICONS[tp]) ~= "table" then
-        tp = "default"
-    end
-
     -- Check for explicit false so by default is everything enabled.
     if enabled ~= false and silent ~= true then
+        -- If there is no UI icon for the announcement display the default one
+        if type(ANNOUNCEMENT_ICONS[tp]) ~= "table" then
+            tp = "default"
+        end
+
         -- When we announce the message it will be logged to discord implicitly.
         return TheNet:Announce(str, entity, nil, tp, ...)
     end
 
-    PEARL.DiscordLogger:LogString(str, PEARL.ICONS.ANNOUNCEMENTS[tp])
+    PEARL.DiscordLogger:LogString(str, PEARL.ICONS.ANNOUNCEMENTS[string.lower(tp)])
 end
 
 --------------------------------
@@ -528,7 +530,7 @@ function PEARL.IsShuttingDown()
 end
 
 function PEARL.ModShutdown(...)
-    if PEARL.IsShuttingDown() then
+    if PEARL.IsShuttingDown() or PEARL.INIT then
         return
     end
 

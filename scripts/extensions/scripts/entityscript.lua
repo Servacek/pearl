@@ -57,6 +57,7 @@ function EntityScript:IsResourcePlant()
         and self:HasOneOfTags(PEARL.CONSTS.RESOURCE_PLANT_TAGS)
 end
 
+--- @param checkfn fun(ent: Entity): boolean
 function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, checkfn, rad)
     local x, y, z = self.Transform:GetWorldPosition()
     if not (x and y and z) then
@@ -79,9 +80,14 @@ function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, c
         x, y, z, radius, musttags, canttags, mustoneoftags
     ) or {}
 
+    -- Remove self
     return table.filter(entities, function(k, v)
         return v and v.GUID ~= self.GUID and (not checkfn or checkfn(v))
     end)
+end
+
+function EntityScript:GetPropagableBurnableEntities(mustoneoftags, ...)
+    return self:GetPropagableEntities(PEARL.CONSTS.BURNABLE_MUST_TAGS, PEARL.CONSTS.BURNABLE_CANT_TAGS, mustoneoftags or {}, ...)
 end
 
 function EntityScript:GetStandardizedName()

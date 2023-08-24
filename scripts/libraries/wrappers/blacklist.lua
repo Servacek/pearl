@@ -61,6 +61,8 @@ function BlackList:RemovePlayerByID(userid)
             table.remove(blacklist, i)
             self:Set(blacklist)
 
+            PEARL.EventProcessor:HandleEvent("clientunbanned", userid)
+
             return true
         end
     end

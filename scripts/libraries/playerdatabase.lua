@@ -68,6 +68,8 @@ local PlayerDB = {
     -- Here we will safe all active (cached) records.
     _records = {},
     _userids = {},
+
+    _enabled = true,
 }
 
 ------------------------------------------
@@ -97,6 +99,10 @@ end
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return table<string, any>? record The record of the provided player.
 function PlayerDB:GetRecordFor(userid)
+    if self:IsDisabled() then
+        return
+    end
+
     userid = self:MapNetID(userid) or userid
 
     return self._records[userid] or self:LoadRecordFor(userid)
@@ -126,7 +132,14 @@ end
 
 function PlayerDB:IsCached(userid)
     return type(self._records[userid]) == "table"
+end
 
+function PlayerDB:IsEnabled()
+    return self._enabled == true
+end
+
+function PlayerDB:IsDisabled()
+    return self._enabled ~= true
 end
 
 function PlayerDB:MapNetID(netid)
@@ -141,6 +154,10 @@ end
 -- We store the whole list of IDs so we can traverse all records if needed,
 -- since we cannot list files.
 function PlayerDB:AddUserid(userid, netid)
+    if self:IsDisabled() then
+        return
+    end
+
     if not self._userids[netid] then
         self._userids[netid] = userid
         self._userids.count = (self._userids.count or 0) + 1
@@ -194,6 +211,10 @@ function PlayerDB:OptionalSafeSetField(userid, name, value)
     return false
 end
 
+function PlayerDB:SetIsEnabled(enabled)
+    self._enabled = enabled
+end
+
 ------------------------------------------
 -- [[ Public Methods ]]
 ------------------------------------------
@@ -233,6 +254,7 @@ function PlayerDB:EnsureRecordFor(userid)
     return record, false
 end
 
+-- Put stuff that's available from the start and doesn't change here.
 function PlayerDB:CreateRecordFor(userid)
     local record = deepcopy(RECORD_TEMPLATE)
     record.joinedtime = os.time()
@@ -317,11 +339,15 @@ function PlayerDB:SaveUseridList()
 end
 
 function PlayerDB:LoadRecordFor(userid)
+    PEARL.debug("LoadRecordFor", userid)
+
     self._records[userid] = self:LoadDatabaseFile(DATABASE_FILE_PATH:format(userid))
     return self._records[userid]
 end
 
 function PlayerDB:SaveRecordFor(userid, record, force)
+    PEARL.debug("SaveRecordFor", userid, record, force)
+
     record = record or self._records[userid]
     -- Only save data for users that have agreed to the agreement.
     --- @TODO: Re-think the data collection complication.
@@ -336,7 +362,7 @@ function PlayerDB:SaveRecordFor(userid, record, force)
 end
 
 function PlayerDB:PrintDebugInfo()
-    tdump(self._records)
+    table.dump(self._records)
 end
 
 ------------------------------------------
@@ -344,6 +370,10 @@ end
 ------------------------------------------
 
 local function OnSave()
+    if PlayerDB:IsDisabled() then
+        return
+    end
+
     PEARL.info("Saving the database...")
 
     -- Save lastseentime, lastdays here as well, because we may be shutting down,

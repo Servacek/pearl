@@ -125,6 +125,10 @@ return {
 
 	-- },
 
+    DO_NOT_CHOP = {
+        ["oceantree_pillar"] = true,
+    },
+
 	FOOD = {
 		deerclops_eyeball = 6,
 		gears = 2,

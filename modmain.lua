@@ -85,7 +85,7 @@
 --]]
 
 local GLOBAL = GLOBAL
-local setmetatable, rawget, rawset = GLOBAL.setmetatable, GLOBAL.rawget, GLOBAL.rawset
+local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
 --- LINK TESTS
 --------------------------------
@@ -145,12 +145,16 @@ GLOBAL.PEARL = setmetatable({
             return data
         end
 
-        local function supplement(level)
-            for k, v in pairs(level) do
-                if data[k] == nil then
-                    data[k] = v
-                elseif type(data[k]) == "table" then
-                    supplement(data[k])
+        local function supplement(default, actual)
+            for name, value in pairs(default) do
+                if actual[name] == nil and actual[name] ~= value then
+                    actual[name] = value
+                elseif type(default[name]) == "table" then
+                    if type(actual[name]) ~= "table" then
+                        actual[name] = {}
+                    end
+
+                    supplement(default[name], actual[name])
                 end
             end
         end
@@ -158,7 +162,7 @@ GLOBAL.PEARL = setmetatable({
         for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
             if option.name == opt_name then
                 if type(option.default) == "table" then
-                    supplement(option.default)
+                    supplement(option.default, data)
                 end
 
                 break
@@ -196,6 +200,24 @@ GLOBAL.PEARL = setmetatable({
 })
 
 PEARL = GLOBAL.PEARL
+PEARL.CONFIG = {}
+
+--------------------------------
+-- [[ Server Mod Config ]]
+--------------------------------
+
+--- Run this as soon as possible so in case of any error
+--- @class ModConfig
+PEARL.ModConfig = require("modconfig")
+
+if type(PEARL.ModConfig) ~= "table" then
+    return error("Failed to load mod configurations!")
+end
+
+if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
+    -- Make sure we do not leak any internal configurations
+    return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
+end
 
 --------------------------------
 -- [[ Banner ]]
@@ -210,8 +232,6 @@ end
 -- [[ General Configurations ]]
 --------------------------------
 
-PEARL.CONFIG = {}
-
 local function load_general_config()
     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
         -- For frontend we preload the data, but they will be overriden afterwards.
@@ -222,6 +242,75 @@ local function load_general_config()
 end
 
 load_general_config()
+
+--------------------------------
+-- [[ Default Configurations ]]
+--------------------------------
+
+PEARL.DEFAULT_CONFIG = {}
+
+local function load_default_config()
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.name ~= nil and option.default ~= nil then
+            PEARL.DEFAULT_CONFIG[option.name] = option.default
+        end
+    end
+end
+
+load_default_config()
+
+--------------------------------
+-- [[ Configuration Options ]]
+--------------------------------
+
+PEARL.CONFIG_OPTIONS = {}
+
+local function load_config_options()
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.name ~= nil then
+            PEARL.CONFIG_OPTIONS[option.name] = option
+        end
+    end
+end
+
+-- local function load_nested_config_options(loaded, options, path)
+--     loaded = loaded or PEARL.CONFIG
+--     options = options or PEARL.CONFIG_OPTIONS
+--     path = path or nil
+
+--     -- Iterate over the whole configuration tree.
+--     for name, value in pairs(PEARL.DEFAULT_CONFIG) do
+--         path = path and path.."."..name or name
+
+--         if type(value) == "table" and #value == 0 and not table.empty(value) then
+--             load_nested_config_options(loaded[name], options[name], path)
+--         else
+--             -- If no override exists for this configuration
+--             if override[name] == nil then
+--                 loaded[name] = common[name]
+--             end
+--         end
+--     end
+-- end
+
+load_config_options()
+--load_nested_config_options()
+
+--------------------------------
+-- [[ Configuration Overrides ]]
+--------------------------------
+
+PEARL.CONFIG_OVERRIDES = {}
+
+local function load_config_overrides()
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.name ~= nil and option.saved ~= nil then
+            PEARL.CONFIG_OVERRIDES[option.name] = option.saved
+        end
+    end
+end
+
+load_config_overrides()
 
 --------------------------------
 -- [[ General Mod Constants]]
@@ -240,22 +329,6 @@ PEARL.CONSTS = {
 }
 
 --------------------------------
--- [[ Server Mod Config ]]
---------------------------------
-
-require("servermodconfig")
-
-if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
-    -- Make sure we do not leak any internal configurations
-    return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
-end
-
--- Backend needs to be loaded even on the first launch because of some configurations.
--- if not TheSim or TheSim:GetNumLaunches() == 1 then
---     return -- Do not load much on the first launch.
--- end
-
---------------------------------
 -- [[ FileLoader ]]
 --------------------------------
 
@@ -263,6 +336,20 @@ PEARL.loadfile = require("libraries/fileloader")
 if type(PEARL.loadfile) ~= "function" then
     return error("Failed to load the file loader!", tostring(PEARL.loadfile))
 end
+
+--------------------------------
+-- [[ Standard Libs ]]
+--------------------------------
+
+PEARL.loadfile("extensions/standard/builtin")
+PEARL.loadfile("extensions/standard/table")
+PEARL.loadfile("extensions/standard/math")
+PEARL.loadfile("extensions/standard/io")
+PEARL.loadfile("extensions/standard/string")
+PEARL.loadfile("extensions/standard/os")
+PEARL.loadfile("extensions/standard/debug")
+
+PEARL.loadfile("extensions/json")
 
 --------------------------------
 -- [[ Logging ]]
@@ -275,19 +362,6 @@ PEARL.loadfile("extensions/logging")
 --------------------------------
 
 PEARL.loadfile("extensions/eventprocessor")
-
---------------------------------
--- [[ Standard Libs ]]
---------------------------------
-
-PEARL.info("Loading extensions for the standard lua libraries...")
-PEARL.loadfile("extensions/standard/table")
-PEARL.loadfile("extensions/standard/math")
-PEARL.loadfile("extensions/standard/io")
-PEARL.loadfile("extensions/standard/string")
-PEARL.loadfile("extensions/standard/os")
-
-PEARL.loadfile("extensions/json")
 
 ----------------------------------
 -- [[ Static Scheduler ]]
@@ -312,6 +386,13 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
+
+--------------------------------
+-- [[ Wrappers ]]
+--------------------------------
+
+PEARL.info("Loading wrappers...")
+PEARL.loadfile("libraries/wrappers/persistance")
 
 --------------------------------
 -- [[ License ]]
@@ -352,39 +433,6 @@ if PEARL.CONFIG.DEBUG_MODE then
     local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
     RequiredFilesForReload[modmain_fp] = modmain_ft
     RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
-
-    --- @TEMPORARY
-    local TAB_SIZE = 4
-    local MAX_RECURSIONS = 10
-    function _G.tdump(t, i)
-        if type(t) ~= "table" then
-            return PEARL.warn("Invalid table provided")
-        end
-
-        if not i then
-            print("{")
-        end
-
-        i = i or 1
-        for k, v in pairs(t) do
-
-            local fm = string.rep(" ", i * TAB_SIZE)..tostring(k).." = "
-            if type(v) == "table" then
-                print(fm.."{")
-                if i < MAX_RECURSIONS then
-                    tdump(v, i + 1)
-                else
-                    print("...")
-                end
-            elseif type(v) == "string" then
-                print(fm..string.format("%q", v)..",")
-            else
-                print(fm..tostring(v)..",")
-            end
-        end
-
-        print(string.rep(" ", i * TAB_SIZE - TAB_SIZE).."},")
-    end
 end
 
 --------------------------------
@@ -400,12 +448,12 @@ STRINGS.PEARL = PEARL.loadfile("constants/strings")
 -- Load translations only after strings.lua else they will be overriden.
 local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
 if PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE and io.exists(path) then
+    local ORIGINAL_STRINGS = STRINGS
     PEARL.info("Loading translations...")
     LoadPOFile(path, PEARL.CONFIG.LANGUAGE)
 
     if PEARL.CONFIG.DEBUG_MODE and TheNet:IsDedicated() then
         local TRANSLATED_STRINGS = LanguageTranslator.languages[PEARL.CONFIG.LANGUAGE]
-        local ORIGINAL_STRINGS = PEARL.loadfile("constants/strings", nil, true)
         PEARL.loadfile("languages/createstringspo")(path, ORIGINAL_STRINGS, TRANSLATED_STRINGS)
     end
 else
@@ -436,7 +484,7 @@ PEARL.RegisterDefaultAnnouncementTypes()
 PEARL.AddAnnouncementCategory("ignite", "torch.tex")
 PEARL.AddAnnouncementCategory("burn", "fire.tex")
 PEARL.AddAnnouncementCategory("take", "backpack.tex")
-PEARL.AddAnnouncementCategory("eat", "faketheeth.tex")
+PEARL.AddAnnouncementCategory("swallow", "faketheeth.tex")
 PEARL.AddAnnouncementCategory("hammer", "hammer.tex")
 PEARL.AddAnnouncementCategory("kill", "hambat.tex")
 PEARL.AddAnnouncementCategory("defeat", "trophy.tex")
@@ -456,6 +504,11 @@ PEARL.AddAnnouncementCategory("dig")
 PEARL.AddAnnouncementCategory("plant")
 PEARL.AddAnnouncementCategory("give")
 PEARL.AddAnnouncementCategory("sleep")
+PEARL.AddAnnouncementCategory("cook")
+PEARL.AddAnnouncementCategory("eat")
+PEARL.AddAnnouncementCategory("propagator")
+PEARL.AddAnnouncementCategory("play")
+PEARL.AddAnnouncementCategory("chop")
 
 --------------------------------
 -- [[ Instance Param Manager]]
@@ -487,6 +540,11 @@ end
 if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
+
+    local mt = getmetatable(TheNet)
+    PEARL.OverrideReturnValue(mt.__index, "GetServerListingFromActualIndex", function(listing)
+        table.dump(listing)
+    end)
 
     PEARL.info("Loading mod FE done.")
 end

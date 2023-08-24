@@ -287,7 +287,6 @@ local function OnReputationChangedFor(userid, delta)
 end
 
 local function OnClientBanned(userid)
-    print("OnClientBanned")
     local update = false
     for _, ld_type in pairs(LD_TYPES) do
         if RemoveFromLDByUserid(userid, ld_type) ~= nil then
@@ -303,7 +302,7 @@ end
 local function OnReputationDelta(userid, delta)
     -- Admins should not appear in the leadeboard
     if not delta or delta == 0 then
-        return print("IGNORING...")
+        return
     end
 
     if not IsLeaderboardingAllowedFor(userid) then
@@ -418,7 +417,7 @@ function PEARL.OnNewMonth(stb)
 end
 
 function PEARL.DisplayLeaderboard()
-    tdump(_leaderboards)
+    table.dump(_leaderboards)
 end
 
 function PEARL.UpdateLeaderboard()

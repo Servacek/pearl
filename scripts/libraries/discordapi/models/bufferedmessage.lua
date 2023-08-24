@@ -30,12 +30,10 @@ local EMBED_ALLOC = PEARL.CONSTS.MAX_EMBED_COUNT
 -- [[ Class Declaration ]]
 -------------------------------------
 
---- @class MessageBuffer: Message
-local MessageBuffer = Class(Message, function(self)
+--- @class BufferedMessage: Message
+local BufferedMessage = Class(Message, function(self)
     Message._ctor(self)
 
-    --- @type Message
-    self._message = Message()
     self._timeout = 0
     --- @type Task?
     self._task = nil
@@ -55,11 +53,11 @@ end)
 -- [[ Setters ]]
 -------------------------------------
 
-function MessageBuffer:SetTimeout(timeout)
+function BufferedMessage:SetTimeout(timeout)
     self._timeout = timeout
 end
 
-function MessageBuffer:SetOnTimeout(ontimeout, ...)
+function BufferedMessage:SetOnTimeout(ontimeout, ...)
     self._ontimeout = ontimeout
     self._ontimeout_args = toarrayornil(...)
 end
@@ -68,19 +66,15 @@ end
 -- [[ Getters ]]
 -------------------------------------
 
-function MessageBuffer:IsBuffering()
-    return self._task and self._task.running
-end
-
-function MessageBuffer:GetMessage()
-    return self._message
+function BufferedMessage:IsBuffering()
+    return self._task and self._task.running == true
 end
 
 -------------------------------------
 -- [[ Public ]]
 -------------------------------------
 
-function MessageBuffer:Timeout()
+function BufferedMessage:Timeout()
     self:Stop()
 
     if type(self._ontimeout) ~= "function" then
@@ -97,7 +91,7 @@ function MessageBuffer:Timeout()
     self:Clear()
 end
 
-function MessageBuffer:Start()
+function BufferedMessage:Start()
     if self._timeout <= 0 then
         return self:Timeout()
     end
@@ -107,19 +101,19 @@ function MessageBuffer:Start()
         return self._task:restart()
     end
 
-    PEARL.debug("Starting the buffer task!")
+    --PEARL.debug("Starting the buffer task!")
     self._task = PEARL.WallScheduler:ExecutePeriodic(
         self._timeout, self.Timeout, nil, nil, nil, self
     )
 end
 
-function MessageBuffer:Stop()
+function BufferedMessage:Stop()
     if self._task and self._task.running then
         return self._task:stop()
     end
 end
 
-function MessageBuffer:Clear()
+function BufferedMessage:Clear()
     self._flags = nil
     self._content = nil
 
@@ -138,4 +132,4 @@ end
 -- [[ Return ]]
 -------------------------------------
 
-return MessageBuffer
+return BufferedMessage

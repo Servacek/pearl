@@ -22,7 +22,7 @@
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
-local MessageBuffer = PEARL.loadfile("libraries/discordapi/models/messagebuffer")
+local BufferedMessage = PEARL.loadfile("libraries/discordapi/models/bufferedmessage")
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 
 -------------------------------------
@@ -44,13 +44,17 @@ local Logger = Class(function(self)
         return PEARL.error("Token and/or ID is not configured for the logger webhook correctly!")
     end
 
-    --- @type MessageBuffer
-    self._buffer = MessageBuffer()
-    self._buffer:SetTimeout(PEARL.CONFIG.DISCORD.LHOOK.BUFFER_TIMEOUT)
-    self._buffer:SetOnTimeout(self._LogBufferedMessage, self)
+    --- @type BufferedMessage
+    self._buffered = BufferedMessage()
+    self._buffered:SetTimeout(PEARL.CONFIG.DISCORD.LHOOK.BUFFER_TIMEOUT)
+    self._buffered:SetOnTimeout(self._LogBufferedMessage, self)
+
+    self._shutting_down = false
 
     PEARL.EventProcessor:AddSafeEventHandler("quit", function()
-        if self._buffer:IsBuffering() then
+        self._shutting_down = true
+
+        if self._buffered:IsBuffering() then
             PEARL.debug("Shutting down logger webhook...")
 
             self:_ForceLogBuffer()
@@ -63,26 +67,26 @@ end)
 -------------------------------------
 
 function Logger:_LogBufferedMessage(force)
-    if not self._buffer or not self._buffer:IsValid() then
+    if not self._buffered or not self._buffered:IsValid() then
         return PEARL.error("Attempted to send an invalid or non-existent buffered message!")
     end
 
-    return self._webhook:PostMessage(self._buffer, force)
+    return self._webhook:PostMessage(self._buffered, force)
 end
 
 function Logger:_ForceLogBuffer()
-    self._buffer:Stop()
+    self._buffered:Stop()
     self:_LogBufferedMessage(true)
-    self._buffer:Clear()
+    self._buffered:Clear()
 end
 
 function Logger:_OnNewLog(force)
     -- Skip the buffering process when forcing a message
-    if force then
+    if force or self._shutting_down then
         return self:_ForceLogBuffer()
     end
 
-    self._buffer:Start()
+    self._buffered:Start()
     return self._buffer
 end
 
@@ -131,11 +135,11 @@ function Logger:LogEmbed(embed, force)
 
     -- Returns nil if adding the embed has failed.
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
-    if not self._buffer:AddEmbed(embed) then
-        self._buffer:Timeout()
+    if not self._buffered:AddEmbed(embed) then
+        self._buffered:Timeout()
 
         -- Retry with a cleared buffered message
-        if not self._buffer:AddEmbed(embed) then
+        if not self._buffered:AddEmbed(embed) then
             -- If still no success, the embed is most likely invalid.
             return PEARL.error("Attempted to add an invalid embed!", embed)
         end
@@ -156,9 +160,9 @@ function Logger:LogLine(logline, force)
         return PEARL.error("Attempted to send an invalid logline!", logline)
     end
 
-    local success, rest = self._buffer:AddLogLine(logline)
+    local success, rest = self._buffered:AddLogLine(logline)
     if rest then
-        self._buffer:Timeout()
+        self._buffered:Timeout()
 
         PEARL.info("Sending the rest of the message...")
         return self:LogLine(rest:SetIsRaw(true), force)
@@ -168,10 +172,10 @@ function Logger:LogLine(logline, force)
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
     if not success then
         -- Send and clear the current buffer.
-        self._buffer:Timeout()
+        self._buffered:Timeout()
 
         -- Retry with a cleared buffered message
-        if not self._buffer:AddLogLine(logline) then
+        if not self._buffered:AddLogLine(logline) then
             -- If still no success, the logline is most likely invalid.
             return PEARL.error("Attempted to add an invalid logline!", logline)
         end
@@ -188,6 +192,8 @@ function Logger:LogStringRaw(str, icon, ...)
     if self:IsDisabled() then
         return
     end
+
+    PEARL.debug("Logger:LogString", str)
 
     local logline = LogLine(str)
     if icon then

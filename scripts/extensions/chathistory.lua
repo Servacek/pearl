@@ -31,8 +31,8 @@ local DEFAULT_CHAT_MESSAGE_COLOR = WHITE
 ---------------------------
 
 function ChatHistory:GetColourForMessage(s_colour, m_colour)
-    s_colour = type(s_colour) == "number" and PEARL.GetColorFromDecimal(s_colour) or s_colour
-    m_colour = type(m_colour) == "number" and PEARL.GetColorFromDecimal(m_colour) or m_colour
+    s_colour = type(s_colour) == "number" and {PEARL.DecimalToPercent(s_colour)} or s_colour
+    m_colour = type(m_colour) == "number" and {PEARL.DecimalToPercent(m_colour)} or m_colour
 
     s_colour = s_colour or DEFAULT_CHAT_MESSAGE_COLOR
     s_colour.message = m_colour
@@ -78,6 +78,14 @@ PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_mess
 
     return chat_message
 end, true)
+
+-- Fallback case for invalid announcement types.
+local mt = getmetatable(ANNOUNCEMENT_ICONS) or {}
+mt.__index = function(self, name)
+    return rawget(ANNOUNCEMENT_ICONS, name) or rawget(ANNOUNCEMENT_ICONS, "default")
+end
+
+setmetatable(ANNOUNCEMENT_ICONS, mt)
 
 ---------------------------
 -- [[ Setup ]]

@@ -220,7 +220,7 @@ local AgreementScreen = Class(Screen, function(self, readonly)
             checkbox.checked = not checkbox.checked
             checkbox:Refresh()
         end,
-        false,
+        true, -- Keep checked for default, but the user can opt out.
         "" -- This needs to be here in order for the text widget to work correctly.
     ))
 

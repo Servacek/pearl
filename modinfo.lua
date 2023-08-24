@@ -47,6 +47,17 @@ server_filter_tags = {
 -- [[ Configurations ]]
 -------------------------------------
 
+--- @TAGS:
+--- - general - This configuration loads directly in modmain.lua
+--- - name - Name of the configuration
+--- - default - The default value of the configuration
+--- - type - The more specific type definition of the configuration.
+--- - public - Whether it is sent to the clients or not.
+--- - warn - Whether to log a warning in when this option is not configured.
+--- - master_only - Whether it shouldn't load in caves or vice versa.
+--- - implicit - This configuration is meant to be used internally.
+--- - zip - For public configurations. If set, we will attempt to zip the value before sending.
+
 --- @TODO: Create the checks API.
 configuration_options = {
 
@@ -78,8 +89,9 @@ configuration_options = {
                 MESSAGE_ID = "",
             },
 
-            INPUT_PROXY = {
-                URL                 = nil,
+            PROXY = {
+                INPUT_URL           = nil,
+                OUTPUT_URL          = nil,
 
                 CHAT_ENABLED        = false,
                 COMMANDS_ENABLED    = false,
@@ -97,6 +109,21 @@ configuration_options = {
             TOKEN = "string",
             INVITE = "string",
         }
+    },
+
+    --------------------
+    -- Social Links
+    --------------------
+
+    {
+        name = "SOCIAL_LINKS",
+        default = {
+            DISCORD = nil,
+            YOUTUBE = nil,
+            TWITCH  = nil,
+        },
+        public = true,
+        type = "table<string, string?>"
     },
 
     --------------------
@@ -136,6 +163,23 @@ configuration_options = {
             FOLDER = ".", -- "data" folder by default
             ENCODE_DATA = false,
         },
+        type = "table",
+    },
+
+    --------------------
+    -- Logging
+    --------------------
+
+    {
+        name = "LOGGING",
+        general = true,
+        default = {
+            ENABLED = true,
+            --VERBOSITY = "info",  -- "debug"|"info"|"warn"|"error"
+            DEBUG_FILE = false,
+        },
+
+        public = "LOGGING.ENABLED",
         type = "table",
     },
 
@@ -316,6 +360,13 @@ configuration_options = {
     -- Other Modules
     --------------------
 
+
+    {
+        name="COMMON_MOD_CONFIG",
+        default=true,
+        type = "boolean",
+    },
+
     {
         name = "SUPPORTED_CLIENT_PLATFORMS",
         default = { -- We do only support Steam as the platform by default
@@ -404,9 +455,19 @@ configuration_options = {
         public = true,
     },
 
-    {
+    { -- Console commands are server only.
         name="CONSOLE_COMMANDS",
         default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    {
+        name="DISCORD_COMMANDS",
+        default=false,
         options = {
             true,
             false,

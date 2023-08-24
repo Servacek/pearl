@@ -45,7 +45,7 @@ end
 
 local function OnClientBanned(userid)
     -- Log only offline players being banned, since they are announced by the game itself otherwise.
-    if userid and not PEARL.ServerNetwork:IsUserConnected(userid) then
+    if userid and LookupPlayerInstByUserID(userid) == nil then
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.OFFLINE_CLIENT_BANNED:format(
             userid
         ), PEARL.ICONS.ANNOUNCEMENTS["banned_from_game"])

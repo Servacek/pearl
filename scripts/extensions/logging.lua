@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
--- Do not use "return PEARL.log(...)" because that counts as a new scope.
+-- Do not use "return PEARL.log(...)" because that counts as a tail call and doesn't provide the source info.
 
 local TheSim = TheSim
 local toarrayornil, tostring  = toarrayornil, tostring
@@ -27,30 +27,23 @@ local LOG_LEVELS = {
 }
 
 local HEADER_NAME = "PEARL"
-local SOURCE_PATTERN = "<%s>:%d"
 local PATTERN = "["..HEADER_NAME.."] [%s] %s"
 local PATTERN_DEBUG = "["..HEADER_NAME.."] [%s] %s -> %s"
 
+-- Keep it enabled by default if we fail to retrive the data.
+local ENABLED = PEARL.CONFIG.LOGGING and PEARL.CONFIG.LOGGING.ENABLED or true
+
+local DEBUG_FILE_PATH = PEARL.MODROOT.."logs/debug_log.txt"
+local MAX_DEBUG_FILE_LEN = 10000
+
 ---------------------------
--- [[ Local Functions ]]
+-- [[ Locals]]
 ---------------------------
 
-function PEARL.GetFileNameFromPath(path)
-    return type(path) == "string" and path:match("([^/]*).lua")
-end
-
-local function get_source()
-    local info = debug.getinfo(4, "Sl")
-    local filename = PEARL.GetFileNameFromPath(info.source)
-
-    if not filename then
-        return
-    end
-
-    return SOURCE_PATTERN:format(
-        filename, info.currentline
-    )
-end
+--- @type file*?
+local _debug_file
+--- @type string|stringlib
+local _debug_file_content = ""
 
 ---------------------------
 -- [[ Logging Utils ]]
@@ -59,11 +52,15 @@ end
 --- @param lv string? The log level of this message.
 --- @param ... any Anything you want to print out. (uses tostring)
 function PEARL.log(lv, ...)
+    if not ENABLED then
+        return
+    end
+
     lv = lv and tostring(lv) or LOG_LEVELS.INFO
 
     -- Accept nil as an argument
     local args = toarrayornil(...)
-    local src = (PEARL.CONFIG.DEBUG_MODE or lv == LOG_LEVELS.ERROR) and get_source()
+    local src = (PEARL.CONFIG.DEBUG_MODE or lv == LOG_LEVELS.ERROR) and (debug.PEARL.getsrc(5) or debug.PEARL.getsrc(4))
 
     local content = ""
     if type(args) == "table" then
@@ -74,15 +71,15 @@ function PEARL.log(lv, ...)
         content = tostring(args)
     end
 
+    local log = (PEARL.CONFIG.DEBUG_MODE and src) and
+        PATTERN_DEBUG:format(lv, src, content) or PATTERN:format(lv, content)
+
     -- Using the lower level engine function for more control
-    if PEARL.CONFIG.DEBUG_MODE and src then
-        return TheSim:LuaPrint(PATTERN_DEBUG:format(
-            lv, src, content
-        ))
-    else
-        return TheSim:LuaPrint(PATTERN:format(
-            lv, content
-        ))
+    TheSim:LuaPrint(log)
+    if _debug_file and (lv == LOG_LEVELS.ERROR or lv == LOG_LEVELS.WARN) then
+
+        _debug_file:write(log.."\n")
+        _debug_file:write("") -- This will flush the line.
     end
 end
 
@@ -116,4 +113,27 @@ function PEARL.error(...)
     -- end
 
     return PEARL.log(LOG_LEVELS.ERROR, ...)
+end
+
+---------------------------
+-- [[ Debug File Setup ]]
+---------------------------
+
+-- We should keep this file open until the program ends.
+if PEARL.CONFIG.LOGGING.DEBUG_FILE and ENABLED and TheNet:IsDedicated() then
+    local rfile = io.open(DEBUG_FILE_PATH, "r")
+    if rfile then
+        _debug_file_content = (rfile and rfile:read("*a") or _debug_file_content):rtake(MAX_DEBUG_FILE_LEN)
+        rfile:close()
+    end
+
+    local errmsg
+    _debug_file, errmsg = io.open(DEBUG_FILE_PATH, "w")
+
+    if not _debug_file then
+        PEARL.error("Failed to load the debug file!", errmsg)
+        return
+    end
+
+    _debug_file:write(_debug_file_content)
 end

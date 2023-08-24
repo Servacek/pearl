@@ -43,10 +43,7 @@ local CLIENT_RPCS = {
             return PEARL.error("Chat history not loaded yet!")
         end
 
-        local s_colour = PEARL.GetColorFromDecimal(dec_s_colour)
-        local m_colour = PEARL.GetColorFromDecimal(dec_m_colour, SAY_COLOR)
-        local colour = ChatHistory:GetColourForMessage(s_colour, m_colour)
-
+        local colour = ChatHistory:GetColourForMessage(dec_s_colour, dec_m_colour)
         return ChatHistory:AddToHistory(tp, userid, netid, name, message, colour, ...)
     end,
 
@@ -291,6 +288,7 @@ end
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.BroadcastRPCToAllShards(rpc_id, ...)
+    PEARL.debug("BroadcastRPCToAllShards", rpc_id, ...)
     if TheShard:IsMaster() then
         -- Send RPC to all connected shards including this one.
         return PEARL.SendRPCToShard(rpc_id, nil, ...)

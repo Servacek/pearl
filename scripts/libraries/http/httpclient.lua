@@ -118,6 +118,8 @@ HTTPClient.METHODS = {
 --------------------------------
 
 function HTTPClient:SetIsWaiting(waiting)
+    --PEARL.debug("HTTPClient:SetIsWaiting", waiting)
+
     self._waiting = waiting
 
     return self
@@ -163,10 +165,6 @@ function HTTPClient:IsOnCooldown()
     return self._cooldown_task and self._cooldown_task.running == true
 end
 
--- function HTTPClient:IsReady()
---     return self._ready
--- end
-
 function HTTPClient:GetCached(url)
     return self._request_cache[url]
 end
@@ -190,13 +188,13 @@ function HTTPClient:_DoSendRequest(request, force)
     -- Run in a protected call so if an error occures and the request is not actually
     -- being sent, we do not block the requester.
     local success, err = pcall(TheSim.QueryServer, TheSim, request.url, function(...)
-        request:OnCompleted(...)
-
         self:SetIsWaiting(false)
 
         -- Wait a few seconds before executing next request
         self:StartCooldown(force)
         self:ResetForceTreshold()
+
+        request:OnCompleted(...)
     end, request.method, request:GetData(), request.timeout)
 
     if success then
@@ -249,17 +247,25 @@ function HTTPClient:StartCooldown(force)
 end
 
 function HTTPClient:StopCooldown()
+    --PEARL.debug("Stopping the cooldown task...")
+
     return self._cooldown_task and self._cooldown_task:stop()
 end
 
+-- Returns the next processed request, if any.
 function HTTPClient:ProcessNextRequest(force)
     local next_request = self._queue and self._queue:take()
     if next_request then
         self:_DoSendRequest(next_request, force)
+        return next_request
     end
+
+    return next_request
 end
 
 function HTTPClient:HandleRequest(request)
+    --PEARL.debug("HTTPClient:HandleRequest")
+
     -- If we are not waiting for anything or the queue is disabled
     -- then send the request immediately
     if not (self:IsWaiting() or self:IsOnCooldown()) or self:IsQueueDisabled() or self:IsShuttingDown() then
@@ -285,7 +291,6 @@ function HTTPClient:ForceSend(request)
     end
 
     if self:IsOnCooldown() then
-        PEARL.debug("Stopping the cooldown task...")
         self:StopCooldown()
     end
 
@@ -348,35 +353,35 @@ end
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClient:Request(url, method, callbackfn, data, timeout, ...)
     return self:CreateRequest(url, method)
-        :SetCallbackFn(callbackfn, ...)
+        :SetOnSuccess(callbackfn, ...)
         :SetData(data)
         :SetTimeout(timeout)
 end
 
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
---- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param onsuccess? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClient:GET(url, callbackfn, timeout, ...)
+function HTTPClient:GET(url, onsuccess, timeout, ...)
     return self:CreateRequest(url, HTTPClient.METHODS.GET)
-        :SetCallbackFn(callbackfn, ...)
+        :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
 end
 
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
---- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param onsuccess? fun(response: table|string, self: Request, ...: any): any The function that should be called after the request completes.
 --- @param data string|table The json data body for the request (JSON or table)
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClient:POST(url, callbackfn, data, timeout, ...)
+function HTTPClient:POST(url, onsuccess, data, timeout, ...)
     return self:CreateRequest(url, HTTPClient.METHODS.POST)
-        :SetCallbackFn(callbackfn, ...)
+        :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
         :SetData(data)
 end

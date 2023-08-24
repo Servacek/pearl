@@ -69,6 +69,10 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason)
         return ServerNetwork:CloseConnectionFor(userid, reason)
     end
 
+    if TheWorld then
+        TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
+    end
+
     -- If all the filters have successfully passed, then the connection should be allowed.
     PEARL.debug("Allowing connection for", userid)
     return ServerNetwork:SendUserConnectionAllowedFor(userid)
@@ -109,16 +113,19 @@ end
 
 -- Display to chosen clients or all if "userids" is nil.
 function ServerNetwork:DisplayChatMessageFor(userids, name, message, name_colour, message_colour, flair, ...)
-    PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, PEARL.RPC.AddToChatHistory, userids,
-        PEARL.RGBToDecimal(message_colour), 1, nil, nil, name, message, PEARL.RGBToDecimal(name_colour), flair, ...
-    )
+    local m_colour_dec = tonumber(message_colour)
+    if type(m_colour_dec) ~= "number" then
+        m_colour_dec = PEARL.PercentToDecimal(message_colour or WHITE)
+    end
 
-    -- We have to call the global version since that one is hooked.
-    -- local Networking_Say = PEARL.GetGlobal("Networking_Say")
-    -- if type(Networking_Say) == "function" then
-    --     PEARL.error("Invalid Networking_Say function!")
-    --     return
-    -- end
+    local n_colour_dec = tonumber(name_colour)
+    if type(n_colour_dec) ~= "number" then
+        n_colour_dec = PEARL.PercentToDecimal(name_colour or WHITE)
+    end
+
+    PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, PEARL.RPC.AddToChatHistory, userids,
+        m_colour_dec, 1, nil, nil, name, message, n_colour_dec, flair, ...
+    )
 
     local vanity = { [2] = flair }
     local colour = ChatHistory:GetColourForMessage(name_colour, message_colour)
@@ -137,10 +144,8 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason
 
     -- Since we are shutting down, the disconnect event
     -- wont be pushed anymore so do it now.
-    if TheWorld ~= nil and PEARL.IsShuttingDown() then
-        TheWorld:PushModEvent("ms_clientdisconnected", {
-            userid = userid, reason = reason
-        })
+    if PEARL.IsShuttingDown() then
+        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, reason)
     end
 end
 
@@ -177,7 +182,7 @@ function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)
-    for _, client in pairs(self:GetConnectedClients()) do
+    for _, client in ipairs(TheNet:GetClientTable()) do--pairs(self:GetConnectedClients()) do
         if client.userid then
             self:SendUserDisconnectFor(client.userid, reason, immediately)
         end
@@ -213,29 +218,37 @@ end
 function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
     cfd = cfd or self:GetCachedCFDFor(userid)
 
-    local count = 0
-    local total_count = #async_conn_filters
-    local handle_async_filter = function(allowed, reason)
-        count = count + 1
-        if count == total_count or allowed == false then
-            finishcb(userid, allowed, reason)
-        end
-    end
+    local i = 0
+    local handle_async_filter
+    local function run_async_filter()
+        i = i + 1
 
-    if total_count == count then
-        finishcb(true)
-    end
-
-    for i = 1, total_count do
+        PEARL.debug("Running asynchrounous connection filter at index", i)
         if PEARL.SafeRun(
             async_conn_filters[i], userid, cfd, handle_async_filter
         ) == false then
-            count = count + 1
+            handle_async_filter()
+
             -- Allowed should be the error message in this case.
             PEARL.error("Failed to execute an async connection data filter!")
         end
     end
+
+    handle_async_filter = function(allowed, reason)
+        -- If this was the last filter or the filter failed.
+        if i >= #async_conn_filters or allowed == false then
+            PEARL.debug("Asynchrounous connection filters finished!")
+
+            return finishcb(userid, allowed, reason)
+        end
+
+        -- Else run the next filter.
+        run_async_filter()
+    end
+
+    run_async_filter()
 end
+
 
 ----------------------------------
 -- Getters
@@ -504,10 +517,6 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
         end
     end
 
-    if TheWorld then
-        TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
-    end
-
     _OnConnectionFiltersFinished(userid, allowed, reason)
 end
 
@@ -539,7 +548,7 @@ end
 ----------------------------------
 
 function ServerNetwork:PrintDebugInfo()
-    tdump(conn_data_cache)
+    table.dump(conn_data_cache)
 end
 
 ----------------------------------

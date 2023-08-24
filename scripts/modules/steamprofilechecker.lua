@@ -131,7 +131,8 @@ local function CalculateProfileData(steamid, cfd, cb)
     -- Keep these in sync with the names in the DB.
     local data = {
         profilerep = MAX_PROFILE_REP,
-        communityprofile = false,
+        -- Let's make it fail safe.
+        communityprofile = true,
     }
 
     PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
@@ -142,8 +143,7 @@ local function CalculateProfileData(steamid, cfd, cb)
 
     -- VAC - Valve Anti-Cheat
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_BANS, function(query)
-        -- Handle Player Ban Data
-        print("P_BANS:", data.profilerep)
+        PEARL.debug("P_BANS:", data.profilerep)
 
         local player = query and query.players and query.players[1]
         if not player then
@@ -170,7 +170,7 @@ local function CalculateProfileData(steamid, cfd, cb)
 
     -- This will also check the currently used name.
     PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_NAMEHISTORY, function(str)
-        print("P_NAMEHISTORY:", str, data.profilerep)
+        PEARL.debug("P_NAMEHISTORY:", str, data.profilerep)
 
         local toxicity_count = ProfanityFilter:CountSwears(str)
         if toxicity_count > 0 then
@@ -181,7 +181,12 @@ local function CalculateProfileData(steamid, cfd, cb)
     end)
 
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_FRIENDLIST, function(query)
-        print("P_FRIENDLIST:", data.rep)
+        PEARL.debug("P_FRIENDLIST:", data.rep)
+
+        if not (query.friendslist and query.friendslist.friends) then
+            return -- no friends or profile is private
+        end
+
         local banned_count = 0
         for _, friend in pairs(query.friendslist.friends) do
             if PEARL.BlackList:Contains(friend.steamid) then
@@ -190,16 +195,15 @@ local function CalculateProfileData(steamid, cfd, cb)
         end
 
         if banned_count > 0 then
+            PEARL.info("Banned friends detected for user!")
             OnBannedFriendsDetected(steamid, banned_count)
 
             data.profilerep = data.profilerep + (banned_count * REP_PER_BANNED_FRIEND)
         end
-
-        PEARL.info("User's friends are fine")
     end)
 
     PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_COMMENTS, function(str)
-        print("P_COMMENTS", data.profilerep)
+        PEARL.debug("P_COMMENTS", data.profilerep)
 
         if type(str) ~= "string" then
             return
@@ -214,6 +218,8 @@ local function CalculateProfileData(steamid, cfd, cb)
     end, MAX_COMMENTS_CHECK_COUNT)
 
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_SUMMARIES, function(query)
+        PEARL.debug("P_SUMMARIES", data.rep)
+
         local player = query and query.response and query.response.players and query.response.players[1]
         if not player then
             PEARL.error("Invalid query response received!")
@@ -252,8 +258,9 @@ local function CalculateProfileData(steamid, cfd, cb)
             end
         end
 
-        if tostring(player.profilestate) == "1" then
-            data.communityprofile = true
+        print("COMMUNITYPROFILE:", tostring(player.profilestate))
+        if tostring(player.profilestate) ~= "1" then
+            data.communityprofile = false
         end
 
         data.avatar = player.avatarfull or player.avatarmedium or player.avatar
@@ -278,6 +285,7 @@ local function RunSteamProfileFilters(data, filtercb)
         return false -- There is still some data to be catched up
     end
 
+    print("COMMUNITYPROFILE:", tostring(data.communityprofile))
     if data.communityprofile == false then
         filtercb(false, "ID_DST_NO_COMMUNITY_PROFILE")
         return true
@@ -298,7 +306,7 @@ end
 
 PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cfd, cb)
     local record = PEARL.PlayerDB:GetRecordFor(userid)
-    if RunSteamProfileFilters(record, cb) then
+    if record and RunSteamProfileFilters(record, cb) then
         return -- We already have all the required data to complete the verification.
     end
 

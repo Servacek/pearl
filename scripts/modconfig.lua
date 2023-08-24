@@ -17,6 +17,13 @@
 setfenv(1, PEARL.ENV)
 
 -------------------------------------
+-- [[ Class Declaration ]]
+-------------------------------------
+
+--- @class ModConfig
+local ModConfig = {}
+
+-------------------------------------
 -- [[ Private Functions ]]
 -------------------------------------
 
@@ -25,13 +32,11 @@ local function GetGenericConfigData(opt_name, ...)
     return PEARL.CONFIG[opt_name] or PEARL.GetConfigData(opt_name, ...)
 end
 
---- @TODO: Does not handle cases where the configuration doesn't exist.
 local function ParseFoldedConfigName(name, tbl)
     local level = PEARL.CONFIG
-    local keys = name:split(".")
-    for _, key in ipairs(keys) do
+    for key in name:gmatch("[^%.]+") do
         level = level and level[key]
-        if not tbl[key] then
+        if level ~= nil and not tbl[key] then
             tbl[key] = type(level) == "table" and {} or level
             tbl = tbl[key]
         end
@@ -42,8 +47,8 @@ local function ParsePublicConfigOption(option, tbl)
     if option.public == true then
         tbl[option.name] = GetGenericConfigData(option.name, true)
 
-        --- @TODO: Add zip support for more specific public options.
-        if option.zip == true and tbl[option.name] then
+        --- Do not ZIP the data in debug mode, clients can handle encoded as well as raw data.
+        if option.zip == true and tbl[option.name] and not PEARL.CONFIG.DEBUG_MODE then
             local value = tbl[option.name]
             local type = type(value)
             if type == "string" then
@@ -81,7 +86,11 @@ local function ParsePublicConfigOption(option, tbl)
     end
 end
 
-local function GetAllSelfConfigData()
+-------------------------------------
+-- [[ Public Functions ]]
+-------------------------------------
+
+function ModConfig:GetAllSelfConfigData()
     local config_data = {}
     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
         if option.public then
@@ -92,9 +101,9 @@ local function GetAllSelfConfigData()
     return config_data
 end
 
-local function GetAllConfigDataForMod(modname)
+function ModConfig:GetAllConfigDataForMod(modname)
     if modname == PEARL.MODNAME then
-        return GetAllSelfConfigData()
+        return self:GetAllSelfConfigData()
     end
 
     local config = KnownModIndex:LoadModConfigurationOptions(modname, false)
@@ -110,19 +119,35 @@ local function GetAllConfigDataForMod(modname)
     return config_data
 end
 
+function ModConfig:GetEnabledServerModsConfigData()
+    local mods_config_data = {}
+	for _, modname in ipairs(ModManager:GetEnabledServerModNames()) do
+		mods_config_data[modname] = ModConfig:GetAllConfigDataForMod(modname)
+	end
+
+    return mods_config_data
+end
+
+function ModConfig:GetEnabledServerModsConfigDataString()
+    return DataDumper(self:GetEnabledServerModsConfigData(), nil, false)
+end
+
 -------------------------------------
 -- [[ Function Overrides ]]
 -------------------------------------
 
 rawset(_G, "GetEnabledServerModsConfigData", function()
-    local mods_config_data = {}
-	for _, modname in ipairs(ModManager:GetEnabledServerModNames()) do
-		mods_config_data[modname] = GetAllConfigDataForMod(modname)
-	end
+    local data_str = ModConfig:GetEnabledServerModsConfigDataString()
 
     if PEARL.CONFIG.DEBUG_MODE then
-        print("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:\n", DataDumper(mods_config_data, nil, false))
+        TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:\n"..data_str)
     end
 
-    return DataDumper(mods_config_data, nil, false)
+    return data_str
 end)
+
+-------------------------------------
+-- [[ Return ]]
+-------------------------------------
+
+return ModConfig

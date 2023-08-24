@@ -122,6 +122,9 @@ local function OnClientDisconnected(world, player)
 end
 
 local function OnClientProfileData(userid, data)
+    -- Maybe a pairs loop would be better here but then we would have to rely
+    -- on the names provided by steamprofilechecker.
+    -- This way, changing the names there won't break the DB.
     PEARL.PlayerDB:OptionalSafeSetField(userid, "profilecountrycode", data.loccountrycode)
     PEARL.PlayerDB:OptionalSafeSetField(userid, "profiletimecreated", data.timecreated)
     PEARL.PlayerDB:OptionalSafeSetField(userid, "profilerep", data.profilerep)

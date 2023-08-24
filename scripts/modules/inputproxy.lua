@@ -20,7 +20,11 @@ local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 -- Constants
 ----------------------------------
 
-local URL = PEARL.CONFIG.DISCORD.PROXY.URL
+local URLS = {
+    INPUT = PEARL.CONFIG.DISCORD.PROXY.INPUT_URL,
+    OUTPUT = PEARL.CONFIG.DISCORD.PROXY.OUTPUT_URL,
+}
+
 local FETCH_REQUEST_TIMEOUT = 5
 
 local MAX_FAILED_ATTEMPTS = 5
@@ -40,56 +44,86 @@ local _failed_attempts = 0
 local _fetching_task = nil
 
 local _proxy_unreachable = false
+local _running = false
+
+local _response_cache = {}
 
 ----------------------------------
 -- Declarations
 ----------------------------------
 
-local RestartFetchingTask, SendCommandResponse
+local RestartFetchingTask, SendCachedCommandResponses, AddCommandResponse
 
 ----------------------------------
 -- Query Handlers
 ----------------------------------
 
+local function HandleCommand(command)
+    PEARL.info("Executing discord command", command.name.."...")
+
+    local success, response = PEARL.SafeRun(
+        UserCommands.RunDiscordCommand, command.name, command.params or {}, command.caller
+    )
+
+    local waiting_for_response = command.id ~= nil
+    if success == false then
+        PEARL.error("Command execution failed!")
+
+        if waiting_for_response then
+            return AddCommandResponse(command.id, Message(
+                PEARL.ICONS.X.." "..STRINGS.PEARL.LOGS.PROXY_COMMAND_FAILED
+            ):ToTable())
+        end
+
+        return PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_COMMAND_FAILED_N:format(command.name or "UNKNOWN"))
+    end
+
+    -- If command ID is provided, the command expects a response.
+    if waiting_for_response then
+        if type(response) == "string" then
+            response = Message(response)
+        end
+
+        if type(response) ~= "table" then
+            -- No response is fine, let the bot handle this case.
+            return --PEARL.error("Invalid response provided for command that is waiting for it!")
+        end
+
+        if Embed.is_instance(response) then
+            response = Message():AddEmbed(response)
+        end
+
+        AddCommandResponse(
+            command.id, Message.is_instance(response) and response:ToTable() or response
+        )
+    elseif type(response) == "string" then
+        PEARL.DiscordLogger:LogString(response)
+    end
+end
+
 local function HandleCommands(commands)
     for _, command in ipairs(commands) do
-        PEARL.debug("Executing command", command.name)
-        tdump(command)
-        local message = UserCommands.RunDiscordCommand(command.name, command.params or {}, command.caller)
+        HandleCommand(command)
+    end
 
-        -- If command ID is provided, the command expects a response.
-        if command.id then
-            if type(message) == "string" then
-                message = Message(message)
-            end
-
-            if type(message) ~= "table" then
-                return PEARL.error("Invalid response provided for command that is waiting for it!")
-            end
-
-            if Message.is_instance(message) then
-                message = message:ToTable()
-            end
-
-            if Embed.is_instance(message) then
-                message = Message():AddEmbed(message)
-            end
-
-            SendCommandResponse(command.id, message)
-        end
+    if not table.empty(_response_cache) then
+        SendCachedCommandResponses()
     end
 end
 
 local function HandleChatMessages(messages)
     for _, message in ipairs(messages) do
         local name = (message.admin == true and MESSAGE_NAME_ADMIN or MESSAGE_NAME):format(message.author)
-        local name_color = PEARL.GetColorFromDecimal(message.author_colour, WHITE)
 
-        PEARL.ServerNetwork:DisplayChatMessage(name, message.content, name_color, PMESSAGE_COLOR, "dft_discord")
+        PEARL.ServerNetwork:DisplayChatMessage(
+            name, message.content, message.author_colour, PMESSAGE_COLOR, "dft_discord"
+        )
     end
 end
 
 local function OnProxyUnreachable()
+    _running = false
+
     if not _proxy_unreachable then
         _proxy_unreachable = true
 
@@ -105,15 +139,13 @@ local function OnInputFetchingDone(data)
 
     if PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED and not table.empty(data.messages) then
         if PEARL.SafeRun(HandleChatMessages, data.messages) == false then
-            PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_COMMAND_FAILED)
+            PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_MESSAGE_FAILED)
         end
     end
 
     if PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED and not table.empty(data.commands) then
-        --HandleCommands(data.commands)
-        if PEARL.SafeRun(HandleCommands, data.commands) == false then
-            PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_MESSAGE_FAILED)
-        end
+        -- Commands are actually waiting for our response.
+        HandleCommands(data.commands)
     end
 end
 
@@ -134,6 +166,7 @@ local function OnProxyInternalError()
 end
 
 local function OnSessionStarted()
+    _running = true
     _proxy_unreachable = false
 
     PEARL.info("The input proxy session has successfully started!")
@@ -143,8 +176,7 @@ local function OnSessionStarted()
 end
 
 local function OnSessionStartFailed(response, status, request)
-    print("OnSessionStartFailed", response, status, request.retries)
-    if request:IsRetryable() then
+    if not request:IsRetryable() then
         PEARL.info("Failed to start the input proxy session!")
         OnProxyUnreachable()
     end
@@ -162,23 +194,29 @@ end
 -- Local Functions
 ----------------------------------
 
-SendCommandResponse = function(command_id, message)
-    local response = {
-        response = message,
-        id = command_id,
-    }
+AddCommandResponse = function(command_id, message_table)
+    if _response_cache[command_id] ~= nil then
+        PEARL.error("Response already exists for this command!")
+        return
+    end
 
+    _response_cache[command_id] = message_table
+end
+
+SendCachedCommandResponses = function()
     PEARL.info("Sending command response to server.")
-    PEARL.HTTPClient:POST(URL, OnProxyReceviedResponse, response)
+    PEARL.HTTPClient:POST(URLS.OUTPUT, OnProxyReceviedResponse, _response_cache)
         :SetIsRaw(true)
-        :SetErrorHandler(OnSessionStartFailed)
+        :SetErrorHandler(OnProxyResponseFailed)
         :Send()
+
+    cleartable(_response_cache)
 end
 
 local function StartSession()
     PEARL.info("Sending start session request to input proxy server...")
 
-    PEARL.HTTPClient:POST(URL, OnSessionStarted, {
+    PEARL.HTTPClient:POST(URLS.INPUT, OnSessionStarted, {
         messages = PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED,
         commands = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED,
         running = true
@@ -190,20 +228,23 @@ local function StartSession()
 end
 
 local function RestartSession()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
+    if _running and not _proxy_unreachable then
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
+    end
+
     StartSession()
 end
 
-local function PauseSession()
-    --- @TODO
-end
-
 local function StopSession()
+    if not _running or _proxy_unreachable then
+        return
+    end
+
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
     PEARL.info("Sending stop session request to input proxy server...")
 
     -- We do not care about the response at this point
-    PEARL.HTTPClient:POST(URL, nil, {
+    PEARL.HTTPClient:POST(URLS.INPUT, nil, {
         running = false
     })
     :SetIsRaw(true)
@@ -212,7 +253,7 @@ local function StopSession()
 end
 
 local function FetchInput()
-    PEARL.HTTPClient:GET(URL, OnInputFetchingDone, FETCH_REQUEST_TIMEOUT)
+    PEARL.HTTPClient:GET(URLS.INPUT, OnInputFetchingDone, FETCH_REQUEST_TIMEOUT)
         :SetMaxRetries(0)
         :SetStatusCodeHandle(0, OnFetchingFailed)
         :SetStatusCodeHandle(500, OnProxyInternalError)
@@ -225,15 +266,20 @@ local function FetchInput()
 end
 
 RestartFetchingTask = function()
+    local period = PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL
+
     if _fetching_task then
         PEARL.info("Restarting the fetching task...")
+
+        -- Ensure we use the default interval in case it was changed before by some commands.
+        _fetching_task:settime(period)
         _fetching_task:restart()
         return
     end
 
     PEARL.info("Starting the fetching task...")
     _fetching_task = PEARL.WallScheduler:ExecutePeriodic(
-        PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL, FetchInput, nil, nil, PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH
+        period, FetchInput, nil, nil, PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH
     )
 end
 
@@ -256,6 +302,7 @@ end
 
 local function OnSave()
     if not _fetching_task or _fetching_task.running == false then
+        -- Attempt to silently restart the session if not started yet.
         RestartSession()
     end
 end

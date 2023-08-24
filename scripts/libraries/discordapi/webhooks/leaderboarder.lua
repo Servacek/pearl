@@ -44,8 +44,6 @@ function LeaderBoarder:SetIsDisabled(disabled)
 end
 
 function LeaderBoarder:SetEmbed(pos, embed)
-    PEARL.debug("SetEmbed", pos, embed, embed.title)
-
     if pos then
         self._embeds[pos] = embed
     else
@@ -78,8 +76,6 @@ end
 -------------------------------------
 
 function LeaderBoarder:DoUpdate(force)
-    PEARL.debug("DoUpdate", force)
-
     if self:IsDisabled() then
         return
     end

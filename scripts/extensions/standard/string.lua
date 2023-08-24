@@ -57,8 +57,13 @@ end
 --- The char won't be contained in the result.
 function string:slice(pos, char)
     -- Special optimization case for short strings.
-    if #self < pos then
-        return self
+    if #self <= pos then
+        return self, ""
+    end
+
+    -- Special case for start of the string.
+    if pos <= 1 then
+        return "", self
     end
 
     local lslice = self:sub(1, pos)

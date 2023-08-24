@@ -1,3 +1,18 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+local TAB_SIZE = 4
+local MAX_DUMP_RECURSIONS = 10
+
 
 function table:filter(checkfn)
     local result = {}
@@ -36,8 +51,53 @@ function table.create(size, narr)
     return createTable(size, narr)
 end
 
-function table.iclear(t)
-    for i = #t, 1, -1 do
-        t[i] = nil
+function table:iclear()
+    for i = #self, 1, -1 do
+        self[i] = nil
     end
+end
+
+--- @param fn fun(k: any, v: any): result: any
+function table:map(fn)
+    local t = {}
+    for k, v in pairs(self) do
+        t[k] = fn(v)
+    end
+
+    return t
+end
+
+-- For some reason this cannot be used as a method :/
+function table.dump(t, _i)
+    if type(t) ~= "table" then
+        return print("Invalid table")
+    end
+
+    if type(_i) ~= "number" then
+        _i = nil
+    end
+
+    if not _i then
+        print("{")
+    end
+
+    _i = _i or 1
+    for k, v in pairs(t) do
+
+        local fm = string.rep(" ", _i * TAB_SIZE)..tostring(k).." = "
+        if type(v) == "table" then
+            print(fm.."{")
+            if _i < MAX_DUMP_RECURSIONS then
+                table.dump(v, _i + 1)
+            else
+                print("...")
+            end
+        elseif type(v) == "string" then
+            print(fm..string.format("%q", v)..",")
+        else
+            print(fm..tostring(v)..",")
+        end
+    end
+
+    print(string.rep(" ", _i * TAB_SIZE - TAB_SIZE).."},")
 end

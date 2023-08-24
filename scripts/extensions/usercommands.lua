@@ -21,11 +21,9 @@ local UserCommands = require("usercommands")
 --- @return (Message|Embed|string)?
 function UserCommands.RunDiscordCommand(name, params, callername)
     local command = UserCommands.GetCommandFromName(name)
-    if not command then
+    if not command or command.discord == false then
         PEARL.error("Attempted to run an invalid discord command!")
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.COMMAND_RESPONSES.INVALID)
-
-        return
+        return STRINGS.PEARL.COMMAND_RESPONSES.INVALID
     end
 
     local caller = {
@@ -33,16 +31,13 @@ function UserCommands.RunDiscordCommand(name, params, callername)
         GetDisplayName = function() return callername end
     }
 
-    local response = {}
     -- Even the main function is optional for discord only commands.
     local mainfn = command and command.mainfn
-    if mainfn then
-        response = {mainfn(params, caller)}
+    local response = mainfn and {mainfn(params, caller)}
+
+    if type(command.discordfn) == "function" then
+        return command.discordfn(params, caller, PEARL.unpack(response))
     end
 
-    if command.discordfn then
-        return command.discordfn(params, caller, unpack(response))
-    end
-
-    return unpack(response)
+    return PEARL.unpack(response)
 end

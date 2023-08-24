@@ -51,8 +51,9 @@ PEARL.AddGlobalFunctionPreCall("Networking_Announcement", function(message, colo
         return
     end
 
+    print(announce_type, PEARL.ICONS.ANNOUNCEMENTS[string.lower(announce_type)])
     PEARL.DiscordLogger:LogString(
-        message, PEARL.ICONS.ANNOUNCEMENTS[announce_type]
+        message, PEARL.ICONS.ANNOUNCEMENTS[string.lower(announce_type)]
             or PEARL.ICONS.ANNOUNCEMENTS['default']
             or MARKDOWN.codeline(STRINGS.PEARL.LOGS.TAG:format(
                 STRINGS.PEARL.LOGS.ANNOUNCEMENT

@@ -172,7 +172,7 @@ end
 --- @param force boolean? Whether to skip the queue for the action request or not.
 --- @return Request? request The request send for this action.
 function RestAPI:PostWebhookMessage(wurl, message, force)
-    PEARL.debug("PostWebhookMessage", message)
+    --PEARL.debug("PostWebhookMessage", message)
 
     return self:DoWebhookMessageAction(
         wurl, nil, MESSAGE_ACTIONS.POST, message, force
@@ -185,7 +185,7 @@ end
 --- @param force boolean? Whether to skip the queue for the action request or not.
 --- @return Request? request The request send for this action.
 function RestAPI:EditWebhookMessage(wurl, message_id, edited, force)
-    PEARL.debug("EditWebhookMessage", message_id)
+    --PEARL.debug("EditWebhookMessage", message_id)
 
     return self:DoWebhookMessageAction(
         wurl, message_id, MESSAGE_ACTIONS.EDIT, edited, force
@@ -197,7 +197,7 @@ end
 --- @param force boolean? Whether to skip the queue for the action request or not.
 --- @return Request? request The request send for this action.
 function RestAPI:DeleteWebhookMessage(wurl, message_id, force)
-    PEARL.debug("DeleteWebhookMessage", message_id)
+    --PEARL.debug("DeleteWebhookMessage", message_id)
 
     return self:DoWebhookMessageAction(
         wurl, message_id, MESSAGE_ACTIONS.DELETE, nil, force
@@ -209,7 +209,7 @@ end
 --------------------------------
 
 function RestAPI:RateLimitForTime(seconds)
-    PEARL.debug("RateLimitForTime", seconds)
+    --PEARL.debug("RateLimitForTime", seconds)
 
     self:SetIsDisabled(true)
 

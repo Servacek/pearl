@@ -17,11 +17,6 @@
 
     This works basically the same as the default sheduler except that
     it executes the tasks even when TheSim is paused.
-
-    TODOS:
-        - Try to replace the task with a simpler table and recycle it.
-        - Other performance improvements.
-        - Create a restart function for tasks.
 ]]
 
 
@@ -64,7 +59,7 @@ local wlimit    = 60 -- in ticks
 
 local wtick = 0
 -- These are relative.
-local wtime = 0 -- in ticks
+local wtime = 0 -- in seconds for default precision
 
 ---@type table<Task>
 local tasks = table.create(Q_SIZE_ALLOC, Q_NARR_ALLOC)
@@ -79,23 +74,31 @@ local srt_def = false
 -- [[ Private Functions ]]
 --------------------------------------
 
--- Return whether t1 < t2
+-- Returns whether t1 < t2
+-- Task having ext as nil should be on the end of the stack as well.
 local function task_comp(t1, t2)
-    return t1._ext and t2._ext and t1._ext > t2._ext
+    return (t1 and t1._ext or -math.huge) > (t2 and t2._ext or -math.huge)
 end
 
+-- WARNING: NEVER DIRECTLY RESORT TASKS WHILE LOOPING!
 -- Sort the tasks according to the execution time (ext)
 --
 -- Re-sort of tasks is needed when:
 -- - we change the _ext of a task
 -- - we add a new task to the stack.
 local function sort_tasks()
+    -- If this is called from inside the wall update loop then deffer the sort.
+    if looping == true then
+        srt_def = true
+        return
+    end
+
     -- checks if t1 < t2
     return table_sort(tasks, task_comp)
 end
 
 -- Adds the given task to the end of the stack.
---- @return Task?
+-- Resorts the tasks stack if needed.
 --- @return Task?
 local function add_task(task, nosort)
     if type(task) ~= "table" then
@@ -105,13 +108,12 @@ local function add_task(task, nosort)
     --PEARL.debug("Registering task:", task)
     local prev = tasks[tasks.n]
     tasks.n = tasks.n + 1
+    -- Add the task to the end of the list.
+    -- With that, we assume it has the lowest execution time.
     tasks[tasks.n] = task
 
-    -- If this is called from inside the wall update loop then deffer the sort.
-    if looping then
-        srt_def = true
-    elseif not nosort then
-        -- Else sort immediately if it's required.
+    -- Check if it needs resorting.
+    if nosort ~= true and (prev and task_comp(prev, task)) then
         sort_tasks()
     end
 
@@ -137,7 +139,6 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
     --- @class Task
     local task = {
         _time = time / wtdelta,
-        _sort_deffered = type(initialdelay) == "number" and initialdelay ~= 0,
         _ext = wtime + (initialdelay or time) / wtdelta,
         _fn = fn,
         _limit = limit,
@@ -147,10 +148,13 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         _args = toarrayornil(...),
     }
 
+    if PEARL.CONFIG.DEBUG_MODE then
+        task._src = debug.PEARL.getsrc(4)
+    end
+
     -- Function definitions
 
     function task:run()
-        --print("task:run")
         if not self.running or not self._fn then
             return error("attempted to run an invalid task")
         end
@@ -178,20 +182,31 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     -- Even running tasks can be restarted.
     function task:restart()
-        --print("task:restart", self:tostring())
+        --PEARL.debug("task:restart", self)
+
         if type(self._time) ~= "number" then
             return PEARL.warn("This task doesn't support restarting...")
         end
 
         self.running = true
-        self._ext = wtime + self._time
 
         if not has_task(self) then
             -- Re-Add the task back to the stack since we were removed.
-            add_task(self)
-        elseif self._sort_deffered then
-            -- This is for tasks that have initial_delay
-            self._sort_deffered = false
+            add_task(self, true)
+        end
+
+        self:setexttime(wtime + self._time)
+    end
+
+    function task:setexttime(ext)
+        if not ext or type(ext) ~= "number" then
+            return PEARL.error("Attempted to set an invalid execution time!")
+        end
+
+        if ext ~= self._ext then
+            self._ext = ext
+
+            -- Even though this can be unnecessary sometimes, it's better to be safe.
             sort_tasks()
         end
     end
@@ -200,11 +215,22 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         return self._time
     end
 
+    function task:isperiodic()
+        return self._limit == nil
+    end
+
     function task:settime(t)
+        if not t or type(t) ~= "number" then
+            return PEARL.error("Attempted to set invalid task time period.")
+        end
+
+        -- Why not?
+        -- if not self:isperiodic() then
+        --     return PEARL.error("Attempted to set task time for a non-periodic task!")
+        -- end
+
         if self._time ~= t then
             self._time = t
-            -- Our execution time will change as well so we need to re-sort.
-            self._sort_deffered = true
         end
     end
 
@@ -216,25 +242,27 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         -- Our reference to the task should be removed soon, but we assume
         -- that there is a reference kept somewhere in the usage code.
         self.running = false
+
+        -- Make sure this task is on the start.
+        self:setexttime(math.huge)
     end
 
     function task:tostring()
-        return string.format("Task[%s]<limit=%s,time=%s,ext=%s,running=%s>",
-            tostring(self.id), tostring(self._limit), tostring(self._time), tostring(self._ext), tostring(self.running)
+        return string.format("Task[%s]<limit=%s,time=%s,ext=%s,running=%s,src=%s>",
+            tostring(self.id), tostring(self._limit), tostring(self._time), tostring(self._ext), tostring(self.running), tostring(self._src)
         )
     end
 
     function task:cancel()
         self._time = 0
         self._fn = nil
-        self._ext = nil
+        self._ext = -1 -- This will ensure the task will get to the back eventually.
         self._limit = 0 -- Disable the task.
         self.id = nil
 
         self._args = nil
 
         self.running = false
-        self._sort_deffered = false
     end
 
     return task
@@ -250,8 +278,6 @@ end
 -- dt = time_passed - time_now
 -- dt is 0 if the server is paused
 local function OnWallUpdate()
-    --return false
-
     if tasks.n < 1 then
         return
     end
@@ -263,10 +289,11 @@ local function OnWallUpdate()
         wtime = wtime + wtdelta
     end
 
+    local task = tasks[tasks.n]
+
     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
-    -- is going to be executed. So just return.
-    -- This should be never nil, the check if just in case.
-    if tasks[tasks.n] and tasks[tasks.n]._ext and tasks[tasks.n]._ext > wtime then
+    -- are going to be executed. So just return.
+    if task and task._ext and task._ext > wtime then
         return
     end
 
@@ -275,36 +302,41 @@ local function OnWallUpdate()
     looping = true
     for i = tasks.n, 1, -1 do
         -- The task should always be a non-nil value.
-        -- If it's not... we should crash!
-        local task = tasks[i]
+        -- If it's not, it means we have holes in our stack and we should crash I guess!
+        task = tasks[i]
 
         -- If the task is running, task.ext and task.run should never be nil!
         -- Also since the limit only decreses on task 'cancel' and 'run' internally,
         -- it should be nil or higher than 0 if running is set to true as well.
         if task.running then
             if task._ext > wtime then
-                break
+                break -- Other tasks should be even worse...
             end
 
             local success, result = pcall(task.run, task)
-            if not success then
+            if success == false then
                 PEARL.error("Failed to run task:", task:tostring(), "Reason:\n", result)
+
+                -- Make sure the task is going to be removed immediately this tick.
                 task:cancel()
             end
         end
 
-        -- Check the task again since after calling the callback it could be stopped or canceled.
-        if not task.running then
-            -- Use table.remove so the holes caused by periodic tasks are patched.
+        -- Check the limit after we have called the task since it can change during the call.
+        if task._limit == 0 then
+            -- Only remove tasks whose limit has reached zero.
+            -- We can just nil them since this is guranteed to be the end.
             table_remove(tasks, i)
             tasks.n = tasks.n - 1
         end
     end
     looping = false
 
+    -- Handle deffered sort.
     if srt_def == true then
-        sort_tasks()
         srt_def = false
+
+        sort_tasks()
     end
 end
 
@@ -316,6 +348,14 @@ end
 --- @return table<Task> tasks
 function WallScheduler:GetTasks()
     return tasks
+end
+
+function WallScheduler:DisplayTasks()
+    for i = 1, tasks.n do
+        local task = tasks[i]
+
+        print(task.tostring and task:tostring() or tostring(task))
+    end
 end
 
 --- Returns a task with the given ID.

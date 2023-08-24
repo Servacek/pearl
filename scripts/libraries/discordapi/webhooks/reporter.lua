@@ -15,7 +15,6 @@
 --- @TODO: Think about a way to reduce duplication here...
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
-local EMBEDS   = PEARL.loadfile("utils/embeds")
 local MESSAGES = PEARL.loadfile("utils/messages")
 
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
@@ -26,7 +25,6 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 -------------------------------------
 
 local MAX_TRACEBACK_LENGHT = 1024
-local MAX_REPORTED_CACHE = 5
 local ERROR_ID_PATTERN = "^(.*)\n.*"
 
 -------------------------------------
@@ -179,15 +177,6 @@ function Reporter:ReportCatchedLuaError(traceback)
         return
     end
 
-    --- @TODO
-    -- Some attempts to reduce duplication...
-    -- local error_id = self:_GetErrorID(traceback)
-    -- print("ERROR ID:", error_id)
-    -- if self:_WasErrorReported(error_id) then
-    --     return PEARL.debug("!!!!!!!!!!!!!!!!!!!! ALREADY REPORTED!!!!!")
-    -- end
-    -- self._reported[#self._reported+1] = error_id
-
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
@@ -228,7 +217,9 @@ function Reporter:ReportClientLuaError(userid, data)
 
     if type(data.enabled_mods) == "table" and #data.enabled_mods > 0 then
         content = content..STRINGS.PEARL.LOGS.EXC_ENABLED_MODS:format(
-            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.codeline(table.concat(data.enabled_mods, ", "))
+            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.codeline("\""..table.concat(
+                data.enabled_mods, "\" "
+            ).."\"")
         )
 
         if type(data.mod) == "table" and data.mod.disabled then

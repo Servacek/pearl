@@ -50,3 +50,13 @@ function io.strippedlines(...)
 
     return slines
 end
+
+-- Removing this for now since it crashes the server without error.
+---@diagnostic disable-next-line: duplicate-set-field
+io.flush = function()
+    print("ERROR: io.flush not supported")
+end
+
+io.seek = function()
+    print("ERROR: io.seek not supported")
+end

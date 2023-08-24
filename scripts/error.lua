@@ -18,8 +18,6 @@
     On clients, we should be able to send the traceback as soon as this file is loaded.
 ]]
 
--- @TODO: Some errors are not being reported when occured during gamelogic loading.
-
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
@@ -36,10 +34,14 @@ end
 
 local function OnClientError(traceback)
     local afflicter_modname = TryGetAfflicterMod(traceback)
-    if afflicter_modname ~= PEARL.MODNAME and not KnownModIndex:IsModDisablingDisabled() and not KnownModIndex:IsModTempEnabled(afflicter_modname) then
-        PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
+    if afflicter_modname ~= PEARL.MODNAME and (not KnownModIndex:IsModDisablingDisabled() or PEARL.CONFIG.DEBUG_MODE) and not KnownModIndex:IsModTempEnabled(afflicter_modname) then
+        if KnownModIndex:IsModEnabledAny(afflicter_modname) then
+            PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
 
-        KnownModIndex:DisableBecauseBad(afflicter_modname)
+            ModManager:RemoveBadMod(afflicter_modname, traceback)
+            -- Make sure we call this only when all afflicter mods exist.
+            ModManager:DisplayBadMods()
+        end
     end
 
     PEARL.SendErrorTracebackToServer(
@@ -116,21 +118,22 @@ end, true)
 function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname, ...)
     PEARL.info("Sending the error traceback to the server...")
 
+    --- @DEBUG
     local mod
-    local enabled_mods = ModManager:GetEnabledModNames()
+    local enabled_mods = KnownModIndex:GetEnabledModFancyNames()
     if type(afflicter_modname) == "string" then
         mod = {
-            id = GetWorkshopIdNumber(afflicter_modname),
-            fancyname = GetModFancyName(afflicter_modname),
-            disabled = not table.contains(enabled_mods, afflicter_modname)
+            id          = GetWorkshopIdNumber(afflicter_modname),
+            fancyname   = GetModFancyName(afflicter_modname),
+            disabled    = KnownModIndex:IsModKnownBad(afflicter_modname),
         }
     end
 
     PEARL.SendRawRPCToServer(PEARL.RPC.ClientError, ZipAndEncodeString({
-        traceback = traceback,
-        catched = catched == true,
-        enabled_mods = enabled_mods,
-        mod = mod,
+        traceback       = traceback,
+        catched         = catched == true,
+        enabled_mods    = enabled_mods,
+        mod             = mod,
     }), ...)
 end
 

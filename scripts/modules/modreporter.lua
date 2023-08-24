@@ -12,7 +12,6 @@
 --- @category Backend
 
 
-
 --[[
     Receives the mod report from the client and verifies
     whether the mods the client is using are allowed or not.
@@ -26,12 +25,12 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 -- [[ Local Functions ]]
 --------------------------------------
 
-local function ReportModsToDiscord(userid, mods)
+local function ReportModsToDiscord(userid, enabled_mods)
     local client = userid and TheNet:GetClientTableForUser(userid)
     local name = client and client.name or userid
 
     local message = Message()
-    message:AddEmbed(EMBEDS.ClientMods(mods, name))
+    message:AddEmbed(EMBEDS.ClientMods(enabled_mods, name))
 
     PEARL.DiscordReporter:SendRawReportMessage(message)
 end
@@ -42,7 +41,9 @@ end
 
 if PEARL.CONFIG.MOD_BLOCKER.STRICT then
     PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
-        if data and type(data.enabled_mods) == "table" and tonumber(data.enabled_mods.prohibited_count or 0) > 0 then
+        local mods = data and data.enabled_mods and data.enabled_mods.list
+
+        if type(mods) == "table" and tonumber(data.enabled_mods.prohibited_count or 0) > 0 then
             ReportModsToDiscord(userid, data.enabled_mods)
 
             -- This mod is counted as well!
@@ -57,7 +58,9 @@ if PEARL.CONFIG.MOD_BLOCKER.STRICT then
     end)
 else
     PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", function(userid, data)
-        if data and type(data.enabled_mods) == "table" and tonumber(data.enabled_mods.prohibited_count or 0) > 0 then
+        local mods = data and data.enabled_mods and data.enabled_mods.list
+
+        if type(mods) == "table" and tonumber(data.enabled_mods.prohibited_count or 0) > 0 then
             return ReportModsToDiscord(userid, data.enabled_mods)
         end
     end)

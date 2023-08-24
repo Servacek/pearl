@@ -246,8 +246,7 @@ function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
         self:SetIsConnectionAllowed(allowed)
 
         -- If the connection is allowed, then load the client I guess.
-        self.loader:CancelDeffer()
-        return self.loader:ForceLoad()
+        return self.loader:Load()
     end
 
     self:Disconnect(reason, from_server, ...)

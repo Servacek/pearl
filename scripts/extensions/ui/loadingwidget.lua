@@ -31,8 +31,17 @@ local TEX_PATTERN = "%s.tex"
 local XML_PATTERN = "images/bg_loading_%s.xml"
 
 Settings.loading_screen_keys = Settings.loading_screen_keys or {}
+local loading_screen_tips = Settings.loading_screen_keys
 for _, image in ipairs(CUSTOM_LOADING_IMAGES) do
     Settings.loading_screen_keys[#Settings.loading_screen_keys+1] = image
+end
+
+local custom_images = false
+if PEARL.ClientNetwork:IsNovice() and #CUSTOM_LOADING_IMAGES > 0 then
+    -- Always show custom loading screen for novices.
+    Settings.loading_screen_keys = shallowcopy(CUSTOM_LOADING_IMAGES)
+
+    custom_images = true
 end
 
 local function ShowCustomImage(self)
@@ -48,13 +57,31 @@ local function ShowCustomImage(self)
     end
 end
 
+PEARL.AddClassFunctionPreCall("SetEnabled", function(self, enabled)
+    if enabled == true then
+        return
+    end
+
+    -- Restore loading screen keys after first hide.
+    if custom_images then
+        Settings.loading_screen_keys = loading_screen_tips
+    end
+end, LoadingWidget)
+
 PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
     -- Make sure we are visible right from the start.
+
+    -- Just not for novices, because of the welcome screen and additional checks.
+    if PEARL.ClientNetwork:IsNovice() then
+        return
+    end
+
     if TheFrontEnd then
         TheFrontEnd:SetFadeLevel(1)
     end
 
     self:SetEnabled(true)
+
     ShowCustomImage(self)
 end)
 
@@ -71,6 +98,8 @@ end, TheSim)
 ---------------------------
 -- [[ Loading Tips ]]
 ---------------------------
+
+local welcome_loading_tips = {}
 
 --[[
     <string_table> can be one of the following:
@@ -104,25 +133,20 @@ if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUST
     local function OptionalAddLoadingTip(name, lt)
         local type = PEARL.CONSTS.LT_TYPE_TABLES[lt.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
 
-        if novice then
-            if lt.type ~= LT_TYPES.WELCOME then
-                return
-            else
-                -- For novices keep default loading tips
-                -- until some welcome tip is found.
-                -- So when no welcome tips are set,
-                -- the default ones will stay.
-                RemoveDefaultLoadingTips()
-                type = PEARL.CONSTS.LT_TYPE_TABLES["survival"]
-            end
+        if novice and lt.type == LT_TYPES.WELCOME then
+            table.insert(welcome_loading_tips, {
+                type = string.upper(LT_TYPES.SURVIVAL),
+                text = lt.text,
+                name = name,
+            })
+
+            return -- Do not add this tip to the list of regular ones.
         end
 
         AddLoadingTip(type, name, lt.text, lt.data)
     end
 
-    if not novice then
-        RemoveDefaultLoadingTips()
-    end
+    RemoveDefaultLoadingTips()
 
     PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
 
@@ -130,4 +154,29 @@ if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUST
         local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
         OptionalAddLoadingTip(name, lt)
     end
+end
+
+if PEARL.ClientNetwork:IsNovice() and #welcome_loading_tips > 0 then
+    local welcome_tip_shown = false
+
+    --- @class LoadingTipsData
+    local LoadingTipsData = require("loadingtipsdata")
+    PEARL.OverrideReturnValue(LoadingTipsData, "PickLoadingTip", function(data)
+        if welcome_tip_shown then
+            return data
+        end
+
+        welcome_tip_shown = true
+
+        local loading_tip = welcome_loading_tips[math.random(#welcome_loading_tips)]
+        if loading_tip then
+            data.text   = loading_tip.text
+            data.id     = loading_tip.name
+
+            data.atlas   = LOADING_SCREEN_TIP_ICONS[loading_tip.type].atlas
+            data.icon   = LOADING_SCREEN_TIP_ICONS[loading_tip.type].icon
+        end
+
+        return data
+    end)
 end

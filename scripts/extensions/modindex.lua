@@ -15,6 +15,12 @@
 local KnownModIndex = KnownModIndex
 
 ---------------------------
+-- [[ Attributes ]]
+---------------------------
+
+KnownModIndex._blocked_mods_count = 0
+
+---------------------------
 -- [[ Constants ]]
 ---------------------------
 
@@ -33,7 +39,7 @@ local function IsModReportable(modname)
         return false
     end
 
-    return KnownModIndex:IsModEnabledAny(modname) or KnownModIndex:IsModBlocked(modname)
+    return KnownModIndex:IsModEnabledOrBlocked(modname)
 end
 
 local function CreateReportForMod(modname)
@@ -68,7 +74,7 @@ function KnownModIndex:IsModPrivate(modname)
 end
 
 function KnownModIndex:IsModAllowed(modname)
-    if TheNet:GetIsServerAdmin() or modname == PEARL.MODNAME then
+    if (TheNet:GetIsServerAdmin() and not PEARL.CONFIG.DEBUG_MODE) or modname == PEARL.MODNAME then
         return true -- All mods are allowed for admins
     end
 
@@ -89,10 +95,13 @@ function KnownModIndex:Block(modname)
         self.savedata.known_mods[modname] = {}
     end
 
+    if not self:IsModBlocked(modname) then
+        self._blocked_mods_count = self._blocked_mods_count + 1
+    end
+
     -- This is just a temporary flag that will be removed after the game restarts
     -- The thing that will stay is the disabled flag.
     self.savedata.known_mods[modname].blocked = true
-    self._mods_blocked = true
 end
 
 function KnownModIndex:IsModBlocked(modname)
@@ -105,7 +114,11 @@ function KnownModIndex:IsModDisablingDisabled()
 end
 
 function KnownModIndex:AreAnyModsBlocked()
-    return self._mods_blocked == true
+    return self._blocked_mods_count > 0
+end
+
+function KnownModIndex:AreAllModsBlocked()
+    return self._blocked_mods_count >= (self:GetAllEnabledModsCount() - 1)
 end
 
 -- Counts also blocked mods since they we originally enabled as well.
@@ -120,24 +133,42 @@ function KnownModIndex:GetAllEnabledModsCount()
     return count
 end
 
+function KnownModIndex:IsModEnabledOrBlocked(modname)
+    return KnownModIndex:IsModEnabledAny(modname) or KnownModIndex:IsModBlocked(modname)
+end
+
+function KnownModIndex:GetEnabledModFancyNames()
+    local fancynames = {}
+    for _, modname in ipairs(self:GetModNames()) do
+        if self:IsModEnabledOrBlocked(modname) then
+            fancynames[#fancynames + 1] = KnownModIndex:GetModFancyName(modname)
+        end
+    end
+
+    return fancynames
+end
+
 function KnownModIndex:GetModsReport()
     local report = {
         -- We do not count ourselves!
         count = self:GetAllEnabledModsCount() - 1,
         prohibited_count = 0,
+        list = {},
     }
 
-    for _, modname in ipairs(KnownModIndex:GetModNames()) do
+    -- Iterate over all mods since we count blocked mods as enabled even though they can be disabled.
+    for _, modname in ipairs(self:GetModNames()) do
         if #report < MAX_REPORTS and IsModReportable(modname) then
             local mod_report = CreateReportForMod(modname)
-            if mod_report.allowed == false then
-                -- Show blocked mods at the top.
-                table.insert(report, 1, mod_report)
+            local prohibited = mod_report.allowed == false
 
+            if prohibited then
                 report.prohibited_count = report.prohibited_count + 1
-            else
-                report[#report + 1] = mod_report
             end
+
+            -- Show blocked mods at the top.
+            local pos = prohibited and 1 or nil
+            table.insert(report.list, pos, mod_report)
         end
     end
 

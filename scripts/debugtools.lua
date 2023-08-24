@@ -16,6 +16,9 @@
 
 --- @TODO Move the tests to the tests folder...
 
+
+require("debugkeys")
+
 local UserCommands = require("usercommands")
 
 local Embed = PEARL.loadfile('libraries/discordapi/models/embed')
@@ -25,6 +28,14 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local ActionLog = PEARL.loadfile("libraries/actionlog")
 local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
+
+
+AddGlobalDebugKey(KEY_G, function()
+    if TheInput:IsKeyDown(KEY_CTRL) then
+        TheSim:ResetError()
+        DoRestart(true)
+    end
+end)
 
 function PEARL.PrintTests()
     local i = 1
@@ -710,7 +721,8 @@ function PEARL.TESTS.Queue()
     assert(queue._list.last == max)
 
     for i = 1, max do
-        assert(queue:empty() == false, queue:len())
+        assert(queue:take() ~= nil)
+        assert(queue:empty() == (i == max), queue:len())
         assert(queue:len() == max - i)
     end
 
@@ -727,7 +739,7 @@ function PEARL.TESTS.Queue()
     assert(i == queue:len())
 
     queue:clear()
-    tdump(queue)
+    table.dump(queue)
     assert(queue:empty() == true)
     assert(queue:full() == false)
     assert(queue:len() == 0)

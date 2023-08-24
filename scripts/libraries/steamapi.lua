@@ -19,6 +19,9 @@ end
 -- [[ Constants ]]
 -------------------------------------
 
+local STEAM_QUERY_RETRIES = 3
+local STEAM_QUERY_TIMEOUT = 10
+
 -------------------------------------
 -- [[ Class Declaration ]]
 -------------------------------------
@@ -42,17 +45,29 @@ SteamAPI.QUERIES = {
     P_FRIENDLIST    = "https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamid=%s&relationship=friend",
 }
 
+SteamAPI.STATUS_CODES = {
+    OK = 200,                    -- Success!
+    BAD_REQUEST = 400,           -- Please verify that all required parameters are being sent.
+    UNAUTHORIZED = 401,	         -- Access is denied. Retrying will not help. Please verify your key= parameter.
+    FORBIDDEN = 403,	         -- Access is denied. Retrying will not help. Please verify your key= parameter.
+    NOT_FOUND = 404,             -- The API requested does not exists.
+    METHOD_NOT_ALLOWED = 405,	 -- This API has been called with a the wrong HTTP method like GET or PUSH.
+    TOO_MANY_REQUEST = 429,      -- You are being rate limited.
+    INTERNAL_SERVER_ERROR = 500, -- An unrecoverable error has occurred, please try again. If this continues to persist then please post to the Steamworks developer discussion with additional details of your request.
+    SERVICE_UNAVAILABLE = 503,   -- Server is temporarily unavailable, or too busy to respond. Please wait and try again later.
+}
+
 -------------------------------------
 -- [[ Local Functions ]]
 -------------------------------------
 
-local function HandleQueryResult(query, result)
+local function HandleQueryResponse(query, response)
     if type(query.cb) == "function" then
-        return query.cb(result)
+        return query.cb(response)
     end
 end
 
-local function OnQueryFinished(result, request, steamid, index)
+local function OnQueryCompleted(response, success, code, request, steamid, index)
     local seq = SteamAPI._query_sequences[steamid]
     if not seq then
         return PEARL.error("Query finished for invalid sequence!")
@@ -65,8 +80,10 @@ local function OnQueryFinished(result, request, steamid, index)
 
     seq[index] = nil
 
-    -- We do not care if this errors, our work here is to just call it.
-    HandleQueryResult(query, result)
+    if success then
+        -- We do not care if this errors, our work here is to just call it.
+        HandleQueryResponse(query, response)
+    end
 
     if #seq == 0 then
         SteamAPI:RemoveDataQuerySequenceFor(steamid)
@@ -127,8 +144,16 @@ function SteamAPI:ExecuteDataQuerySequenceFor(steamid)
 
         if query then
             PEARL.HTTPClient:GET(
-                query.url:format(steamid, unpack(query.args)), OnQueryFinished, nil, steamid, i
-            ):SetIsRaw(query.raw):Send(true)
+                query.url:format(steamid, unpack(query.args)), nil, STEAM_QUERY_TIMEOUT
+            )
+            :SetIsRaw(query.raw)
+
+            -- These most likely mean that the users profile is set to private.
+            :SetStatusCodeHandle(SteamAPI.STATUS_CODES.UNAUTHORIZED)
+            :SetStatusCodeHandle(SteamAPI.STATUS_CODES.FORBIDDEN)
+            :SetMaxRetries(STEAM_QUERY_RETRIES)
+            :SetOnComplete(OnQueryCompleted, steamid, i)
+            :Send(true)
         end
     end
 end
