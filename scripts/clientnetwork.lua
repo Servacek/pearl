@@ -16,7 +16,8 @@
 -- Constants
 ----------------------------------
 
-local TIMEOUT = 15 -- seconds
+-- Give it a lot of time since we have the Steam profile checks now...
+local TIMEOUT = 60 -- seconds
 
 ----------------------------------
 -- Locals

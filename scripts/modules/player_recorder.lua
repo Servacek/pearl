@@ -34,7 +34,7 @@ local function RecordClientConnectionData(userid, data)
 end
 
 function PEARL.RecordProfileData(userid, cb)
-    local gameplaytime = 0
+    local gameplaytime
 
     local steamid = userid and TheNet:GetNetIdForUser(userid)
     if not steamid then
@@ -42,12 +42,21 @@ function PEARL.RecordProfileData(userid, cb)
     end
 
     local function RecordGamePlayTime(data)
-        if type(data.response.games) == "table" and #data.response.games > 0 then
-            gameplaytime = gameplaytime + data.response.games[1].playtime_forever
+        PEARL.debug("RecordGamePlayTime")
+        table.dump(data)
+
+        local games = type(data.response) == "table" and data.response.games
+        local playtime = type(games) == "table" and #games > 0 and games[1].playtime_forever
+        if type(playtime) == "number" and playtime > 0 then
+            gameplaytime = (gameplaytime or 0) + playtime
         end
     end
 
     PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
+        if gameplaytime == 0 then
+            gameplaytime = nil
+        end
+
         -- This is in minutes!
         PEARL.PlayerDB:OptionalSafeSetField(userid, "gameplaytime", gameplaytime)
 
@@ -103,6 +112,7 @@ local function OnClientAgreementFinished(data)
     PEARL.PlayerDB:SaveRecordFor(data.userid, record, true)
 end
 
+-- Called after all connection filters successed!
 local function OnClientConnected(world, player)
     PEARL.PlayerDB:OptionalSafeSetField(player.userid, "lastjoinedtime", os.time())
 

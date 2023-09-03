@@ -192,8 +192,9 @@ function Request:SetHeaders(headers)
     return self
 end
 
+--- @param data string|table?
 function Request:SetData(data)
-    if type(data) ~= "string" then
+    if data ~= nil and type(data) ~= "string" then
         if type(data) == "table" then
             local success
             success, data = pcall(json.encode_compliant, data)
@@ -340,7 +341,7 @@ function Request:OnCompleted(datastr, success, code)
         return -- If custom handlers exist, do not call the default callbacks.
     end
 
-    if success == false then
+    if success ~= true or code >= 400 then
         if type(self.errfn) == "function" then
             self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
         end

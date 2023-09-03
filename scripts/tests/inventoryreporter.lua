@@ -11,6 +11,8 @@
 --]==]====================================================]]
 
 
+PEARL.SUS_COUNT = 0
+
 local EMBEDS = PEARL.loadfile("utils/embeds")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
@@ -46,14 +48,13 @@ local function GetSuspicioness(inventory)
     end
 
 
-    local result = thief.components.inventory:CalcSuspicioness()
     -- if thief.components.inventory:IsSuspicious() then
     --     PEARL.info(string.rep("-", 30))
     --     PEARL.debug("["..tostring(index)..".]", DataDumper(inventory, nil, false, 0))
     --     --PEARL.debug(thief.components.inventory:GetDebugString())
     -- end
 
-    return result, thief
+    return nil, thief
 end
 
 function SusInv()
@@ -72,35 +73,48 @@ function SusInv()
     local count = 0
     for inv_str in rfile:lines() do
         if not inv_str:startswith("--") then
+            if i > 100 then
+                break
+            end
+
             local inventory = json.decode(inv_str)
             local suspicioness, thief = GetSuspicioness(inventory)
-            if suspicioness >= 1 then
-                wfile:write("\nINVENTORY: ", i, " ITEM_COUNT: ", #inventory)
-                wfile:write("\nSUSPICIONESS: ", math.round((suspicioness * 100), 2), "%")
-                wfile:write("\nCONTENT: ", DataDumper(inventory, nil, false, 0))
-                wfile:write("\n\n", string.rep("-", 50))
+            wfile:write("\nINVENTORY: ", i, " ITEM_COUNT: ", #inventory)
+            --wfile:write("\nSUSPICIONESS: ", math.round((suspicioness * 100), 2), "%")
+            wfile:write("\nCONTENT: ", DataDumper(inventory, nil, false, 0))
+            wfile:write("\n\n", string.rep("-", 50))
 
-                local player_meta = PEARL.GetPlayerMetadataFor("KU_ZC24p91Q")
-                player_meta:SetInventory(thief.components.inventory)
-                thief:Remove()
-                local message = Message()
-                message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
+            thief.userid = "KU_ZC24p91Q"
+            thief.name = "Fi7iP"
 
-                PEARL.info("Sending inventory to discord...")
-                return PEARL.DiscordReporter:SendRawReportMessage(message)
+            PEARL.EventProcessor:HandleEvent("d_ms_playerdespawn", TheWorld, thief)
 
-                --count = count + 1
-            end
+            thief:Remove()
+
+            -- if suspicioness >= .9 then
+
+            --     local player_meta = PEARL.GetPlayerMetadataFor("KU_ZC24p91Q")
+            --     player_meta:SetInventory(thief.components.inventory)
+            --     thief:Remove()
+            --     local message = Message()
+            --     message:AddEmbed(EMBEDS.SuspiciousInventory(player_meta, suspicioness))
+
+            --     PEARL.info("Sending inventory to discord...")
+            --     PEARL.DiscordReporter:SendRawReportMessage(message)
+
+            --     count = count + 1
+            -- end
 
             i = i + 1
         end
     end
 
-    wfile:write("\nSUSPICIOUS INVENTORIES DETECTED: ", count)
-    wfile:write("\n\n", string.rep("-", 50))
+    -- wfile:write("\nSUSPICIOUS INVENTORIES DETECTED: ", count)
+    -- wfile:write("\n\n", string.rep("-", 50))
 
     rfile:close()
     wfile:close()
 
-    PEARL.info("Done! Found:", count)
+    PEARL.info("Done! Found:", PEARL.SUS_COUNT)
+    PEARL.SUS_COUNT = 0
 end

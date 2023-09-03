@@ -54,10 +54,6 @@ local CLIENT_RPCS = {
     ConnectionAllowed = function(...)
         return PEARL.ClientNetwork:OnResponse(true, true, ...)
     end,
-
-    CLIENT = function(...)
-        print("CLIENT RPC TEST EXECUTED!!", ...)
-    end
 }
 
 --- These handlers should be called only from the server.
@@ -66,23 +62,27 @@ local SHARD_RPCS = {
     -- Used by the VersionChecker for shutting down secondary shards
     -- to synchronize the shutdown process on version mismatch.
     BroadcastLua = function(shard_id, luastring)
-        if tostring(shard_id) ~= SHARDID.MASTER or TheShard:IsMaster() then
+        if tostring(shard_id) ~= SHARDID.MASTER then
             return PEARL.error("Got lua chunk from a secondary shard!")
         end
 
-        PEARL.info("Executing arbitrary lua chunk from Master...")
-        PEARL.SafeRun(function()
-            loadstring(luastring)()
+        -- Excecute this the next frame in case the command is calling another RPC.
+        -- Calling RPC from an RPC handler is not allowed!
+        PEARL.WallScheduler:ExecuteInTime(0, function()
+            PEARL.info("Executing arbitrary lua chunk from Master...")
+            PEARL.SafeRun(function()
+                loadstring(luastring)()
+            end)
         end)
     end,
 
     BroadcastRPC = function(shardid, client_rpc_id, ...)
-        print("BroadcastRPC")
+        PEARL.debug("BroadcastRPC")
         return PEARL.BroadcastRPCToConnectedShards(client_rpc_id, ...)
     end,
 
     BroadcastClientRPC = function(shardid, client_rpc_id, sender_list, ...)
-        print("BroadcastClientRPC", client_rpc_id, sender_list, ...)
+        PEARL.debug("BroadcastClientRPC", client_rpc_id, sender_list, ...)
 
         -- It seems like you cannot execute RPC in an RPC...
         PEARL.WallScheduler:ExecuteInTime(

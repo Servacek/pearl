@@ -29,6 +29,10 @@ local NEGATIVE_REP_MULTIPLIER = 1
 local REP_EARN_SCALE = 0.16
 local REP_BASE = 1.39
 
+-- In minutes
+local EXP_NEWBIE_THRESHOLD  = 60 * 60
+local EXP_NEUTRAL_THRESHOLD = 200 * 60
+
 --------------------------------------
 -- [[ Local Functions ]]
 --------------------------------------
@@ -83,6 +87,16 @@ end
 --- @TODO: Handle special case for non-reputable users trying to display they own reputation.
 function Reputation:IsReputable(userid)
     return not PEARL.AdminList:Contains(userid)
+end
+
+function Reputation:IsNewbie(userid)
+    local playtime = PEARL.PlayerDB:GetField(userid, "gameplaytime")
+    return playtime and playtime < EXP_NEWBIE_THRESHOLD or false
+end
+
+function Reputation:IsExperienced(userid)
+    local playtime = PEARL.PlayerDB:GetField(userid, "gameplaytime")
+    return playtime and playtime > EXP_NEUTRAL_THRESHOLD or false
 end
 
 --------------------------------------

@@ -34,10 +34,10 @@ local TIME_UNTIL_KICK = 10
 -- Declaration
 ----------------------------------
 
---- @type table<number, function>
+--- @type table<number, table>
 local conn_filters = {}
 
---- @type table<number, function>
+--- @type table<number, table>
 local async_conn_filters = {}
 
 --- Let the cfd data be persistent.
@@ -198,7 +198,7 @@ function ServerNetwork:RunConnectionFiltersFor(userid, cfd)
     cfd = cfd or self:GetCachedCFDFor(userid)
 
     for i = 1, #conn_filters do
-        local success, allowed, reason = PEARL.SafeRun(conn_filters[i], userid, cfd)
+        local success, allowed, reason = PEARL.SafeRun(conn_filters[i].fn, userid, cfd)
         if success == false then
             -- Allowed should be the error message in this case.
             PEARL.error("Failed to execute a connection data filter!", allowed)
@@ -225,7 +225,7 @@ function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
 
         PEARL.debug("Running asynchrounous connection filter at index", i)
         if PEARL.SafeRun(
-            async_conn_filters[i], userid, cfd, handle_async_filter
+            async_conn_filters[i].fn, userid, cfd, handle_async_filter
         ) == false then
             handle_async_filter()
 
@@ -342,6 +342,16 @@ function ServerNetwork:IsUserConnected(userid)
     return userid and TheNet:GetClientTableForUser(userid) ~= nil
 end
 
+function ServerNetwork:IsShardConnected(shardid)
+    for id, _ in pairs(ShardList) do
+        if id == shardid then
+            return true
+        end
+    end
+
+    return false
+end
+
 function ServerNetwork:IsClientInactive(userid)
     return self:HasUserFlag(userid, USERFLAGS.IS_AFK)
 end
@@ -371,23 +381,39 @@ end
 -- Setters
 ----------------------------------
 
+local function AddFilter(tbl, filter, priority)
+    if type(filter) ~= "function" then
+        error("Invalid filter function")
+    end
+
+    ServerNetwork:SetServerRequiresCFD(true)
+
+    table.insert(tbl, {
+        fn = filter,
+        priority = type(priority) == "number" and priority or math.huge,
+    })
+
+    -- Keep the filters sorted.
+    table.sort(tbl, function(f1, f2)
+        return f1.priority < f2.priority
+    end)
+end
+
 --- @param filter function<userid, data>
-function ServerNetwork:AddConnectionFilter(filter)
-    PEARL.debug("ServerNetwork:AddConnectionFilter", filter)
+--- @param priority number? Whether this filter should be called sooner or later.
+function ServerNetwork:AddConnectionFilter(filter, priority)
+    PEARL.debug("ServerNetwork:AddConnectionFilter", filter, priority)
 
-    self:SetServerRequiresCFD(true)
-
-    return table.insert(conn_filters, filter)
+    AddFilter(conn_filters, filter, priority)
 end
 
 --- NOTE: Async filters ALWAYS require a response by calling the filter function!
 --- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
-function ServerNetwork:AddAsyncConnectionFilter(filter)
-    PEARL.debug("ServerNetwork:AddAsyncConnectionFilter", filter)
+--- @param priority number? Whether this filter should be called sooner or later.
+function ServerNetwork:AddAsyncConnectionFilter(filter, priority)
+    PEARL.debug("ServerNetwork:AddAsyncConnectionFilter", filter, priority)
 
-    self:SetServerRequiresCFD(true)
-
-    return table.insert(async_conn_filters, filter)
+    AddFilter(async_conn_filters, filter, priority)
 end
 
 function ServerNetwork:AddJoinServerFilter(filter)

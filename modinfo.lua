@@ -68,7 +68,6 @@ configuration_options = {
     {
         name = "DISCORD",
         default = {
-            INVITE = nil,
             -- The IDs NEEDS to be strings because they could overflow
             LHOOK = {
                 ID              = "",
@@ -103,11 +102,9 @@ configuration_options = {
             }
         },
         type = "table<string, any>",
-        public = "DISCORD.INVITE",
         checks = {
             ID = "string",
             TOKEN = "string",
-            INVITE = "string",
         }
     },
 
@@ -384,7 +381,10 @@ configuration_options = {
         name="INVENTORY_REPORTER",
         default={
             DROP_UNDER_AGE = 0, -- Setting this to zero will disable dropping.
+            DROP_RARE_UNDER_AGE = 0,
             SEND_REPORT = true,
+            USE_AI = true,
+            AI_REPORT_CHANNEL = nil,
             ENABLED = true,
         },
         type = "table",
@@ -649,7 +649,7 @@ configuration_options = {
         are arrays of tasks that are required in these tasksets. So for example:
 
         "REQUIRED_WORLDGEN_TASKS" = {
-            ["some_taskset"] = {"some_required_task", "another_required_task"}
+            "reguired task name"
         }
 
         By default there are 2 main tasksets,

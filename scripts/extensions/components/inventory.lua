@@ -16,13 +16,16 @@ local PEARL = PEARL
 
 local Inventory = require("components/inventory")
 
------------------------------------
--- [[ Contants ]]
------------------------------------
 
--- Suspicious Inventory Detector
-local MAX_SUSPICION = 3
-local MAX_SUSPICION_PERCENT = .99
+local LEGALITY_THRESHOLD = .8
+local MAX_WEIGHT = 1
+local MAX_CONFIDENCE = 1
+local WEIGHT_FACTOR = 0.5
+
+local PREDICTIONS = {
+    FLAGGED = 1,
+    NOT_FLAGGED = 0,
+}
 
 -----------------------------------
 -- [[ Extension Functions ]]
@@ -73,35 +76,48 @@ function Inventory:GetItemCount(prefab)
     return count
 end
 
---- @TODO Tags:
---[[
-    "gem"
-    "rangedweapon"
-    "rangelighter"
-    "weapon"
---]]
-function Inventory:CalcSuspicioness()
-    local suspicioness = 0
-    for _, item in ipairs(self:ReferenceAllItems()) do
-        if suspicioness >= MAX_SUSPICION then
-            break
+function Inventory:DropRareItems(rarity, randomdir, pos)
+    -- By default drop only very rare items.
+    rarity = rarity or 1
+
+    self:ForEachItem(function(item)
+        local item_rarity = PEARL.PREFABS.RARE_ITEMS[item.prefab]
+        if item_rarity and item_rarity > rarity then
+            self:DropItem(item, true, randomdir, pos)
         end
-
-        local rarity = item.components.inventoryitem:GetTotalRarity()
-        -- print("\tRARITY:", rarity)
-        suspicioness = suspicioness + rarity
-        -- print("\tTOTAL:", suspicioness)
-        -- print("-----------------")
-    end
-
-    --PEARL.debug("SUSPICION:", suspicioness)
-    return math.min(suspicioness / MAX_SUSPICION, MAX_SUSPICION_PERCENT)
+    end)
 end
 
------------------------------------
--- [[ Post Init ]]
------------------------------------
+function Inventory:DoLegalityPrediction(weights)
+    local pd = {
+        weights = {},
+        prediction = PREDICTIONS.NOT_FLAGGED, -- Either 1 if flagged or 0 if not.
+        confidence = 0,
+        items = 0,
+        value = 0,
+        normalized_value = 0,
+    }
+    for _, item in ipairs(self:ReferenceAllItems()) do
+        local stacksize = item.components.inventoryitem:GetStackSize()
+        local stackweight = item.components.inventoryitem:GetTotalPredictedWeight(weights)
+        local itemweight = stackweight / stacksize
 
-PEARL.AddFunctionPostCall("_ctor", function(self, inst)
+        -- Store highest normalized weight for this item.
+        pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), itemweight)
+        pd.normalized_value = pd.normalized_value + itemweight
+        pd.value = pd.value + stackweight
+        pd.items = pd.items + stacksize
+    end
 
-end, Inventory)
+    if pd.value >= LEGALITY_THRESHOLD then
+        pd.prediction = PREDICTIONS.FLAGGED
+    end
+
+    local x = pd.prediction == PREDICTIONS.NOT_FLAGGED and 1 / pd.value or pd.value
+    pd.confidence = math.sigmoid(x * WEIGHT_FACTOR)
+
+    print("CONFIDENCE:", pd.confidence * 100)
+    print("VALUE:", pd.value)
+
+    return pd
+end

@@ -25,6 +25,15 @@ function table:filter(checkfn)
     return result
 end
 
+function table.size(t)
+    local size = 0
+    for _, _ in pairs(t) do
+        size = size + 1
+    end
+
+    return size
+end
+
 function table:find(checkfn)
     for k, v in pairs(self) do
         if checkfn(k, v) then
@@ -65,6 +74,32 @@ function table:map(fn)
     end
 
     return t
+end
+
+function table.sum(t)
+    local sum = 0
+    for _, value in pairs(t) do
+        sum = sum + value
+    end
+
+    return sum
+end
+
+function table.average(t)
+    return table.sum(t) / table.size(t)
+end
+
+function table.max(t)
+    local maxk
+    local maxv = 0
+    for k, v in pairs(t) do
+        if v > maxv then
+            maxk = k
+            maxv = v
+        end
+    end
+
+    return maxk, maxv
 end
 
 -- For some reason this cannot be used as a method :/

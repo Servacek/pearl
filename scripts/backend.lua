@@ -486,6 +486,7 @@ end
 
 --- @type Reporter
 PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
+PEARL.DiscordReporter._webhook:FetchData()
 
 --- @type LeaderBorder
 PEARL.DiscordLeaderBoarder = PEARL.loadfile("libraries/discordapi/webhooks/leaderboarder")()
@@ -505,7 +506,6 @@ PEARL.SteamAPI = PEARL.loadfile("libraries/steamapi")
 --------------------------------
 
 local function LoadExtensions()
-    PEARL.loadfile("extensions/usercommands")
     PEARL.loadfile("extensions/profanityfilter")
     PEARL.loadfile("extensions/chathistory")
 
@@ -600,6 +600,7 @@ PEARL.Reputation = PEARL.loadfile("libraries/reputation")
 -------------------------------------
 
 PEARL.info("Loading commands...")
+PEARL.loadfile("extensions/usercommands")
 PEARL.loadfile("extensions/commands")
 
 --------------------------------

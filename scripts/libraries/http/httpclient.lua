@@ -65,7 +65,6 @@ local HTTPClient = {
     -- Lazy load the queue
     --- @type Queue?
     _queue = nil,
-    _request_cache = {},
     --- @type Task?
     _cooldown_task = nil,
 
@@ -135,12 +134,6 @@ function HTTPClient:SetRequestFrequency(frequency)
     return self
 end
 
-function HTTPClient:CacheRequest(request)
-    self._request_cache[request.url] = request
-
-    return self
-end
-
 function HTTPClient:ResetForceTreshold()
     self._force_threshold = MAX_FORCE_THRESHOLD
 end
@@ -163,10 +156,6 @@ end
 
 function HTTPClient:IsOnCooldown()
     return self._cooldown_task and self._cooldown_task.running == true
-end
-
-function HTTPClient:GetCached(url)
-    return self._request_cache[url]
 end
 
 -- Used for debugging purposes
@@ -308,25 +297,6 @@ function HTTPClient:ForceSend(request)
     return self:_DoSendRequest(request, true)
 end
 
---- @return Request
-function HTTPClient:CreateRequest(url, method)
-    -- local cached = self:GetCached(url)
-    -- if cached ~= nil and cached.method == method then
-    --     PEARL.debug(method.." (cached)", url)
-    --     return cached
-    -- end
-
-    --PEARL.debug(method, url)
-    --local request = Request(url, method)
-
-    -- if not self:IsShuttingDown() then
-    --     PEARL.debug("Caching request...")
-    --     self:CacheRequest(request)
-    -- end
-
-    return Request(url, method)
-end
-
 function HTTPClient:RetryRequestAfter(request, seconds)
     if request.retries >= MAX_REQUEST_RETRIES then
         return PEARL.warn("Max retry count reached! Request failed...")
@@ -346,13 +316,13 @@ end
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param method string The method of the request.
 --- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
---- @param data string|table The json data body for the request (JSON or table)
+--- @param data string|table? The json data body for the request (JSON or table)
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClient:Request(url, method, callbackfn, data, timeout, ...)
-    return self:CreateRequest(url, method)
+    return Request(url, method)
         :SetOnSuccess(callbackfn, ...)
         :SetData(data)
         :SetTimeout(timeout)
@@ -366,7 +336,7 @@ end
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClient:GET(url, onsuccess, timeout, ...)
-    return self:CreateRequest(url, HTTPClient.METHODS.GET)
+    return Request(url, HTTPClient.METHODS.GET)
         :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
 end
@@ -380,7 +350,8 @@ end
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClient:POST(url, onsuccess, data, timeout, ...)
-    return self:CreateRequest(url, HTTPClient.METHODS.POST)
+    assert(data, "Invalid data provided for POST request. Method would be changed to GET implicitly.")
+    return Request(url, HTTPClient.METHODS.POST)
         :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
         :SetData(data)

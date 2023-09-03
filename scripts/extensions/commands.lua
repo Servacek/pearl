@@ -133,7 +133,7 @@ local function ParseParamsArray(command, params_array)
     return params
 end
 
-local function EnsureRequiredCommands(command)
+local function EnsureRequiredFields(command)
     for key, value in pairs(REQUIRED_FIELDS) do
         if command[key] == nil then
             command[key] = value
@@ -155,7 +155,7 @@ local function AddCommand(name, command, ...)
         PEARL.warn("Overriding command", name)
     end
 
-    EnsureRequiredCommands(command)
+    EnsureRequiredFields(command)
 
     PEARL.info("Registering command", name)
 
@@ -198,6 +198,10 @@ local function AddCommand(name, command, ...)
         end
     end
 
+    if command.discord == true then
+        UserCommands.AddDiscordCommand(name, command)
+    end
+
     if command.slash == true or command.usermenu or command.servermenu then
         AddSlashCommand(name, command)
     end
@@ -226,14 +230,14 @@ AddCommand("fire", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"user"},
+    params = {"player"},
     paramsoptional = {true},
 
     mainfn = function(params, caller)
         local pt_postfix = caller and "_DOER" or ""
 
-        if params.user then
-            local player = UserToPlayer(params.user)
+        if params.player then
+            local player = UserToPlayer(params.player)
             if player ~= nil then
                 extinguish_near(player:GetPosition())
 
@@ -276,14 +280,14 @@ AddCommand("repair", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"user"},
+    params = {"player"},
     paramsoptional = {true},
 
     mainfn = function(params, caller)
         local pt_postfix = caller and "_DOER" or ""
 
-        if params.user then
-            local player = UserToPlayer(params.user)
+        if params.player then
+            local player = UserToPlayer(params.player)
             if player ~= nil then
                 repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
 
@@ -310,11 +314,11 @@ AddCommand("unban", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"userid"},
+    params = {"player"},
     paramsoptional= { false },
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         if PEARL.BlackList:RemovePlayerByID(userid) then
             PEARL.info("Successfully removed", userid, "from the blocklist!")
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS
@@ -332,11 +336,11 @@ AddCommand("grant", {
     slash = true,
     cantargetself = false,
     cantargetadmin = false,
-    params = {"userid"},
+    params = {"player"},
     paramsoptional= { false },
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         if PEARL.BlackList:Contains(userid) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED
         end
@@ -359,11 +363,11 @@ AddCommand("revoke", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"userid"}, -- Net/Klei ID
+    params = {"player"}, -- Net/Klei ID
     paramsoptional= { false },
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         if not PEARL.AllowList:Contains(userid) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND
         end
@@ -384,7 +388,7 @@ AddCommand("inv", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = {"userid"}, -- Net/Klei ID
+    params = {"player"}, -- Net/Klei ID
     paramsoptional= { false },
 
     discordfn = function(params, caller, userid)
@@ -392,7 +396,7 @@ AddCommand("inv", {
     end,
 
     mainfn = function(params, caller)
-        return UserToClientID(params.userid) or params.userid
+        return UserToClientID(params.player) or params.player
     end,
 
     -- Called via slash commands, requires report webhook
@@ -423,16 +427,10 @@ AddCommand("inv-find", {
     params = {"prefab"},
     paramsoptional = { false },
 
-    serverfn = function(params, caller)
-        if not (params and caller and params.prefab) then
-            return
-        end
-
+    mainfn = function(params, caller)
         -- We are sending this to the report channel not to the log channel.
         if PEARL.DiscordReporter:IsDisabled() then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid,
-                STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
-            )
+            return STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
         end
 
         local item_owners = {}
@@ -450,7 +448,7 @@ AddCommand("inv-find", {
         end
 
         if #item_owners <= 0 then
-            return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE)
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE
         end
 
         -- Sort by item count and player age
@@ -473,10 +471,24 @@ AddCommand("inv-find", {
             end
         end
 
+        return message, item_owners
+    end,
+
+    serverfn = function(params, caller, message, item_owners)
+        if not Message.is_instance(message) then
+            return message
+        end
+
         PEARL.DiscordReporter:SendRawReportMessage(message)
-        return PEARL.ServerNetwork:SendCommandResponse(caller.userid, STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
             #item_owners
-        ))
+        )
+    end,
+
+    consolefn = function(...)
+        local command = UserCommands.GetCommandFromName("inv-find")
+        return command.serverfn(...)
     end,
 })
 
@@ -551,7 +563,7 @@ AddCommand("mods", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    params = { "userid" }, -- Do not use "user" for offline support
+    params = { "player" }, -- Do not use "user" for offline support
     paramsoptional = { false },
 
     discordfn = function(params, caller, userid, mods, response)
@@ -561,7 +573,7 @@ AddCommand("mods", {
     end,
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local mods = PEARL.PlayerDB:GetField(userid, "lastmods")
 
         local response
@@ -626,13 +638,13 @@ AddCommand("setrep", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {"userid", "value"},
+    params = {"player", "value"},
     paramsoptional = {false, false},
     slash = true,
     console = true,
 
     mainfn = function(params, caller)
-        if PEARL.PlayerDB:OptionalSafeSetField(params.userid, "rep", params.value) then
+        if PEARL.PlayerDB:OptionalSafeSetField(params.player, "rep", params.value) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS
         end
 
@@ -644,13 +656,13 @@ AddCommand("giverep", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.DESC,
     permission = COMMAND_PERMISSION.USER,
-    params = {"user"},
+    params = {"player"},
     paramsoptional = {false},
     slash = true,
     console = false, -- This is meant to be a user-only command.
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.user) or params.user
+        local userid = UserToClientID(params.player) or params.player
         if PEARL.Reputation:GiveTo(userid, GIVEREP_AMOUNT) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SUCCESS
         end
@@ -677,7 +689,7 @@ AddCommand("boost", {
     discordfn = function()
         local task = PEARL.WallScheduler:GetTask(PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH)
         if not task then
-            return "Task not found!"
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_FAILURE
         end
 
         local _time = task:gettime()
@@ -688,14 +700,10 @@ AddCommand("boost", {
             task:settime(_time or PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL)
             task:restart()
 
-            print("_____________RETURNING____")
-            PEARL.WallScheduler:DisplayTasks()
-            PEARL.DiscordLogger:LogString("Server response latency back to normal.")
-            PEARL.WallScheduler:DisplayTasks()
-            print("_____________RETURNING____")
+            PEARL.DiscordLogger:LogString(STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_TIMEOUT)
         end)
 
-        return "Lower server latency for 2 minutes!"
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_SUCCESS
     end,
 })
 
@@ -705,7 +713,7 @@ AddCommand("profile", {
     console = false,
 
     discordfn = function(params)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local record = PEARL.PlayerDB:GetRecordFor(userid)
         if not record then
             return "Player not found!"
@@ -722,11 +730,11 @@ AddCommand("give", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = false, -- Already implemented for console by the game.
-    params = {"userid", "prefab", "count"},
+    params = {"player", "prefab", "count"},
     paramsoptional = {false, false, true},
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.inventory then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -777,11 +785,11 @@ AddCommand("take", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = true,
-    params = {"userid", "prefab", "count"},
+    params = {"player", "prefab", "count"},
     paramsoptional = {false, false, true},
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.inventory then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -818,11 +826,11 @@ AddCommand("drop", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = true,
-    params = {"userid", "prefab", "count"},
+    params = {"player", "prefab", "count"},
     paramsoptional = {false, true, true},
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.inventory then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -867,17 +875,17 @@ AddCommand("kill", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = true,
-    params = {"userid"},
+    params = {"player"},
     paramsoptional = {false},
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.health then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
         end
 
-        player:PushEvent("death")
+        player:PushEvent("death", {cause = caller and caller:GetDisplayName()})
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.ON_SUCCESS
     end,
@@ -889,11 +897,11 @@ AddCommand("revive", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = true,
-    params = {"userid"},
+    params = {"player"},
     paramsoptional = {false},
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -911,11 +919,11 @@ AddCommand("despawn", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
     console = true,
-    params = {"userid"},
+    params = {"player"},
     paramsoptional = {false},
 
     mainfn = function(params, caller)
-        local userid = UserToClientID(params.userid) or params.userid
+        local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -977,6 +985,75 @@ AddCommand("blockmod", {
     end
 })
 
+------------------------------------
+-- These should be safe.
+-- They are here for debugging and special case handling purposes.
+
+AddCommand("exec", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = false,
+    slash = false,
+    usermenu = false,
+    servermenu = false,
+    params = {"command", "shard"},
+    paramsoptional = {false, true},
+
+    discordfn = function(params)
+        if params.shardid ~= nil and params.shardid ~= SHARDID.MASTER and not PEARL.ServerNetwork:IsShardConnected(params.shardid) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND
+        end
+
+        PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, params.shardid, params.command)
+    end
+})
+
+AddCommand("setdbfield", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    slash = false,
+    usermenu = false,
+    servermenu = false,
+    params = {"player", "field", "value"},
+    paramsoptional = {false, false, false},
+
+    mainfn = function(params)
+        if not PEARL.PlayerDB:IsEnabled() then
+            return STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED
+        end
+
+        local userid = UserToClientID(params.player)
+        if not PEARL.PlayerDB:HasRecord(userid) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        if not PEARL.PlayerDB:OptionalSetField(userid, params.field, params.value) then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE
+        end
+
+        PEARL.PlayerDB:SaveRecordFor(userid)
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_SUCCESS
+    end
+})
+
+AddCommand("setrarity", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    slash = false,
+    usermenu = false,
+    servermenu = false,
+    params = {"prefab", "value"},
+    paramsoptional = {false, false},
+
+    mainfn = function(params)
+        if not PEARL.CONFIG.INVENTORY_REPORTER.ENABLED then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_RARITY.ON_DISABLED
+        end
+
+        PEARL.EventProcessor:HandleEvent("set_item_rarity", params.prefab, tonumber(params.value))
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_RARITY.ON_SUCCESS
+    end
+})
+
 -------------------------------------------
 -- Command Post Inits
 -------------------------------------------
@@ -1010,41 +1087,61 @@ end)
 
 PEARL.AddUserCommandPreInit("kick", function(command)
     command.mainfn = function(params, caller)
-        PEARL.ServerNetwork:IsUserConnected(params.userid)
-        if params.reason then
+        local userid = UserToClientID(params.player) or params.player
+        if not PEARL.ServerNetwork:IsUserConnected(userid) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        local has_reason = type(params.reason) == "string"
+        if has_reason then
             -- Display the reason if any.
             PEARL.ServerNetwork:CloseConnectionFor(
-                params.userid, params.reason, false, STRINGS.UI.NETWORKDISCONNECT["ID_DST_USER_KICKED"].TITLE
+                userid, params.reason, false, STRINGS.UI.NETWORKDISCONNECT["ID_DST_USER_KICKED"].TITLE
             )
         end
 
         -- Give the reason popup some time to display so it's not overriden
-        local delay = params.reason and 5 or 0
+        local delay = has_reason and 5 or 0
         PEARL.WallScheduler:ExecuteInTime(delay, function()
-            TheNet:Kick(params.userid, params.time)
+            TheNet:Kick(userid, params.time)
         end)
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS
     end
+
+    AddConsoleCommand("kick", command.mainfn)
 end)
 
 PEARL.AddUserCommandPreInit("ban", function(command)
     command.mainfn = function(params, caller)
-        if params.reason then
+        local userid = UserToClientID(params.player) or params.player
+
+        if PEARL.BlackList:Contains(userid) then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ALREADY_BANNED
+        end
+
+        local has_reason = type(params.reason) == "string"
+        if has_reason then
             -- Display the reason if any.
             PEARL.ServerNetwork:CloseConnectionFor(
-                params.userid, params.reason, false, STRINGS.UI.NETWORKDISCONNECT["ID_DST_USER_BANNED"].TITLE
+                userid, params.reason, false, STRINGS.UI.NETWORKDISCONNECT["ID_DST_USER_BANNED"].TITLE
             )
         end
 
         -- Give the reason popup some time to display so it's not overriden
-        local delay = params.reason and 5 or 0
+        local delay = has_reason and 5 or 0
         PEARL.WallScheduler:ExecuteInTime(delay, function()
             if params.time then
-                return TheNet:BanForTime(params.userid, params.time)
+                return TheNet:BanForTime(userid, params.time)
             end
 
-            TheNet:Ban(params.userid)
+            TheNet:Ban(userid)
         end)
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ON_SUCCESS
     end
+
+    AddConsoleCommand("ban", command.mainfn)
 end)
 
 if TheNet:GetIsServer() then

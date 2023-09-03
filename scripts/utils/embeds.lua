@@ -16,8 +16,10 @@
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
-local TEMPLATES = require("widgets/redux/templates")
 
+local TEMPLATES = require("widgets/redux/templates")
+local WorldSettings_Overrides = require("worldsettings_overrides")
+local Customize = require("map/customize")
 
 -------------------------------------
 -- [[ Constants ]]
@@ -204,10 +206,42 @@ function EMBEDS.WorldRegen(world, session_id)
     local seed = world and world.meta and world.meta.seed or "???"
     local save_version = world and world.meta and world.meta.generated_on_saveversion or "???"
 
+    local is_master = world.worldprefab == "forest"
+    local default_world_settings = Customize.GetWorldSettingsOptionsWithLocationDefaults(world.worldprefab, is_master)
+    local default_world_gen_options = Customize.GetWorldGenOptionsWithLocationDefaults(world.worldprefab, is_master)
+
+    local overrides = {}
+    for _, setting in ipairs(default_world_settings) do
+        local override = world.topology.overrides[setting.name] or setting.default
+        if override ~= setting.default then
+            overrides[setting.name] = override
+        end
+    end
+
+    for _, option in ipairs(default_world_gen_options) do
+        local override = world.topology.overrides[option.name] or option.default
+        if override ~= option.default then
+            overrides[option.name] = override
+        end
+    end
+
+    local description = ""
+    if not table.empty(overrides) then
+        local max_key_len = PEARL.GetMaxStringSize(overrides, true)
+
+        for name, value in pairs(overrides) do
+            local spacing = max_key_len - #name
+            description = description..name..string.rep(" ", spacing).." = "..value.."\n"
+        end
+
+        description = STRINGS.PEARL.EMBEDS.REGEN.DESC_TITLE..MARKDOWN.codeblock(description, "ini")
+    end
+
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.REGEN.TITLE:format(PEARL.GetShardFancyName()))
         :SetColor(Embed.COLORS.GREEN)
         :SetThumbnail(STRINGS.PEARL.EMBEDS.REGEN.THMB_URL)
+        :SetDescription(description)
         :SetTimestamp(os.time())
 
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)

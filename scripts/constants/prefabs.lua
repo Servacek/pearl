@@ -63,10 +63,11 @@ return {
 		["krampus_sack"] 		= .9,
 		["eyeturret_item"] 		= 1,
 
+        ["gears"]               = .5,
+
 		["moonrockseed"] 		= 0,
 		["mandrake"]	 		= .7,
 		["cookedmandrake"]		= .5,
-		["yellowstaff"] 		= .7,
 		["chester_eyebone"] 	= 0,
 		["glommerflower"] 		= 0,
 		["hutch_fishbowl"] 		= 0,
@@ -79,14 +80,23 @@ return {
 		["orangeamulet"] 		= .8,
 		["icepack"] 			= .8,
 		["ruinshat"] 			= .8,
+        ["yellowstaff"] 		= .8,
 		["ruins_bat"] 			= .8,
 		["armorruins"] 			= .8,
-		--- TOO Spammy
-		--["thulecite"] 			= .3,
+        ["nightmarefuel"]       = .005,
+        ["horrorfuel"]          = .6,
+        ["livinglog"]           = .005,
+        ["purebrilliance"]      = .6,
+		["thulecite"] 			= .3,
 		["greenstaff"]			= .8,
 		["orangestaff"]			= .8,
 		["walrushat"]			= .4,
 		["walrus_tusk"]			= .3,
+
+        ["alterguardianhat"]    = .9,
+        ["sword_lunarplant"]    = .9,
+        ["armor_lunarplant"]    = .9,
+        ["thurible"]            = .9,
 	},
 
 	--- table<prefab, radius>

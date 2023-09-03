@@ -163,6 +163,7 @@ local STRINGS = {
         REGEN = {
             TITLE = "Shard `%s` Regenerated",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066443002630918236/world.png",
+            DESC_TITLE = "**World Setting Overrides**",
             FD_NAMES = {
                 SEED            = "New World Seed",
                 SESSION_ID      = "World ID",
@@ -241,6 +242,7 @@ local STRINGS = {
         INV_REPORT_ITEM_RARE    = "**%dx\t%s (\"%s\")**",
         INV_REPORT_ITEM         = MARKDOWN.codeline("%dx").."\t%s\t\t\t\t"..MARKDOWN.codeline("%s"),
         INV_REPORT_DROPPED      = "Player's inventory was dropped before despawning.",
+        INV_RARE_ITEMS_DROPPED  = "Rare items were dropped from player's inventory before despawning.",
 
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
@@ -452,6 +454,8 @@ local STRINGS = {
             ITEM_PREFAB_INVALID = "Invalid item prefab provided!",
             ITEM_NOT_FOUND = "Item not found!",
             MOD_ALREADY_BLOCKED = "The specified mod is already blocked on the server.",
+            SHARD_NOT_FOUND = "The specified shard is not connected to Master!",
+            DB_DISABLED = "The database is not enabled!",
         },
 
         -- Add more translations
@@ -615,6 +619,31 @@ local STRINGS = {
                 DESC       = "Make sure this modification is allowed for players to use.",
 
                 ON_SUCCESS = "Mod added to the allowlist."
+            },
+
+            BAN = {
+                ON_SUCCESS = "Player was added to the blocklist. Access to the server is prohibited from now.",
+                ALREADY_BANNED = "Player is already banned on this server.",
+            },
+
+            KICK = {
+                ON_SUCCESS = "Player was kicked from the server.",
+            },
+
+            SET_DB_FIELD = {
+                ON_SUCCESS = "Field successfully set!",
+                ON_FAILURE = "Failed to set the specified field!",
+            },
+
+            BOOST = {
+                ON_SUCCESS = "Lower server latency for 2 minutes!",
+                ON_TIMEOUT = "Server response latency back to normal.",
+                ON_FAILURE = "Wasn't able to lower the server latency!",
+            },
+
+            SET_RARITY = {
+                ON_SUCCESS = "The rarity value for the specified item was changed.",
+                ON_DISABLED = "The Inventory Reporter module is disabled!\nYou need to enable it in the settings in order to use this command."
             },
         },
 

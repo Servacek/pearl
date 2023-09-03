@@ -15,12 +15,15 @@
 local UserCommands = require("usercommands")
 
 
+local discord_commands = {}
+
+
 --- @param name string The name of the command.
 --- @param params table<string, any> Parameters provided to the command.
 --- @param callername string The display name of the caller.
 --- @return (Message|Embed|string)?
 function UserCommands.RunDiscordCommand(name, params, callername)
-    local command = UserCommands.GetCommandFromName(name)
+    local command = UserCommands.GetCommandFromName(name) or UserCommands.GetDiscordCommand(name)
     if not command or command.discord == false then
         PEARL.error("Attempted to run an invalid discord command!")
         return STRINGS.PEARL.COMMAND_RESPONSES.INVALID
@@ -40,4 +43,12 @@ function UserCommands.RunDiscordCommand(name, params, callername)
     end
 
     return PEARL.unpack(response)
+end
+
+function UserCommands.GetDiscordCommand(name)
+    return discord_commands[name]
+end
+
+function UserCommands.AddDiscordCommand(name, command)
+    discord_commands[name] = command
 end

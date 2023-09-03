@@ -76,10 +76,9 @@ function ServerListing:SetDataField(name, value)
         :Send()
 end
 
+-- Looks like this doesn't work :/
 function ServerListing:UpdateModConfigData()
-    PEARL.CONFIG.SOCIAL_LINKS = "HENLO!!!"
     local data_str = PEARL.ModConfig:GetEnabledServerModsConfigDataString()
-    print(data_str)
     self:SetDataField("mods_config_data", data_str)
 end
 

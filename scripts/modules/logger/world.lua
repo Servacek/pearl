@@ -25,7 +25,6 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 local UserCommands = require("usercommands")
-local WorldSettings_Overrides = require("worldsettings_overrides")
 
 -------------------------------
 -- [[ World State Handlers ]]
@@ -332,14 +331,6 @@ end
 local function OnWorldGenComplete(world)
     if not world then
         return
-    end
-
-    --- @TODO:
-    for name, _ in pairs(WorldSettings_Overrides.Pre) do
-        local difficulty = TheWorld.topology.overrides[name]
-        if difficulty and difficulty ~= "default" then
-            print("OVERRIDE: setting", name, "to", difficulty)
-        end
     end
 
     PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen(world))

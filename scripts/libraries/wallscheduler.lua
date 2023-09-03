@@ -63,7 +63,7 @@ local wtime = 0 -- in seconds for default precision
 
 ---@type table<Task>
 local tasks = table.create(Q_SIZE_ALLOC, Q_NARR_ALLOC)
-tasks.n = 0
+local task_count = 0
 
 -- flags
 local looping = false
@@ -106,11 +106,11 @@ local function add_task(task, nosort)
     end
 
     --PEARL.debug("Registering task:", task)
-    local prev = tasks[tasks.n]
-    tasks.n = tasks.n + 1
+    local prev = tasks[task_count]
+    task_count = task_count + 1
     -- Add the task to the end of the list.
     -- With that, we assume it has the lowest execution time.
-    tasks[tasks.n] = task
+    tasks[task_count] = task
 
     -- Check if it needs resorting.
     if nosort ~= true and (prev and task_comp(prev, task)) then
@@ -121,7 +121,7 @@ local function add_task(task, nosort)
 end
 
 local function has_task(task)
-    return tasks.n > 0 and table_contains(tasks, task)
+    return task_count > 0 and table_contains(tasks, task)
 end
 
 --- @param time number Time from now in seconds.
@@ -278,7 +278,7 @@ end
 -- dt = time_passed - time_now
 -- dt is 0 if the server is paused
 local function OnWallUpdate()
-    if tasks.n < 1 then
+    if task_count < 1 then
         return
     end
 
@@ -289,7 +289,7 @@ local function OnWallUpdate()
         wtime = wtime + wtdelta
     end
 
-    local task = tasks[tasks.n]
+    local task = tasks[task_count]
 
     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
     -- are going to be executed. So just return.
@@ -300,7 +300,7 @@ local function OnWallUpdate()
     -- Iterate over the table from the back because we are removing the tasks during the
     -- iteration.
     looping = true
-    for i = tasks.n, 1, -1 do
+    for i = task_count, 1, -1 do
         -- The task should always be a non-nil value.
         -- If it's not, it means we have holes in our stack and we should crash I guess!
         task = tasks[i]
@@ -316,6 +316,7 @@ local function OnWallUpdate()
             local success, result = pcall(task.run, task)
             if success == false then
                 PEARL.error("Failed to run task:", task:tostring(), "Reason:\n", result)
+                PEARL.error("Cancelling...")
 
                 -- Make sure the task is going to be removed immediately this tick.
                 task:cancel()
@@ -327,7 +328,7 @@ local function OnWallUpdate()
             -- Only remove tasks whose limit has reached zero.
             -- We can just nil them since this is guranteed to be the end.
             table_remove(tasks, i)
-            tasks.n = tasks.n - 1
+            task_count = task_count - 1
         end
     end
     looping = false
@@ -351,7 +352,7 @@ function WallScheduler:GetTasks()
 end
 
 function WallScheduler:DisplayTasks()
-    for i = 1, tasks.n do
+    for i = 1, task_count do
         local task = tasks[i]
 
         print(task.tostring and task:tostring() or tostring(task))
@@ -362,7 +363,7 @@ end
 --- @param id integer The ID of the target task.
 --- @return Task? task The target task or nil if not found.
 function WallScheduler:GetTask(id)
-    for i = 1, tasks.n do
+    for i = 1, task_count do
         if tasks[i].id == id then
             return tasks[i]
         end

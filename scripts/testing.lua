@@ -21,7 +21,8 @@ function PEARL.EXT(testset_name, testname)
         end
     })
 
-    local result = PEARL.loadfile("tests/"..testset_name, env)
+    -- Reload the file each time for easier changes.
+    local result = PEARL.loadfile("tests/"..testset_name, env, true)
     if type(result) == "table" then
         tests = MergeMaps(tests, result)
     end

@@ -20,9 +20,15 @@ local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 -- Constants
 ----------------------------------
 
+local BASE_URL = PEARL.CONFIG.DISCORD.PROXY.URL
+if type(BASE_URL) ~= "string" then
+    return error("Discord proxy is enabled but invalid url was provided!")
+end
+
 local URLS = {
-    INPUT = PEARL.CONFIG.DISCORD.PROXY.INPUT_URL,
-    OUTPUT = PEARL.CONFIG.DISCORD.PROXY.OUTPUT_URL,
+    INPUT = BASE_URL.."/input",
+    OUTPUT = BASE_URL.."/output",
+    SESSION = BASE_URL.."/session",
 }
 
 local FETCH_REQUEST_TIMEOUT = 5
@@ -33,6 +39,8 @@ local MESSAGE_NAME = "%s"
 local MESSAGE_NAME_ADMIN = "[ADMIN] %s"
 
 local PMESSAGE_COLOR = RGB(173, 216, 230)
+
+local START_SESSION_RETRIES = 3
 
 ----------------------------------
 -- Local Variables
@@ -47,6 +55,11 @@ local _proxy_unreachable = false
 local _running = false
 
 local _response_cache = {}
+
+local events = {
+    player = nil,
+    shard = nil,
+}
 
 ----------------------------------
 -- Declarations
@@ -103,6 +116,7 @@ end
 
 local function HandleCommands(commands)
     for _, command in ipairs(commands) do
+        table.dump(command)
         HandleCommand(command)
     end
 
@@ -121,6 +135,12 @@ local function HandleChatMessages(messages)
     end
 end
 
+local function HandleEvents(events)
+    for _, event in ipairs(events) do
+        PEARL.EventProcessor:HandleEvent("input_proxy_event", event)
+    end
+end
+
 local function OnProxyUnreachable()
     _running = false
 
@@ -133,19 +153,24 @@ local function OnProxyUnreachable()
 end
 
 local function OnInputFetchingDone(data)
+    print(table.dump(data))
     if type(data) ~= "table" then
         return
     end
 
-    if PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED and not table.empty(data.messages) then
+    if PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED and type(data.messages) == "table" then
         if PEARL.SafeRun(HandleChatMessages, data.messages) == false then
             PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_MESSAGE_FAILED)
         end
     end
 
-    if PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED and not table.empty(data.commands) then
+    if PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED and type(data.commands) == "table" then
         -- Commands are actually waiting for our response.
         HandleCommands(data.commands)
+    end
+
+    if type(data.events) == "table" then
+        HandleEvents(data.events)
     end
 end
 
@@ -194,6 +219,13 @@ end
 -- Local Functions
 ----------------------------------
 
+local function CreateFetchEvent(name, ...)
+    return {
+        name = name,
+        args = toarrayornil(...),
+    }
+end
+
 AddCommandResponse = function(command_id, message_table)
     if _response_cache[command_id] ~= nil then
         PEARL.error("Response already exists for this command!")
@@ -213,26 +245,26 @@ SendCachedCommandResponses = function()
     cleartable(_response_cache)
 end
 
-local function StartSession()
+local function StartSession(retries)
     PEARL.info("Sending start session request to input proxy server...")
 
-    PEARL.HTTPClient:POST(URLS.INPUT, OnSessionStarted, {
+    PEARL.HTTPClient:POST(URLS.SESSION, OnSessionStarted, {
         messages = PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED,
         commands = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED,
-        running = true
+        running = true,
     })
     :SetIsRaw(true)
     :SetErrorHandler(OnSessionStartFailed)
-    :SetMaxRetries(3)
+    :SetMaxRetries(retries or START_SESSION_RETRIES)
     :Send()
 end
 
-local function RestartSession()
+local function RestartSession(retries)
     if _running and not _proxy_unreachable then
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
     end
 
-    StartSession()
+    StartSession(retries)
 end
 
 local function StopSession()
@@ -244,7 +276,7 @@ local function StopSession()
     PEARL.info("Sending stop session request to input proxy server...")
 
     -- We do not care about the response at this point
-    PEARL.HTTPClient:POST(URLS.INPUT, nil, {
+    PEARL.HTTPClient:POST(URLS.SESSION, nil, {
         running = false
     })
     :SetIsRaw(true)
@@ -253,7 +285,17 @@ local function StopSession()
 end
 
 local function FetchInput()
-    PEARL.HTTPClient:GET(URLS.INPUT, OnInputFetchingDone, FETCH_REQUEST_TIMEOUT)
+    print("fetch input")
+
+    -- Do it explicitly. Since implicit method changes are prohibited.
+    local request
+    if table.empty(events) then
+        request = PEARL.HTTPClient:GET(URLS.INPUT, OnInputFetchingDone, nil, FETCH_REQUEST_TIMEOUT)
+    else
+        request = PEARL.HTTPClient:POST(URLS.INPUT, OnInputFetchingDone, events, FETCH_REQUEST_TIMEOUT)
+    end
+
+    request
         :SetMaxRetries(0)
         :SetStatusCodeHandle(0, OnFetchingFailed)
         :SetStatusCodeHandle(500, OnProxyInternalError)
@@ -263,6 +305,8 @@ local function FetchInput()
             RestartSession()
         end)
         :Send()
+
+    cleartable(events)
 end
 
 RestartFetchingTask = function()
@@ -303,8 +347,26 @@ end
 local function OnSave()
     if not _fetching_task or _fetching_task.running == false then
         -- Attempt to silently restart the session if not started yet.
-        RestartSession()
+        -- Do not retry here, just a one-shot to not flood the logs.
+        RestartSession(0)
     end
+end
+
+local function OnShardConnected(shardid)
+    events.shard = CreateFetchEvent("shard_connected", shardid, PEARL.GetShardFancyNameByID(shardid))
+end
+
+local function OnShardDisconnected(shardid)
+    events.shard = CreateFetchEvent("shard_disconnected", shardid)
+end
+
+local function OnClientConnected(userid)
+    local client = TheNet:GetClientTableForUser(userid)
+    events.player = CreateFetchEvent("player_connected", userid, client and client.name or userid)
+end
+
+local function OnClientDisconnected(userid)
+    events.player = CreateFetchEvent("player_disconnected", userid)
 end
 
 ----------------------------------
@@ -321,3 +383,8 @@ end)
 
 PEARL.EventProcessor:AddSafeEventHandler("quit", OnQuit)
 PEARL.EventProcessor:AddSafeEventHandler("save", OnSave)
+
+PEARL.EventProcessor:AddSafeEventHandler("shard_connected", OnShardConnected)
+PEARL.EventProcessor:AddSafeEventHandler("shard_disconnected", OnShardDisconnected)
+PEARL.EventProcessor:AddSafeEventHandler("client_connected", OnClientConnected)
+PEARL.EventProcessor:AddSafeEventHandler("client_disconnected", OnClientDisconnected)

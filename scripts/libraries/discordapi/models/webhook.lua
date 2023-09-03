@@ -12,6 +12,20 @@
 
 
 -------------------------------------
+-- [[ Private ]]
+-------------------------------------
+
+local function OnWebhookDataFetched(data, request, webhook)
+    webhook.avatar = data.avatar
+    webhook.channel_id = data.channel_id
+    webhook.guild_id = data.guild_id
+    webhook.name = data.name
+    webhook.type = data.type
+
+    PEARL.info("Retrieved webhook data for webhook", webhook.name or "UNKNOWN")
+end
+
+-------------------------------------
 -- [[ Class Declarations ]]
 -------------------------------------
 
@@ -23,7 +37,24 @@ local Webhook = Class(function(self, id, token)
     self.url = PEARL.CONSTS.DISCORD.WEBHOOK_URL_TEMPLATE:format(
         PEARL.CONSTS.DISCORD.API_VERSION, self._id, self._token
     )
+
+    -- Webhook info
+    self.avatar = nil
+    self.channel_id = nil
+    self.guild_id = nil
+    self.name = nil
+    self.type = self.TYPES.INCOMING
 end)
+
+-------------------------------------
+-- [[ Static ]]
+-------------------------------------
+
+Webhook.TYPES = {
+    INCOMING = 1,
+    CHANNEL_FOLLOWER = 2,
+    APPLICATION = 3,
+}
 
 -------------------------------------
 -- [[ Getters ]]
@@ -35,6 +66,10 @@ end
 
 function Webhook:GetToken()
     return self._token
+end
+
+function Webhook:GetURL()
+    return self.url
 end
 
 function Webhook:IsValid()
@@ -58,6 +93,20 @@ end
 
 function Webhook:DeleteMessage(message_id, ...)
     return PEARL.DiscordRestAPI:DeleteWebhookMessage(self.url, message_id, ...)
+end
+
+function Webhook:FetchData(...)
+    PEARL.info("Retrieving webhook data...")
+
+    local request = PEARL.DiscordRestAPI:FetchWebhookData(self.url, ...)
+    if not request then
+        PEARL.error("Failed to send the webhook data fetch request!")
+        return
+    end
+
+    request:SetOnSuccess(OnWebhookDataFetched, self)
+
+    return request
 end
 
 -------------------------------------

@@ -31,7 +31,9 @@ local strhash = smallhash
 
 local DEFAULT_REPL_CHAR = "*"
 -- Word is a sequence of visible characters.
-local WORD_PATTERN = "[%S%C%Z]+"
+-- Split at puncational characters as well.
+local WORD_PATTERN = "[^%s%p%c%z]+"
+local CAPITAL_SPLIT = "%u*[^%u.]+"
 
 local FILTER_PATH = PEARL.SRCDIR.."languages/filters/%s.lua"
 local FILTER_RPATH = "languages/filters/%s"
@@ -46,10 +48,6 @@ local exact_patterns = {}
 -------------------------------------
 -- [[ Local Functions ]]
 -------------------------------------
-
-local function normalize(s)
-    return s:gsub("%p", "")
-end
 
 local function addpattern(self, name)
     local dict = self.dictionaries[name]
@@ -67,6 +65,18 @@ local function addpattern(self, name)
     if dict.exact_match then
         for hash, _ in pairs(dict.exact_match) do
             exact_patterns[tonumber(hash)] = true
+        end
+    end
+end
+
+local function checkword(word)
+    if exact_patterns[strhash(word)] then
+        return true
+    end
+
+    for i = 1, #lose_patterns do
+        if word:find(lose_patterns[i]) then
+            return true
         end
     end
 end
@@ -102,16 +112,21 @@ function ProfanityFilter:Detect(text)
         return false
     end
 
-    for word in normalize(lower(text)):gmatch(WORD_PATTERN) do
-        if exact_patterns[strhash(word)] then
-            return true
+    for word in text:gmatch(WORD_PATTERN) do
+        local mcount = 0
+        local capitals = word:gmatch(CAPITAL_SPLIT)
+        if capitals then
+            -- ForWordsInCamelCase
+            for capital in capitals do
+                mcount = mcount + #capital
+                if checkword(capital:lower()) == true then
+                    return true
+                end
+            end
         end
 
-        -- Plase no changes to the strings here except of censoring it.
-        for i = 1, #lose_patterns do
-            if word:find(lose_patterns[i]) then
-                return true
-            end
+        if mcount ~= #word and checkword(word:lower()) == true then
+            return true
         end
     end
 
@@ -124,7 +139,7 @@ function ProfanityFilter:CountSwears(text)
     end
 
     local count = 0
-    for word in normalize(lower(text)):gmatch(WORD_PATTERN) do
+    for word in lower(text):gmatch(WORD_PATTERN) do
         if exact_patterns[strhash(word)] then
             count = count + 1
         else

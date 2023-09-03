@@ -25,16 +25,20 @@ local ENDPOINTS = {
     W_MESSAGE = "/messages/%s"
 }
 
-local MESSAGE_ACTIONS = {
+local WEBHOOK_ACTIONS = {
     POST   = 1,
     DELETE = 2,
     EDIT   = 3,
+
+    GET    = 4,
 }
 
-local MESSAGE_ACTION_METHODS = {
-    [MESSAGE_ACTIONS.POST]      = PEARL.HTTPClient.METHODS.POST,
-    [MESSAGE_ACTIONS.DELETE]    = PEARL.HTTPClient.proxy.METHODS.DELETE,
-    [MESSAGE_ACTIONS.EDIT]      = PEARL.HTTPClient.proxy.METHODS.PATCH,
+local WEBHOOK_ACTION_METHODS = {
+    [WEBHOOK_ACTIONS.POST]      = PEARL.HTTPClient.METHODS.POST,
+    [WEBHOOK_ACTIONS.DELETE]    = PEARL.HTTPClient.proxy.METHODS.DELETE,
+    [WEBHOOK_ACTIONS.EDIT]      = PEARL.HTTPClient.proxy.METHODS.PATCH,
+
+    [WEBHOOK_ACTIONS.GET]      = PEARL.HTTPClient.METHODS.GET,
 }
 
 --------------------------------
@@ -97,7 +101,11 @@ local function _OnErrorStatusCode(response, status_code, request)
 end
 
 local function _SendActionRequest(url, action, data, force)
-    local method = MESSAGE_ACTION_METHODS[action]
+    if RestAPI:IsDisabled() then
+        return
+    end
+
+    local method = WEBHOOK_ACTION_METHODS[action]
 
     --- @type HTTPClient|HTTPClientProxy
     local client = PEARL.HTTPClient
@@ -107,7 +115,7 @@ local function _SendActionRequest(url, action, data, force)
     end
 
     local request = client:Request(
-        url, MESSAGE_ACTION_METHODS[action], nil, data, REQUEST_TIMEOUT
+        url, WEBHOOK_ACTION_METHODS[action], nil, data, REQUEST_TIMEOUT
     )
     :SetErrorHandler(_OnErrorStatusCode)
 
@@ -143,13 +151,26 @@ end
 --------------------------------
 
 --- @param wurl string The URL of the target webhook.
+--- @param action WEBHOOK_ACTIONS The action to be executed for the given webhook's message.
+--- @return Request? request The request send for this action.
+function RestAPI:DoWebhookAction(wurl, action, force)
+    if self:IsDisabled() then
+        PEARL.error("Attempted to execute a webhook action but the Rest API is disabled!")
+        return
+    end
+
+    return _SendActionRequest(wurl, action, nil, force)
+end
+
+--- @param wurl string The URL of the target webhook.
 --- @param message_id string? The snowflake of the target message.
---- @param action MESSAGE_ACTIONS The action to be executed for the given webhook's message.
+--- @param action WEBHOOK_ACTIONS The action to be executed for the given webhook's message.
 --- @param message Message The message object representing providing the data for this action.
 --- @param force boolean? Whether to skip the queue for the action request or not.
 --- @return Request? request The request send for this action.
 function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message, force)
     if self:IsDisabled() then
+        PEARL.error("Attempted to execute a webhook message action but the Rest API is disabled!")
         return
     end
 
@@ -175,7 +196,7 @@ function RestAPI:PostWebhookMessage(wurl, message, force)
     --PEARL.debug("PostWebhookMessage", message)
 
     return self:DoWebhookMessageAction(
-        wurl, nil, MESSAGE_ACTIONS.POST, message, force
+        wurl, nil, WEBHOOK_ACTIONS.POST, message, force
     )
 end
 
@@ -188,7 +209,7 @@ function RestAPI:EditWebhookMessage(wurl, message_id, edited, force)
     --PEARL.debug("EditWebhookMessage", message_id)
 
     return self:DoWebhookMessageAction(
-        wurl, message_id, MESSAGE_ACTIONS.EDIT, edited, force
+        wurl, message_id, WEBHOOK_ACTIONS.EDIT, edited, force
     )
 end
 
@@ -200,8 +221,17 @@ function RestAPI:DeleteWebhookMessage(wurl, message_id, force)
     --PEARL.debug("DeleteWebhookMessage", message_id)
 
     return self:DoWebhookMessageAction(
-        wurl, message_id, MESSAGE_ACTIONS.DELETE, nil, force
+        wurl, message_id, WEBHOOK_ACTIONS.DELETE, nil, force
     )
+end
+
+--- @param wurl string The URL of the target webhook.
+--- @param force boolean? Whether to skip the queue for the action request or not.
+--- @return Request? request The request send for this action.
+function RestAPI:FetchWebhookData(wurl, force)
+    --PEARL.debug("FetchWebhookData", message_id)
+
+    return self:DoWebhookAction(wurl, WEBHOOK_ACTIONS.GET, force)
 end
 
 --------------------------------
@@ -218,7 +248,7 @@ function RestAPI:RateLimitForTime(seconds)
 
         -- If the task already exists then increase it's number of seconds.
         if self._rate_limit_task ~= nil and type(self._rate_limit_task.exec_time) == "number" then
-            self._rate_limit_task.exec_time = self._rate_limit_task.exec_time + seconds
+            self._rate_limit_task:setexttime(self._rate_limit_task._ext + seconds)
             return
         end
 

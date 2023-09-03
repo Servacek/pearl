@@ -541,11 +541,6 @@ if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
 
-    local mt = getmetatable(TheNet)
-    PEARL.OverrideReturnValue(mt.__index, "GetServerListingFromActualIndex", function(listing)
-        table.dump(listing)
-    end)
-
     PEARL.info("Loading mod FE done.")
 end
 

@@ -275,11 +275,16 @@ RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
         :AddTarget(target)
 end)
 
-RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target)
+RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
+    print("PLANT", doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.PLANT)
         :SetIsSilent(true)
-        :AddTarget(target)
+        :AddTarget(item)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target)
+    print("FERTILIZE", doer, target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target)
@@ -593,7 +598,21 @@ end
 -------------------
 
 local function onbuilditem(doer, data)
+    local target = data.item
+    if not target then
+        return
+    end
 
+    -- If the target is burning right from the start.
+    if target.components.burnable and target.components.burnable:IsBurning() then
+        print("BUILT FIRE SOURCE!")
+    end
+
+    print("BUILD", target, target)
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
+        :SetIsSilent(true)
+        :AddTarget(target)
 end
 
 local function onbuildstructure(doer, data)
@@ -606,8 +625,8 @@ local function onbuildstructure(doer, data)
         print("BUILD FIRE SOURCE")
         local near = target:GetPropagableBurnableEntities()
         if near and #near > 0 then
-            local silent = #near > 2 or table.find(near, structuresearchfn)
-            local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[silent and "PROPAGATOR" or "BURNT"]
+            local silent = not (#near > 2 or table.find(near, structuresearchfn))
+            local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[silent and "PROPAGATOR" or "BURN"]
 
             AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, {
                 near = near
@@ -618,35 +637,10 @@ local function onbuildstructure(doer, data)
     end
 
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BUILD)
         :SetIsSilent(true)
         :AddTarget(target)
 end
-
-RegisterPlayerActionHandler(ACTIONS.BUILD, function(doer, target, item)
-    if not item then
-        return
-    end
-
-    -- If the target is burning right from the start.
-    if item.components.burnable and item.components.burnable:IsBurning() then
-        print("BUILT FIRE SOURCE!")
-    end
-
-    print("BUILD", target, item)
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
-        :SetIsSilent(true)
-        :AddTarget(item)
-end)
-
-RegisterPlayerActionHandler(ACTIONS.CONSTRUCT, function(doer, target, item)
-    print("CONSTRUCT", target, item)
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
-        :SetIsSilent(true)
-        :AddTarget(target)
-end)
 
 -------------------
 -- THIEFS --
