@@ -537,11 +537,10 @@ configuration_options = {
     -- Access Lists
     --------------------
 
-    --- @disabled for now, use allowlist instead which is more reliable.
-    -- Keeping it here just in case it is useful for something.
-    {
-        name = "WHITELIST_MODE",
-        default = false,
+    {   -- Will add all admins to the whitelist, so they will get
+        -- an
+        name = "GARANT_ADMIN_SLOTS",
+        default = true,
         options = {
             true,
             false,
