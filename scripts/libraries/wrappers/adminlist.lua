@@ -43,13 +43,17 @@ end
 
 function AdminList:Clear()
     for userid, _ in pairs(self._userids) do
-        self._userids[userid] = nil
+        self:Remove(userid)
     end
 end
 
 --------------------------------------
 -- [[ Getters ]]
 --------------------------------------
+
+function AdminList:Get()
+    return self._userids
+end
 
 function AdminList:Contains(userid)
     return self._userids[userid] == true
@@ -82,6 +86,8 @@ function AdminList:Load()
             -- Strip the lines because of the annoying '\r' on Windows...
             self:Add(line:strip())
         end
+
+        PEARL.EventProcessor:HandleEvent("adminlist_loaded", self:Get())
     end)
 end
 
@@ -94,6 +100,7 @@ function AdminList:Save()
     end
 
     -- Adds the 'KLEI     1' prefix...
+    -- Therefore we should start with a new line.
     return TheSim:SetPersistentString(ADMINLIST_PATH, content, false)
 end
 

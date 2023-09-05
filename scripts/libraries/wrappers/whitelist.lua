@@ -129,6 +129,24 @@ function WhiteList:Contains(userid)
 end
 
 --------------------------------------
+-- [[ Event Handlers ]]
+--------------------------------------
+
+local function OnAdminListLoaded(userids)
+    --- @TODO:
+end
+
+--------------------------------------
+-- [[ Event Listeners ]]
+--------------------------------------
+
+-- We are running here only when the adminlist loads, since
+-- that's the only way to
+if PEARL.CONFIG.GARANT_ADMIN_SLOTS then
+    PEARL.EventProcessor:AddEventHandler("adminlist_loaded", OnAdminListLoaded)
+end
+
+--------------------------------------
 -- [[ Return ]]
 --------------------------------------
 
