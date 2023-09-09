@@ -1,0 +1,91 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
+-- Note: This loads before modmain.lua
+
+-- During world generation process TheNet and TheSim are nil.
+-- Also worldgen_main.lua is loaded at that time so we are missing it's environment.
+if GLOBAL.rawget(GLOBAL, "TheNet") or GLOBAL.rawget(GLOBAL, "TheSim") then
+    return
+end
+
+----------------------------------
+-- Contants
+----------------------------------
+
+-- local LOCATION_TYPE = {
+--     FOREST = "forest",
+--     CAVES  = "cave",
+-- }
+
+local wg_overrides
+local gen_params = GLOBAL.json.decode(GLOBAL.GEN_PARAMETERS)
+if gen_params then
+    wg_overrides = gen_params.level_data and gen_params.level_data.overrides or nil
+end
+
+----------------------------------
+-- Required Setpieces
+----------------------------------
+
+local function RequireTaskInTaskSet(taskset, task_name)
+    if type(taskset) ~= "table" then
+        taskset.tasks = {}
+    elseif table.contains(taskset.tasks, task_name) then
+        return
+    end
+
+    if not table.contains(taskset.optionaltasks, task_name) then
+        return print("[PEARL] [WorldGen] Warning:", task_name, " doesn't exist or is already required in takset", taskset.name)
+    end
+
+    print("[PEARL] [WorldGen] Forcing task", task_name, "for taskset", taskset.name)
+    table.insert(taskset.tasks, task_name)
+end
+
+--- @deprecated This can be set directly via leveldataoverrides.lua
+-- local function AddRequiredSetpiece(name)
+-- 	AddLevelPreInitAny(function(level)
+--         if not level.required_setpieces or table.contains(level.required_setpieces, name) then
+--             return
+--         end
+
+--         print("[PEARL] [WorldGen] Setting setpiece", name, "as required!")
+--         table.insert(level.required_setpieces, name)
+-- 	end)
+-- end
+
+------------------------------
+--- @TODO: Looks like there is some error here: Investigate
+if wg_overrides then
+    local taskset_name = (wg_overrides and wg_overrides.task_set) or "default"
+    local required_tasks = GetModConfigData("REQUIRED_WORLDGEN_TASKS")
+
+    print("[PEARL] Applying required tasks for", taskset_name)
+    AddTaskSetPreInit(taskset_name, function(taskset)
+
+        for _, task_name in ipairs(required_tasks) do
+            RequireTaskInTaskSet(taskset, task_name)
+        end
+    end)
+
+    --- @TODO: Maybe fix the wg_overrides.has_ocean flag?
+end
+
+----------------------------------
+-- Seed
+----------------------------------
+
+print("[PEARL] Using configured world seed...")
+GLOBAL.rawset(GLOBAL, "SEED", GetModConfigData("SEED") or GLOBAL.rawget(GLOBAL, "SEED"))
