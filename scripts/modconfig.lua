@@ -88,18 +88,21 @@ local function ParsePublicConfigOption(option, tbl)
     end
 end
 
-local function GetConfigOptionByName(mod, optname)
-    for _, option in ipairs(mod.configuration_options) do
+local function GetModConfigOverridesFor(modname, ...)
+    local overrides = KnownModIndex:LoadModOverides(...)
+    return overrides and overrides[modname] and overrides[modname].configuration_options
+end
+
+local function GetConfigOptionByName(options, optname)
+    for _, option in ipairs(options) do
         if option.name == optname then
             return option
         end
     end
-
-    return
 end
 
 local function VerifyConfigOverridesForMod(modname)
-    local overrides = KnownModIndex:LoadModConfigurationOptions(modname, false)
+    local overrides = GetModConfigOverridesFor(modname)
     if type(overrides) ~= "table" then
         return -- Mod has no overrides...
     end
@@ -109,11 +112,8 @@ local function VerifyConfigOverridesForMod(modname)
         return PEARL.error("Invalid mod provided for config override verification...")
     end
 
-    for _, override in pairs(overrides) do
-        local option = GetConfigOptionByName(mod, override.name)
-        if type(option) ~= "table" or option.implicit == true then
-            return error("Attempted to override an invalid option ("..override.name..") in modoverrides.lua.")
-        end
+    for name, _ in pairs(overrides) do
+        ModConfig:VerifyConfig(name, mod.modinfo.configuration_options)
     end
 end
 
@@ -148,6 +148,14 @@ function ModConfig:GetAllConfigDataForMod(modname)
     end
 
     return config_data
+end
+
+function ModConfig:VerifyConfig(optname, options)
+    options = options or PEARL.MOD_INFO.configuration_options
+    local option = GetConfigOptionByName(options, optname)
+    if type(option) ~= "table" or option.implicit == true then
+        return error("Attempted to override an invalid option ("..optname..") in modoverrides.lua.")
+    end
 end
 
 function ModConfig:GetEnabledServerModsConfigData()

@@ -15,7 +15,7 @@
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 
-return {
+local ICONS = {
     X = "<:x_:999294448045408277>",
     CHECK = "<:check:999294412972625940>",
     PING = "<:connection:1064114008698916864>",
@@ -169,3 +169,17 @@ return {
         ["propagator"]= PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FIREPIT],
     },
 }
+
+--- Inventory Icons
+
+local rf = io.open(PEARL.MODROOT.."/data/inventory_icons.json", "r")
+if rf then
+    ICONS.INVENTORY = json.load(rf)
+    rf:close()
+end
+
+ICONS.INVENTORY = ICONS.INVENTORY or {}
+
+--- Return
+
+return ICONS

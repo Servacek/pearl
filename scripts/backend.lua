@@ -260,6 +260,11 @@ local function apply_common_config(common, loaded, override)
     override = override or PEARL.CONFIG_OVERRIDES
 
     for name, value in pairs(common) do
+        -- Only verify config options on the first level.
+        if loaded == PEARL.CONFIG then
+            PEARL.ModConfig:VerifyConfig(name)
+        end
+
         if type(value) == "table" and #value == 0 and not table.empty(value) then
             -- Ensure the override for this option is a table as well.
             if common[name] ~= nil and loaded[name] == nil then

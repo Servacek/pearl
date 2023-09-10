@@ -21,3 +21,22 @@ function json.encode_sanitized(data)
     local success, result = pcall(json.encode_compliant, data)
     return success, success and utf8.decode_string(result) or result
 end
+
+--- @param t table
+--- @param file file*
+--- @return file*? file, string? data
+function json.dump(t, file)
+    local success, str = pcall(json.encode, t)
+    if success == true then
+        return file:write(str)
+    end
+
+    return file, str
+end
+
+--- @param file file*
+--- @return table? result
+function json.load(file)
+    local _, result = pcall(json.decode, file:read("*a"))
+    return result
+end

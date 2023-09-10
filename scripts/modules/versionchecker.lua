@@ -105,6 +105,8 @@ local function StartServerUpdate()
 
         PEARL.BroadcastRPCToConnectedShards(PEARL.RPC.BroadcastLua, "TheSim:Crash()")
         PEARL.WallScheduler:ExecuteInTime(1, function()
+            PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
+
             TheSim:Crash()
         end)
     end)

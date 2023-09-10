@@ -57,7 +57,14 @@ function EMBEDS.Inventory(pmd, highlighted)
     for iprefab, icount in pairs(inventory) do
         icount = tostring(icount)
         local line = MARKDOWN.codeline(string.rep(" ", max_count_size - #icount)..icount.."x").." "..
-        MARKDOWN.codeline(iprefab..string.rep(" ", max_prefab_size - #iprefab)).." "..PEARL.PrefabToName(iprefab)
+        MARKDOWN.codeline(iprefab..string.rep(" ", max_prefab_size - #iprefab))
+
+        local icon = PEARL.ICONS.INVENTORY[iprefab]
+        if icon then
+            line = line.." "..icon
+        end
+
+        line = line.." "..PEARL.PrefabToName(iprefab)
 
         -- Keep the highlighted items on top.
         if type(highlighted) == "table" and (table.contains(highlighted, iprefab) or highlighted[iprefab] == 1) then

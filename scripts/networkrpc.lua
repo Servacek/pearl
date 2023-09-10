@@ -94,10 +94,6 @@ local SHARD_RPCS = {
         -- Always keep just the newest record
         PEARL.ServerNetwork:HandleRawConnectionData(userid, data, shardid)
     end,
-
-    TEST = function(...)
-        print("SHARD RPC TEST EXECUTED!!", ...)
-    end,
 }
 
 --- These RPCS are called from the clients so additional security checks are needed.
