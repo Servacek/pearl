@@ -81,7 +81,7 @@
 --]]
 
 local GLOBAL = GLOBAL
-local setmetatable, rawget, rawset = GLOBAL.setmetatable, GLOBAL.rawget, GLOBAL.rawset
+local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
 --- LINK TESTS
 --------------------------------
