@@ -113,7 +113,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         prefab = player:GetFancyPrefabName()
     end
 
-    local icon = PEARL.ICONS.PLAYER_VANITY[vanity[2]]
+    local icon = type(vanity) == "table" and PEARL.ICONS.PLAYER_VANITY[vanity[2]]
     if not icon and type(prefab) == "string" then
         icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..prefab:capitalize().."]")
     end
