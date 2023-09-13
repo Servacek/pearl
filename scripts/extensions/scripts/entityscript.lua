@@ -107,6 +107,38 @@ function EntityScript:GetFancyName()
     return name
 end
 
+function EntityScript:GetUserFlags()
+    return self.Network ~= nil and self.Network:GetUserFlags() or 0
+end
+
+function EntityScript:GetStateNumber()
+    local userflags = self:GetUserFlags()
+    local states = { USERFLAGS.CHARACTER_STATE_1, USERFLAGS.CHARACTER_STATE_2, USERFLAGS.CHARACTER_STATE_3 }
+
+    for i, state in ipairs(states) do
+        if checkbit(userflags, state) then
+            return i
+        end
+    end
+
+    return 0
+end
+
+function EntityScript:GetFancyPrefabName()
+    local userflags = self:GetUserFlags()
+    local prefabname = tostring(self.prefab)
+    if checkbit(userflags, USERFLAGS.IS_GHOST) then
+        prefabname = prefabname.."_ghost"
+    end
+
+    local state_number = self:GetStateNumber()
+    if state_number and state_number > 0 then
+        prefabname = prefabname.."_"..tostring(state_number)
+    end
+
+    return prefabname
+end
+
 -----------------------------------
 -- [[ Event System Extensions ]]
 -----------------------------------

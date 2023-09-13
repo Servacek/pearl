@@ -61,10 +61,44 @@ local ICONS = {
 
         -- Unknown character
         [""] =              "<:unknown:990652780496695406>",
-        unknown =           "<:unknown:990652780496695406>",
+        --unknown =           "<:unknown:990652780496695406>",
 
         -- Server
         ["server"] =        "<:dedicated:1001104949524041788>",
+
+        -- Ghost Prefabs
+        ["ghost_wilson"]        = "<:ghost_wilson:1150182509926174740>",
+        ["ghost_winona"]        = "<:ghost_winona:1150182524098728068>",
+        ["ghost_wolfgang"]      = "<:ghost_wolfgang:1150182536794886175>",
+        ["ghost_wonkey"]        = "<:ghost_wonkey:1150182549918863420>",
+        ["ghost_woodie"]        = "<:ghost_woodie:1150182563378372789>",
+        ["ghost_woodie_1"]      = "<:ghost_woodie_1:1150182576544292875>",
+        ["ghost_woodie_2"]      = "<:ghost_woodie_2:1150182622572593234>",
+        ["ghost_woodie_3"]      = "<:ghost_woodie_3:1150182637646917793>",
+        ["ghost_wickerbottom"]  = "<:ghost_wickerbottom:1150182661273436252>",
+        ["ghost_wes"]           = "<:ghost_wes:1150182678679789661>",
+        ["ghost_wendy"]         = "<:ghost_wendy:1150182697654829067>",
+        ["ghost_webber"]        = "<:ghost_webber:1150182722627702836>",
+        ["ghost_waxwell"]       = "<:ghost_waxwell:1150182740889718905>",
+        ["ghost_wathgrithr"]    = "<:ghost_wathgrithr:1150182759030075392>",
+        ["ghost_warly"]         = "<:ghost_warly:1150182774750314678>",
+        ["ghost_wanda"]         = "<:ghost_wanda:1150182789849821185>",
+        ["ghost_walter"]        = "<:ghost_walter:1150182815477010513>",
+        ["ghost_willow"]        = "<:ghost_willow:1150182832178737212>",
+        ["ghost_unknown"]       = "<:ghost_unknown:1150182868279099432>",
+        ["ghost_wormwood"]      = "<:ghost_wormwood:1151208430586044466>",
+        ["ghost_wortox"]        = "<:ghost_wortox:1151208508566544425>",
+        ["ghost_wurt"]          = "<:ghost_wurt:1151208540871082034>",
+        ["ghost_wx78"]          = "<:ghost_wx78:1151208576010948619>",
+
+        -- State Prefabs
+        ["woodie_1"]            = "<:woodie_1:1151231449664589894>",
+        ["woodie_2"]            = "<:woodie_2:1151231475216302141>",
+        ["woodie_3"]            = "<:woodie_3:1151231500335984723>",
+        ["wormwood_1"]          = "<:wormwood_1:1151231540425146460>",
+        ["wormwood_2"]          = "<:wormwood_2:1151231563380555818>",
+        ["wormwood_3"]          = "<:wormwood_3:1151231594078666792>",
+        ["unknown"]             = "<:unknown:1151231676891005070>"
     },
 
     LEADERBOARD_PLACES = {
