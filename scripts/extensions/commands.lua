@@ -901,6 +901,7 @@ AddCommand("revive", {
     paramsoptional = {false},
 
     mainfn = function(params, caller)
+        print(params.player)
         local userid = UserToClientID(params.player) or params.player
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
@@ -1182,5 +1183,7 @@ AddClassPostConstruct("screens/chatinputscreen", function(self)
     self.chat_edit:AddWordPredictionDictionary({
         delim = PLAYER_NAME_DELIM,
         words = names,
+
+        GetDisplayString = function(word) return "@"..word end
     })
 end)

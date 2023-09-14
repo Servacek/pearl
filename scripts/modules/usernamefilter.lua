@@ -28,7 +28,7 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
     if saved_username == data.username then
         valid = PEARL.PlayerDB:GetField(userid, "usernamevalid")
     else
-        valid = ProfanityFilter:Detect(data.username)
+        valid = not ProfanityFilter:Detect(data.username)
     end
 
     PEARL.PlayerDB:OptionalSafeSetField(userid, "usernamevalid", valid)
