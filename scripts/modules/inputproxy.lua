@@ -104,11 +104,14 @@ local function HandleCommand(command)
 
         if Embed.is_instance(response) then
             response = Message():AddEmbed(response)
+        elseif Embed.is_instance(response[1]) then
+            response = Message():AddEmbeds(response)
         end
 
         AddCommandResponse(
             command.id, Message.is_instance(response) and response:ToTable() or response
         )
+
     elseif type(response) == "string" then
         PEARL.DiscordLogger:LogString(response)
     end

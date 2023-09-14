@@ -299,8 +299,31 @@ configuration_options = {
         type = "table<string>",
     },
 
-    { --- @TODO: Option to add custom loading tips.
+    {
         name = "CUSTOM_LOADING_TIPS",
+        default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    { -- Here we cannot implement option for adding custom backgrounds.
+      -- Because there isn't a way to (aside from using a REST API) to get
+      -- the required images to the client.
+        name = "CUSTOM_LOADING_IMAGES",
+        default = false,
+        public = true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    {
+        name = "WHISPER_WARNING",
         default = false,
         options = {
             true,

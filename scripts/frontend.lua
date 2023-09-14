@@ -189,6 +189,7 @@ PEARL.loadfile("extensions/ui/templates")
 PEARL.loadfile("extensions/ui/playerlist")
 PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
+PEARL.loadfile("extensions/ui/chatinputscreen")
 
 PEARL.loadfile("extensions/ui/loadingwidget")
 

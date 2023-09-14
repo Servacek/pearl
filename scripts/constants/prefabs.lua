@@ -139,6 +139,10 @@ return {
         ["oceantree_pillar"] = true,
     },
 
+    DO_NOT_MINE = {
+        ["glommer_statue"] = true,
+    },
+
 	FOOD = {
 		deerclops_eyeball = 6,
 		gears = 2,

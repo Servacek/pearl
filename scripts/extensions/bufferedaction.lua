@@ -10,7 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
---- @TODO:
 --- This is the act table provided to all ACTION handlers.
 --- We can use it for storing some stacking data in ActionLog.
 
@@ -18,7 +17,7 @@
 local BufferedAction = BufferedAction
 
 --------------------------------
--- [[ Public Methods]]
+-- [[ Public Methods ]]
 --------------------------------
 
 --- @param target EntityScript
