@@ -20,8 +20,6 @@ setfenv(1, PEARL.ENV)
 -- [[ Class Declaration ]]
 -------------------------------------
 
---- @TODO: Crash if an invalid option is provided.
-
 --- @class ModConfig
 local ModConfig = {}
 
@@ -169,6 +167,102 @@ end
 
 function ModConfig:GetEnabledServerModsConfigDataString()
     return DataDumper(self:GetEnabledServerModsConfigData(), nil, false)
+end
+
+--- Push mod config warnings only for the server owner to see.
+function ModConfig:LoadConfigOption(option)
+    if PEARL.CONFIG[option.name] then
+        return PEARL.warn("Config option", option.name, "already loaded!")
+    end
+
+    local failed = false
+    if option.saved ~= nil then
+        if option.master_only and TheShard:IsSecondary() then
+            PEARL.warn("Option", option.name, "is only available for the master shard!")
+            failed = true
+        end
+
+        if option.caves_only and TheShard:IsMaster() then
+            PEARL.warn("Option", option.name, "is only available for the secondary shard!")
+            failed = true
+        end
+
+        if type(option.type) == "string" and option.type:match(type(option.saved)) == nil then
+            PEARL.warn("Option", option.name, "has incorrect type!")
+            failed = true
+        end
+    end
+
+    -- If it's a required option then check if we have configured it.
+    if option.warn == true and option.saved == nil then
+        PEARL.warn("Option", option.name, "is not configured! Some functionality may not work.")
+    end
+
+    if option.experimental == true and (
+            option.saved == true or
+            (type(option.saved) == "table" and option.saved.ENABLED == true)
+        ) then
+        PEARL.warn("Experimental feature", option.name, "is enabled!")
+    end
+
+    -- Set this even for implicit configurations
+    -- since they will override it later.
+    PEARL.CONFIG[option.name] = failed and option.default or PEARL.GetConfigData(option.name)
+
+    -- if type(option.checks) == "table" and not IsTableEmpty(option.checks) then
+    --     local failed = RunOptionChecksRecursively(option)
+    --     if not IsTableEmpty(failed) then
+    --         PEARL.warn(
+    --             "Module", option.name, "is enabled. However, these parameters are required by it but not provided:", table.concat(failed, ", ")
+    --         )
+    --         PEARL.warn("In order for the module to function correctly, please add them to modoverrides.lua")
+    --     end
+    -- end
+end
+
+function ModConfig:LoadCommmonConfig()
+    local success, config_str = PEARL.GetPersistentString(PEARL.CONSTS.COMMON_CONFIG_PATH, true)
+    if not success or type(config_str) ~= "string" then
+        return error("Failed to load common config!")
+    end
+
+    local fn, message = loadstring(config_str)
+    if type(fn) ~= "function" then
+        return error("Failed to load common config string! Reason: " .. tostring(message))
+    end
+
+    local success, config = RunInEnvironment(fn, {})
+    if not success or type(config) ~= "table" then
+        return PEARL.warn("No common configurations set.")
+    end
+
+    return config
+end
+
+function ModConfig:ApplyCommonConfig(common, loaded, override)
+    loaded = loaded or PEARL.CONFIG
+    override = override or PEARL.CONFIG_OVERRIDES
+
+    for name, value in pairs(common) do
+        -- Only verify config options on the first level.
+        if loaded == PEARL.CONFIG then
+            PEARL.ModConfig:VerifyConfig(name)
+        end
+
+        if type(value) == "table" and #value == 0 and not table.empty(value) then
+            -- Ensure the override for this option is a table as well.
+            if common[name] ~= nil and loaded[name] == nil then
+                loaded[name] = {}
+            end
+
+            self:ApplyCommonConfig(common[name], loaded[name], override[name])
+        else
+            -- If no override exists for this configuration
+            if override[name] == nil then
+                loaded[name] = common[name]
+            end
+        end
+    end
 end
 
 -------------------------------------

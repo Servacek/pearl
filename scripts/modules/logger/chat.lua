@@ -108,7 +108,12 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
         message = ProfanityFilter:Apply(message, MARKDOWN.PATTERNS.SPOILER, true)
     end
 
-    local icon = PEARL.ICONS.PLAYER_VANITY[vanity[2]]
+    local player = Ents[guid]
+    if player then
+        prefab = player:GetFancyPrefabName()
+    end
+
+    local icon = type(vanity) == "table" and PEARL.ICONS.PLAYER_VANITY[vanity[2]]
     if not icon and type(prefab) == "string" then
         icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..prefab:capitalize().."]")
     end

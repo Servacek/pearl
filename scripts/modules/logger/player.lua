@@ -63,6 +63,10 @@ end
 ------------------------
 
 -- A wrapper function for registering action handlers
+--- @param action Action The action to register the handler for.
+--- @param handler function The additional handler for the provided action.
+--- @param checkfn function? Optional check function used to verify the arguments passed for the action handler.
+--- @return handler function? The handler parameter. Used for chaining.
 local function RegisterActionHandler(action, handler, checkfn)
     if type(action) ~= "table" then
         error("invalid action")
@@ -94,6 +98,8 @@ local function RegisterActionHandler(action, handler, checkfn)
 
         return success
     end
+
+    return handler
 end
 
 -- local function RegisterDefaultActionHandler(action, handler)
@@ -294,6 +300,8 @@ RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target)
         :AddTarget(target)
 end)
 
+RegisterPlayerItemActionHandler(ACTIONS.GIVEALLTOPLAYER,
+RegisterPlayerItemActionHandler(ACTIONS.GIVETOPLAYER,
 RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
     local prohibited = PEARL.PREFABS.DO_NOT_CHOP[target.prefab]
 
@@ -304,13 +312,25 @@ RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
             :SetIsSilent(not prohibited)
             :AddTarget(target)
     end
-end)
+end)))
 
 RegisterPlayerItemActionHandler(ACTIONS.PLAY, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLAY.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.PLAY)
         :SetIsSilent(true)
         :AddTarget(item)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.MINE, function(doer, target)
+    local prohibited = PEARL.PREFABS.DO_NOT_MINE[target.prefab]
+
+    -- Too spammy, announce only if prohibited.
+    if prohibited then
+        AL:QueueEntAct(STRINGS.PEARL.ACTIONS.MINE.GENERIC, doer)
+            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.MINE)
+            :SetIsSilent(not prohibited)
+            :AddTarget(target)
+    end
 end)
 
 local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)

@@ -736,10 +736,9 @@ PEARL.AddRawServerUseridRPCHandler("ClientDisconnected", function(userid, reason
     PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
 end)
 
---- @TODO: Handle secondary shards receiving this data. Redirect them to Master?
---- We need this data on the Master shard as well...
----
---- We will probably save the data from this to the DB.
+--- Since the players are always only on one shard,
+--- we load the db record only on the active shard and unload it everywhere else.
+--- This way there are no conflicts and the DB is accessible from any shard.
 PEARL.AddRawServerUseridRPCHandler("ConnectionFilterData", function(userid, data)
     if not checkstring(data) then
         return ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)

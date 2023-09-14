@@ -414,7 +414,6 @@ AddCommand("inv", {
     end,
 })
 
---- @TODO: Add discord support.
 AddCommand("inv-find", {
     aliases = {"item-find", "invf"},
     consolename = "invf",

@@ -18,7 +18,7 @@ local LoadingWidget = require("widgets/redux/loadingwidget")
 local LT_TYPES = PEARL.CONSTS.LT_TYPES
 
 ---------------------------
--- [[ Loading Images ]]
+-- [[ Constants ]]
 ---------------------------
 
 --- @---------------------NOTE-----------------------
@@ -30,18 +30,26 @@ local CUSTOM_LOADING_IMAGES = {
 local TEX_PATTERN = "%s.tex"
 local XML_PATTERN = "images/bg_loading_%s.xml"
 
-Settings.loading_screen_keys = Settings.loading_screen_keys or {}
-local loading_screen_tips = Settings.loading_screen_keys
-for _, image in ipairs(CUSTOM_LOADING_IMAGES) do
-    Settings.loading_screen_keys[#Settings.loading_screen_keys+1] = image
-end
+---------------------------
+-- [[ Local Functions ]]
+---------------------------
 
+local loading_screen_tips
 local custom_images = false
-if PEARL.ClientNetwork:IsNovice() and #CUSTOM_LOADING_IMAGES > 0 then
-    -- Always show custom loading screen for novices.
-    Settings.loading_screen_keys = shallowcopy(CUSTOM_LOADING_IMAGES)
+local function LoadCustomImages()
+    Settings.loading_screen_keys = Settings.loading_screen_keys or {}
+    loading_screen_tips = Settings.loading_screen_keys
+    for _, image in ipairs(CUSTOM_LOADING_IMAGES) do
+        Settings.loading_screen_keys[#Settings.loading_screen_keys + 1] = image
+    end
 
-    custom_images = true
+    custom_images = false
+    if PEARL.ClientNetwork:IsNovice() and #CUSTOM_LOADING_IMAGES > 0 then
+        -- Always show custom loading screen for novices.
+        Settings.loading_screen_keys = shallowcopy(CUSTOM_LOADING_IMAGES)
+
+        custom_images = true
+    end
 end
 
 local function ShowCustomImage(self)
@@ -57,43 +65,50 @@ local function ShowCustomImage(self)
     end
 end
 
-PEARL.AddClassFunctionPreCall("SetEnabled", function(self, enabled)
-    if enabled == true then
-        return
-    end
+local function SetupWrappers()
+    PEARL.AddClassFunctionPreCall("SetEnabled", function(self, enabled)
+        if enabled == true then
+            return
+        end
 
-    -- Restore loading screen keys after first hide.
-    if custom_images then
-        Settings.loading_screen_keys = loading_screen_tips
-    end
-end, LoadingWidget)
+        -- Restore loading screen keys after first hide.
+        if custom_images then
+            Settings.loading_screen_keys = loading_screen_tips
+        end
+    end, LoadingWidget)
 
-PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
-    -- Make sure we are visible right from the start.
+    PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
+        -- Make sure we are visible right from the start.
 
-    -- Just not for novices, because of the welcome screen and additional checks.
-    if PEARL.ClientNetwork:IsNovice() then
-        return
-    end
+        -- Just not for novices, because of the welcome screen and additional checks.
+        if PEARL.ClientNetwork:IsNovice() then
+            return
+        end
 
-    if TheFrontEnd then
-        TheFrontEnd:SetFadeLevel(1)
-    end
+        if TheFrontEnd then
+            TheFrontEnd:SetFadeLevel(1)
+        end
 
-    self:SetEnabled(true)
+        self:SetEnabled(true)
 
-    ShowCustomImage(self)
-end)
+        ShowCustomImage(self)
+    end)
 
-PEARL.AddUserDataFunctionPostCall("UnregisterAllPrefabs", function()
-    PEARL.ENV.ReloadPreloadAssets()
+    PEARL.AddUserDataFunctionPostCall("UnregisterAllPrefabs", function()
+        PEARL.ENV.ReloadPreloadAssets()
 
-    -- It looks like we have to register the assets manually after they are unregistered
-    -- by the game logic.
-    if global_loading_widget then
-        ShowCustomImage(global_loading_widget)
-    end
-end, TheSim)
+        -- It looks like we have to register the assets manually after they are unregistered
+        -- by the game logic.
+        if global_loading_widget then
+            ShowCustomImage(global_loading_widget)
+        end
+    end, TheSim)
+end
+
+if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
+    LoadCustomImages()
+    SetupWrappers()
+end
 
 ---------------------------
 -- [[ Loading Tips ]]

@@ -138,6 +138,10 @@ local STRINGS = {
         PLAY = {
             GENERIC     = "{doer} played on {target}!",
         },
+
+        MINE = {
+            GENERIC     = "{doer} mined {target}!",
+        }
     },
 
     SHARDS = {
@@ -443,6 +447,8 @@ local STRINGS = {
         MODS_DISABLED_ALL_BODY = "All of your mods were blocked by the server.",
 
         TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
+
+        WHISPER_WARN_TEXT = "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone.",
 
         CMD_ERRORS = {
             EXECUTION = "Error while executing the command!",

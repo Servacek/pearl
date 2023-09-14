@@ -244,59 +244,6 @@ end
 load_general_config()
 
 --------------------------------
--- [[ Default Configurations ]]
---------------------------------
-
-PEARL.DEFAULT_CONFIG = {}
-
-local function load_default_config()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        if option.name ~= nil and option.default ~= nil then
-            PEARL.DEFAULT_CONFIG[option.name] = option.default
-        end
-    end
-end
-
-load_default_config()
-
---------------------------------
--- [[ Configuration Options ]]
---------------------------------
-
-PEARL.CONFIG_OPTIONS = {}
-
-local function load_config_options()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        if option.name ~= nil then
-            PEARL.CONFIG_OPTIONS[option.name] = option
-        end
-    end
-end
-
--- local function load_nested_config_options(loaded, options, path)
---     loaded = loaded or PEARL.CONFIG
---     options = options or PEARL.CONFIG_OPTIONS
---     path = path or nil
-
---     -- Iterate over the whole configuration tree.
---     for name, value in pairs(PEARL.DEFAULT_CONFIG) do
---         path = path and path.."."..name or name
-
---         if type(value) == "table" and #value == 0 and not table.empty(value) then
---             load_nested_config_options(loaded[name], options[name], path)
---         else
---             -- If no override exists for this configuration
---             if override[name] == nil then
---                 loaded[name] = common[name]
---             end
---         end
---     end
--- end
-
-load_config_options()
---load_nested_config_options()
-
---------------------------------
 -- [[ Configuration Overrides ]]
 --------------------------------
 
@@ -509,6 +456,9 @@ PEARL.AddAnnouncementCategory("eat")
 PEARL.AddAnnouncementCategory("propagator")
 PEARL.AddAnnouncementCategory("play")
 PEARL.AddAnnouncementCategory("chop")
+
+--- @TODO: Add Icon:
+PEARL.AddAnnouncementCategory("mine")
 
 --------------------------------
 -- [[ Instance Param Manager]]

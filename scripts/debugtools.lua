@@ -416,11 +416,24 @@ function _G.RawLogJSON(cb)
     _G.RawRequest(cb, "POST", f:read())
 end
 
-function _G.DSay(message, whisper)
-    Networking_Say(123, "KU_TEST", "Fi8iP",
-        "wilson", message, nil, whisper or false,
+function _G.DSay(message, whisper, prefab, state)
+    prefab = prefab or "wilson"
+
+    local player
+    if type(state) == "number" and state > 0 then
+        player = c_spawn(prefab)
+    end
+
+    local guid = player and player.GUID or 123
+    prefab = player and player.prefab or "wilson"
+    Networking_Say(guid, "KU_TEST", "Fi8iP",
+        prefab, message, nil, whisper or false,
         false, nil
     )
+
+    if player then
+        player:Remove()
+    end
 end
 
 function _G.DEmbed(title, desc)
