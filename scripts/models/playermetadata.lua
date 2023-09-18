@@ -97,7 +97,7 @@ function PlayerMetadata:GetName()
 end
 
 function PlayerMetadata:GetAge()
-    return (self._age or -1) + 1
+    return self._age or 0
 end
 
 function PlayerMetadata:GetUserID()

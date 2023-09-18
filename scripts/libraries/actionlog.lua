@@ -70,7 +70,6 @@ end
 --- @return QueuedLogAction action The current action for the given pattern built up from the static data provided.
 function ActionLog:QueueAct(p, sn, sv)
     if sn then
-        --- @TODO: handle sv being an entity.
         if sv and EntityScript.is_instance(sv) then
             sv = sv:GetFancyName()
         end

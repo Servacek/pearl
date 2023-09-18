@@ -273,7 +273,12 @@ local function OnResetCountDownStop(self)
     end
 end
 
-local function OnPlayerSpawnedAt(player, x, y, z)
+local function OnPlayerSpawned(self, player)
+    if not player.userid or player.userid == "" then
+        return
+    end
+
+    local x, y, z = player.Transform:GetWorldPosition()
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN_AT:format(
         player:GetDisplayName(), x, y, z
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
@@ -373,6 +378,7 @@ PEARL.AddWorldPostInit(function(world)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_playerdespawnanddelete", OnPlayerDespawnAndDelete)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
+        world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
         world:SafeListenForEvent("ms_save", OnSaved)
 
         --> Mod Events
@@ -382,14 +388,14 @@ PEARL.AddWorldPostInit(function(world)
         world:ListenForModEvent("world_reset", OnReset)
         world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
 
-        if world.components.playerspawner then
-            --- Use precall because some data may be cleared during the original function execution.
-            PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
-                if player and x and y and z then
-                    OnPlayerSpawnedAt(player, x, y, z)
-                end
-            end, world.components.playerspawner)
-        end
+        -- if world.components.playerspawner then
+        --     --- Use precall because some data may be cleared during the original function execution.
+        --     PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
+        --         if player and x and y and z then
+        --             OnPlayerSpawnedAt(player, x, y, z)
+        --         end
+        --     end, world.components.playerspawner)
+        -- end
     end
 end)
 

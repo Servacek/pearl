@@ -187,9 +187,12 @@ local function CalculateProfileData(steamid, cfd, cb)
             return -- no friends or profile is private
         end
 
+        -- Count banned friends.
         local banned_count = 0
         for _, friend in pairs(query.friendslist.friends) do
-            if PEARL.BlackList:Contains(friend.steamid) then
+            -- Attempt to conver the Steam ID to Klei ID since its used more frequently for banning.
+            local userid = PEARL.PlayerDB:MapNetID(friend.steamid) or friend.steamid
+            if PEARL.BlackList:Contains(userid) then
                 banned_count = banned_count + 1
             end
         end

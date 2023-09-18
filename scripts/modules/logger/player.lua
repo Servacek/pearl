@@ -32,9 +32,16 @@ local removearrayvalue = table.removearrayvalue
 -- [[ Constants ]]
 ------------------------
 
-local MAX_COMMAND_LENGTH = 500
+--local MAX_COMMAND_LENGTH = 500
 
 local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
+
+-- Determines the number of burnable structures needed to activate the extinguisher.
+local EXTINGUISHER_STRUCTURES = 4
+local EXTINGUISHER_ANY = 6
+local EXTINGUISHER_RADIUS = PEARL.CONSTS.EXTINGUISH_RADIUS
+
+local TIME_UNTIL_EXTINGUISH = 4 -- in seconds
 
 ------------------------
 -- [[ Check Functions ]]
@@ -63,10 +70,10 @@ end
 ------------------------
 
 -- A wrapper function for registering action handlers
---- @param action Action The action to register the handler for.
+--- @param action class<Action> The action to register the handler for.
 --- @param handler function The additional handler for the provided action.
 --- @param checkfn function? Optional check function used to verify the arguments passed for the action handler.
---- @return handler function? The handler parameter. Used for chaining.
+--- @return function handler? The handler parameter. Used for chaining.
 local function RegisterActionHandler(action, handler, checkfn)
     if type(action) ~= "table" then
         error("invalid action")
@@ -84,7 +91,7 @@ local function RegisterActionHandler(action, handler, checkfn)
             pos = pos or (target and target:GetPosition())
 
             local result, was_successfull
-            if checkfn(doer, target, item, pos) then
+            if type(checkfn) ~= "function" or checkfn(doer, target, item, pos) then
                 was_successfull, result = PEARL.SafeRun(handler,
                     doer, target, item, pos
                 )
@@ -121,6 +128,7 @@ end
 -- Announce when an object gets set on fire and who set it on fire.
 -- Only announces setting items and structures on fire (player creations)
 RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
+    -- Burnable entities in the propagation radius
     local near = target:GetPropagableEntities(
         PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
         PEARL.CONSTS.ENT_CANT_HAVE_TAGS
@@ -139,21 +147,51 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         silent = true
     end
 
+    --- @TODO: Create some separate "pyromaniac" component for this.
+    --- Cache the ignited entities somewhere.
+    --- For now this is enough since griefing is not that big of a problem as it was.
+    if doer.Transform and (
+        #near >= EXTINGUISHER_ANY or
+        table.find(near, burnablestructuresearchfn, EXTINGUISHER_STRUCTURES)
+    ) then
+        PEARL.info("Extinguishing the fires!")
+
+        local doername = doer:GetDisplayName()
+        local x, y, z = doer.Transform:GetWorldPosition()
+        -- Extinguish fires near the doer.
+        -- Use TheWorld as a more reliable parent for the task.
+        TheWorld:DoTaskInTime(TIME_UNTIL_EXTINGUISH, function()
+            PEARL.ExtinguishFires(x, y, z, EXTINGUISHER_RADIUS)
+
+            if type(doername) ~= "string" then
+                return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH)
+            end
+
+            if doername then
+                TheNet:SystemMessage(
+                    STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(
+                        doername
+                    )
+                )
+            end
+        end)
+    end
+
     if near and #near > 0 then
-        return AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE, subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
+        return AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.IGNITE, subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
             doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)
         }), silent)
     end
 
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.IGNITE.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.IGNITE)
         :SetIsSilent(silent)
         :AddTarget(target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
     local silent = not PEARL.PREFABS.RARE_ITEMS[item.prefab]
-    local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[silent and "EAT" or "SWALLOW"]
+    local type = PEARL.CONSTS.ANN_TYPE[silent and "EAT" or "SWALLOW"]
 
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EAT.GENERIC, doer)
         :SetLogType(type)
@@ -163,7 +201,7 @@ end)
 
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.TEACH)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.TEACH)
         :SetIsSilent(item.is_rare ~= true)
         :AddTarget(target)
 end)
@@ -191,7 +229,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
             action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.HAMMER.GENERIC, doer)
         end
 
-        action:SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER)
+        action:SetLogType(PEARL.CONSTS.ANN_TYPE.HAMMER)
         action:SetIsSilent(silent)
         action:AddTarget(target)
     end
@@ -205,7 +243,7 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
     end
 
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.READ.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.READ)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.READ)
         :SetIsSilent(PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] ~= true)
         :AddTarget(item)
 end)
@@ -216,7 +254,7 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
         target.components.activatable:SetLastPlayerActivator(doer)
 
         -- No point in queuing this action since it's so specific.
-        AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.ACTIVATE, STRINGS.PEARL.ACTIONS.ACTIVATE:format(
+        AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.ACTIVATE, STRINGS.PEARL.ACTIONS.ACTIVATE:format(
             -- No stacksize here
             doer:GetDisplayName(), target:GetBasicDisplayName()
         ), false)
@@ -233,7 +271,7 @@ RegisterPlayerItemActionHandler(ACTIONS.COOK, function(doer, target, item)
     -- end
 
     local prohibited = target and PEARL.PREFABS.RARE_ITEMS[target.prefab] ~= nil or PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil
-    local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[prohibited and "SWALLOW" or "COOK"]
+    local type = PEARL.CONSTS.ANN_TYPE[prohibited and "SWALLOW" or "COOK"]
 
     AL:QueueEntAct(STRINGS.PEARL.COOK, doer)
         :SetLogType(type)
@@ -246,10 +284,9 @@ RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, ite
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
     end
 
-    print("TOOL", item)
     return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
         QueuedLogAction.STATIC_FIELDS.TOOL, item)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.EXTINGUISH)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.EXTINGUISH)
         :SetIsSilent(true)
         :AddTarget(target)
 end)
@@ -268,15 +305,33 @@ RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
     -- Too spammy, announce only if prohibited.
     if prohibited then
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.CHOP)
             :SetIsSilent(not prohibited)
             :AddTarget(target)
     end
 end)
 
+RegisterPlayerItemActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
+    local reserve = math.max(target.components.fueld.maxfuel - target.components.fueled.currentfuel, 0)
+    local added = item.components.fuel.fuelvalue
+    local waste = math.min(added - reserve, 0) / added
+
+    local type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
+    local str = STRINGS.PEARL.ACTIONS.ADDFUEL.GENERIC
+    if waste > 0.5 then
+        str = STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
+        type = PEARL.CONSTS.ANN_TYPE.WASTE
+    end
+
+    AL:QueueEntAct(str, doer, "source", target)
+        :SetLogType(type)
+        :SetIsSilent(true)
+        :AddTarget(item)
+end)
+
 RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.DIG)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.DIG)
         :SetIsSilent(true)
         :AddTarget(target)
 end)
@@ -284,18 +339,30 @@ end)
 RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
     print("PLANT", doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.PLANT)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.PLANT)
         :SetIsSilent(true)
-        :AddTarget(item)
+        :AddTarget(item, true)
 end)
 
-RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target)
-    print("FERTILIZE", doer, target)
+RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
+    print("PLANT", doer, target, item)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.PLANT)
+        :SetIsSilent(true)
+        :AddTarget(item, true)
+end)
+
+--- @TODO: Add reputation for this
+RegisterPlayerItemActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.FERTILIZE.WITH, doer, "item", item)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.FERTILIZE)
+        :SetIsSilent(true)
+        :AddTarget(target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.SLEEP.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.SLEEP)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.SLEEP)
         :SetIsSilent(true)
         :AddTarget(target)
 end)
@@ -303,20 +370,17 @@ end)
 RegisterPlayerItemActionHandler(ACTIONS.GIVEALLTOPLAYER,
 RegisterPlayerItemActionHandler(ACTIONS.GIVETOPLAYER,
 RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
-    local prohibited = PEARL.PREFABS.DO_NOT_CHOP[target.prefab]
+    local prohibited = PEARL.PREFABS.RARE_ITEMS[item.prefab]
 
-    -- Too spammy, announce only if prohibited.
-    if prohibited then
-        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.GIVE)
-            :SetIsSilent(not prohibited)
-            :AddTarget(target)
-    end
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer, "tool", item)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.GIVE)
+        :SetIsSilent(not prohibited)
+        :AddTarget(target)
 end)))
 
 RegisterPlayerItemActionHandler(ACTIONS.PLAY, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLAY.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.PLAY)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.PLAY)
         :SetIsSilent(true)
         :AddTarget(item)
 end)
@@ -327,7 +391,7 @@ RegisterPlayerActionHandler(ACTIONS.MINE, function(doer, target)
     -- Too spammy, announce only if prohibited.
     if prohibited then
         AL:QueueEntAct(STRINGS.PEARL.ACTIONS.MINE.GENERIC, doer)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.MINE)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.MINE)
             :SetIsSilent(not prohibited)
             :AddTarget(target)
     end
@@ -394,7 +458,7 @@ end
 local function OnCastDestruction(doer, item, target)
     return OnCast(
         doer, item, target,
-        PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER
+        PEARL.CONSTS.ANN_TYPE.HAMMER
     )
 end
 
@@ -413,7 +477,7 @@ local function OnCastFire(doer, item, target, pos, radius)
     if #entities > 0 then
         return OnAreaCast(
             doer, item, target, entities,
-            PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN
+            PEARL.CONSTS.ANN_TYPE.BURN
         )
     end
 
@@ -421,7 +485,7 @@ local function OnCastFire(doer, item, target, pos, radius)
         return -- Something we do not really care about away from anything we care.
     end
 
-    OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN, false, true)
+    OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.BURN, false, true)
 end
 
 local function OnCastAreaDestruction(doer, item, target, pos, radius)
@@ -437,7 +501,7 @@ local function OnCastAreaDestruction(doer, item, target, pos, radius)
     if #entities > 0 then
         return OnAreaCast(
             doer, item, target, entities,
-            PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER, true
+            PEARL.CONSTS.ANN_TYPE.HAMMER, true
         )
     end
 
@@ -445,7 +509,7 @@ local function OnCastAreaDestruction(doer, item, target, pos, radius)
         return
     end
 
-    return OnCast(doer, item, target, PEARL.CONSTS.ANNOUNCEMENT_TYPES.HAMMER)
+    return OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.HAMMER)
 end
 
 RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
@@ -478,6 +542,7 @@ end)
 -- KILLS --
 -------------------
 
+--- @TODO: Implement multiple attackers
 local function onentitydeath(world, data)
     if type(data) ~= "table" then
         return
@@ -494,7 +559,7 @@ local function onentitydeath(world, data)
     if target:HasTag("epic") and not (target.sg and target.sg:HasTag("transition")) then
         local doer_name = (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans"
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.BOSS, doer_name)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.DEFEAT)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.DEFEAT)
             :AddTarget(target)
     end
 
@@ -514,12 +579,12 @@ local function onentitydeath(world, data)
         if remaining == 0 then
             -- Queue to make sure this will be announced after the last remaining announcement.
             return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.LAST, doer)
-                :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+                :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
                 :AddTarget(target)
         end
 
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.REMAINING, doer)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
             :AddTarget(target)
             :SetDynamicField(QueuedLogAction.DYNAMIC_FIELDS.REMAINING, remaining)
     end
@@ -528,7 +593,7 @@ local function onentitydeath(world, data)
     -- COMPANION
     if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
             :AddTarget(target)
     end
 
@@ -537,7 +602,7 @@ local function onentitydeath(world, data)
     if leader and leader:HasTag("player") and leader ~= doer then
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
             QueuedLogAction.STATIC_FIELDS.OWNER, leader)
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.KILL)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
             :AddTarget(target)
     end
 end
@@ -566,7 +631,7 @@ onburntup = function(target)
     if workable and workable:HasBuilder() then
         AL:QueueAct(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED,
             QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName())
-            :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
             :AddTarget(target)
     end
 end
@@ -607,6 +672,7 @@ local function onhitother(inst, data)
         return
     end
 
+    print("HIT", data.damage, data.damageresolved)
     local dmg = math.max(data.damageresolved or data.damage or 1, 1)
     PEARL.Reputation:EarnFor(
         inst.userid, dmg * REPUTATIONS.BOSS_DAMAGE
@@ -623,14 +689,8 @@ local function onbuilditem(doer, data)
         return
     end
 
-    -- If the target is burning right from the start.
-    if target.components.burnable and target.components.burnable:IsBurning() then
-        print("BUILT FIRE SOURCE!")
-    end
-
-    print("BUILD", target, target)
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.CHOP)
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.CRAFT)
         :SetIsSilent(true)
         :AddTarget(target)
 end
@@ -641,23 +701,27 @@ local function onbuildstructure(doer, data)
         return
     end
 
+    local action, silent = nil, true
+    local type = PEARL.CONSTS.ANN_TYPE.BUILD
     if target.components.propagator then
-        print("BUILD FIRE SOURCE")
+        type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
+
         local near = target:GetPropagableBurnableEntities()
         if near and #near > 0 then
-            local silent = not (#near > 2 or table.find(near, structuresearchfn))
-            local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[silent and "PROPAGATOR" or "BURN"]
+            silent = not (#near > 2 or table.find(near, structuresearchfn))
+            type = PEARL.CONSTS.ANN_TYPE.BURN
 
-            AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", near)
-            :SetLogType(type)
-            :SetIsSilent(silent)
-            :AddTarget(target)
+            action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
         end
     end
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BUILD)
-        :SetIsSilent(true)
+    if not action then
+        action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.GENERIC, doer)
+    end
+
+    action
+        :SetLogType(type)
+        :SetIsSilent(silent)
         :AddTarget(target)
 end
 
@@ -698,7 +762,7 @@ local function ontookrareitem(doer, item)
     end
 
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.TAKE)
         :SetIsSilent(not item.components.inventoryitem:IsVeryRare())
         :AddTarget(item)
 end
@@ -709,7 +773,7 @@ local function ontookrarecontainer(doer, data)
     end
 
     local items_str = PEARL.BuildFancyStringForEntities(data.items)
-    AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH:nformat{
+    AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH:nformat{
         doer = doer:GetStandardizedName(), source = data.container:GetStandardizedName(), target = items_str
     })
 end
@@ -721,7 +785,7 @@ local function onfinishedlooting(doer, data)
 
     -- Do not queue this action
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
-    AL:LogAction(doer, PEARL.CONSTS.ANNOUNCEMENT_TYPES.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
+    AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
         doer = doer:GetDisplayName(), items = loot_string, target = data.container:GetFancyName()
     }), not data.items.rare)
 end

@@ -179,7 +179,7 @@ end
 
 --- @TODO: Debug
 local function CheckPlayersInventory(world, player)
-    local pd = player.components.inventory:DoLegalityPrediction(_weights)
+    local pd = player.components.inventory.legality:Predict(_weights)
     if pd.prediction ~= 1 then
         return -- This inventory is not flagged.
     end

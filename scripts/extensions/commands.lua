@@ -73,6 +73,10 @@ local function make_safe_cb(name, cb)
     end
 end
 
+local function GetTargetUserID(param)
+    return UserToClientID(param) or param
+end
+
 -- When executed from STDIN, these are always in a protected call.
 local function AddConsoleCommand(name, fn)
     PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), fn)
@@ -105,11 +109,11 @@ local function AddSlashCommand(name, command)
     AddUserCommand(name, command)
 
     if name then
-        table.insert(SLASH_COMMANDS, name)
+        SLASH_COMMANDS[name] = command
 
         if command.aliases then
             for _, alias in ipairs(command.aliases) do
-                table.insert(SLASH_COMMANDS, alias)
+                SLASH_COMMANDS[alias] = command
             end
         end
     end
@@ -171,11 +175,12 @@ local function AddCommand(name, command, ...)
     -- By default we will register console accessible function for each admin command.
     if command.console ~= false and command.permission == COMMAND_PERMISSION.ADMIN then
         AddConsoleCommand(command.consolename or name, function(...)
+            local caller = ThePlayer
             local params = ParseParamsArray(command, toarrayornil(...))
-            local response = command.mainfn and {command.mainfn(params)}
+            local response = command.mainfn and {command.mainfn(params, caller)}
 
             if type(command.consolefn) == "function" then
-                return command.consolefn(params, nil, PEARL.unpack(response))
+                return command.consolefn(params, caller, PEARL.unpack(response))
             end
 
             if response and response[1] then
@@ -658,10 +663,15 @@ AddCommand("giverep", {
     params = {"player"},
     paramsoptional = {false},
     slash = true,
+    discord = false, -- No discord support until we have some authentication system.
     console = false, -- This is meant to be a user-only command.
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
+        if caller.userid == userid then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF
+        end
+
         if PEARL.Reputation:GiveTo(userid, GIVEREP_AMOUNT) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SUCCESS
         end
@@ -739,39 +749,35 @@ AddCommand("give", {
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
         end
 
+        params.count = tonumber(params.count)
+
+        local item
         local prefab = string.lower(params.prefab)
-        local item = SpawnPrefab(prefab)
-        if not item or not item.components.inventoryitem then
-            return STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID
-        end
-
-        -- Get rid of the initial checking item first
-        player.components.inventory:GiveItem(item)
-
-        if type(params.count) == "number" and params.count > 1 then
-            local count = params.count
-
-            if item.components.stackable then
-                while count > 0 do
-                    -- Between 1 - maxsize
-                    local stacksize = math.max(math.min(item.components.stackable.maxsize, count), 1)
-
-                    item.components.stackable:SetStackSize(stacksize)
-                    player.components.inventory:GiveItem(item)
-
-                    -- At first we have the inital item used for checking purposes.
-                    item = SpawnPrefab(prefab)
-                    count = count - stacksize
+        local count_left = math.max(type(params.count) == "number" and params.count or 1, 1)
+        local count = count_left
+        while count_left > 0 do
+            item = SpawnPrefab(prefab)
+            if not item or not item.components.inventoryitem then
+                if item then
+                    item:Remove()
                 end
-            else
-                -- Handle non-stackable items
-                for _ = 1, count do
-                    player.components.inventory:GiveItem(SpawnPrefab(prefab))
-                end
+
+                return STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID
             end
+
+            local maxsize = item.components.stackable and item.components.stackable.maxsize or 1
+            -- Between 1 - maxsize
+            local stacksize = math.max(math.min(maxsize, count_left), 1)
+
+            if item.components.stackable and stacksize > 1 then
+                item.components.stackable:SetStackSize(stacksize)
+            end
+
+            player.components.inventory:GiveItem(item)
+
+            count_left = count_left - stacksize
         end
 
-        local count = type(params.count) == "number" and params.count or 1
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ON_SUCCESS:format(
             count, item:GetBasicDisplayName(), player:GetDisplayName()
         )
@@ -795,6 +801,7 @@ AddCommand("take", {
         end
 
         local prefab = string.lower(params.prefab)
+        params.count = tonumber(params.count)
 
         -- Take all items by default.
         local count = type(params.count) == "number" and params.count or math.huge
@@ -804,17 +811,26 @@ AddCommand("take", {
         end
 
         local item_name
-        for item, _ in pairs(items) do
+        local total_count = 0
+        for item, amount in pairs(items) do
+            amount = math.min(count, amount)
+            total_count = total_count + amount
+
             if not item_name then
                 item_name = item:GetBasicDisplayName()
             end
 
-            -- Remove the items completely.
-            player.components.inventory:RemoveItem(item):Remove()
+            local stacksize = item.components.inventoryitem:GetStackSize()
+            if amount < stacksize and item.components.stackable then
+                item.components.stackable:SetStackSize(stacksize - amount)
+            else
+                -- Remove the items completely.
+                item:Remove()
+            end
         end
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.ON_SUCCESS:format(
-            GetTableSize(items), item_name or "UNKNOWN", player:GetDisplayName()
+            total_count, item_name or "UNKNOWN", player:GetDisplayName()
         )
     end,
 })
@@ -845,7 +861,9 @@ AddCommand("drop", {
         end
 
         local prefab = string.lower(params.prefab)
+        params.count = tonumber(params.count)
 
+        -- Take all items by default.
         local count = type(params.count) == "number" and params.count or math.huge
         local items = player.components.inventory:GetItemByName(prefab, count, false)
         if not items or table.empty(items) then
@@ -853,17 +871,22 @@ AddCommand("drop", {
         end
 
         local item_name
-        for item, _ in pairs(items) do
+        local total_amount = 0
+        for stack, amount in pairs(items) do
+            amount = math.min(count, amount)
+            total_amount = total_amount + amount
+            local item = stack.components.stackable and stack.components.stackable:Get(amount) or stack
+
             if not item_name then
                 item_name = item:GetBasicDisplayName()
             end
 
-            -- Remove the items completely.
-            player.components.inventory:DropItem(item)
+            -- Drop the whole stack of the item taken from the source stack!
+            player.components.inventory:DropItem(item, true)
         end
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP:format(
-            GetTableSize(items), item_name or "UNKNOWN", player:GetDisplayName()
+            total_amount, item_name or "UNKNOWN", player:GetDisplayName()
         )
     end,
 })
@@ -875,10 +898,11 @@ AddCommand("kill", {
     slash = true,
     console = true,
     params = {"player"},
-    paramsoptional = {false},
+    paramsoptional = {true},
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
+        userid = userid or (caller and caller.userid) or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.health then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -886,7 +910,8 @@ AddCommand("kill", {
 
         player:PushEvent("death", {cause = caller and caller:GetDisplayName()})
 
-        return STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.ON_SUCCESS
+        -- Implicit response via the announcement
+        --return STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.ON_SUCCESS
     end,
 })
 
@@ -897,11 +922,11 @@ AddCommand("revive", {
     slash = true,
     console = true,
     params = {"player"},
-    paramsoptional = {false},
+    paramsoptional = {true},
 
     mainfn = function(params, caller)
-        print(params.player)
         local userid = UserToClientID(params.player) or params.player
+        userid = userid or (caller and caller.userid) or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -909,9 +934,25 @@ AddCommand("revive", {
 
         player:PushEvent("respawnfromghost", {})
 
-        return STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS
+        -- Implicit response via the announcement
+        --return STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS
     end,
 })
+
+-- AddCommand("pause", {
+--     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAUSE.PRETTYNAME,
+--     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAUSE.DESC,
+--     permission = COMMAND_PERMISSION.ADMIN,
+--     console = true,
+--     discord = true,
+--     slash = true,
+--     usermenu = false,
+--     servermenu = false,
+
+--     mainfn = function(params, caller)
+--         SetServerPaused()
+--     end
+-- })
 
 AddCommand("despawn", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME,
@@ -920,10 +961,11 @@ AddCommand("despawn", {
     slash = true,
     console = false, -- Already built in
     params = {"player"},
-    paramsoptional = {false},
+    paramsoptional = {true},
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
+        userid = userid or (caller and caller.userid) or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
@@ -955,6 +997,20 @@ AddCommand("reloadshard", {
             reset_action = RESET_ACTION.LOAD_SLOT,
             save_slot = ShardGameIndex:GetSlot()
         })
+    end
+})
+
+-- This is here mainly for debugging purposes
+AddCommand("skip", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    discord = false,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+
+    mainfn = function()
+        TheWorld:PushEvent("ms_nextphase")
     end
 })
 
@@ -1082,7 +1138,18 @@ PEARL.AddUserCommandPreInit("regenerate", function(command)
 
     table.insert(command.aliases, "regen")
 
-    command.mainfn = c_regenerateworld
+    command.mainfn = function(params)
+        if params.shard == nil then
+            return c_regenerateworld()
+        end
+
+        local shardid = tostring(params.shard)
+        if shardid == SHARDID.MASTER then
+            return c_regenerateshard()
+        end
+
+        PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, "c_regenerateshard()")
+    end
 end)
 
 PEARL.AddUserCommandPreInit("kick", function(command)
@@ -1153,11 +1220,19 @@ end
 -------------------------------------------
 
 AddClassPostConstruct("screens/chatinputscreen", function(self)
+    local permission = COMMAND_PERMISSION.USER
+    if TheNet:GetIsServerAdmin() then
+        permission = COMMAND_PERMISSION.ADMIN
+    end
+
     -- Setup prediction for our custom slash commands
     for _, v in pairs(self.chat_edit.prediction_widget.word_predictor.dictionaries) do
-        if v.delim == SLASH_COMMAND_DELIM then
-            for _, cmd_name in ipairs(SLASH_COMMANDS) do
-                table.insert(v.words, cmd_name)
+        if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
+            for name, command in pairs(SLASH_COMMANDS) do
+                -- Only autocomplete the commands we have permission to.
+                if command.permission == nil or command.permission == permission then
+                    table.insert(v.words, name)
+                end
             end
         end
     end
@@ -1167,22 +1242,20 @@ AddClassPostConstruct("screens/chatinputscreen", function(self)
     for _, v in ipairs(AllPlayers) do
         if v and v.userid then
             -- Remove the delim from the userid
-            table.insert(userids, v.userid:sub(#KLEI_ID_DELIM + 1))
+            table.insert(userids, v.userid:sub(#PEARL.CONSTS.DELIMS.KLEI_ID + 1))
             table.insert(names, v.name)
         end
     end
 
     -- Auto-complete for user ids
     self.chat_edit:AddWordPredictionDictionary({
-        delim = KLEI_ID_DELIM,
+        delim = PEARL.CONSTS.DELIMS.KLEI_ID,
         words = userids,
     })
 
     -- Auto-complete for player names
     self.chat_edit:AddWordPredictionDictionary({
-        delim = PLAYER_NAME_DELIM,
+        delim = PEARL.CONSTS.DELIMS.PLAYER_NAME,
         words = names,
-
-        GetDisplayString = function(word) return "@"..word end
     })
 end)

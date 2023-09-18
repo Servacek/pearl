@@ -120,7 +120,7 @@ end
 function PEARL.TESTS.GameEmoteTest()
     local result = ""
     for name, val in pairs(PEARL.EMOTES.GAME) do
-        result = result.."\n"..tostring(name).." -> "..(PEARL.EMOTES.DISCORD[val] or "MISSING")
+        result = result.."\n"..tostring(name).." -> "..(PEARL.EMOTES.MAP_DISCORD[val] or "MISSING")
     end
 
     if string.len(result) <= 0 then
@@ -365,11 +365,11 @@ function PEARL.TESTS.ActionLogQueue()
         :AddTarget(log)
         :AddTarget(c_spawn("log"))
         :AddTarget(c_spawn("pigman"))
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.IGNITE)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.IGNITE)
 
     ActionLog:QueueAct("{target} burnt up!")
         :AddTarget(log)
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
 end
 
 function PEARL.TESTS.RawActionLogQueue()
@@ -381,7 +381,7 @@ function PEARL.TESTS.RawActionLogQueue()
         :AddTarget(c_spawn("rocks"))
         :AddTarget(log)
         :AddTarget(c_spawn("log"))
-        :SetLogType(PEARL.CONSTS.ANNOUNCEMENT_TYPES.BURN)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
 
 end
 
@@ -782,7 +782,7 @@ end
 --------------------------------
 
 function PEARL.TESTS.AnnouncementCategories()
-    for name, type in pairs(PEARL.CONSTS.ANNOUNCEMENT_TYPES) do
+    for name, type in pairs(PEARL.CONSTS.ANN_TYPE) do
         PEARL.AnnounceWithType(name, type)
     end
 end

@@ -31,20 +31,19 @@ PEARL.RPC = {
 
 --- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
-    CommandResponse = function(...)
-        return ChatHistory and ChatHistory:SendCommandResponse(...)
-    end,
-
-    -- type, sender_userid, sender_netid, sender_name, message, colour, icondata, whisper, localonly, text_filter_context
-    AddToChatHistory = function(dec_m_colour, tp, userid, netid, name, message, dec_s_colour, ...)
-        PEARL.debug("AddToChatHistory:", dec_m_colour, tp, userid, netid, name, message, dec_s_colour, ...)
+    DisplayChatMessage = function(data)
+        PEARL.debug("DisplayChatMessage:", data)
 
         if not ChatHistory then
             return PEARL.error("Chat history not loaded yet!")
         end
 
-        local colour = ChatHistory:GetColourForMessage(dec_s_colour, dec_m_colour)
-        return ChatHistory:AddToHistory(tp, userid, netid, name, message, colour, ...)
+        local _, message = pcall(json.decode, data)
+        if type(message) ~= "table" then
+            return PEARL.error("Failed to decode the message JSON data!")
+        end
+
+        return ChatHistory:AddChatMessage(message)
     end,
 
     Disconnect = function(reason, ...)
@@ -118,11 +117,11 @@ local SERVER_USERID_RPCS = {
 
             return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
-            ), PEARL.CONSTS.ANNOUNCEMENT_TYPES.KICKED_FROM_GAME, entity)
+            ), PEARL.CONSTS.ANN_TYPE.KICKED_FROM_GAME, entity)
         end
 
         local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
-        local type = PEARL.CONSTS.ANNOUNCEMENT_TYPES[is_afk and "AFK_START" or "AFK_STOP"]
+        local type = PEARL.CONSTS.ANN_TYPE[is_afk and "AFK_START" or "AFK_STOP"]
         return PEARL.AnnounceWithType(message:format(name), type, entity)
     end,
 
@@ -177,11 +176,11 @@ local SERVER_USERID_RPCS = {
         local welcome_msg = welcome_msg_template:format(client.name)
         if PEARL.ServerNetwork:GetConnectedClientsCount() > 1 then
             -- Only announce it if there are more people on the server.
-            return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME)
+            return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANN_TYPE.WELCOME)
         end
 
         return PEARL.DiscordLogger:LogString(
-            welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANNOUNCEMENT_TYPES.WELCOME]
+            welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANN_TYPE.WELCOME]
         )
     end
 }
@@ -281,6 +280,7 @@ end
 
 --- If called on Master, sends the given RPC to all connected shards.
 --- Otherwise it will send the BroadcastRPC to shard Master and broadcast from there again.
+--- Finally the RPC should be executed on all shards the server has including Master and source shard.
 --- @param rpc_id number The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.BroadcastRPCToAllShards(rpc_id, ...)
@@ -334,7 +334,11 @@ function PEARL.BroadcastRPCToShardClients(rpc_id, ...)
 end
 
 function PEARL.BroadcastRPCToAllClients(rpc_id, ...)
-    return PEARL.SendRPCToShard(PEARL.RPC.BroadcastClientRPC, nil, rpc_id, nil, ...)
+    PEARL.BroadcastRPCToClients(rpc_id, nil, ...)
+end
+
+function PEARL.BroadcastRPCToClients(rpc_id, sender_list, ...)
+    PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, rpc_id, sender_list, ...)
 end
 
 ------------------------------------

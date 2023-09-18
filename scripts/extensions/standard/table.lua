@@ -34,14 +34,18 @@ function table.size(t)
     return size
 end
 
-function table:find(checkfn)
+function table:find(checkfn, count)
+    count = count or 1
     for k, v in pairs(self) do
         if checkfn(k, v) then
-            return true
+            count = count - 1
+            if count <= 0 then
+                return true, count
+            end
         end
     end
 
-    return false
+    return false, count
 end
 
 -- Fancy Table Concatenation

@@ -20,11 +20,53 @@ local GetSkinDescription, GetSkinName, GetColorForItem, UserToName = GetSkinDesc
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
+local Colour = PEARL.loadfile("libraries/colour")
+
 local UserCommands = require("usercommands")
 
 -----------------------------
 -- [[ Networking Handlers ]]
 -----------------------------
+
+local function OnChatMessage(guid, prefab, name, content, whisper, icon)
+    print(guid, prefab, name, content, whisper, icon)
+    if type(content) ~= "string" or type(name) ~= "string" then
+        return
+    end
+
+    -- Whispers aren't broadcasted to other shards
+    -- Everything else is, so handly whispers per shard.
+    if not whisper and TheShard:IsSecondary() then
+        return
+    end
+
+    -- Escape here so even profanity filter is safe when using spoilers
+    content = MARKDOWN.escape(content)
+    if ProfanityFilter and PEARL.CONFIG.PROFANITY_FILTERS.enabled then
+        content = ProfanityFilter:Apply(content, MARKDOWN.PATTERNS.SPOILER, true)
+    end
+
+    local player = Ents[guid]
+    if player then
+        prefab = player:GetFancyPrefabName()
+    end
+
+    icon = PEARL.ICONS.PLAYER_VANITY[icon]
+    if not icon and type(prefab) == "string" then
+        icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..prefab:capitalize().."]")
+    end
+
+    content = (whisper and STRINGS.PEARL.LOGS.SAY_WHISPER or STRINGS.PEARL.LOGS.SAY):format(
+        -- This is all user input so it can contain some encoded stuff.
+        -- This should be handled when we encode the message as JSON string.
+        MARKDOWN.escape(name),
+        content:emojify()
+    )
+
+    PEARL.DiscordLogger:LogStringRaw(content, icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
+end
+
+--------------------------------
 
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
     if not (userid and cmd and guid) then
@@ -70,9 +112,9 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
 
     PEARL.DiscordLogger:LogEmbed(Embed()
         :SetDescription(MARKDOWN.escape(GetSkinDescription(skin_prefab)))
-        :SetColor(PEARL.RGBToDecimal(PEARL.PercentToRGB(
-            GetColorForItem(skin_prefab)
-        )))
+        :SetColor(Colour.PercentToDecimal(
+            unpack(GetColorForItem(skin_prefab))
+        ))
         :SetThumbnail(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
             -- Looks like the database uses upper case for naming...
             string.upper(skin_prefab), "small"
@@ -92,40 +134,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, prefab, message, colour, whisper, isemote, vanity)
-    if not (message and name) then
-        return
-    end
-
-    -- Whispers aren't broadcasted to other shards
-    -- Everything else is, so handly whispers per shard.
-    if not whisper and TheShard:IsSecondary() then
-        return
-    end
-
-    -- Escape here so even profanity filter is safe when using spoilers
-    message = MARKDOWN.escape(message)
-    if ProfanityFilter and PEARL.CONFIG.PROFANITY_FILTERS.enabled then
-        message = ProfanityFilter:Apply(message, MARKDOWN.PATTERNS.SPOILER, true)
-    end
-
-    local player = Ents[guid]
-    if player then
-        prefab = player:GetFancyPrefabName()
-    end
-
-    local icon = type(vanity) == "table" and PEARL.ICONS.PLAYER_VANITY[vanity[2]]
-    if not icon and type(prefab) == "string" then
-        icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..prefab:capitalize().."]")
-    end
-
-    message = (whisper and STRINGS.PEARL.LOGS.SAY_WHISPER or STRINGS.PEARL.LOGS.SAY):format(
-        -- This is all user input so it can contain some encoded stuff.
-        -- This should be handled when we encode the message as JSON string.
-        MARKDOWN.escape(name),
-        message:emojify()
-    )
-
-    PEARL.DiscordLogger:LogStringRaw(message, icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
+    OnChatMessage(guid, prefab, name, message, whisper)
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
@@ -138,3 +147,5 @@ PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
         "[Server]", MARKDOWN.escape(message):emojify()
     ), PEARL.ICONS.PLAYER_PREFABS["server"])
 end)
+
+PEARL.EventProcessor:AddEventHandler("chat_message", OnChatMessage)

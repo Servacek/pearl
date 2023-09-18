@@ -15,17 +15,7 @@
 local PEARL = PEARL
 
 local Inventory = require("components/inventory")
-
-
-local LEGALITY_THRESHOLD = .8
-local MAX_WEIGHT = 1
-local MAX_CONFIDENCE = 1
-local WEIGHT_FACTOR = 0.5
-
-local PREDICTIONS = {
-    FLAGGED = 1,
-    NOT_FLAGGED = 0,
-}
+local Legality = PEARL.loadfile("components/legality")
 
 -----------------------------------
 -- [[ Extension Functions ]]
@@ -88,36 +78,14 @@ function Inventory:DropRareItems(rarity, randomdir, pos)
     end)
 end
 
-function Inventory:DoLegalityPrediction(weights)
-    local pd = {
-        weights = {},
-        prediction = PREDICTIONS.NOT_FLAGGED, -- Either 1 if flagged or 0 if not.
-        confidence = 0,
-        items = 0,
-        value = 0,
-        normalized_value = 0,
-    }
-    for _, item in ipairs(self:ReferenceAllItems()) do
-        local stacksize = item.components.inventoryitem:GetStackSize()
-        local stackweight = item.components.inventoryitem:GetTotalPredictedWeight(weights)
-        local itemweight = stackweight / stacksize
-
-        -- Store highest normalized weight for this item.
-        pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), itemweight)
-        pd.normalized_value = pd.normalized_value + itemweight
-        pd.value = pd.value + stackweight
-        pd.items = pd.items + stacksize
-    end
-
-    if pd.value >= LEGALITY_THRESHOLD then
-        pd.prediction = PREDICTIONS.FLAGGED
-    end
-
-    local x = pd.prediction == PREDICTIONS.NOT_FLAGGED and 1 / pd.value or pd.value
-    pd.confidence = math.sigmoid(x * WEIGHT_FACTOR)
-
-    print("CONFIDENCE:", pd.confidence * 100)
-    print("VALUE:", pd.value)
-
-    return pd
+function Inventory:IsEmpty()
+    return table.empty(self.itemslots)
 end
+
+-----------------------------------
+-- [[ Class Post Construct ]]
+-----------------------------------
+
+PEARL.AddClassPostConstruct("components/inventory", function(self)
+    self.legality = Legality(self)
+end)

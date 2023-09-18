@@ -263,6 +263,8 @@ load_config_overrides()
 -- [[ General Mod Constants]]
 --------------------------------
 
+PEARL.ASSETS = {}
+
 PEARL.CONSTS = {
     EVENT_PREFIX = "__"..string.lower(PEARL.MODNAME).."__",
 
@@ -271,6 +273,17 @@ PEARL.CONSTS = {
     -- the prefix and the actual content
     KLEI_DATA_PREFIX            = "KLEI     1",
     KLEI_ENCODED_DATA_PREFIX    = "KLEI     1D",
+
+    DELIMS = {
+        SLASH_COMMAND         = "/",
+        KLEI_ID               = "K",
+        PLAYER_NAME           = "@",
+    },
+
+    -- The name should match with the file name in the profile flair .xml file.
+    PROFILE_FLAIRS = {
+        DISCORD = "discord",
+    },
 
     FPS = 60,
 }
@@ -428,37 +441,38 @@ PEARL.loadfile("error")
 
 PEARL.RegisterDefaultAnnouncementTypes()
 
-PEARL.AddAnnouncementCategory("ignite", "torch.tex")
-PEARL.AddAnnouncementCategory("burn", "fire.tex")
-PEARL.AddAnnouncementCategory("take", "backpack.tex")
-PEARL.AddAnnouncementCategory("swallow", "faketheeth.tex")
-PEARL.AddAnnouncementCategory("hammer", "hammer.tex")
-PEARL.AddAnnouncementCategory("kill", "hambat.tex")
-PEARL.AddAnnouncementCategory("defeat", "trophy.tex")
-PEARL.AddAnnouncementCategory("deploy", "eyeplant.tex")
+PEARL.AddAnnouncementIcon("ignite", "torch.tex")
+PEARL.AddAnnouncementIcon("burn", "fire.tex")
+PEARL.AddAnnouncementIcon("take", "backpack.tex")
+PEARL.AddAnnouncementIcon("swallow", "faketheeth.tex")
+PEARL.AddAnnouncementIcon("hammer", "hammer.tex")
+PEARL.AddAnnouncementIcon("kill", "hambat.tex")
+PEARL.AddAnnouncementIcon("defeat", "trophy.tex")
+PEARL.AddAnnouncementIcon("deploy", "eyeplant.tex")
 
 --- @TODO: add custom icon for these...
-PEARL.AddAnnouncementCategory("activate")
-PEARL.AddAnnouncementCategory("teach")
-PEARL.AddAnnouncementCategory("read")
-PEARL.AddAnnouncementCategory("welcome")
+PEARL.AddAnnouncementIcon("activate")
+PEARL.AddAnnouncementIcon("teach")
+PEARL.AddAnnouncementIcon("read")
+PEARL.AddAnnouncementIcon("welcome")
 
 --- These do not log in-game
-PEARL.AddAnnouncementCategory("extinguish")
-PEARL.AddAnnouncementCategory("build")
-PEARL.AddAnnouncementCategory("craft")
-PEARL.AddAnnouncementCategory("dig")
-PEARL.AddAnnouncementCategory("plant")
-PEARL.AddAnnouncementCategory("give")
-PEARL.AddAnnouncementCategory("sleep")
-PEARL.AddAnnouncementCategory("cook")
-PEARL.AddAnnouncementCategory("eat")
-PEARL.AddAnnouncementCategory("propagator")
-PEARL.AddAnnouncementCategory("play")
-PEARL.AddAnnouncementCategory("chop")
+PEARL.AddAnnouncementIcon("extinguish")
+PEARL.AddAnnouncementIcon("build")
+PEARL.AddAnnouncementIcon("craft")
+PEARL.AddAnnouncementIcon("dig")
+PEARL.AddAnnouncementIcon("plant")
+PEARL.AddAnnouncementIcon("give")
+PEARL.AddAnnouncementIcon("sleep")
+PEARL.AddAnnouncementIcon("cook")
+PEARL.AddAnnouncementIcon("eat")
+PEARL.AddAnnouncementIcon("propagator")
+PEARL.AddAnnouncementIcon("play")
+PEARL.AddAnnouncementIcon("chop")
+PEARL.AddAnnouncementIcon("fertilize")
 
 --- @TODO: Add Icon:
-PEARL.AddAnnouncementCategory("mine")
+PEARL.AddAnnouncementIcon("mine")
 
 --------------------------------
 -- [[ Instance Param Manager]]

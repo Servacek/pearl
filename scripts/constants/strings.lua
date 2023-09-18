@@ -117,8 +117,19 @@ local STRINGS = {
             GENERIC     = "{doer} planted {target}.",
         },
 
+        FERTILIZE = {
+            GENERIC     = "{doer} fertilized {target}.",
+            WITH        = "{doer} fertilized {target} with {item}.",
+        },
+
         DIG = {
             GENERIC     = "{doer} dug up {target}.",
+        },
+
+        ADDFUEL = {
+            GENERIC     = "{doer} added {target} to {source}.",
+            NEAR        = "{doer} added {target} to {source} near {near}!",
+            WASTE       = "{doer} wasted {target} to {source}!",
         },
 
         CRAFT = {
@@ -296,7 +307,7 @@ local STRINGS = {
         AUTO_UPDATE_START       = "Updating the server to version %s...",
 
         GAME_LOADED             = "Shard %s was loaded.",
-        RESTART                 = "Restarting the server...",
+        RESTART                 = "Restarting shard `%s`...",
         ROLLBACK                = "Rolling server %s snapshot(s) back!",
         ROLLBACK_AFTER          = "Rolling server %s snapshot(s) back in %s second(s)!",
         DAYSBACK                = "Rolling server back to day %s!",
@@ -349,7 +360,7 @@ local STRINGS = {
 
         EXTINGUISH              = "Fires were extinguished!",
         EXTINGUISH_DOER         = "%s extinguished all fires!",
-        EXTINGUISH_NEAR         = "Fire near %s were extinguished!",
+        EXTINGUISH_NEAR         = "Fires near %s were extinguished!",
         EXTINGUISH_NEAR_DOER    = "%s extinguished fires near %s!",
         EXTINGUISH_ALL          = "%s extinguished fires near all players!",
 
@@ -444,7 +455,7 @@ local STRINGS = {
         MODS_BLOCKED_TITLE = "Mods Disabled",
         MODS_BLOCKED_ALL_TITLE = "All Mods Blocked",
         MODS_BLOCKED_BODY  = "Some of the mods you are using were blocked by the server.",
-        MODS_DISABLED_ALL_BODY = "All of your mods were blocked by the server.",
+        MODS_BLOCKED_ALL_BODY = "All of your mods were blocked by the server.",
 
         TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
 
@@ -520,6 +531,10 @@ local STRINGS = {
                 ON_SUCCESS = "Player was revived!",
             },
 
+            PAUSE = {
+                PRETTYNAME = "Pause/Resume",
+                DESC       = "Toggle pause the server.",
+            },
 
             DESPAWN = {
                 PRETTYNAME = "Despawn a Player",
@@ -541,7 +556,7 @@ local STRINGS = {
                 DESC       = "Give reputation to someone who deserves it!",
 
                 ON_SUCCESS = "Increased player's reputation!",
-                ON_FAILURE = ".",
+                ON_SELF    = "You cannot give reputation to yourself!",
             },
 
             INV = {

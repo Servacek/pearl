@@ -506,60 +506,53 @@ function PEARL.SafeRun(func, ...)
 end
 
 -- The input can be either individual numbers or a percent table.
-function PEARL.PercentToRGB(rp, gp, bp)
-    if type(rp) == "table" then
-        bp = rp.b or rp[3]
-        gp = rp.g or rp[2]
-        rp = rp.r or rp[1]
-    end
+-- function PEARL.PercentToRGB(rp, gp, bp)
+--     if type(rp) == "table" then
+--         bp = rp.b or rp[3]
+--         gp = rp.g or rp[2]
+--         rp = rp.r or rp[1]
+--     end
 
-    return math.floor(rp * 255), math.floor(gp * 255), math.floor(bp * 255)
-end
+--     return math.floor(rp * 255), math.floor(gp * 255), math.floor(bp * 255)
+-- end
 
 -- The input can be either individual numbers or a RGB table.
 -- since RGB function returns RGB table as percenteges, let's do that as well.
-function PEARL.RGBToDecimal(r, g, b)
-    if type(r) == "table" then
-        b = r.b or r[3]
-        g = r.g or r[2]
-        r = r.r or r[1]
-    end
+-- function PEARL.RGBAToDecimal(r, g, b, a)
+--     if type(r) == "table" then
+--         a = r.a or r[4]
+--         b = r.b or r[3]
+--         g = r.g or r[2]
+--         r = r.r or r[1]
+--     end
 
-    return bit.lshift((r or 0), 16) + bit.lshift((g or 0), 8) + (b or 0)
-end
+--     return bit.lshift((r or 0), 24) + bit.lshift((g or 0), 16) + bit.lshift((b or 0), 16) + (a or 0)
+-- end
 
-function PEARL.PercentToDecimal(r, g, b)
-    if type(r) == "table" then
-        b = r.b or r[3] or 0
-        g = r.g or r[2] or 0
-        r = r.r or r[1] or 0
-    end
+-- function PEARL.PercentToDecimal(r, g, b)
+--     if type(r) == "table" then
+--         b = r.b or r[3] or 0
+--         g = r.g or r[2] or 0
+--         r = r.r or r[1] or 0
+--     end
 
-    r, g, b = PEARL.PercentToRGB(r, g, b)
+--     r, g, b = PEARL.PercentToRGB(r, g, b)
 
-    return bit.lshift(r, 16) + bit.lshift(g, 8) + b
-end
+--     return bit.lshift(r, 16) + bit.lshift(g, 8) + b
+-- end
 
--- Does return r, g, b separately, use GetColorFromDecimal for a color table.
-function PEARL.DecimalToRGB(decimal)
-    if type(decimal) ~= "number" then
-        return 0, 0, 0
-    end
+-- -- Does return r, g, b separately, use GetColorFromDecimal for a color table.
+-- function PEARL.DecimalToRGBA(decimal)
+--     if type(decimal) ~= "number" then
+--         return 0, 0, 0, 0
+--     end
 
-    return bit.band(bit.rshift(decimal, 16), 0xFF), bit.band(bit.rshift(decimal, 8), 0xFF), bit.band(decimal, 0xFF)
-end
+--     return bit.band(bit.rshift(decimal, 24), 0xFF), bit.band(bit.rshift(decimal, 16), 0xFF), bit.band(bit.rshift(decimal, 8), 0xFF), bit.band(decimal, 0xFF)
+-- end
 
-function PEARL.DecimalToPercent(decimal)
-    return RGBToPercentColor(PEARL.DecimalToRGB(decimal))
-end
-
-function PEARL.RGBToHex(r, g, b)
-    return string.format("#%06X", PEARL.RGBToDecimal(r, g, b))
-end
-
-function PEARL.GetColorFromDecimal(decimal, default)
-    return type(decimal) == "number" and RGB(PEARL.DecimalToRGB(decimal)) or (default or WHITE)
-end
+-- function PEARL.DecimalToPercent(decimal)
+--     return RGBToPercentColor(PEARL.DecimalToRGBA(decimal))
+-- end
 
 function PEARL.ToISO8601UTC(timestamp)
     -- This is used when sending timestamps to external services (like discord)
@@ -571,6 +564,7 @@ function PEARL.ToISO8601UTC(timestamp)
 end
 
 function PEARL.ExtinguishFires(x, y, z, radius)
+    radius = radius or PEARL.CONSTS.EXTINGUISH_RADIUS
     local onfire = TheSim:FindEntities(x, y, z, radius,
         nil, -- must-have tags
         {'wildfireprotected', 'campfire', 'NOCLICK', 'FX','DECOR','INLIMBO','burnt'}, -- cant-have tags
@@ -598,7 +592,8 @@ function PEARL.ExtinguishFiresNearAll()
 
     for _, v in ipairs(AllPlayers) do
         if v.Transform then
-            PEARL.ExtinguishFires(v.Transform:GetWorldPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
+            local x, y, z = v.Transform:GetWorldPosition()
+            PEARL.ExtinguishFires(x, y, z, PEARL.CONSTS.EXTINGUISH_RADIUS)
         end
     end
 

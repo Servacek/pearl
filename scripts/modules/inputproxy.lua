@@ -16,6 +16,10 @@ local UserCommands = require("usercommands")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
+local ChatMessage = PEARL.loadfile("models/chatmessage")
+
+local Colour = PEARL.loadfile("libraries/colour")
+
 ----------------------------------
 -- Constants
 ----------------------------------
@@ -38,7 +42,7 @@ local MAX_FAILED_ATTEMPTS = 5
 local MESSAGE_NAME = "%s"
 local MESSAGE_NAME_ADMIN = "[ADMIN] %s"
 
-local PMESSAGE_COLOR = RGB(173, 216, 230)
+local PMESSAGE_COLOR = Colour.FromRGBA(173, 216, 230)
 
 local START_SESSION_RETRIES = 3
 
@@ -129,12 +133,23 @@ local function HandleCommands(commands)
 end
 
 local function HandleChatMessages(messages)
-    for _, message in ipairs(messages) do
-        local name = (message.admin == true and MESSAGE_NAME_ADMIN or MESSAGE_NAME):format(message.author)
+    for _, data in ipairs(messages) do
+        local a_colour
+        local a_name = (data.admin == true and MESSAGE_NAME_ADMIN or MESSAGE_NAME):format(data.author)
 
-        PEARL.ServerNetwork:DisplayChatMessage(
-            name, message.content, message.author_colour, PMESSAGE_COLOR, "dft_discord"
-        )
+        -- Make sure it's actually an decimal we have received and not something else...
+        data.author_colour = tonumber(data.author_colour)
+        if type(data.author_colour) == "number" then
+            a_colour = Colour.FromDecimal(data.author_colour)
+        end
+
+        --- @type ChatMessage
+        local message = ChatMessage(data.content)
+        message:SetAuthor(a_name, a_colour)
+        message:SetColour(PMESSAGE_COLOR)
+        message:SetIcon(PEARL.CONSTS.PROFILE_FLAIRS.DISCORD)
+
+        PEARL.ServerNetwork:DisplayChatMessage(message)
     end
 end
 
@@ -156,7 +171,6 @@ local function OnProxyUnreachable()
 end
 
 local function OnInputFetchingDone(data)
-    print(table.dump(data))
     if type(data) ~= "table" then
         return
     end
@@ -229,6 +243,32 @@ local function CreateFetchEvent(name, ...)
     }
 end
 
+local function GetPlayerAutocompleteData()
+    local players
+    for _, client in pairs(PEARL.ServerNetwork:GetConnectedClients()) do
+        if not players then
+            players = {}
+        end
+
+        players[client.userid] = client.name
+    end
+
+    return players
+end
+
+local function GetShardAutocompleteData()
+    local shards
+    for _, shardid in pairs(PEARL.ServerNetwork:GetConnectedShardIDs()) do
+        if not shards then
+            shards = {}
+        end
+
+        shards[shardid] = PEARL.GetShardFancyNameByID(shardid)
+    end
+
+    return shards
+end
+
 AddCommandResponse = function(command_id, message_table)
     if _response_cache[command_id] ~= nil then
         PEARL.error("Response already exists for this command!")
@@ -254,6 +294,8 @@ local function StartSession(retries)
     PEARL.HTTPClient:POST(URLS.SESSION, OnSessionStarted, {
         messages = PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED,
         commands = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED,
+        players = GetPlayerAutocompleteData(),
+        shards  = GetShardAutocompleteData(),
         running = true,
     })
     :SetIsRaw(true)
@@ -288,8 +330,6 @@ local function StopSession()
 end
 
 local function FetchInput()
-    print("fetch input")
-
     -- Do it explicitly. Since implicit method changes are prohibited.
     local request
     if table.empty(events) then
@@ -389,5 +429,5 @@ PEARL.EventProcessor:AddSafeEventHandler("save", OnSave)
 
 PEARL.EventProcessor:AddSafeEventHandler("shard_connected", OnShardConnected)
 PEARL.EventProcessor:AddSafeEventHandler("shard_disconnected", OnShardDisconnected)
-PEARL.EventProcessor:AddSafeEventHandler("client_connected", OnClientConnected)
-PEARL.EventProcessor:AddSafeEventHandler("client_disconnected", OnClientDisconnected)
+PEARL.EventProcessor:AddSafeEventHandler("ms_clientauthenticationcomplete", OnClientConnected)
+PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)

@@ -15,6 +15,9 @@
 local UserCommands = require("usercommands")
 
 
+local MENTION_DELIMETER = PEARL.CONSTS.DELIMS.PLAYER_NAME
+
+
 local discord_commands = {}
 
 
@@ -52,3 +55,24 @@ end
 function UserCommands.AddDiscordCommand(name, command)
     discord_commands[name] = command
 end
+
+----------------------
+
+-- Support for mentions.
+--- @param client table?
+--- @param input string?
+PEARL.OverrideReturnValue(_G, "UserToClient", function(client, input)
+    -- If the original function was not able to find any match.
+    -- Make sure the input is valid and that it starts with the delimeter.
+    if client == nil and type(input) == "string" and input:startswith(MENTION_DELIMETER) then
+        -- Remove the delimeter and try again.
+        local nodelim = input:sub(#MENTION_DELIMETER + 1)
+        for _, c in ipairs(GetPlayerClientTable()) do
+            if c.name == nodelim then
+                return c
+            end
+        end
+    end
+
+    return client
+end)

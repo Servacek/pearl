@@ -103,6 +103,12 @@ if TheNet:GetIsServer() then
     return
 end
 
+local function CanShowHPFor(target)
+    return not target or
+    not target.replica or not target.replica.health or
+    not target.replica.health._max or not target.replica.health._percent
+end
+
 PEARL.AddClassPostConstruct("widgets/hoverer", function(self)
     if not (self.owner and self.owner.components) then
         return
@@ -117,15 +123,11 @@ PEARL.AddClassPostConstruct("widgets/hoverer", function(self)
     health_info:SetPosition(HEALTH_INFO_POS)
 
     PEARL.AddClassFunctionPostCall("OnUpdate", function(self)
-        if not self.text:IsVisible() then
-            return health_info:Hide()
-        end
-
         local lmb = controller:GetLeftMouseAction()
         local inst = lmb and lmb.target
         -- Check for the net vars as well synce they may not be initialized for the current prefab.
-        if not inst or not inst.replica or not inst.replica.health or not inst.replica.health._max or not inst.replica.health._percent then
-            return
+        if CanShowHPFor(inst) then
+            return health_info:Hide()
         end
 
         health_info:SetString(HEALTH_NOTE_PT:format(

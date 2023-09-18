@@ -296,11 +296,13 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         :SetFooter(STRINGS.PEARL.EMBEDS.MODS.FOOTER:format(shown_count, enabled_mods.count or shown_count))
 end
 
+--- @TODO: Add more info
 --- @return Embed
 function EMBEDS.ClientProfile(userid, dbr)
     local P_STRINGS = STRINGS.PEARL.EMBEDS.PROFILE
 
-    local icon = PEARL.ICONS.PLAYER_PREFABS[dbr.lastprefab or ""]
+    local prefab = dbr.lastprefabfancy or dbr.lastprefab or ""
+    local icon = PEARL.ICONS.PLAYER_PREFABS[prefab]
 
     return Embed()
         :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))

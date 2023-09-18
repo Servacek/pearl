@@ -325,6 +325,7 @@ configuration_options = {
     {
         name = "WHISPER_WARNING",
         default = false,
+        public = true,
         options = {
             true,
             false,
@@ -346,6 +347,13 @@ configuration_options = {
     {
         name = "SHARD_NAME",
         default = nil,
+        type = "string?",
+    },
+
+    {
+        name = "HOST_NAME",
+        default = nil,
+        public = true,
         type = "string?",
     },
 

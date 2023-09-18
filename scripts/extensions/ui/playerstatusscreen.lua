@@ -30,9 +30,8 @@ local PlayerStatusScreen = require("screens/playerstatusscreen")
 -- [[ Constants ]]
 -------------------------------
 
-local DISCORD_BUTTON_OFFSET_Y = 2
-local DISCORD_BUTTON_X = -330
-local DISCORD_BUTTON_Y = 200 - DISCORD_BUTTON_OFFSET_Y
+local DISCORD_BUTTON_X = -329
+local DISCORD_BUTTON_Y = 200
 
 local SCREEN_BUTTONS_OFFSET = 24
 
@@ -40,9 +39,11 @@ local SCREEN_BUTTONS_OFFSET = 24
 -- [[ Function Extensions ]]
 -------------------------------
 
+-- We have to use DoInit instead of PostConstruct because
+-- root is constructed there too.
 PEARL.AddClassFunctionPostCall("DoInit", function(self)
     -- This button already exists and was added by something...strange
-    if self.viewdiscord_button or not self.root then
+    if self.viewdiscord_button ~= nil or not self.root then
         return
     end
 
@@ -55,5 +56,5 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
         PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD,
         PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD_FOCUS
     ))
-    self.viewdiscord_button:SetPosition(DISCORD_BUTTON_X + (self.servermenunumbtns * SCREEN_BUTTONS_OFFSET), DISCORD_BUTTON_Y)
+    self.viewdiscord_button:SetPosition(DISCORD_BUTTON_X + (self.servermenunumbtns > 1 and self.servermenunumbtns * SCREEN_BUTTONS_OFFSET or 0), DISCORD_BUTTON_Y)
 end, PlayerStatusScreen)

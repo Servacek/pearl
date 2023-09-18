@@ -125,6 +125,10 @@ end
 function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
 
+    if PEARL.PlayerDB:IsDisabled() then
+        return
+    end
+
     if not PEARL.PlayerDB:HasRecord(userid) then
         PEARL.error("Record not found for", userid)
         return

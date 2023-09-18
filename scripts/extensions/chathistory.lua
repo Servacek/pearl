@@ -13,7 +13,6 @@
 
 require("chathistory")
 
---- @type ChatHistoryManager
 local ChatTypes = ChatTypes
 local ChatHistory = ChatHistory
 local ChatTypesCount = GetTableSize(ChatTypes)
@@ -21,24 +20,52 @@ local ChatTypesCount = GetTableSize(ChatTypes)
 ChatTypes.DiscordMessage = ChatTypesCount + 1
 
 ---------------------------
--- [[ Constats ]]
+-- [[ Event Handlers ]]
 ---------------------------
 
-local DEFAULT_CHAT_MESSAGE_COLOR = WHITE
+local function OnChatMessageAdded(message)
+    for fn in pairs(ChatHistory.listeners) do
+        fn(message)
+    end
+
+    PEARL.EventProcessor:HandleEvent("chat_message",
+        message.sender_guid, message.sender_prefab, message.sender,
+        message.message, message.whisper, message.icondata
+    )
+end
 
 ---------------------------
 -- [[ Public Methods ]]
 ---------------------------
 
-function ChatHistory:GetColourForMessage(s_colour, m_colour)
-    s_colour = type(s_colour) == "number" and {PEARL.DecimalToPercent(s_colour)} or s_colour
-    m_colour = type(m_colour) == "number" and {PEARL.DecimalToPercent(m_colour)} or m_colour
+--- @param message table<string, any>
+function ChatHistory:AddChatMessage(message)
+    if self.request_history_start then
+        self.request_history_start = self.request_history_start + 1
+        if self.request_history_start >= self.MAX_CHAT_HISTORY then
+            self.request_history_start = nil
+        end
+    end
 
-    s_colour = s_colour or DEFAULT_CHAT_MESSAGE_COLOR
-    s_colour.message = m_colour
+    self.history_start = (self.history_start % self.MAX_CHAT_HISTORY) + 1
+    self.max_chat_history_plus_one = self.history[self.history_start]
+    self.history[self.history_start] = message
 
-    return s_colour
+    OnChatMessageAdded(message)
+
+    return message
 end
+
+-- --- @param
+-- function ChatHistory:GetColourForMessage(s_colour, m_colour)
+--     s_colour = type(s_colour) == "number" and {PEARL.DecimalToPercent(s_colour)} or s_colour
+--     m_colour = type(m_colour) == "number" and {PEARL.DecimalToPercent(m_colour)} or m_colour
+
+--     s_colour = s_colour or DEFAULT_CHAT_MESSAGE_COLOR
+--     s_colour.message = m_colour
+
+--     return s_colour
+-- end
 
 ---------------------------
 -- [[ UI ]]
@@ -74,7 +101,13 @@ end)
 
 --- Add support for changing the colour of the text.
 PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_message, self, type, sender_userid, sender_netid, sender_name, message, colour)
-    chat_message.m_colour = colour and colour.message or chat_message.m_colour or SAY_COLOR
+    chat_message.m_colour = (colour and colour.message) or (chat_message.m_colour or SAY_COLOR)
+
+    if colour then
+        colour.message = nil
+    end
+
+    print("COLOR:", chat_message.m_colour, table.dump(chat_message.m_colour))
 
     return chat_message
 end, true)
@@ -91,4 +124,11 @@ setmetatable(ANNOUNCEMENT_ICONS, mt)
 -- [[ Setup ]]
 ---------------------------
 
-AddCustomProfileFlair("dft_discord", "images/dft_flairs.xml", "dft_discord.tex")
+-- No assets on the server
+if TheNet:GetIsClient() then
+    for _, name in pairs(PEARL.CONSTS.PROFILE_FLAIRS) do
+        AddCustomProfileFlair(
+            name, PEARL.ASSETS.PROFILE_FLAIRS.ATLAS, name..".tex"
+        )
+    end
+end

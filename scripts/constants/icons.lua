@@ -24,27 +24,26 @@ local ICONS = {
     GAINS = "<:arrow_up_green:1130590082349400084>",
 
     PLAYER_PREFABS = {
-        -- DST
-        wilson =            "<:Wilson:700037170785681479>",
-        willow =            "<:Willow:700037117220487228>",
-        wolfgang =          "<:Wolfgang:700037355213684827>",
-        wendy =             "<:Wendy:700036336962502717>",
-        wx78 =              "<:WX_78:700037741915799688>",
-        wickerbottom =      "<:Wickerbottom:700036552067252378>",
-        woodie =            "<:Woodie:700037430442590359>",
-        wes =               "<:Wes:700036508572188693>",
-        waxwell =           "<:Maxwell:700036190392418394>",
-        wathgrithr =        "<:Wigfrid:700036639040208957>",
-        webber =            "<:Webber:700036289822457947>",
-        winona =            "<:Winona:700037278533156895>",
-        wortox =            "<:Wortox:700035257780666409>",
-        warly =             "<:Warly:700036121039732757>",
-        wormwood =          "<:Wormwood:700037502869831721>",
-        wurt =              "<:Wurt:700037704427110471>",
-        walter =            "<:Walter:722146045735469187>",
-        wanda =             "<:wanda:885865311105089536>",
-
-        wonkey =            "<:wonkey:988082378541002802>",
+        ["walter"] =             "<:avatar_walter:1152542346253180938>",
+        ["wagstaff"] =           "<:avatar_wagstaff_npc:1152542386342334525>",
+        ["warly"] =              "<:avatar_warly:1152542415966703686>",
+        ["waxwell"] =            "<:avatar_waxwell:1152542452444581898>",
+        ["wathgrithr"] =         "<:avatar_wathgrithr:1152542482589024358>",
+        ["webber"] =             "<:avatar_webber:1152542502553931826>",
+        ["wendy"] =              "<:avatar_wendy:1152542517972185140>",
+        ["wes"] =                "<:avatar_wes:1152542532333481985>",
+        ["wickerbottom"] =       "<:avatar_wickerbottom:1152542545377763338>",
+        ["willow"] =             "<:avatar_willow:1152542561228038185>",
+        ["wilson"] =             "<:avatar_wilson:1152542583810170981>",
+        ["winona"] =             "<:avatar_winona:1152542602768437278>",
+        ["wolfgang"] =           "<:avatar_wolfgang:1152542617976983602>",
+        ["wonkey"] =             "<:avatar_wonkey:1152542634703851550>",
+        ["woodie"] =             "<:avatar_woodie:1152542652437368933>",
+        ["wormwood"] =           "<:avatar_wormwood:1152542674642010153>",
+        ["wortox"] =             "<:avatar_wortox:1152542700676055050>",
+        ["wx78"] =               "<:avatar_wx78:1152542719483330640>",
+        ["wurt"] =               "<:avatar_wurt:1152542745215381525>",
+        ["wanda"] =              "<:avatar_wanda:1152565827904745562>",
 
         ---------------------------------------------------------
         -- Support for mods that add characters from the DLCS
@@ -55,13 +54,8 @@ local ICONS = {
         woodlegs =          "<:woodlegs:988081763236585522>",
 
         -- Hamlet
-        wagstaff =          "<:wagstaff:988082475727220786>",
         wilba =             "<:wilba:988081734933434368>",
         wheeler =           "<:wheeler:988081715325059083>",
-
-        -- Unknown character
-        [""] =              "<:unknown:990652780496695406>",
-        --unknown =           "<:unknown:990652780496695406>",
 
         -- Server
         ["server"] =        "<:dedicated:1001104949524041788>",
@@ -85,7 +79,6 @@ local ICONS = {
         ["ghost_wanda"]         = "<:ghost_wanda:1150182789849821185>",
         ["ghost_walter"]        = "<:ghost_walter:1150182815477010513>",
         ["ghost_willow"]        = "<:ghost_willow:1150182832178737212>",
-        ["ghost_unknown"]       = "<:ghost_unknown:1150182868279099432>",
         ["ghost_wormwood"]      = "<:ghost_wormwood:1151208430586044466>",
         ["ghost_wortox"]        = "<:ghost_wortox:1151208508566544425>",
         ["ghost_wurt"]          = "<:ghost_wurt:1151208540871082034>",
@@ -98,7 +91,12 @@ local ICONS = {
         ["wormwood_1"]          = "<:wormwood_1:1151231540425146460>",
         ["wormwood_2"]          = "<:wormwood_2:1151231563380555818>",
         ["wormwood_3"]          = "<:wormwood_3:1151231594078666792>",
-        ["unknown"]             = "<:unknown:1151231676891005070>"
+
+        -- Fallbacks
+        ["unknown"]             = "<:unknown:1151231676891005070>",
+        ["ghost_unknown"]       = "<:ghost_unknown:1150182868279099432>",
+        [""]                    = "<:unknown:990652780496695406>",
+        ["ghost_"]              = "<:ghost_unknown:1150182868279099432>",
     },
 
     LEADERBOARD_PLACES = {
@@ -152,7 +150,7 @@ local ICONS = {
     },
 
     PLAYER_VANITY = {
-        ["dft_discord"] = "<:discord:1135176871655522374>",
+        [PEARL.CONSTS.PROFILE_FLAIRS.DISCORD] = "<:discord:1135176871655522374>",
     },
 
     SIM_STATE = {
@@ -181,35 +179,40 @@ local ICONS = {
         ["afk_start"]=          "<:afk_start:997473616604184686>",
         ["afk_stop"]=           "<:afk_stop:997473583410450492>",
 
-        ["ignite"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.TORCH],
-        ["burn"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FIRE],
-        ["take"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.BACKPACK],
-        ["swallow"]=    PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FAKETEETH],
-        ["kill"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HAMBAT],
-        ["hammer"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HAMMER],
-        ["defeat"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.TROPHY],
-        ["deploy"]=     PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.EYEPLANT],
-        ["welcome"]=    PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.WAVE],
+        ["ignite"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.TORCH],
+        ["burn"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.FIRE],
+        ["take"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.BACKPACK],
+        ["swallow"]=    PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.FAKETEETH],
+        ["kill"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.HAMBAT],
+        ["hammer"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.HAMMER],
+        ["defeat"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.TROPHY],
+        ["deploy"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.EYEPLANT],
+        ["welcome"]=    PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.WAVE],
+        ["read"]=       "<:pravidla:1152668369544286268>",
 
         ["extinguish"]= "<:extinguish:1133083578381643818>",
         ["build"]=      "<:build:1133086015146438686>",
-        ["craft"]=      PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.SCIENCEMACHINE],
-        ["dig"]=        PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.SHOVEL],
-        ["plant"]=      PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.BERRY],
-        ["give"]=       PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.PIG],
+        ["craft"]=      PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.SCIENCEMACHINE],
+        ["dig"]=        PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.SHOVEL],
+        ["plant"]=      PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.BERRY],
+        ["give"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.PIG],
         ["sleep"]=      "<:tent:1133091346371072040>",
         ["chop"]=       "<:axe:1133094231972515910>",
-        ["eat"]=        PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.HUNGER],
-        ["propagator"]= PEARL.EMOTES.DISCORD[PEARL.EMOTES.GAME.FIREPIT],
+        ["eat"]=        PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.HUNGER],
+        ["propagator"]= PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.FIREPIT],
+        ["fertilize"]=  PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.POOP],
+        ["waste"]=      PEARL.EMOTES.DISCORD.WORMHOLE,
     },
 }
 
 --- Inventory Icons
 
-local rf = io.open(PEARL.MODROOT.."/data/inventory_icons.json", "r")
-if rf then
-    ICONS.INVENTORY = json.load(rf)
-    rf:close()
+if TheNet:GetIsServer() then
+    local rf = io.open(PEARL.MODROOT.."/data/inventory_icons.json", "r")
+    if rf then
+        ICONS.INVENTORY = json.load(rf)
+        rf:close()
+    end
 end
 
 ICONS.INVENTORY = ICONS.INVENTORY or {}

@@ -23,15 +23,15 @@
 --]]
 
 --------------------------------------------------------------------------
---[[ Class Initialization - PlayerThief ]]
+--[[ Class Declaration - PlayerThief ]]
 --------------------------------------------------------------------------
 
 --- @class PlayerThief
 return Class(function(self, inst)
-    self._inst = inst
+    local _inst = inst
 
-    self._ac_items_cache = {}
-    self._ac_container = nil
+    local _ac_items_cache = {}
+    local _ac_container = nil
 
     --------------------------------------------------------------------------
     --[[ Private Atrributes and Methods ]]
@@ -41,7 +41,7 @@ return Class(function(self, inst)
 
     local function onclosecontainer(doer, container)
         -- Only clean up if we have closed the active container
-        if not container or container ~= self._ac_container then
+        if not container or container ~= _ac_container then
             return
         end
 
@@ -84,7 +84,7 @@ return Class(function(self, inst)
             end
 
             if #rare_items > 0 then
-                return self._inst:PushModEvent("tookrarecontainer", {
+                return _inst:PushModEvent("tookrarecontainer", {
                     container = data.item,
                     items = rare_items
                 })
@@ -95,31 +95,31 @@ return Class(function(self, inst)
             return
         end
 
-        self._inst:PushModEvent("tookrareitem", data.item)
+        _inst:PushModEvent("tookrareitem", data.item)
 
-        data.item.components.inventoryitem:SetLastPicker(self._inst)
+        data.item.components.inventoryitem:SetLastPicker(_inst)
     end
 
     local function onplayerdespawned(player)
-        onclosecontainer(player, self._ac_container)
+        onclosecontainer(player, _ac_container)
     end
 
     --------------------------------
 
     local function RegisterListeners()
-        if not self._inst then
+        if not _inst then
             return
         end
 
         --> Do not use itemget and itemlose events for this since they are used by the Frontend
         --> Use the default ListenForEvent because we remove these events.
-        self._inst:ListenForEvent("onpickupitem", onpickupitem)
-        self._inst:ListenForEvent("opencontainer", onopencontainer)
-        self._inst:ListenForEvent("player_despawn", onplayerdespawned)
+        _inst:ListenForEvent("onpickupitem", onpickupitem)
+        _inst:ListenForEvent("opencontainer", onopencontainer)
+        _inst:ListenForEvent("player_despawn", onplayerdespawned)
 
         --> Use "closedcontainer" instead of the built-in "closecontainer" event because
         --> that is for some reason called only when closing a container by clicking on it.
-        self._inst:ListenForModEvent("closedcontainer", onclosecontainer)
+        _inst:ListenForModEvent("closedcontainer", onclosecontainer)
     end
 
     --------------------------------
@@ -132,25 +132,25 @@ return Class(function(self, inst)
         end
 
         -- We have still an active container! Close it.
-        if self._ac_container then
-            onclosecontainer(self._inst, self._ac_container)
+        if _ac_container then
+            onclosecontainer(_inst, _ac_container)
         end
 
-        self._ac_container = container
+        _ac_container = container
 
         container.components.container:ForEachItem(function(item)
             if item.components.inventoryitem:IsRare() then
-                self._ac_items_cache[#self._ac_items_cache + 1] = item
+                _ac_items_cache[#_ac_items_cache + 1] = item
             end
         end)
     end
 
     ClearActiveContainerCache = function()
-        self._ac_container = nil
+        _ac_container = nil
 
-        if self._ac_items_cache then
-            for i, _ in ipairs(self._ac_items_cache) do
-                self._ac_items_cache[i] = nil
+        if _ac_items_cache then
+            for i, _ in ipairs(_ac_items_cache) do
+                _ac_items_cache[i] = nil
             end
         end
     end
@@ -165,12 +165,12 @@ return Class(function(self, inst)
         }
 
         -- Items can be invalid here
-        for _, cached_item in ipairs(self._ac_items_cache) do
+        for _, cached_item in ipairs(_ac_items_cache) do
             if cached_item.components.inventoryitem and
-                cached_item.components.inventoryitem:IsHeldBy(self._inst) and
-                not cached_item.components.inventoryitem:IsLastPicker(self._inst)
+                cached_item.components.inventoryitem:IsHeldBy(_inst) and
+                not cached_item.components.inventoryitem:IsLastPicker(_inst)
             then
-                cached_item.components.inventoryitem:SetLastPicker(self._inst)
+                cached_item.components.inventoryitem:SetLastPicker(_inst)
 
                 stolen_items[#stolen_items + 1] = cached_item
 
@@ -188,11 +188,11 @@ return Class(function(self, inst)
     --------------------------------
 
     function self:OnRemoveFromEntity()
-        if self._inst then
-            self._inst:RemoveModEventCallback("closedcontainer", onclosecontainer)
-            self._inst:RemoveEventCallback("openedcontainer", onopencontainer)
-            self._inst:RemoveEventCallback("onpickupitem", onpickupitem)
-            self._inst:RemoveEventCallback("player_despawn", onplayerdespawned)
+        if _inst then
+            _inst:RemoveModEventCallback("closedcontainer", onclosecontainer)
+            _inst:RemoveEventCallback("openedcontainer", onopencontainer)
+            _inst:RemoveEventCallback("onpickupitem", onpickupitem)
+            _inst:RemoveEventCallback("player_despawn", onplayerdespawned)
         end
 
         ClearActiveContainerCache()

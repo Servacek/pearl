@@ -69,8 +69,9 @@ function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, c
         return {}
     end
 
-    local radius = self.components.propagator and self.components.propagator.propagaterange
-        or rad or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
+    local radius = 10
+    -- local radius = self.components.propagator and self.components.propagator.propagaterange
+    --     or rad or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
 
     if TheWorld and TheWorld.state and TheWorld.state.isspring then
         radius = radius * TUNING.SPRING_FIRE_RANGE_MOD
@@ -127,8 +128,12 @@ end
 function EntityScript:GetFancyPrefabName()
     local userflags = self:GetUserFlags()
     local prefabname = tostring(self.prefab)
+    if prefabname == "" then
+        prefabname = "unknown"
+    end
+
     if checkbit(userflags, USERFLAGS.IS_GHOST) then
-        prefabname = prefabname.."_ghost"
+        prefabname = "ghost_"..prefabname
     end
 
     local state_number = self:GetStateNumber()

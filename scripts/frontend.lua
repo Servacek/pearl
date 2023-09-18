@@ -43,9 +43,23 @@ PEARL.CONSTS.LT_TYPE_TABLES = {
 }
 
 PEARL.SafeModTableExtend("ASSETS", {
+    PROFILE_FLAIRS = {
+        TEX   = "images/custom_profile_flairs.tex",
+        ATLAS = "images/custom_profile_flairs.xml",
+
+        TEXTURES = {
+            DISCORD = "discord.tex"
+        }
+    },
+
+    ANNOUNCEMENT_ICONS = {
+        TEX   = "images/announcement_icons.tex",
+        ATLAS = "images/announcement_icons.xml",
+    },
+
     SOCIAL_BUTTONS = {
-        TEX = "images/social_buttons.tex",
-        ATLAS = "images/social_buttons.atlas",
+        TEX   = "images/social_buttons.tex",
+        ATLAS = "images/social_buttons.xml",
 
         TEXTURES = {
             DISCORD         = "discord_button.tex",
@@ -114,6 +128,7 @@ PEARL.loadfile("extensions/chathistory")
 
 PEARL.loadfile("extensions/scripts/entityscript")
 
+PEARL.loadfile("extensions/usercommands")
 if PEARL.CONFIG.SLASH_COMMANDS then
     PEARL.loadfile("extensions/commands")
 end
@@ -147,18 +162,32 @@ PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 
 ----------------------------------
 -- Assets
-----------------------------------¨
+----------------------------------
+
+--- @ISSUES:
+--- - If the texture displays as a black rectangle
+---  there is probably some issue with the atlas file
+---  not having some margin around other textures.
+---  For multiple textures in one .tex file,
+---  it should have at least one pixel spacing between each image
+---  To prevent "bleeding".
+---  Also sometimes just updating the file generator fixes this issue.
+---
+--- - If the texture displays as some grey-ish noisy image
+--- - the .TEX file it points do doesn't exist (make sure filename matches the actual name).
+---
+--- - Most of the time the textures should not start X at 0 but something like 0.009685
 
 PEARL.info("Registering assets...")
 PEARL.ENV.Assets = {
-    Asset("IMAGE", "images/announcement_icons.tex"),
-    Asset("ATLAS", "images/announcement_icons.xml"),
+    Asset("IMAGE", PEARL.ASSETS.ANNOUNCEMENT_ICONS.TEX),
+    Asset("ATLAS", PEARL.ASSETS.ANNOUNCEMENT_ICONS.ATLAS),
 
-    Asset("IMAGE", "images/custom_profile_flairs.tex"),
-    Asset("ATLAS", "images/custom_profile_flairs.xml"),
+    Asset("IMAGE", PEARL.ASSETS.PROFILE_FLAIRS.TEX),
+    Asset("ATLAS", PEARL.ASSETS.PROFILE_FLAIRS.ATLAS),
 
-    Asset("IMAGE", "images/social_buttons.tex"),
-    Asset("ATLAS", "images/social_buttons.xml"),
+    Asset("IMAGE", PEARL.ASSETS.SOCIAL_BUTTONS.TEX),
+    Asset("ATLAS", PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS),
 }
 
 PEARL.info("Loading preload assets...")

@@ -15,10 +15,10 @@
 -- [[ Constants ]]
 --------------------------------
 
-local QUEUE_TIME        = 3
+local QUEUE_TIME        = 4
 local QUEUE_REPEAT_MULT = 2
 
-local MAX_DELAY         = 10
+local MAX_DELAY         = 15
 
 --------------------------------
 -- [[ Class Declaration ]]
@@ -97,7 +97,7 @@ end
 --------------------------------
 
 --- @return QueuedLogAction
-function QueuedLogAction:AddTarget(target)
+function QueuedLogAction:AddTarget(target, nostack)
     if not self.target then
         self.target = target
         return self
@@ -106,11 +106,12 @@ function QueuedLogAction:AddTarget(target)
     if not self.targets then
         self.targets = {}
 
-        self:AddTarget(self.target)
+        self:AddTarget(self.target, nostack)
     end
 
     local name = PEARL.GetStandardizedNameFor(target)
-    self.targets[name] = (self.targets[name] or 0) + PEARL.GetStackSize(target)
+    local stacksize = nostack and 1 or PEARL.GetStackSize(target)
+    self.targets[name] = (self.targets[name] or 0) + stacksize
 
     return self
 end

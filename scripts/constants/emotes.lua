@@ -15,7 +15,7 @@
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 
-return {
+local EMOTES = {
     -- Game utf-8 formatted emotes accessed by name
     GAME = {
         ABIGAIL         = "󰀜",
@@ -72,7 +72,7 @@ return {
     },
 
     -- Converts a game utf-8 formatted emote to a discord emoji
-    DISCORD = {
+    MAP_DISCORD = {
         ["󰀜"] = "<a:abigail:997498948161900584>", -- :abigail:
         ["󰀝"] = "<a:alchemy:997498961675960470>", -- :alchemy:
         ["󰀞"] = "<a:backpack:997498991094800510>", -- :backpack:
@@ -132,3 +132,10 @@ return {
         --["TODO?"] = "<a:rmb:997508955435700224>", -- right mouse click
     },
 }
+
+EMOTES.DISCORD = {}
+for name, symbol in pairs(EMOTES.GAME) do
+    EMOTES.DISCORD[name] = EMOTES.MAP_DISCORD[symbol]
+end
+
+return EMOTES

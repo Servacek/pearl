@@ -24,6 +24,8 @@
 local Ents = Ents
 local TheNet, TheInput = TheNet, TheInput
 
+local ChatMessage = PEARL.loadfile("models/chatmessage")
+
 ----------------------------------
 -- Constants
 ----------------------------------
@@ -98,43 +100,35 @@ end
 -- Called from server-side user command handlers.
 -- Sends a RPC to the client with the given userid.
 -- Note: This works only if the player is connected to the local shard.
-function ServerNetwork:SendCommandResponse(userid, message, ...)
-    if not (message and userid) then
-        return
-    end
+function ServerNetwork:SendCommandResponse(userid, response)
+    local message = ChatMessage(response)
+    message:SetType(ChatTypes.CommandResponse)
+    message:SetIsLocalOnly(true)
 
-    PEARL.debug("ServerNetwork:SendCommandResponse<"..userid..">", message)
-    if self:IsPlayerOnThisShard(userid) then
-        return PEARL.SendRPCToClient(PEARL.RPC.AddToChatHistory, userid, nil, ChatTypes.CommandResponse, nil, nil, nil, message)
-    end
-
-    return PEARL.BroadcastRPCToAllShards(PEARL.RPC.AddToChatHistory, userid, nil, ChatTypes.CommandResponse, nil, nil, nil, message, ...)
+    self:DisplayChatMessageFor(userid, message)
 end
 
--- Display to chosen clients or all if "userids" is nil.
-function ServerNetwork:DisplayChatMessageFor(userids, name, message, name_colour, message_colour, flair, ...)
-    local m_colour_dec = tonumber(message_colour)
-    if type(m_colour_dec) ~= "number" then
-        m_colour_dec = PEARL.PercentToDecimal(message_colour or WHITE)
+-- Display to chosen client(s) or all if "userids" is nil.
+--- @param userids table|string? The optional list of userids or userid of the receiver(s)
+--- @param message ChatMessage The message to be displayed.
+function ServerNetwork:DisplayChatMessageFor(userids, message)
+    local jsonstr, data = message:ToJson()
+    if type(jsonstr) ~= "string" then
+        return PEARL.error("Failed to encode message data to JSON format!")
     end
 
-    local n_colour_dec = tonumber(name_colour)
-    if type(n_colour_dec) ~= "number" then
-        n_colour_dec = PEARL.PercentToDecimal(name_colour or WHITE)
+    PEARL.BroadcastRPCToClients(PEARL.RPC.DisplayChatMessage, userids, jsonstr)
+
+    if not message:GetIsLocalOnly() then
+        -- Make sure the message is archived on the server as well.
+        ChatHistory:AddChatMessage(data)
     end
-
-    PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, PEARL.RPC.AddToChatHistory, userids,
-        m_colour_dec, 1, nil, nil, name, message, n_colour_dec, flair, ...
-    )
-
-    local vanity = { [2] = flair }
-    local colour = ChatHistory:GetColourForMessage(name_colour, message_colour)
-    Networking_Say(nil, "", name, nil, message, colour, false, false, vanity)
 end
 
--- Display to all connected clients
-function ServerNetwork:DisplayChatMessage(name, message, name_colour, message_colour, flair, ...)
-    return self:DisplayChatMessageFor(nil, name, message, name_colour, message_colour, flair, ...)
+--- Display a message to all connected clients.
+--- @param message ChatMessage The message to be displayed
+function ServerNetwork:DisplayChatMessage(message)
+    return self:DisplayChatMessageFor(nil, message)
 end
 
 function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason_title)
@@ -364,6 +358,7 @@ function ServerNetwork:IsClientLoading(userid)
     return self:HasUserFlag(userid, USERFLAGS.IS_LOADING)
 end
 
+--- True when in the lobby!
 function ServerNetwork:IsClientJoining(userid)
     return joining_clients[userid] == true
 end
@@ -681,6 +676,7 @@ PEARL.AddWorldPostInit(function(world)
         PEARL.EventProcessor:HandleEvent("save", ...)
     end)
 
+    -- This actually runs after we enter the game world, not lobby.
     world:SafeListenForEvent("ms_playerjoined", function(self, player)
         if player and player.userid then
             ServerNetwork:OnClientJoined(player.userid)

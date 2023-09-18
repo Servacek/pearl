@@ -142,10 +142,21 @@ local function OnClientProfileData(userid, data)
     PEARL.PlayerDB:OptionalSafeSetField(userid, "avatar", data.avatar)
 end
 
-local function OnPlayerSpawned(world, player)
-    if player.prefab ~= "" then
+local function OnPlayerChanged(world, player)
+    -- Always save this field since we use it as fallback for the fancy version.
+    local prefab = player.prefab
+    if prefab == nil or player.userid == nil or player.userid == "" then
+        return
+    end
+
+    PEARL.PlayerDB:OptionalSetField(
+        player.userid, "lastprefab", prefab
+    )
+
+    local fancyprefab = player:GetFancyPrefabName()
+    if type(fancyprefab) == "string" then
         PEARL.PlayerDB:OptionalSetField(
-            player.userid, "lastprefab", player.prefab
+            player.userid, "lastprefabfancy", fancyprefab
         )
     end
 end
@@ -177,5 +188,6 @@ PEARL.AddWorldPostInit(function(world)
     world:ListenForModEvent("ms_clientconnected", OnClientConnected)
     world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
 
-    world:SafeListenForEvent("ms_playerdespawn", OnPlayerSpawned)
+    world:SafeListenForEvent("ms_playerdespawn", OnPlayerChanged)
+    world:SafeListenForEvent("ms_playerspawn", OnPlayerChanged)
 end)

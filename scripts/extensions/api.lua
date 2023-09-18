@@ -100,12 +100,17 @@ function PEARL.OverrideValue(t, name, value, noraw)
     return origin, value
 end
 
+--- Use ALWAYS noraw for Class Methods!!!!
 function PEARL.OverrideReturnValue(t, funcname, func, noraw)
     local origin
     origin = PEARL.OverrideValue(t, funcname, function(...)
         local old_ret = (type(origin) == "function") and origin(...) or nil
         return func(old_ret, ...)
     end, noraw)
+end
+
+function PEARL.OverrideMethodReturnValue(class, methodname, overridefn)
+    return PEARL.OverrideReturnValue(class, methodname, overridefn, true)
 end
 
 function PEARL.AddFunctionPreCall(name, precb, t, noraw)
@@ -448,11 +453,11 @@ end)
 --------------------------------
 
 function PEARL.RegisterAnnouncementType(type)
-    if not PEARL.CONSTS.ANNOUNCEMENT_TYPES then
-        PEARL.CONSTS.ANNOUNCEMENT_TYPES = {}
+    if not PEARL.CONSTS.ANN_TYPE then
+        PEARL.CONSTS.ANN_TYPE = {}
     end
 
-    PEARL.CONSTS.ANNOUNCEMENT_TYPES[string.upper(type)] = type
+    PEARL.CONSTS.ANN_TYPE[string.upper(type)] = type
 end
 
 function PEARL.RegisterDefaultAnnouncementTypes()
@@ -461,13 +466,13 @@ function PEARL.RegisterDefaultAnnouncementTypes()
     end
 end
 
-function PEARL.AddAnnouncementCategory(name, icon)
+function PEARL.AddAnnouncementIcon(name, icon)
     assert(ANNOUNCEMENT_ICONS, "ANNOUNCEMENT_ICONS is nil!")
     assert(ANNOUNCEMENT_ICONS[name] == nil, "ANNOUNCEMENT ICON already exists for type "..name)
 
     if icon then
         ANNOUNCEMENT_ICONS[name] = {
-            atlas = "images/announcements.xml", texture = icon
+            atlas = "images/announcement_icons.xml", texture = icon
         }
     end
 
@@ -518,7 +523,8 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, ...)
         return TheNet:Announce(str, entity, nil, tp, ...)
     end
 
-    PEARL.DiscordLogger:LogString(str, PEARL.ICONS.ANNOUNCEMENTS[string.lower(tp)])
+    local icon = PEARL.ICONS.ANNOUNCEMENTS[string.lower(tp)] or PEARL.ICONS.ANNOUNCEMENTS.default
+    PEARL.DiscordLogger:LogString(str, icon)
 end
 
 --------------------------------
