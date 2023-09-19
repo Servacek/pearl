@@ -56,24 +56,6 @@ local function AddSocialButton(root, link, hover, normal, focus)
 end
 
 ---------------------------
--- [[ Overrides ]]
----------------------------
-
---- @TODO: Debug
-if not TheNet:GetServerIsClientHosted() and PEARL.CONFIG.HOST_NAME ~= nil then
-    PEARL.OverrideMethodReturnValue(PlayerList, "GetDisplayName", function(name, self, client)
-        print(client, client.name, name)
-
-        -- Return custom name for Hosts.
-        if client.performance ~= nil then
-            return tostring(PEARL.CONFIG.HOST_NAME)
-        end
-
-        return name
-    end)
-end
-
----------------------------
 -- [[ Init ]]
 ---------------------------
 

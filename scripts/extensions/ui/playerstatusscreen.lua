@@ -17,10 +17,6 @@
 ]]
 
 local PEARL = PEARL
-if not PEARL.CONFIG.SOCIAL_LINKS or type(PEARL.CONFIG.SOCIAL_LINKS.DISCORD) ~= "string" or #PEARL.CONFIG.SOCIAL_LINKS.DISCORD < 3 then
-    return
-end
-
 local TEMPLATES = require("widgets/redux/templates")
 
 --- @class PlayerStatusScreen
@@ -35,9 +31,27 @@ local DISCORD_BUTTON_Y = 200
 
 local SCREEN_BUTTONS_OFFSET = 24
 
+---------------------------
+-- [[ Overrides ]]
+---------------------------
+
+if not TheNet:GetServerIsClientHosted() and PEARL.CONFIG.HOST_NAME ~= nil then
+    PEARL.OverrideMethodReturnValue(PlayerStatusScreen, "GetDisplayName", function(name, self, client)
+        print("PlayerList:GetDisplayName")
+         -- Return custom name for Hosts.
+        if client.performance ~= nil then
+            return tostring(PEARL.CONFIG.HOST_NAME)
+        end
+
+        return name
+    end)
+end
+
 -------------------------------
 -- [[ Function Extensions ]]
 -------------------------------
+
+if PEARL.CONFIG.SOCIAL_LINKS and type(PEARL.CONFIG.SOCIAL_LINKS.DISCORD) == "string" and #PEARL.CONFIG.SOCIAL_LINKS.DISCORD > 3 then
 
 -- We have to use DoInit instead of PostConstruct because
 -- root is constructed there too.
@@ -58,3 +72,5 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
     ))
     self.viewdiscord_button:SetPosition(DISCORD_BUTTON_X + (self.servermenunumbtns > 1 and self.servermenunumbtns * SCREEN_BUTTONS_OFFSET or 0), DISCORD_BUTTON_Y)
 end, PlayerStatusScreen)
+
+end
