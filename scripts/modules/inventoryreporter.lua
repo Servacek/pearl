@@ -74,7 +74,7 @@ local OnPredictionMessageReceived
 -------------------------------
 
 local _depos = {}
-local _weights = PEARL.PREFABS.RARE_ITEMS
+local _weights = {}
 local _predictions = {}
 
 -------------------------------
@@ -93,7 +93,7 @@ end
 
 local function LoadItemWeights()
     if not io.exists(WEIGHTS_FILE_PATH) then
-        _weights = PEARL.PREFABS.RARE_ITEMS
+        _weights = shallowcopy(PEARL.PREFABS.RARE_ITEMS)
         SaveItemWeights()
         return
     end
@@ -125,14 +125,18 @@ local function GetContributions(weights, normalized_value)
 end
 
 -- TODO: Apply feedback according to condfidence?
+-- Confidence calculations are to inacurate for that...
 local function ApplyFeedbackWeight(pd, positive)
     local mult = positive and 1 or -1
     local contributions = GetContributions(pd.weights, pd.normalized_value)
     for prefab, contribution in pairs(contributions) do
         -- The weight should be always between 0 and 1.
-        _weights[prefab] = math.min(
-            (_weights[prefab] or 0) + (FEEDBACK_WEIGHT * contribution * mult), 1
-        )
+        -- _weights[prefab] = math.min(
+        --     (_weights[prefab] or 0) + (FEEDBACK_WEIGHT * contribution * mult), 1
+        -- )
+
+        -- Lets try to keep the weight growing as it needs to
+        _weights[prefab] = (_weights[prefab] or 0) + (FEEDBACK_WEIGHT * contribution * mult)
     end
 end
 
@@ -209,7 +213,7 @@ local function CheckPlayersInventory(world, player)
             -- If no depo is available we will drop the items under the player.
             local depo_pos = depo and depo.Transform and depo.Transform:GetWorldPosition()
 
-            PEARL.info("Dropping rare items from player's inventory...")
+            PEARL.info("Dropping rare items from player's inventory...", depo)
             player.components.inventory:DropRareItems(0.4, nil, depo_pos)
 
             drop_type = DROP_TYPE.RARE
@@ -220,7 +224,7 @@ local function CheckPlayersInventory(world, player)
         local embed = EMBEDS.SuspiciousInventory(player_meta, pd.confidence)
         if drop_type ~= DROP_TYPE.NONE then
             embed:SetDescription(embed.description..(
-                "\n\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..(
+                "\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..(
                     drop_type == DROP_TYPE.ALL and STRINGS.PEARL.LOGS.INV_REPORT_DROPPED or STRINGS.PEARL.LOGS.INV_RARE_ITEMS_DROPPED
                 )
             ))
@@ -311,6 +315,8 @@ local function OnItemRaritySet(prefab, value)
     end
 
     _weights[prefab] = value
+
+    SaveItemWeights()
 end
 
 -------------------------------
