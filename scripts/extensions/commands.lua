@@ -1014,6 +1014,57 @@ AddCommand("skip", {
     end
 })
 
+AddCommand("announce", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = false, -- Already implemented for console.
+    discord = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    params = { "message" },
+    paramsoptional = { false },
+
+    mainfn = function(params)
+        TheNet:Announce(params.message)
+    end
+})
+
+AddCommand("dm", {
+    permission = COMMAND_PERMISSION.USER,
+    console = true,
+    discord = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    params = { "player", "message" },
+    paramsoptional = { false, false },
+
+    mainfn = function(params)
+        local userid = UserToClientID(params.player) or params.player
+        if not PEARL.ServerNetwork:IsUserConnected(userid) then
+            return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+        end
+
+        PEARL.ServerNetwork:DisplayChatMessageFor(userid, params.message)
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.ON_SUCCESS
+    end
+})
+
+AddCommand("system", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    discord = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    params = { "message" },
+    paramsoptional = { false },
+
+    mainfn = function(params)
+        TheNet:SystemMessage(params.message)
+    end
+})
+
 AddCommand("blockmod", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC,

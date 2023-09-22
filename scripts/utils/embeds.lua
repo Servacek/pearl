@@ -49,7 +49,6 @@ function EMBEDS.Inventory(pmd, highlighted)
     local netid     = pmd:GetNetID()
     local url       = netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
 
-
     local description = ""
     local max_prefab_size = PEARL.GetMaxStringSize(inventory, true)
     local max_count_size = PEARL.GetMaxStringSize(inventory)
@@ -67,7 +66,7 @@ function EMBEDS.Inventory(pmd, highlighted)
         line = line.." "..PEARL.PrefabToName(iprefab)
 
         -- Keep the highlighted items on top.
-        if type(highlighted) == "table" and (table.contains(highlighted, iprefab) or highlighted[iprefab] == 1) then
+        if type(highlighted) == "table" and (table.contains(highlighted, iprefab) or highlighted[iprefab] >= 1) then
             description = MARKDOWN.bold(line).."\n"..description
         else
             description = description..line.."\n"

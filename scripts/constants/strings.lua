@@ -380,7 +380,7 @@ local STRINGS = {
         PROXY_MESSAGE_FAILED    = "There was an error processing the message!",
 
         PROXY_COMMAND_FAILED    = "There was an error processing the command!",
-        PROXY_COMMAND_FAILED_N  = "There was an error processing command %s!",
+        PROXY_COMMAND_FAILED_N  = "There was an error processing command \"%s\"!",
 
         -- Anti AFK system
         USER_ACTIVE             = "%s came back!",
@@ -665,6 +665,10 @@ local STRINGS = {
             SET_RARITY = {
                 ON_SUCCESS = "The rarity value for the specified item was changed.",
                 ON_DISABLED = "The Inventory Reporter module is disabled!\nYou need to enable it in the settings in order to use this command."
+            },
+
+            DM = {
+                ON_SUCCESS = "The message was sent to %s."
             },
         },
 

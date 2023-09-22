@@ -328,6 +328,17 @@ if PEARL.INIT then
     return
 end
 
+local _default_mt = getmetatable({})
+_default_mt.__newindex = function()
+    if PEARL.CONFIG.DEBUG_MODE then
+        return error("Attempted to change a constant!")
+    end
+
+    return PEARL.error("Attempted to change a constant!")
+end
+
+local _const_mt = _default_mt
+
 PEARL.info("Loading constants...")
 --- @type table<table<string, boolean>>
 PEARL.PREFABS = PEARL.loadfile("constants/prefabs")
@@ -337,6 +348,10 @@ PEARL.PREFABS = PEARL.loadfile("constants/prefabs")
 PEARL.EMOTES = PEARL.loadfile("constants/emotes")
 --- @type table<table<string, string>|table<table<string, string>>>
 PEARL.ICONS = PEARL.loadfile("constants/icons")
+
+setmetatable(PEARL.PREFABS, _const_mt)
+setmetatable(PEARL.EMOTES, _const_mt)
+setmetatable(PEARL.ICONS, _const_mt)
 
 --------------------------------
 -- [[ Wall Scheduler ]]
