@@ -13,7 +13,7 @@
 local Text = require "widgets/text"
 local Health = require("components/health")
 
---- Check components/healthbar.lua
+--- Check also components/healthbar.lua
 
 -------------------------------
 -- [[ Constants ]]
@@ -25,15 +25,7 @@ local HEATLH_INFO_FONT = UIFONT
 local HEALTH_INFO_FSIZE = 24
 -- The point where the colours start to flip.
 local HEALTH_THRESHOLD = 50
--- local HEATLH_THRESHOLDS = {
---     FULL = 0.75,
---     HALF = 0.25,
--- }
--- local HEALTH_COLOURS = {
---     FULL = WEBCOLOURS.GREEN,
---     HALF = WEBCOLOURS.YELLOW,
---     LOW  = WEBCOLOURS.RED,
--- }
+local THRESHOLD_MULT   = 100 / HEALTH_THRESHOLD
 
 -------------------------------
 -- [[ Locals ]]
@@ -45,25 +37,13 @@ local colour = shallowcopy(WEBCOLOURS.GREEN)
 -- [[ Local Functions ]]
 -------------------------------
 
--- local function GetColour(percent)
---     if percent > HEATLH_THRESHOLDS.FULL then
---         return HEALTH_COLOURS.FULL
---     end
-
---     if percent > HEATLH_THRESHOLDS.HALF then
---         return HEALTH_COLOURS.HALF
---     end
-
---     return HEALTH_COLOURS.LOW
--- end
-
+-- Smooth colour transition
 -- <0.5 -> R = 255
 -- 0.5> -> G = 255
+-- Colors are in RGB percent!
 local function UpdateColour(percent)
-    print(percent)
-    colour[1] = math.floor(percent > 0.5 and (1 - percent) * 2 * 255 or 255)
-    colour[2] = math.floor(percent < 0.5 and (0.5 - percent) * 2 * 255 or 255)
-    print("RGB", colour[1], colour[2])
+    colour[1] = percent > 0.5 and (1 - percent) * THRESHOLD_MULT or 1
+    colour[2] = percent < 0.5 and percent * THRESHOLD_MULT or 1
 end
 
 local function OnHealthPercentDirty(inst)
@@ -153,8 +133,6 @@ PEARL.AddClassPostConstruct("widgets/hoverer", function(self)
         health_info:SetString(HEALTH_NOTE_PT:format(
             (inst.replica.health._current or 0), inst.replica.health._max:value()
         ))
-        -- Update the colour as well
-        print("RGB", colour[1], colour[2])
         health_info:SetColour(colour)
         health_info:Show()
     end, self)
