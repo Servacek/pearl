@@ -28,8 +28,7 @@ local UserCommands = require("usercommands")
 -- [[ Networking Handlers ]]
 -----------------------------
 
-local function OnChatMessage(guid, prefab, name, content, whisper, icon)
-    print(guid, prefab, name, content, whisper, icon)
+local function OnChatMessage(guid, prefab, name, content, whisper, icon, receiver)
     if type(content) ~= "string" or type(name) ~= "string" then
         return
     end
@@ -56,14 +55,19 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon)
         icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or MARKDOWN.codeline("["..prefab:capitalize().."]")
     end
 
-    content = (whisper and STRINGS.PEARL.LOGS.SAY_WHISPER or STRINGS.PEARL.LOGS.SAY):format(
+    local pattern = STRINGS.PEARL.LOGS["SAY"..((whisper == true and "_WHISPER")  or "")]
+    if receiver then
+        pattern = STRINGS.PEARL.LOGS.SAY_DM:iformat(2, receiver)
+    end
+
+    print("PATTERN:", pattern)
+
+    PEARL.DiscordLogger:LogStringRaw(pattern:format(
         -- This is all user input so it can contain some encoded stuff.
         -- This should be handled when we encode the message as JSON string.
         MARKDOWN.escape(name),
         content:emojify()
-    )
-
-    PEARL.DiscordLogger:LogStringRaw(content, icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
+    ), icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end
 
 --------------------------------

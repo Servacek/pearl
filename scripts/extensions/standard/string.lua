@@ -97,12 +97,12 @@ function string:endswith(suffix)
 end
 
 -- Replaces all known dst emoticons in a string with discord emojis
-function string.emojify(str)
+function string:emojify()
     for utf8_str, emoji in pairs(PEARL.EMOTES.MAP_DISCORD) do
-        str = str:gsub(utf8_str, emoji)
+        self = self:gsub(utf8_str, emoji)
     end
 
-    return str
+    return self
 end
 
 -- Returns a discord emoji string or the input string if no result was found
@@ -176,4 +176,18 @@ function string:nformat(name, value)
     end
 
     return self:gsub("{"..name.."}", value, 1)
+end
+
+
+function string:iformat(index, value, pattern)
+    pattern = pattern or "%s"
+
+    local count = 0
+    return (self:gsub("%"..pattern, function()
+        count = count + 1
+
+        if count == index then
+            return value
+        end
+    end))
 end

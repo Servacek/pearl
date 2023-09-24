@@ -30,7 +30,7 @@ local function OnChatMessageAdded(message)
 
     PEARL.EventProcessor:HandleEvent("chat_message",
         message.sender_guid, message.sender_prefab, message.sender,
-        message.message, message.whisper, message.icondata
+        message.message, message.whisper, message.icondata, message.receiver
     )
 end
 
@@ -40,6 +40,17 @@ end
 
 --- @param message table<string, any>
 function ChatHistory:AddChatMessage(message)
+    PEARL.info(string.format("[Say] %s > %s: %s", tostring(message.sender or "UNKNOWN"), message.receiver or "ALL", message.message))
+
+    if not TheNet:IsDedicated() then
+        if message.receiver then
+            message.sender = STRINGS.PEARL.UI.DM_DESIGNATOR.." "..tostring(message.sender)
+        elseif message.whisper then
+            message.sender = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..tostring(message.sender)
+        end
+    end
+
+    -- We store local messages on server but we do not return them when requested.
     if self.request_history_start then
         self.request_history_start = self.request_history_start + 1
         if self.request_history_start >= self.MAX_CHAT_HISTORY then
@@ -55,17 +66,6 @@ function ChatHistory:AddChatMessage(message)
 
     return message
 end
-
--- --- @param
--- function ChatHistory:GetColourForMessage(s_colour, m_colour)
---     s_colour = type(s_colour) == "number" and {PEARL.DecimalToPercent(s_colour)} or s_colour
---     m_colour = type(m_colour) == "number" and {PEARL.DecimalToPercent(m_colour)} or m_colour
-
---     s_colour = s_colour or DEFAULT_CHAT_MESSAGE_COLOR
---     s_colour.message = m_colour
-
---     return s_colour
--- end
 
 ---------------------------
 -- [[ UI ]]
@@ -98,19 +98,6 @@ end)
 ---------------------------
 -- [[ Overrides ]]
 ---------------------------
-
---- Add support for changing the colour of the text.
-PEARL.OverrideReturnValue(ChatHistory, "GenerateChatMessage", function(chat_message, self, type, sender_userid, sender_netid, sender_name, message, colour)
-    chat_message.m_colour = (colour and colour.message) or (chat_message.m_colour or SAY_COLOR)
-
-    if colour then
-        colour.message = nil
-    end
-
-    print("COLOR:", chat_message.m_colour, table.dump(chat_message.m_colour))
-
-    return chat_message
-end, true)
 
 -- Fallback case for invalid announcement types.
 local mt = getmetatable(ANNOUNCEMENT_ICONS) or {}

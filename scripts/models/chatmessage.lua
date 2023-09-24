@@ -30,6 +30,8 @@ local ChatMessage = Class(function(self, content)
 
     --- @type table<string, any>? lazy loaded
     self.author = nil
+    --- @type string?
+    self.receiver = nil
 
     --- @type integer One of ChatTypes
     self.type = ChatTypes.Message
@@ -130,7 +132,12 @@ function ChatMessage:SetColour(colour)
     return self
 end
 
-function ChatMessage:SetAuthor(name, colour, userid, netid, prefab, guid, vanity)
+-- When this is being set the message is implicitly flagged as a DM.
+function ChatMessage:SetReceiver(name)
+    self.receiver = name
+end
+
+function ChatMessage:SetAuthor(name, colour, userid, netid, prefab, guid)
     self.author = {
         name = name,
         colour = colour,
@@ -138,7 +145,6 @@ function ChatMessage:SetAuthor(name, colour, userid, netid, prefab, guid, vanity
         prefab = prefab,
         guid = guid,
         netid = netid,
-        vanity = vanity,
     }
 
     return self
@@ -155,18 +161,14 @@ end
 -------------------------------------
 
 function ChatMessage:ToTable()
-    local sender = self.author and self.author.name
-    if sender and self:GetIsWhisper() then
-        sender = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..sender
-    end
-
     return {
         type = self.type,
-        sender = sender,
+        sender = self.author and self.author.name,
         sender_netid = self.author and self.author.netid,
         sender_userid = self.author and self.author.userid,
         sender_guid = self.author and self.author.guid,
         sender_prefab = self.author and self.author.prefab,
+        receiver = self.receiver,
         message = self.content,
         text_filter_context = self.text_filter_context,
         localonly = self.localonly,

@@ -202,6 +202,7 @@ local ICONS = {
         ["propagator"]= PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.FIREPIT],
         ["fertilize"]=  PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.POOP],
         ["waste"]=      PEARL.EMOTES.DISCORD.WORMHOLE,
+        ["cook"]=       PEARL.EMOTES.DISCORD.CROCKPOT,
     },
 }
 

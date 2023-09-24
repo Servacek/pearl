@@ -20,6 +20,16 @@
 local TIMEOUT = 60 -- seconds
 
 ----------------------------------
+-- Netvars
+----------------------------------
+
+local _server_slots
+PEARL.AddPlayerPostInit(function(inst)
+    _server_slots = net_byte(inst.GUID, "_server_slots")
+    _server_slots:set_local(TheNet:GetServerMaxPlayers())
+end)
+
+----------------------------------
 -- Locals
 ----------------------------------
 
@@ -314,6 +324,15 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     -- It would cause a crash...
     PEARL.debug("Deffering OnNetworkDisconnect")
 end)
+
+PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
+    local count =  tonumber(_server_slots and _server_slots:value())
+    if type(count) == "number" and count > 0 then
+        return count
+    end
+
+    -- Fallback to default if nil.
+end, false, true)
 
 ----------------------------------
 -- RPCs

@@ -22,6 +22,8 @@ local UserCommands = require("usercommands")
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
+local ChatMessage = PEARL.loadfile("models/chatmessage")
+
 local MESSAGES = PEARL.loadfile("utils/messages")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
@@ -172,8 +174,7 @@ local function AddCommand(name, command, ...)
         command.console = false
     end
 
-    -- By default we will register console accessible function for each admin command.
-    if command.console ~= false and command.permission == COMMAND_PERMISSION.ADMIN then
+    if command.console ~= false then
         AddConsoleCommand(command.consolename or name, function(...)
             local caller = ThePlayer
             local params = ParseParamsArray(command, toarrayornil(...))
@@ -668,7 +669,7 @@ AddCommand("giverep", {
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
-        if caller.userid == userid then
+        if caller.userid == userid and not PEARL.CONFIG.DEBUG_MODE then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF
         end
 
@@ -1030,6 +1031,8 @@ AddCommand("announce", {
 })
 
 AddCommand("dm", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.DESC,
     permission = COMMAND_PERMISSION.USER,
     console = true,
     discord = true,
@@ -1039,14 +1042,34 @@ AddCommand("dm", {
     params = { "player", "message" },
     paramsoptional = { false, false },
 
-    mainfn = function(params)
-        local userid = UserToClientID(params.player) or params.player
-        if not PEARL.ServerNetwork:IsUserConnected(userid) then
+    mainfn = function(params, caller)
+        local target = UserToClient(params.player)
+        if not target or not target.name or not target.userid then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
         end
 
-        PEARL.ServerNetwork:DisplayChatMessageFor(userid, params.message)
-        return STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.ON_SUCCESS
+        --- @type ChatMessage
+        local message = ChatMessage(params.message)
+        message:SetColour(WHISPER_COLOR)
+        message:SetReceiver(target.name)
+
+        if caller then
+            local name = caller:GetDisplayName() or caller.name
+            local client = caller.userid and TheNet:GetClientTableForUser(caller.userid)
+            if client then
+                message:SetIcon(GetRemotePlayerVanityItem(client.vanity or {}, "profileflair"))
+            end
+
+            message:SetAuthor(name, caller.playercolour, caller.userid, caller.netid, caller.prefab, caller.GUID)
+        end
+
+        PEARL.ServerNetwork:DisplayChatMessageFor(
+            -- Display the direct message for the target user as well as the caller.
+            caller and {target.userid, caller.userid} or target.userid, message
+        )
+
+        -- Implicit response?
+        --return STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.ON_SUCCESS:format(target.name)
     end
 })
 
@@ -1158,6 +1181,34 @@ AddCommand("setrarity", {
 
         PEARL.EventProcessor:HandleEvent("set_item_rarity", params.prefab, tonumber(params.value))
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_RARITY.ON_SUCCESS
+    end
+})
+
+AddCommand("setslots", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    params = {"count"},
+    paramsoptional = {false},
+
+    mainfn = function(params)
+        local count = tonumber(params.count)
+        if type(count) ~= "number" or count <= 0 then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT
+        end
+
+        if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW
+        end
+
+        -- This prints some weird error at first use. But the count is actually set.
+        TheNet:SetDefaultMaxPlayers(tostring(count))
+
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS
     end
 })
 

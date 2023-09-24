@@ -13,38 +13,57 @@
 local Text = require "widgets/text"
 local Health = require("components/health")
 
+--- Check components/healthbar.lua
+
 -------------------------------
--- [[ Event Handlers ]]
+-- [[ Constants ]]
 -------------------------------
 
 local HEALTH_NOTE_PT = "󰀍 %d/%d"
 local HEALTH_INFO_POS = Vector3(0, 80, 0)
 local HEATLH_INFO_FONT = UIFONT
 local HEALTH_INFO_FSIZE = 24
-local HEATLH_THRESHOLDS = {
-    FULL = 1 / 1.5,
-    HALF = 1 / 3,
-}
-local HEALTH_COLOURS = {
-    FULL = WEBCOLOURS.GREEN,
-    HALF = WEBCOLOURS.YELLOW,
-    LOW  = WEBCOLOURS.RED,
-}
+-- The point where the colours start to flip.
+local HEALTH_THRESHOLD = 50
+-- local HEATLH_THRESHOLDS = {
+--     FULL = 0.75,
+--     HALF = 0.25,
+-- }
+-- local HEALTH_COLOURS = {
+--     FULL = WEBCOLOURS.GREEN,
+--     HALF = WEBCOLOURS.YELLOW,
+--     LOW  = WEBCOLOURS.RED,
+-- }
+
+-------------------------------
+-- [[ Locals ]]
+-------------------------------
+
+local colour = shallowcopy(WEBCOLOURS.GREEN)
 
 -------------------------------
 -- [[ Local Functions ]]
 -------------------------------
 
-local function GetColour(percent)
-    if percent > HEATLH_THRESHOLDS.FULL then
-        return HEALTH_COLOURS.FULL
-    end
+-- local function GetColour(percent)
+--     if percent > HEATLH_THRESHOLDS.FULL then
+--         return HEALTH_COLOURS.FULL
+--     end
 
-    if percent > HEATLH_THRESHOLDS.HALF then
-        return HEALTH_COLOURS.HALF
-    end
+--     if percent > HEATLH_THRESHOLDS.HALF then
+--         return HEALTH_COLOURS.HALF
+--     end
 
-    return HEALTH_COLOURS.LOW
+--     return HEALTH_COLOURS.LOW
+-- end
+
+-- <0.5 -> R = 255
+-- 0.5> -> G = 255
+local function UpdateColour(percent)
+    print(percent)
+    colour[1] = math.floor(percent > 0.5 and (1 - percent) * 2 * 255 or 255)
+    colour[2] = math.floor(percent < 0.5 and (0.5 - percent) * 2 * 255 or 255)
+    print("RGB", colour[1], colour[2])
 end
 
 local function OnHealthPercentDirty(inst)
@@ -59,6 +78,7 @@ local function OnHealthPercentDirty(inst)
     end
 
     inst.replica.health._current = inst.replica.health._max:value() * inst.replica.health._percent:value()
+    UpdateColour(inst.replica.health._percent:value())
 end
 
 local function OnHealthDelta(self, data)
@@ -134,7 +154,8 @@ PEARL.AddClassPostConstruct("widgets/hoverer", function(self)
             (inst.replica.health._current or 0), inst.replica.health._max:value()
         ))
         -- Update the colour as well
-        health_info:SetColour(unpack(GetColour(inst.replica.health._percent:value())))
+        print("RGB", colour[1], colour[2])
+        health_info:SetColour(colour)
         health_info:Show()
     end, self)
 end)

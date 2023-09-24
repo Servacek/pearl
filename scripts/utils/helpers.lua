@@ -367,9 +367,11 @@ function PEARL.BuildFancyStringForEntities(entities)
     return PEARL.BuildFancyStringFor(PEARL.GroupEntitiesByPrefab(entities))
 end
 
+--- @param entity string|EntityScript
+--- @return string
 function PEARL.GetStandardizedNameFor(entity)
     if type(entity) ~= "table" then
-        return  tostring(entity)
+        return tostring(entity)
     end
 
     --- For players

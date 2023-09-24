@@ -36,7 +36,7 @@ local STRINGS = {
         -- Also not matching every field will not crash.
         TAKE_ITEM = {
             GENERIC     = "{doer} took {target}!",
-            FROM        = "{doer} took {targets} from {source}!",
+            FROM        = "{doer} took {target} from {source}!",
             WITH        = "{doer} took {source} with {target}!"
         },
 
@@ -62,6 +62,7 @@ local STRINGS = {
         COOK = {
             GENERIC     = "{doer} cooked {target}!",
             ON          = "{doer} cooked {target} on {tool}!",
+            IN          = "{doer} cooked {target} in {tool}!",
         },
 
         EXTINGUISH = {
@@ -262,6 +263,7 @@ local STRINGS = {
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
         SAY_WHISPER             = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..MARKDOWN.bold("%s")..": "..MARKDOWN.italic("%s"),
+        SAY_DM                  = "[DM] "..MARKDOWN.bold("%s").." > "..MARKDOWN.bold("%s")..": "..MARKDOWN.italic("%s"),
         CONNECTION_CLOSE        = "Connection for %s was closed -> %s",
         CONSOLE_CMD             = "`%s executed remote command:`\n```lua\n%s```",
         AUTH                    = "%s authenticated as %s",
@@ -460,6 +462,8 @@ local STRINGS = {
         TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
 
         WHISPER_WARN_TEXT = "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone.",
+
+        DM_DESIGNATOR = "[DM]",
 
         CMD_ERRORS = {
             EXECUTION = "Error while executing the command!",
@@ -668,7 +672,19 @@ local STRINGS = {
             },
 
             DM = {
+                PRETTYNAME = "Send Direct Message",
+                DESC       = "Sends a message visible only to the specified player and you!",
+
                 ON_SUCCESS = "The message was sent to %s."
+            },
+
+            SET_SLOTS = {
+                PRETTYNAME = "Set Server Slots Count",
+                DESC       = "Sets the number of player slots for the server.",
+
+                ON_INVALID_INPUT = "Invalid number of slots provided!",
+                ON_COUNT_TOO_LOW = "The Specified number of slots is less than the total number of players!",
+                ON_SUCCESS = "The number of server slots has been updated!",
             },
         },
 

@@ -101,16 +101,23 @@ function PEARL.OverrideValue(t, name, value, noraw)
 end
 
 --- Use ALWAYS noraw for Class Methods!!!!
-function PEARL.OverrideReturnValue(t, funcname, func, noraw)
+function PEARL.OverrideReturnValue(t, funcname, func, noraw, optional)
     local origin
     origin = PEARL.OverrideValue(t, funcname, function(...)
         local old_ret = (type(origin) == "function") and origin(...) or nil
-        return func(old_ret, ...)
+        return func(old_ret, ...) or (optional and old_ret or nil)
     end, noraw)
 end
 
-function PEARL.OverrideMethodReturnValue(class, methodname, overridefn)
+function PEARL.OverrideMethodReturnValue(class, methodname, overridefn, optional)
     return PEARL.OverrideReturnValue(class, methodname, overridefn, true)
+end
+
+function PEARL.OverrideUserdataFnReturn(userdata, funcname, overridefn, noraw, optional)
+    local mt = getmetatable(userdata)
+    assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
+
+    return PEARL.OverrideReturnValue(mt.__index, funcname, overridefn, noraw, optional)
 end
 
 function PEARL.AddFunctionPreCall(name, precb, t, noraw)

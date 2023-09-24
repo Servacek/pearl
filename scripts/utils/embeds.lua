@@ -66,7 +66,7 @@ function EMBEDS.Inventory(pmd, highlighted)
         line = line.." "..PEARL.PrefabToName(iprefab)
 
         -- Keep the highlighted items on top.
-        if type(highlighted) == "table" and (table.contains(highlighted, iprefab) or highlighted[iprefab] >= 1) then
+        if type(highlighted) == "table" and table.contains(highlighted, iprefab) and highlighted[iprefab] >= 1 then
             description = MARKDOWN.bold(line).."\n"..description
         else
             description = description..line.."\n"

@@ -64,6 +64,19 @@ function table.create(size, narr)
     return createTable(size, narr)
 end
 
+-- Note: The proxy table returned by this doesn't support pairs/ipairs/next or the "#" operator.
+function table.readonly(t)
+    return setmetatable({}, {
+        __index = t,
+        __len = function() return #t end,
+        __newindex = function()
+            return error("Attempted to modify a read-only table."..CalledFrom())
+        end,
+        -- Prohibit changing this metatable
+        __metatable = false,
+    })
+end
+
 function table:iclear()
     for i = #self, 1, -1 do
         self[i] = nil

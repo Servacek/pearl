@@ -23,10 +23,11 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 -- [[ Constants ]]
 -------------------------------
 
-local FLAGGED_SUSPICION = .9
-
+--- <item_name>: <priority>
 local DROP_DEPOS = {
-    "firepit"
+    ["firepit"] = 1,
+    ["treasurechest"] = 2,
+    ["dragonflychest"] = 3,
 }
 
 -- custom_id is expected to be string
@@ -56,7 +57,15 @@ local DROP_TYPE = {
     RARE = 2,
 }
 
+local PREDICTION = {
+    LEGAL = 1,
+    ILLEGAL = 0,
+}
+
 local FEEDBACK_WEIGHT = 0.1
+local LEGALITY_THRESHOLD = .8
+local RARITY_THRESHOLD = 0.5
+local WEIGHT_FACTOR = 0.5
 
 local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
 
@@ -76,6 +85,16 @@ local OnPredictionMessageReceived
 local _depos = {}
 local _weights = {}
 local _predictions = {}
+
+local _sorted = false
+
+-------------------------------
+-- [[ Sorters ]]
+-------------------------------
+
+local function sort_by_priority(a, b)
+    return (DROP_DEPOS[a.prefab] or 0) < (DROP_DEPOS[b.prefab] or 0)
+end
 
 -------------------------------
 -- [[ Helper Functions ]]
@@ -181,46 +200,133 @@ local function ReportInventoryWithFeedback(message, pd)
     end
 end
 
+local function SortDepos()
+    table.sort(_depos, sort_by_priority)
+
+    _sorted = true
+end
+
+local function DepositItem(inventory, item)
+    item.components.inventoryitem:RemoveFromOwner()
+
+    if not _sorted then
+        print("SORTING DEPOS...")
+        SortDepos()
+    end
+
+    for _, depo in ipairs(_depos) do
+        if item == nil then
+            return -- We have managed to add the whole item to the container.
+        end
+
+        print("CHECKING DEPO:", depo)
+        local container = depo.components and depo.components.container
+        if container and container:CanTakeItemInSlot(item) then
+            local slot = depo.components.container:GetSpecificSlotForItem(item)
+            print("GOT SLOT:", slot)
+            local dest = depo.components.container:GetItemInSlot(slot)
+            if dest and dest.components.stackable then
+                print("Adding item to stack...")
+                item = dest.components.stackable:Put(item)
+            end
+        elseif depo.Transform then
+            print("Dropping the item at depo position")
+            inventory:DropItem(item, true, true, depo.Transform:GetWorldPosition())
+            item = nil
+            return
+        end
+    end
+
+    print("Dropping on the ground...")
+    -- If no depo existed for this item.
+    inventory:DropItem(item)
+end
+
+local function DepositAllItems(inventory)
+    inventory:ForEachItem(function(item)
+        DepositItem(inventory, item)
+    end)
+end
+
+local function DepositRareItems(inventory, rarity_threshold)
+    inventory:ForEachItem(function(item)
+        local item_rarity = PEARL.PREFABS.RARE_ITEMS[item.prefab]
+        if item_rarity and item_rarity > rarity_threshold then
+            DepositItem(inventory, item)
+        end
+    end)
+end
+
+local function DoLegalityPrediction(inventory)
+    local pd = {
+        weights = {},
+        prediction = PREDICTION.LEGAL, -- Either 1 if flagged or 0 if not.
+        confidence = 0,
+        items = 0,
+        value = 0,
+        normalized_value = 0,
+    }
+    if inventory:IsEmpty() then
+        return pd
+    end
+
+    for _, item in ipairs(inventory:ReferenceAllItems()) do
+        local stacksize = item.components.inventoryitem:GetStackSize()
+        local stackweight = item.components.inventoryitem:GetTotalPredictedWeight(_weights)
+        local itemweight = stackweight / stacksize
+
+        -- Store highest normalized weight for this item.
+        pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), itemweight)
+        pd.normalized_value = pd.normalized_value + itemweight
+        pd.value = pd.value + stackweight
+        pd.items = pd.items + stacksize
+    end
+
+    if pd.value >= LEGALITY_THRESHOLD then
+        pd.prediction = PREDICTION.LEGAL
+    end
+
+    local x = pd.prediction == PREDICTION.ILLEGAL and 1 / pd.value or pd.value
+    pd.confidence = math.sigmoid(x * WEIGHT_FACTOR)
+
+    print("CONFIDENCE:", pd.confidence * 100)
+    print("VALUE:", pd.value)
+
+    return pd
+end
+
 --- @TODO: Debug
 local function CheckPlayersInventory(world, player)
-    local pd = player.components.inventory.legality:Predict(_weights)
-    if pd.prediction ~= 1 then
+    local inventory = player.components.inventory
+    if not inventory then
+        return
+    end
+
+    local pd = DoLegalityPrediction(inventory)
+    if pd.prediction ~= PREDICTION.LEGAL then
         return -- This inventory is not flagged.
     end
 
     print("SENDING REPORT TO THE SERVER:")
 
-    local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
-    player_meta:SetInventory(player.components.inventory)
-
-    local drop_rare_under_age = PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_AGE
-    local drop_under_age = PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_AGE
-    -- Do not drop in the first days since none is able to have the required age.
-    -- Also there is not much rare stuff around in the early game anyway.
-    local no_drop_cycles = math.max(drop_rare_under_age, drop_under_age)
-
     local drop_type = DROP_TYPE.NONE
-    if world.state.cycles > no_drop_cycles then
-        local age = player_meta:GetAge()
-        if age < PEARL.CONFIG.INVENTORY_REPORTER.DROP_UNDER_AGE then
-            PEARL.info("Dropping player's inventory...")
-            -- Doesn't support depos :(
-            player.components.inventory:DropEverything()
+    if world.state.cycles > PEARL.CONFIG.INVENTORY_REPORTER.DROP_AFTER_CYCLE or PEARL.CONFIG.DEBUG_MODE then
+        local reputation = PEARL.Reputation:GetOf(player.userid)
+        if reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
+            DepositAllItems(inventory)
 
             drop_type = DROP_TYPE.ALL
-        elseif age < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_AGE then
-            local depo = next(_depos)
-            -- If no depo is available we will drop the items under the player.
-            local depo_pos = depo and depo.Transform and depo.Transform:GetWorldPosition()
-
-            PEARL.info("Dropping rare items from player's inventory...", depo)
-            player.components.inventory:DropRareItems(0.4, nil, depo_pos)
+        elseif reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_REP then
+            DepositRareItems(inventory, RARITY_THRESHOLD)
 
             drop_type = DROP_TYPE.RARE
         end
     end
 
     if PEARL.CONFIG.INVENTORY_REPORTER.SEND_REPORT and PEARL.DiscordReporter:IsEnabled() then
+        local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+        player_meta:SetInventory(inventory)
+
         local embed = EMBEDS.SuspiciousInventory(player_meta, pd.confidence)
         if drop_type ~= DROP_TYPE.NONE then
             embed:SetDescription(embed.description..(
@@ -273,13 +379,20 @@ local function OnPlayerDespawn(world, player)
 end
 
 local function OnDepoRemove(inst)
-    if _depos[inst.GUID] then
-        _depos[inst.GUID] = nil
+    for i = #_depos, 1, -1 do
+        if _depos[i].GUID == inst.GUID then
+            print("REMOVING A DEPO", inst)
+            -- Keeps them sorted
+            table.remove(_depos, i)
+        end
     end
 end
 
 local function OnDepoInit(inst)
-    _depos[inst.GUID] = inst
+    print("NEW DEPO ADDED!", inst)
+    _depos[#_depos+1] = inst
+
+    _sorted = false
 end
 
 local function OnPredictionFeedback(id, positive)
@@ -328,7 +441,7 @@ PEARL.AddWorldPostInit(function(inst)
     inst:SafeListenForEvent("ms_playerdespawn", OnPlayerDespawn)
 end)
 
-for _, depo_prefab in ipairs(DROP_DEPOS) do
+for depo_prefab, _ in pairs(DROP_DEPOS) do
     PEARL.AddPrefabPostInit(depo_prefab, function(inst)
         OnDepoInit(inst)
 

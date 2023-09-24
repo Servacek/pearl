@@ -411,8 +411,9 @@ configuration_options = {
     {
         name="INVENTORY_REPORTER",
         default={
-            DROP_UNDER_AGE = 0, -- Setting this to zero will disable dropping.
-            DROP_RARE_UNDER_AGE = 0,
+            DROP_AFTER_CYCLE = 30,
+            DROP_ALL_UNDER_REP = 100,
+            DROP_RARE_UNDER_REP = 200,
             SEND_REPORT = true,
             USE_AI = true,
             AI_REPORT_CHANNEL = nil,

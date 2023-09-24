@@ -33,7 +33,17 @@ local ChatMessage = PEARL.loadfile("models/chatmessage")
 local TIME_UNTIL_KICK = 10
 
 ----------------------------------
--- Declaration
+-- Netvars
+----------------------------------
+
+local _server_slots
+PEARL.AddPlayerPostInit(function(inst)
+    _server_slots = net_byte(inst.GUID, "_server_slots")
+    _server_slots:set(TheNet:GetDefaultMaxPlayers())
+end)
+
+----------------------------------
+-- Locals
 ----------------------------------
 
 --- @type table<number, table>
@@ -119,10 +129,9 @@ function ServerNetwork:DisplayChatMessageFor(userids, message)
 
     PEARL.BroadcastRPCToClients(PEARL.RPC.DisplayChatMessage, userids, jsonstr)
 
-    if not message:GetIsLocalOnly() then
-        -- Make sure the message is archived on the server as well.
-        ChatHistory:AddChatMessage(data)
-    end
+    -- Make sure the message is archived on the server as well.
+    -- Direct messages are not being archived on the server just locally by the client.
+    ChatHistory:AddChatMessage(data)
 end
 
 --- Display a message to all connected clients.
@@ -634,6 +643,13 @@ PEARL.AddUserDataFunctionPreCall("Ban", function(self, userid)
         PEARL.debug("User banned", userid)
 
         PEARL.EventProcessor:HandleEvent("clientbanned", userid)
+    end
+end, TheNet)
+
+PEARL.AddUserDataFunctionPostCall("SetDefaultMaxPlayers", function(self, value)
+    local slots = tonumber(TheNet:GetDefaultMaxPlayers())
+    if _server_slots and slots then
+        _server_slots:set(slots)
     end
 end, TheNet)
 

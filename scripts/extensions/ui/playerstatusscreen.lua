@@ -37,7 +37,6 @@ local SCREEN_BUTTONS_OFFSET = 24
 
 if not TheNet:GetServerIsClientHosted() and PEARL.CONFIG.HOST_NAME ~= nil then
     PEARL.OverrideMethodReturnValue(PlayerStatusScreen, "GetDisplayName", function(name, self, client)
-        print("PlayerList:GetDisplayName")
          -- Return custom name for Hosts.
         if client.performance ~= nil then
             return tostring(PEARL.CONFIG.HOST_NAME)

@@ -15,7 +15,6 @@
 local PEARL = PEARL
 
 local Inventory = require("components/inventory")
-local Legality = PEARL.loadfile("components/legality")
 
 -----------------------------------
 -- [[ Extension Functions ]]
@@ -66,26 +65,6 @@ function Inventory:GetItemCount(prefab)
     return count
 end
 
-function Inventory:DropRareItems(rarity, randomdir, pos)
-    -- By default drop only very rare items.
-    rarity = rarity or 1
-
-    self:ForEachItem(function(item)
-        local item_rarity = PEARL.PREFABS.RARE_ITEMS[item.prefab]
-        if item_rarity and item_rarity > rarity then
-            self:DropItem(item, true, randomdir, pos)
-        end
-    end)
-end
-
 function Inventory:IsEmpty()
     return table.empty(self.itemslots)
 end
-
------------------------------------
--- [[ Class Post Construct ]]
------------------------------------
-
-PEARL.AddClassPostConstruct("components/inventory", function(self)
-    self.legality = Legality(self)
-end)

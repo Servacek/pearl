@@ -34,8 +34,6 @@ local QueuedLogAction = Class(function(self, pattern)
 
     --- @type table<name, count>?
     self.targets = nil
-    --- @type EntityScript?
-    self.target = nil
 
     --- @type table<name, value>
     self.data = nil
@@ -81,12 +79,8 @@ QueuedLogAction.DYNAMIC_FIELDS = {
 --------------------------------
 
 function QueuedLogAction:_GetTargetString()
-    if not self.targets then
-        if self.target then
-            return self.target:GetFancyName()
-        end
-
-        return ""
+    if not self:HasAnyTargets() then
+        return STRINGS.PEARL.LOGS.UNKNOWN
     end
 
     return PEARL.BuildFancyStringFor(self.targets)
@@ -96,21 +90,21 @@ end
 -- [[ Setters ]]
 --------------------------------
 
+--- @param target string|EntityScript
+--- @param stacksize integer? Optional stacksize override for case where the target's stacksize cannot be used.
 --- @return QueuedLogAction
-function QueuedLogAction:AddTarget(target, nostack)
-    if not self.target then
-        self.target = target
+function QueuedLogAction:AddTarget(target, stacksize)
+    if target == nil then
         return self
     end
 
-    if not self.targets then
+    if type(self.targets) ~= "table" then
         self.targets = {}
-
-        self:AddTarget(self.target, nostack)
     end
 
     local name = PEARL.GetStandardizedNameFor(target)
-    local stacksize = nostack and 1 or PEARL.GetStackSize(target)
+    stacksize = tonumber(stacksize) or PEARL.GetStackSize(target) or 1
+    PEARL.debug("QueuedLogAction:AddTarget", name, stacksize)
     self.targets[name] = (self.targets[name] or 0) + stacksize
 
     return self
@@ -229,6 +223,10 @@ end
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
+
+function QueuedLogAction:HasAnyTargets()
+    return type(self.targets) == "table" and not table.empty(self.targets)
+end
 
 function QueuedLogAction:GetString()
     self.data = self.data or {}

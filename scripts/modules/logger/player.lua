@@ -196,14 +196,14 @@ RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EAT.GENERIC, doer)
         :SetLogType(type)
         :SetIsSilent(silent)
-        :AddTarget(item)
+        :AddTarget(item, 1)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TEACH)
         :SetIsSilent(item.is_rare ~= true)
-        :AddTarget(target)
+        :AddTarget(target, 1)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
@@ -231,7 +231,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
 
         action:SetLogType(PEARL.CONSTS.ANN_TYPE.HAMMER)
         action:SetIsSilent(silent)
-        action:AddTarget(target)
+        action:AddTarget(target, 1)
     end
 end)
 
@@ -245,7 +245,7 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.READ.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.READ)
         :SetIsSilent(PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] ~= true)
-        :AddTarget(item)
+        :AddTarget(item, 1)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
@@ -262,21 +262,40 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
 end)
 
 -- This is being called for cooking in crockpots as well.
-RegisterPlayerItemActionHandler(ACTIONS.COOK, function(doer, target, item)
-    -- Maybe add the crockpot support at some point?
-    -- if target and target.components.stewer and target.compoponents.stewer.ingredient_prefabs then
-    --     for _, prefab in ipairs(target.compoponents.stewer.ingredient_prefabs) do
+--- @param doer EntityScript The doer (player) of the action.
+--- @param tool EntityScript? The tool used for the action or the target item.
+--- @param item EntityScript? The optional target item that was used to click on the cooking tool.
+RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
+    if tool and tool.components.cookable and not (item and item.components.cookable) then
+        tool, item = item, tool
+    end
 
-    --     end
-    -- end
+    local prohibited = (item and PEARL.PREFABS.RARE_ITEMS[item.prefab] or 0) > 0
+    local pattern = STRINGS.PEARL.ACTIONS.COOK.GENERIC
+    local stewer = tool and tool.components.stewer
+    if tool then
+        pattern = STRINGS.PEARL.ACTIONS.COOK.ON
 
-    local prohibited = target and PEARL.PREFABS.RARE_ITEMS[target.prefab] ~= nil or PEARL.PREFABS.RARE_ITEMS[item.prefab] ~= nil
-    local type = PEARL.CONSTS.ANN_TYPE[prohibited and "SWALLOW" or "COOK"]
+        if tool.components.stewer then
+            pattern = STRINGS.PEARL.ACTIONS.COOK.IN
+        end
+    end
 
-    AL:QueueEntAct(STRINGS.PEARL.COOK, doer)
-        :SetLogType(type)
-        :SetIsSilent(true)
-        :AddTarget(target)
+    local action = AL:QueueEntAct(pattern, doer, "tool", tool)
+    if stewer and stewer.ingredient_prefabs and not table.empty(stewer.ingredient_prefabs) then
+        for _, prefab in ipairs(stewer.ingredient_prefabs) do
+            action:AddTarget(PEARL.PrefabToName(prefab), true)
+
+            if (PEARL.PREFABS.RARE_ITEMS[prefab] or 0) > 0 then
+                prohibited = true
+            end
+        end
+    elseif item ~= nil and item.components.cookable then
+        action:AddTarget(item, 1)
+    end
+
+    action:SetLogType(PEARL.CONSTS.ANN_TYPE[prohibited and "SWALLOW" or "COOK"])
+    action:SetIsSilent(not prohibited)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, item)
@@ -341,7 +360,7 @@ RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.PLANT)
         :SetIsSilent(true)
-        :AddTarget(item, true)
+        :AddTarget(item, 1)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
@@ -556,10 +575,11 @@ local function onentitydeath(world, data)
 
     -- Bosses (announce their deaths even if they were not killed by a player)
     -- Handle special transition case for Klaus.
-    if target:HasTag("epic") and not (target.sg and target.sg:HasTag("transition")) then
+    if target:HasTag("epic") and not (target.sg and target.sg:HasStateTag("transition")) then
         local doer_name = (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans"
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.BOSS, doer_name)
             :SetLogType(PEARL.CONSTS.ANN_TYPE.DEFEAT)
+            :SetColorEntity(doer and doer.entity)
             :AddTarget(target)
     end
 
@@ -580,11 +600,13 @@ local function onentitydeath(world, data)
             -- Queue to make sure this will be announced after the last remaining announcement.
             return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.LAST, doer)
                 :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+                :SetColorEntity(doer and doer.entity)
                 :AddTarget(target)
         end
 
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.REMAINING, doer)
             :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+            :SetColorEntity(doer and doer.entity)
             :AddTarget(target)
             :SetDynamicField(QueuedLogAction.DYNAMIC_FIELDS.REMAINING, remaining)
     end
@@ -594,6 +616,7 @@ local function onentitydeath(world, data)
     if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
             :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+            :SetColorEntity(doer and doer.entity)
             :AddTarget(target)
     end
 
@@ -603,6 +626,7 @@ local function onentitydeath(world, data)
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
             QueuedLogAction.STATIC_FIELDS.OWNER, leader)
             :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+            :SetColorEntity(doer and doer.entity)
             :AddTarget(target)
     end
 end
