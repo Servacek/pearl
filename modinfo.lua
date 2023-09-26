@@ -14,6 +14,7 @@
 ---@diagnostic disable: lowercase-global
 
 name = "Pearl"
+backend_name = "PearlOS"
 author = "Fi7iP"
 version = "Release 3.0"
 description = [[
@@ -326,6 +327,16 @@ configuration_options = {
         name = "WHISPER_WARNING",
         default = false,
         public = true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    {
+        name = "HIDE_SERVER_ONLY_MODS",
+        default = false,
         options = {
             true,
             false,

@@ -156,17 +156,27 @@ function ModConfig:VerifyConfig(optname, options)
     end
 end
 
-function ModConfig:GetEnabledServerModsConfigData()
+function ModConfig:GetEnabledServerModsConfigData(client_only)
     local mods_config_data = {}
 	for _, modname in ipairs(ModManager:GetEnabledServerModNames()) do
-		mods_config_data[modname] = ModConfig:GetAllConfigDataForMod(modname)
+        local hidden = false
+        if client_only then
+            local mod = ModManager:GetMod(modname)
+            if mod.modinfo.all_clients_require_mod == true then
+                hidden = true
+            end
+        end
+
+        if not hidden then
+		    mods_config_data[modname] = ModConfig:GetAllConfigDataForMod(modname)
+        end
 	end
 
     return mods_config_data
 end
 
-function ModConfig:GetEnabledServerModsConfigDataString()
-    return DataDumper(self:GetEnabledServerModsConfigData(), nil, false)
+function ModConfig:GetEnabledServerModsConfigDataString(client_only)
+    return DataDumper(self:GetEnabledServerModsConfigData(client_only), nil, false)
 end
 
 --- Push mod config warnings only for the server owner to see.
@@ -274,7 +284,7 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     -- If there are some conflicts, it's better to crash before we sent them to the public.
     VerifyConfigOverridesForMod(PEARL.MODNAME)
 
-    local data_str = ModConfig:GetEnabledServerModsConfigDataString()
+    local data_str = ModConfig:GetEnabledServerModsConfigDataString(PEARL.CONFIG.HIDE_SERVER_ONLY_MODS)
 
     if PEARL.CONFIG.DEBUG_MODE then
         TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:\n"..data_str)

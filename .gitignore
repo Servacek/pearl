@@ -62,3 +62,6 @@ data/*
 .todo/*
 
 *.bat
+
+.VSCodeCounter
+.VSCodeCounter/*

@@ -40,8 +40,15 @@ local colour = shallowcopy(WEBCOLOURS.GREEN)
 -- Smooth colour transition
 -- <0.5 -> R = 255
 -- 0.5> -> G = 255
+-- <=0  -> B = 255
 -- Colors are in RGB percent!
 local function UpdateColour(percent)
+    if percent <= 0 then
+        -- Black colour for percentages lower than or equal to zero.
+        colour[1], colour[2], colour[3] = 255, 255, 255
+        return
+    end
+
     colour[1] = percent > 0.5 and (1 - percent) * THRESHOLD_MULT or 1
     colour[2] = percent < 0.5 and percent * THRESHOLD_MULT or 1
 end

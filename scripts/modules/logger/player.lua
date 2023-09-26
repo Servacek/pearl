@@ -43,6 +43,9 @@ local EXTINGUISHER_RADIUS = PEARL.CONSTS.EXTINGUISH_RADIUS
 
 local TIME_UNTIL_EXTINGUISH = 4 -- in seconds
 
+local MAX_ATTACKERS = 5
+local MAX_REMEMBERING_DELAY = 2
+
 ------------------------
 -- [[ Check Functions ]]
 ------------------------
@@ -696,8 +699,23 @@ local function onhitother(inst, data)
         return
     end
 
+    local target = data.target
+    if not target.components.health then
+        return
+    end
+
     print("HIT", data.damage, data.damageresolved)
     local dmg = math.max(data.damageresolved or data.damage or 1, 1)
+    local maxhealth = target.components.health.maxhealth
+
+    if type(target.components.memory) ~= "table" then
+        target:AddComponent("memory")
+    end
+
+    local total_dmg = (tonumber(target.components.memory:Get(inst.userid)) or 0) + dmg
+    target.components.memory:Add(inst.userid, total_dmg)
+    target.components.memory:SetLifetime(inst.userid, total_dmg / maxhealth * MAX_REMEMBERING_DELAY)
+
     PEARL.Reputation:EarnFor(
         inst.userid, dmg * REPUTATIONS.BOSS_DAMAGE
     )

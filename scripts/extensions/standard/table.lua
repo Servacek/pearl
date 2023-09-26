@@ -11,7 +11,8 @@
 --]==]====================================================]]
 
 local TAB_SIZE = 4
-local MAX_DUMP_RECURSIONS = 10
+local MAX_DUMP_LEVEL = 10
+local MAX_RECURSIONS = 1000
 
 
 function table:filter(checkfn)
@@ -119,11 +120,33 @@ function table.max(t)
     return maxk, maxv
 end
 
+function table.keys(t)
+    local keys = {}
+    for k, _ in pairs(t) do
+        keys[#keys + 1] = k
+    end
+
+    return keys
+end
+
+function table.values(t)
+    local values = {}
+    for _, v in pairs(t) do
+        values[#values + 1] = v
+    end
+
+    return values
+end
+
 -- For some reason this cannot be used as a method :/
-function table.dump(t, _i)
+function table.dump(t, _i, _r)
     if type(t) ~= "table" then
         return print("Invalid table")
     end
+
+    -- if _r and _r >= MAX_RECURSIONS then
+    --     return print("...")
+    -- end
 
     if type(_i) ~= "number" then
         _i = nil
@@ -135,12 +158,12 @@ function table.dump(t, _i)
 
     _i = _i or 1
     for k, v in pairs(t) do
-
+        _r = (_r or 0) + 1
         local fm = string.rep(" ", _i * TAB_SIZE)..tostring(k).." = "
         if type(v) == "table" then
             print(fm.."{")
-            if _i < MAX_DUMP_RECURSIONS then
-                table.dump(v, _i + 1)
+            if _i < MAX_DUMP_LEVEL then
+                table.dump(v, _i + 1, _r)
             else
                 print("...")
             end
