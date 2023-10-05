@@ -66,6 +66,10 @@ PEARL.OverrideVariable("SimReset", function(params, ...)
         params[NAMESPACE] = new_params
     end
 
+    -- if PEARL.CONFIG.DEBUG_MODE then
+    --     PEARL.debug("SimReset:", DataDumper(params))
+    -- end
+
     ---@diagnostic disable-next-line: redundant-parameter
     _SimReset(params, ...)
 end, _G)

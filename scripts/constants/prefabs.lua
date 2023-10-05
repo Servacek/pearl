@@ -140,7 +140,7 @@ return {
     },
 
     DO_NOT_MINE = {
-        ["glommer_statue"] = true,
+        ["statueglommer"] = true,
     },
 
 	FOOD = {

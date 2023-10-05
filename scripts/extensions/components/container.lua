@@ -34,6 +34,18 @@ function Container:GetRareItems()
     return items
 end
 
+function Container:CountItem(prefab)
+    local count = 0
+
+    self:ForEachItem(function(item)
+        if item.prefab == prefab then
+            count = count + item.components.inventoryitem:GetStackSize()
+        end
+    end)
+
+    return count
+end
+
 --------------------------------
 -- [[ Public Functions ]]
 --------------------------------

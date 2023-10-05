@@ -69,9 +69,8 @@ function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, c
         return {}
     end
 
-    local radius = 10
-    -- local radius = self.components.propagator and self.components.propagator.propagaterange
-    --     or rad or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
+    local radius = self.components.propagator and self.components.propagator.propagaterange
+        or rad or PEARL.CONSTS.DEFAULT_PROPAGATOR_RADIUS
 
     if TheWorld and TheWorld.state and TheWorld.state.isspring then
         radius = radius * TUNING.SPRING_FIRE_RANGE_MOD
@@ -89,6 +88,31 @@ end
 
 function EntityScript:GetPropagableBurnableEntities(mustoneoftags, ...)
     return self:GetPropagableEntities(PEARL.CONSTS.BURNABLE_MUST_TAGS, PEARL.CONSTS.BURNABLE_CANT_TAGS, mustoneoftags or {}, ...)
+end
+
+--- @return value number
+function EntityScript:CalcValueOfNearbyBurnables(mustoneoftags, ...)
+    local value = 0
+    local burnables = self:GetPropagableBurnableEntities(mustoneoftags, ...)
+    for _, burnable in ipairs(burnables) do
+        value = value + burnable:GetValue()
+    end
+
+    return value
+end
+
+function EntityScript:GetValue()
+    local recipe = AllRecipes[self.prefab]
+    if recipe then
+        local mult = 1
+        if self.components.workable and self.components.workable:HasBuilder() then
+            mult = 2
+        end
+
+        for _, ingredient in ipairs(recipe.ingredients) do
+            
+        end
+    end
 end
 
 function EntityScript:GetStandardizedName()

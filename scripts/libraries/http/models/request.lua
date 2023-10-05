@@ -55,6 +55,9 @@ local Request = Class(function(self, url, method, proxy)
     self.timeout = DEFAULT_REQUEST_TIMEOUT
 
     --- @type boolean
+    self.sent = false
+
+    --- @type boolean
     self.skipondeadline = true
 
     --- @type fun(response: table|string, self: Request, ...: any)
@@ -290,14 +293,27 @@ end
 -- [[ Finalizers ]]
 -------------------------------------
 
+--- @param force boolean? Whether to skip the queue or not.
+--- @return Request self, boolean success
 function Request:Send(force)
-    if force then
-        PEARL.HTTPClient:ForceSend(self)
-    else
-        PEARL.HTTPClient:HandleRequest(self)
+    if self.sent then
+        PEARL.error("Attempted to send an already sent request!")
+        return self, false
     end
 
-    return self
+    --- @type boolean?
+    local success = false
+    if force then
+        success = PEARL.HTTPClient:ForceSend(self)
+    else
+        success = PEARL.HTTPClient:HandleRequest(self)
+    end
+
+    if success then
+        self.sent = true
+    end
+
+    return self, success or false
 end
 
 -------------------------------------

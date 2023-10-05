@@ -57,8 +57,11 @@ function table:fconcat()
 end
 
 -- This is a safe alternative to IsTableEmpty
+-- Returns a boolean whether the table you have provided is empty or not.
+-- Returns nil if the provided table is not actually a table...
+--- @return boolean? empty
 function table:empty()
-    return self and next(self) == nil
+    return type(self) == "table" and next(self) == nil or nil
 end
 
 function table.create(size, narr)
@@ -82,6 +85,18 @@ function table:iclear()
     for i = #self, 1, -1 do
         self[i] = nil
     end
+end
+
+function table.rcontains(t, value)
+    for _, v in pairs(t) do
+        if v == value then
+            return true
+        elseif type(v) == "table" and table.rcontains(v, value) then
+            return true
+        end
+    end
+
+    return false
 end
 
 --- @param fn fun(k: any, v: any): result: any

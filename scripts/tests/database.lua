@@ -13,6 +13,7 @@
 
 
 function CheckAdding()
+    PEARL.PlayerDB:SetIsEnabled(true)
     local count = PEARL.PlayerDB:GetTotalRecordCount()
     local userid = PEARL.GenerateRandomKleiID()
     print("REGISTER USER", userid)
@@ -22,7 +23,7 @@ function CheckAdding()
     assert(type(record) == "table")
     assert(PEARL.PlayerDB:GetTotalRecordCount() == count + 1)
     assert(PEARL.PlayerDB._records[userid] ~= nil)
-    assert(PEARL.PlayerDB:IsCached(userid))
+    assert(PEARL.PlayerDB:IsRecordLoadedFor(userid))
 
     PEARL.PlayerDB:UnloadRecord(userid)
 end

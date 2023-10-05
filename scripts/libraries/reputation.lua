@@ -108,10 +108,12 @@ function Reputation:SetFieldFor(userid, field, value)
 
     local record = PEARL.PlayerDB:GetRecordFor(userid)
     if not record or type(record["reputation"]) ~= "table" then
-        return
+        return false
     end
 
     record["reputation"][field] = value
+
+    return true
 end
 
 function Reputation:SetFor(userid, value)
@@ -141,7 +143,7 @@ function Reputation:DoDeltaTo(userid, delta, limit)
         new_rep = math.max(new_rep, limit)
     end
 
-    self:SetFieldFor(userid, "value", new_rep)
+    self:SetFor(userid, new_rep)
 
     local monthgains = self:GetMonthGainsOf(userid)
     self:SetFieldFor(userid, "monthgains", math.floor(monthgains + delta))
@@ -185,6 +187,10 @@ end
 -- This can't go bellow the minimal player reputation so the player wont get banned this way.
 function Reputation:GiveTo(userid, amount)
     return self:DoDeltaTo(userid, amount, BAD_REP_THRESHOLD)
+end
+
+function Reputation:SetTo(userid, value)
+    return self:SetFieldFor(userid, "value", value)
 end
 
 --------------------------------------

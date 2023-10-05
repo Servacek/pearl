@@ -15,10 +15,22 @@
 -- [[ Constants ]]
 --------------------------------
 
-local QUEUE_TIME        = 4
-local QUEUE_REPEAT_MULT = 2
+local QUEUE_TIME               = 4
+local QUEUE_REPEAT_MULT        = 2
 
-local MAX_DELAY         = 15
+local MAX_DELAY                = 15
+
+--------------------------------
+-- [[ Local Functions ]]
+--------------------------------
+
+local function _GetStringFromStackableData(data)
+    if table.empty(data) then
+        return STRINGS.PEARL.LOGS.UNKNOWN
+    end
+
+    return PEARL.BuildFancyStringFor(data)
+end
 
 --------------------------------
 -- [[ Class Declaration ]]
@@ -36,12 +48,12 @@ local QueuedLogAction = Class(function(self, pattern)
     self.targets = nil
 
     --- @type table<name, value>
-    self.data = nil
+    self.dynamic = nil
 
     --- @type string?
     self.logtype = nil
     --- @type fun(data: table<name, value>)
-    self.datafn = nil
+    self.dynamicfn = nil
 
     --- @type fun(action)
     self.queuefn = nil
@@ -62,29 +74,17 @@ end)
 -- [[ Static ]]
 --------------------------------
 
-QueuedLogAction.STATIC_FIELDS = {
-    DOER        = "doer",
-    OWNER       = "owner",
-    SOURCE      = "source",
-    TOOL        = "tool",
+QueuedLogAction.STATIC_FIELDS  = {
+    DOER   = "doer",
+    OWNER  = "owner",
+    SOURCE = "source",
+    TOOL   = "tool",
 }
 
 QueuedLogAction.DYNAMIC_FIELDS = {
-    TARGET      = "target",
-    REMAINING   = "remaining",
+    TARGET    = "target",
+    REMAINING = "remaining",
 }
-
---------------------------------
--- [[ Private ]]
---------------------------------
-
-function QueuedLogAction:_GetTargetString()
-    if not self:HasAnyTargets() then
-        return STRINGS.PEARL.LOGS.UNKNOWN
-    end
-
-    return PEARL.BuildFancyStringFor(self.targets)
-end
 
 --------------------------------
 -- [[ Setters ]]
@@ -94,20 +94,7 @@ end
 --- @param stacksize integer? Optional stacksize override for case where the target's stacksize cannot be used.
 --- @return QueuedLogAction
 function QueuedLogAction:AddTarget(target, stacksize)
-    if target == nil then
-        return self
-    end
-
-    if type(self.targets) ~= "table" then
-        self.targets = {}
-    end
-
-    local name = PEARL.GetStandardizedNameFor(target)
-    stacksize = tonumber(stacksize) or PEARL.GetStackSize(target) or 1
-    PEARL.debug("QueuedLogAction:AddTarget", name, stacksize)
-    self.targets[name] = (self.targets[name] or 0) + stacksize
-
-    return self
+    return self:AddToDynamicField(self.DYNAMIC_FIELDS.TARGET, target, stacksize)
 end
 
 --- @return QueuedLogAction
@@ -188,27 +175,53 @@ function QueuedLogAction:SetStaticField(name, value)
 end
 
 --- @return QueuedLogAction
-function QueuedLogAction:SetDynamicField(name, value)
-    if not value or not name then
+function QueuedLogAction:AddToDynamicField(field, key, stacksize)
+    -- Ensure that the field exists
+    if not self:HasDynamicField(field) then
+        self:SetDynamicField(field, {})
+    end
+
+    local name = key
+    --- Handle name being the entity.
+    if EntityScript.is_instance(name) then
+        name = PEARL.GetStandardizedNameFor(name)
+    end
+
+    if type(name) ~= "string" then
+        PEARL.error("Invalid name provided for dynamic field!", field, name, stacksize)
         return self
     end
 
-    if EntityScript.is_instance(value) then
-        value = value:GetStandardizedName()
-    end
-
-    if not self.data then
-        self.data = {}
-    end
-
-    self.data[name] = value
+    stacksize = tonumber(stacksize) or PEARL.GetStackSize(key) or 1
+    self.dynamic[field][name] = (self.dynamic[field][name] or 0) + stacksize
 
     return self
 end
 
+--- Always overrides the value provided for the name.
+--- @return QueuedLogAction
+function QueuedLogAction:SetDynamicField(field, value)
+    if EntityScript.is_instance(value) then
+        value = value:GetStandardizedName()
+    end
+
+    if not self.dynamic then
+        self.dynamic = {}
+    end
+
+    self.dynamic[field] = value
+
+    return self
+end
+
+--- @return any
+function QueuedLogAction:GetDynamicField(name)
+    return self.dynamic[name]
+end
+
 --- @return QueuedLogAction
 function QueuedLogAction:SetData(data)
-    self.data = data
+    self.dynamic = data
 
     return self
 end
@@ -224,20 +237,25 @@ end
 -- [[ Getters ]]
 --------------------------------
 
-function QueuedLogAction:HasAnyTargets()
-    return type(self.targets) == "table" and not table.empty(self.targets)
+function QueuedLogAction:HasDynamicField(field)
+    return self.dynamic and self.dynamic[field] ~= nil or false
 end
 
 function QueuedLogAction:GetString()
-    self.data = self.data or {}
+    self.dynamic = self.dynamic or {}
     if type(self.datafn) == "function" then
-        self.datafn(self.data)
+        self.datafn(self.dynamic)
     end
 
-    -- Assing dynamic data fields
-    self.data.target = self:_GetTargetString()
+    for name, value in pairs(self.dynamic) do
+        if type(value) == "table" then
+            self.dynamic[name] = _GetStringFromStackableData(value)
+        else
+            self.dynamic[name] = value
+        end
+    end
 
-    return self.pattern:nformat(self.data)
+    return self.pattern:nformat(self.dynamic)
 end
 
 --- @return boolean

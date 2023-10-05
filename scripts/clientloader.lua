@@ -130,15 +130,6 @@ function ClientLoader:DefferLoad()
     OverrideLoader()
 end
 
--- function ClientLoader:CancelDeffer()
---     if not self:ShouldDefferLoad() then
---         return PEARL.warn("The loading is not deffered!")
---     end
-
---     RestoreLoader()
---     self:SetShouldDeffer(false)
--- end
-
 ---------------------------------
 -- [[ Setters ]]
 ---------------------------------

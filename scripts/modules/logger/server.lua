@@ -30,8 +30,10 @@ local _is_shutting_down = false
 -------------------------------
 
 local function OnShutdown(error)
+    PEARL.debug("OnShutdown")
+
     if _is_shutting_down then
-        return
+        return PEARL.debug("Already announced shutdown!")
     end
 
     _is_shutting_down = true

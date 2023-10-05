@@ -16,7 +16,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0"
+version = "Alpha 3.0"
 description = [[
     “Nothin' wrong with being independent.” - Winona
 ]]
@@ -324,6 +324,13 @@ configuration_options = {
     },
 
     {
+        name = "CUSTOM_CONNECTION_FILTERS",
+        default = nil,
+        options = nil,
+        type = "table<number, function>",
+    },
+
+    {
         name = "WHISPER_WARNING",
         default = false,
         public = true,
@@ -394,10 +401,19 @@ configuration_options = {
         type = "number",
     },
 
-
     --------------------
     -- Other Modules
     --------------------
+
+    {
+        name="GLOBAL_BANLIST",
+        default={
+            ENABLED = false,
+            STRICT  = false,
+            URL     = nil,
+        },
+        type = "table",
+    },
 
 
     {

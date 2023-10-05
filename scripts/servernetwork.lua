@@ -54,7 +54,11 @@ local async_conn_filters = {}
 
 --- Let the cfd data be persistent.
 --- @type table<string, table<any, any>>
-local conn_data_cache = PEARL.GameInstParams:GetModParam("conn_data_cache") or PEARL.GameInstParams:SetModParam("conn_data_cache", {})
+local conn_data_cache = PEARL.GameInstParams:GetModParam("conn_data_cache") or {}
+--- Prefer to use the database if possible cuz we do not know the limits of this.
+if not PEARL.CONFIG.DATABASE.ENABLED then
+    PEARL.GameInstParams:SetModParam("conn_data_cache", conn_data_cache)
+end
 
 --- @type table<number, function>
 local join_filters = {}
@@ -66,19 +70,25 @@ local client_cache = {}
 local joining_clients = {}
 
 --- @class ServerNetwork
-local ServerNetwork = {}
+local ServerNetwork = {
+    FILTER_PRIORITY = {
+        HIGH    = 10,
+        MEDIUM  = 5,
+        LOW     = 1,
+    }
+}
 
 ----------------------------------
 -- Local Functions
 ----------------------------------
 
-local function _OnConnectionFiltersFinished(userid, allowed, reason)
+local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
     if not ServerNetwork:IsUserConnected(userid) then
         return PEARL.debug("Already disconnected... Deffering filter results...")
     end
 
     if allowed == false then
-        return ServerNetwork:CloseConnectionFor(userid, reason)
+        return ServerNetwork:CloseConnectionFor(userid, reason, false, title)
     end
 
     if TheWorld then
@@ -143,12 +153,16 @@ end
 function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason_title)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
+    if not self:IsUserConnected(userid) then
+        return PEARL.error("Attempted to disconnect a not connected client!")
+    end
+
     PEARL.SendRPCToClient(PEARL.RPC.Disconnect, userid, reason, immediately, reason_title)
 
     -- Since we are shutting down, the disconnect event
     -- wont be pushed anymore so do it now.
     if PEARL.IsShuttingDown() then
-        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, reason)
+        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, reason, reason_title)
     end
 end
 
@@ -185,7 +199,7 @@ function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)
-    for _, client in ipairs(TheNet:GetClientTable()) do--pairs(self:GetConnectedClients()) do
+    for _, client in pairs(self:GetConnectedClients()) do
         if client.userid then
             self:SendUserDisconnectFor(client.userid, reason, immediately)
         end
@@ -197,16 +211,17 @@ end
 --- @return boolean? allowed Representing whether the client is allowed
 --- to join according the filters or not.
 --- @return string? reason The code of the reason why the access was prohibited.
+--- @return string? title The code of the title why the access was prohibited.
 function ServerNetwork:RunConnectionFiltersFor(userid, cfd)
     cfd = cfd or self:GetCachedCFDFor(userid)
 
     for i = 1, #conn_filters do
-        local success, allowed, reason = PEARL.SafeRun(conn_filters[i].fn, userid, cfd)
+        local success, allowed, reason, title = PEARL.SafeRun(conn_filters[i].fn, userid, cfd)
         if success == false then
             -- Allowed should be the error message in this case.
             PEARL.error("Failed to execute a connection data filter!", allowed)
         elseif allowed == false then -- Check for explicit false
-            return allowed, reason
+            return allowed, reason, title
         end
     end
 
@@ -439,6 +454,7 @@ function ServerNetwork:CacheClientTableFor(userid)
 end
 
 function ServerNetwork:CacheClientCFDFor(userid, cfd)
+    PEARL.debug("ServerNetwork:CacheClientCFDFor", userid)
     conn_data_cache[userid] = cfd
 end
 
@@ -534,10 +550,10 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     end
 
     -- Skip already trusted clients
-    local allowed, reason
+    local allowed, reason, title
     if not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE then
         if allowed ~= false and conn_filters and #conn_filters > 0 then
-            allowed, reason = self:RunConnectionFiltersFor(userid)
+            allowed, reason, title = self:RunConnectionFiltersFor(userid)
         end
 
         if allowed ~= false and async_conn_filters and #async_conn_filters > 0 then
@@ -547,7 +563,7 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
         end
     end
 
-    _OnConnectionFiltersFinished(userid, allowed, reason)
+    _OnConnectionFiltersFinished(userid, allowed, reason, title)
 end
 
 function ServerNetwork:HandleRawConnectionData(userid, data, shardid)
@@ -588,6 +604,8 @@ end
 -- The "Slots Reserved" popup will be displayed.
 -- Start the timeout here since we are sure that this is being only called when joining.
 PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
+    PEARL.debug("JoinServerFilter", userid, ...)
+
     if PEARL.ServerNetwork:IsUserConnected(userid) then
         return -- If the user is already connected then ignore this call.
     end
@@ -701,13 +719,18 @@ PEARL.AddWorldPostInit(function(world)
 
     world:SafeListenForEvent("ms_clientauthenticationcomplete", function(self, data)
         if data and data.userid then
+            PEARL.debug("OnClientAuthenticationComplete", data.userid)
+
             ServerNetwork:OnClientAuthenticationComplete(data.userid)
         end
 
         PEARL.EventProcessor:HandleEvent("ms_clientauthenticationcomplete", data.userid)
     end)
 
+    -- Called everytime even when banned but with no info.
     world:SafeListenForEvent("ms_clientdisconnected", function(self, data)
+        PEARL.debug("ClientOnDisconnects", data.userid, data.expected)
+
         if not data or not data.userid then
             return
         end

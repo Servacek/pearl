@@ -180,13 +180,13 @@ local function AddCommand(name, command, ...)
             local params = ParseParamsArray(command, toarrayornil(...))
             local response = command.mainfn and {command.mainfn(params, caller)}
 
-            if type(command.consolefn) == "function" then
-                return command.consolefn(params, caller, PEARL.unpack(response))
-            end
-
             if response and response[1] then
                 -- Handle console command response
                 PEARL.info(response[1])
+            end
+
+            if type(command.consolefn) == "function" then
+                return command.consolefn(params, caller, PEARL.unpack(response))
             end
 
             return PEARL.unpack(response)
@@ -562,6 +562,20 @@ AddCommand("admins", {
     -- We do not want to log the messages.
 })
 
+local function send_mods_report(params, caller, response, userid, mods)
+    -- We are sending this to the report channel not to the log channel.
+    if PEARL.DiscordReporter:IsDisabled() then
+        return STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
+    end
+
+    if response then
+        return response
+    end
+
+    PEARL.DiscordReporter:ReportMods(userid, mods)
+    return STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS
+end
+
 --- currently the cfd data are erased every time we restart the server.
 AddCommand("mods", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.PRETTYNAME,
@@ -571,7 +585,7 @@ AddCommand("mods", {
     params = { "player" }, -- Do not use "user" for offline support
     paramsoptional = { false },
 
-    discordfn = function(params, caller, userid, mods, response)
+    discordfn = function(params, caller, response, userid, mods)
         if not response then
             return MESSAGES.ModsReport(userid, mods)
         end
@@ -580,28 +594,21 @@ AddCommand("mods", {
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
         local mods = PEARL.PlayerDB:GetField(userid, "lastmods")
-
-        local response
-        if type(mods) ~= "table" or #mods <= 0 then
-            response = STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS
+        if not mods then
+            local cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
+            mods = cfd and cfd.enabled_mods
         end
 
-        return userid, mods, response
+        -- Using table.size even though this should be an array for additional safety and flexibility.
+        if type(mods) ~= "table" or type(mods.list) ~= "table" or table.size(mods.list) <= 0 then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS
+        end
+
+        return nil, userid, mods
     end,
 
-    serverfn = function(params, caller, userid, mods, response)
-        -- We are sending this to the report channel not to the log channel.
-        if PEARL.DiscordReporter:IsDisabled() then
-            return STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
-        end
-
-        if response then
-            return response
-        end
-
-        PEARL.DiscordReporter:ReportMods(userid, mods)
-        return STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS
-    end,
+    serverfn = send_mods_report,
+    consolefn = send_mods_report,
 })
 
 AddCommand("save", {
@@ -649,7 +656,10 @@ AddCommand("setrep", {
     console = true,
 
     mainfn = function(params, caller)
-        if PEARL.PlayerDB:OptionalSafeSetField(params.player, "rep", params.value) then
+        local userid = UserToClientID(params.player) or params.player
+        if PEARL.Reputation:SetTo(userid, tonumber(params.value)) then
+            PEARL.PlayerDB:SaveRecordFor(userid)
+
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS
         end
 
@@ -717,6 +727,7 @@ AddCommand("boost", {
     end,
 })
 
+--- @TODO: Add slash and console command support.
 AddCommand("profile", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
@@ -1293,7 +1304,7 @@ PEARL.AddUserCommandPreInit("ban", function(command)
         if has_reason then
             -- Display the reason if any.
             PEARL.ServerNetwork:CloseConnectionFor(
-                userid, params.reason, false, STRINGS.UI.NETWORKDISCONNECT["ID_DST_USER_BANNED"].TITLE
+                userid, params.reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
             )
         end
 
@@ -1321,43 +1332,43 @@ end
 -- Command Prediction
 -------------------------------------------
 
-AddClassPostConstruct("screens/chatinputscreen", function(self)
-    local permission = COMMAND_PERMISSION.USER
-    if TheNet:GetIsServerAdmin() then
-        permission = COMMAND_PERMISSION.ADMIN
-    end
+-- AddClassPostConstruct("screens/chatinputscreen", function(self)
+--     local permission = COMMAND_PERMISSION.USER
+--     if TheNet:GetIsServerAdmin() then
+--         permission = COMMAND_PERMISSION.ADMIN
+--     end
 
-    -- Setup prediction for our custom slash commands
-    for _, v in pairs(self.chat_edit.prediction_widget.word_predictor.dictionaries) do
-        if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
-            for name, command in pairs(SLASH_COMMANDS) do
-                -- Only autocomplete the commands we have permission to.
-                if command.permission == nil or command.permission == permission then
-                    table.insert(v.words, name)
-                end
-            end
-        end
-    end
+--     -- Setup prediction for our custom slash commands
+--     for _, v in pairs(self.chat_edit.prediction_widget.word_predictor.dictionaries) do
+--         if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
+--             for name, command in pairs(SLASH_COMMANDS) do
+--                 -- Only autocomplete the commands we have permission to.
+--                 if command.permission == nil or command.permission == permission then
+--                     table.insert(v.words, name)
+--                 end
+--             end
+--         end
+--     end
 
-    local userids = {}
-    local names = {}
-    for _, v in ipairs(AllPlayers) do
-        if v and v.userid then
-            -- Remove the delim from the userid
-            table.insert(userids, v.userid:sub(#PEARL.CONSTS.DELIMS.KLEI_ID + 1))
-            table.insert(names, v.name)
-        end
-    end
+--     local userids = {}
+--     local names = {}
+--     for _, v in ipairs(AllPlayers) do
+--         if v and v.userid then
+--             -- Remove the delim from the userid
+--             table.insert(userids, v.userid:sub(#PEARL.CONSTS.DELIMS.KLEI_ID + 1))
+--             table.insert(names, v.name)
+--         end
+--     end
 
-    -- Auto-complete for user ids
-    self.chat_edit:AddWordPredictionDictionary({
-        delim = PEARL.CONSTS.DELIMS.KLEI_ID,
-        words = userids,
-    })
+--     -- Auto-complete for user ids
+--     self.chat_edit:AddWordPredictionDictionary({
+--         delim = PEARL.CONSTS.DELIMS.KLEI_ID,
+--         words = userids,
+--     })
 
-    -- Auto-complete for player names
-    self.chat_edit:AddWordPredictionDictionary({
-        delim = PEARL.CONSTS.DELIMS.PLAYER_NAME,
-        words = names,
-    })
-end)
+--     -- Auto-complete for player names
+--     self.chat_edit:AddWordPredictionDictionary({
+--         delim = PEARL.CONSTS.DELIMS.PLAYER_NAME,
+--         words = names,
+--     })
+-- end)

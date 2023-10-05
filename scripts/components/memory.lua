@@ -29,6 +29,14 @@ function Memory:SetLifetime(name, time)
     self.inst:StartUpdatingComponent(self)
 end
 
+function Memory:ForEach(fn, ...)
+    if self.data then
+        for userid, damage in pairs(self.data) do
+            fn(userid, damage, self.data, ...)
+        end
+    end
+end
+
 function Memory:Add(key, value)
     if not self.data then
         self.data = {}
@@ -73,9 +81,13 @@ function Memory:Retrieve()
 end
 
 function Memory:Sorted(sortfn)
-    return self.data and table.sort(table.keys(self.data), sortfn or function(name1, name2)
-        return self.data[name1] and self.data[name2] and self.data[name1] < self.data[name2]
-    end)
+    if self.data then
+        table.sort(table.keys(self.data), sortfn or function(name1, name2)
+            return self.data[name1] and self.data[name2] and self.data[name1] < self.data[name2]
+        end)
+    end
+
+    return self.data
 end
 
 --------------------------------

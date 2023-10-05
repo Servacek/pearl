@@ -57,7 +57,7 @@ end
 
 function KnownModIndex:IsClientOnlyMod(modname)
     local modinfo = KnownModIndex:GetModInfo(modname)
-    return modinfo and modinfo.client_only_mod == true
+    return modinfo and modinfo.client_only_mod == true or false
 end
 
 function KnownModIndex:IsModAllowlisted(modname)
@@ -79,13 +79,20 @@ function KnownModIndex:IsModAllowed(modname)
     end
 
     -- ALWAYS block private mods since all the other checks can be bypassed
-    return not self:IsModPrivate(modname) and (
-        not self:IsClientOnlyMod(modname) or (
-            not self:IsModBlocklisted(modname) and (
-                not ALLOWLISTING or self:IsModAllowlisted(modname)
-            )
-        )
-    )
+    if self:IsModPrivate(modname) then
+        return false
+    end
+
+    if self:IsModBlocklisted(modname) then
+        PEARL.info("Blocklisted mod!")
+        return false
+    end
+
+    if not self:IsClientOnlyMod(modname) then
+        return false
+    end
+
+    return not self:IsModBlocklisted(modname) and (not ALLOWLISTING or self:IsModAllowlisted(modname))
 end
 
 function KnownModIndex:Block(modname)
@@ -167,7 +174,8 @@ function KnownModIndex:GetModsReport()
             end
 
             -- Show blocked mods at the top.
-            local pos = prohibited and 1 or nil
+            -- Note: The list has to ALWAYS start with "1" in order for JSON to encode is as an array.
+            local pos = prohibited and 1 or (#report.list + 1)
             table.insert(report.list, pos, mod_report)
         end
     end

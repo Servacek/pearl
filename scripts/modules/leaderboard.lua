@@ -12,6 +12,12 @@
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
+--- @type PersistentMap
+local PersistentMap = PEARL.loadfile("models/persistentmap")
+
+--- @type leaderboard
+local Leaderboard = PEARL.loadfile("models/leaderboard")
+
 --------------------------------------
 -- [[ Sorters ]]
 --------------------------------------
@@ -38,6 +44,8 @@ end
 -- [[ Constants ]]
 --------------------------------------
 
+local POST_COOLDOWN = 12 * 60 * 60
+
 local LEADERBOARD_FILE_PATH = "leaderboard"
 
 local LEADERBOARD_MAX_LEN = PEARL.CONSTS.LEADERBOARD_MAX_LEN
@@ -47,10 +55,24 @@ local MIN_GAINS_FOR_LEADERBOARDING = 25
 
 local MIN_DAY_LEADER_GAINS = 25
 
+
 local LD_TYPES = {
     ABSOLUTE    = "absolute",
     CURRENT     = "current",
 }
+
+--- @TODO: Something like this?
+local leaderboards = {
+    [LD_TYPES.ABSOLUTE] = Leaderboard(),
+    [LD_TYPES.CURRENT]  = Leaderboard(),
+}
+
+local leaderboard_map = PersistentMap("leaderboard")
+for name, leaderboard in pairs(leaderboards) do
+    leaderboard_map:AddValue(name, leaderboard)
+end
+
+leaderboard_map:Save()
 
 local LD_CONFIG = {
     [LD_TYPES.ABSOLUTE] = {
@@ -91,7 +113,7 @@ local message_retries = 0
 local CreateNewUpdatingMessage
 
 --------------------------------------
--- [[ Event Handlers ]]
+-- [[ Helpers ]]
 --------------------------------------
 
 local function GetPosFor(userid, ld_type)
@@ -101,6 +123,69 @@ local function GetPosFor(userid, ld_type)
             return i
         end
     end
+end
+
+local function SaveLeaderboards()
+    PEARL.debug("Saving the leaderboard...")
+
+    if type(_leaderboards) ~= "table" then
+        return PEARL.error("Leaderboard not loaded!")
+    end
+
+    return PEARL.PlayerDB:SaveToDatabaseFile(LEADERBOARD_FILE_PATH, _leaderboards, true, PEARL.CONFIG.LEADERBOARD.ENCODE_DATA)
+end
+
+local function SaveMessageID(message_id)
+    PEARL.DiscordLeaderBoarder:SetUpdateMessageID(message_id)
+
+    _leaderboards.message_id = message_id
+    SaveLeaderboards()
+end
+
+--------------------------------------
+-- [[ LD Data Changers ]]
+--------------------------------------
+
+local function AddToLDAt(i, userid, ld_type)
+    PEARL.debug("AddToLDAt", i, userid, ld_type, GetPosFor(userid, ld_type))
+    if GetPosFor(userid, ld_type) ~= nil then
+        return print("ALREADY!") -- Player already in the leaderboard
+    end
+
+    _leaderboards[ld_type].players[i] = userid
+
+    -- We are counting the total number of records the leaderboard was built from.
+    if type(_leaderboards[ld_type].recordcount) == "number" then
+        _leaderboards[ld_type].recordcount = _leaderboards[ld_type].recordcount + 1
+    end
+
+    _leaderboards.changes = true
+
+    return userid
+end
+
+local function RemoveFromLD(i, ld_type)
+    PEARL.debug("RemoveFromLD", i, ld_type)
+    local userid = table.remove(_leaderboards[ld_type].players, i)
+    if userid ~= nil then
+        PEARL.info("User", userid, "removed from", ld_type, "leaderboard...")
+
+        _leaderboards.changes = true
+    end
+
+    return userid
+end
+
+--------------------------------------
+-- [[ Event Handlers ]]
+--------------------------------------
+
+local function UpdatingMessageExists()
+    return _leaderboards and type(_leaderboards.message_id) == "string"
+end
+
+local function CanEditMessages()
+    return PEARL.DiscordLeaderBoarder:GetMode() == PEARL.DiscordLeaderBoarder.MODE.UPDATE
 end
 
 local function IsLeaderboardingAllowedFor(userid)
@@ -126,32 +211,6 @@ local function UpdateLeaderboard(ld_type)
     local notenoughdata = not HasLeaderboardEnoughData(ld_type)
     local embed_abs = EMBEDS.Leaderboard(_leaderboards[ld_type], current, notenoughdata)
     return PEARL.DiscordLeaderBoarder:SetEmbed(LD_CONFIG[ld_type].embed_pos, embed_abs)
-end
-
-local function AddToLDAt(i, userid, ld_type)
-    PEARL.debug("AddToLDAt", i, userid, ld_type, GetPosFor(userid, ld_type))
-    if GetPosFor(userid, ld_type) ~= nil then
-        return print("ALREADY!") -- Player already in the leaderboard
-    end
-
-    _leaderboards[ld_type].players[i] = userid
-
-    -- We are counting the total number of records the leaderboard was built from.
-    if type(_leaderboards[ld_type].recordcount) == "number" then
-        _leaderboards[ld_type].recordcount = _leaderboards[ld_type].recordcount + 1
-    end
-
-    return userid
-end
-
-local function RemoveFromLD(i, ld_type)
-    PEARL.debug("RemoveFromLD", i, ld_type)
-    local userid = table.remove(_leaderboards[ld_type].players, i)
-    if userid ~= nil then
-        PEARL.info("User", userid, "removed from", ld_type, "leaderboard...")
-    end
-
-    return userid
 end
 
 local function RemoveFromLDByUserid(userid, ld_type)
@@ -193,20 +252,8 @@ local function OnMessageNotFound()
     CreateNewUpdatingMessage()
 end
 
-local function OnSave()
-    PEARL.debug("Saving the leaderboard...")
-
-    if type(_leaderboards) ~= "table" then
-        return PEARL.error("Leaderboard not loaded!")
-    end
-
-    return PEARL.PlayerDB:SaveToDatabaseFile(LEADERBOARD_FILE_PATH, _leaderboards, true, PEARL.CONFIG.LEADERBOARD.ENCODE_DATA)
-end
-
-local function OnUpdate()
-    PEARL.debug("OnUpdate")
-
-    OnSave()
+local function UpdateLeaderboards()
+    PEARL.debug("Updating the leaderboard...")
 
     local self = PEARL.DiscordLeaderBoarder
 
@@ -218,7 +265,14 @@ local function OnUpdate()
         return
     end
 
-    update_request:SetStatusCodeHandle(PEARL.DiscordRestAPI.STATUS_CODES.NOT_FOUND, OnMessageNotFound)
+    _leaderboards.last_update = os.time()
+    _leaderboards.changes = false
+
+    SaveLeaderboards()
+
+    if self:GetMode() == self.MODE.UPDATE then
+        update_request:SetStatusCodeHandle(PEARL.DiscordRestAPI.STATUS_CODES.NOT_FOUND, OnMessageNotFound)
+    end
 end
 
 local function HandleLDRepChanged(userid, ld_type)
@@ -280,9 +334,9 @@ local function OnReputationChangedFor(userid, delta)
     end
 
     if update then
-        OnUpdate()
+        UpdateLeaderboards()
     elseif save then
-        OnSave()
+        SaveLeaderboards()
     end
 end
 
@@ -295,7 +349,7 @@ local function OnClientBanned(userid)
     end
 
     if update then
-        OnUpdate()
+        UpdateLeaderboards()
     end
 end
 
@@ -312,11 +366,12 @@ local function OnReputationDelta(userid, delta)
     OnReputationChangedFor(userid, delta)
 end
 
-local function OnLoad()
+local function LoadLeaderboards()
     PEARL.info("Loading the leaderboard...")
 
-    if type(_leaderboards) == "table" then
-        return PEARL.error("Leadeboard already loaded!")
+    if type(_leaderboards) == "table" and not table.empty(_leaderboards) then
+        PEARL.error("Leadeboard already loaded!")
+        return _leaderboards
     end
 
     _leaderboards = PEARL.PlayerDB:LoadDatabaseFile(LEADERBOARD_FILE_PATH, true) or {}
@@ -347,6 +402,8 @@ local function OnLoad()
             end
         end
     end
+
+    return _leaderboards
 end
 
 local function OnNewDay()
@@ -355,60 +412,52 @@ local function OnNewDay()
     local leaderboard = _leaderboards[LD_TYPES.CURRENT]
     if leaderboard.dayleader ~= nil then
         leaderboard.dayleader = nil
-        OnUpdate()
+        UpdateLeaderboards()
     end
 end
 
-local function SaveMessageID(message_id)
-    PEARL.DiscordLeaderBoarder:SetUpdateMessageID(message_id)
+local function OnUpdatingMessagePosted(message)
+    PEARL.debug("OnUpdatingMessagePosted")
 
-    _leaderboards.message_id = message_id
-    OnSave()
+    if type(message) ~= "table" or type(message.id) ~= "string" then
+        return PEARL.error("Failed to post the initial updating message!")
+    end
+
+    -- Save the message id here as an internal configuration.
+    -- Since this should be managed completely by the mod.
+    SaveMessageID(message.id)
+    PEARL.DiscordLeaderBoarder:SetUpdateMessageID(message.id)
+end
+
+local function MarkLeaderboardArchived(leaderboard)
+    PEARL.debug("MarkLeaderboardArchived")
+    UpdateLeaderboardEmbeds()
+
+    local config = LD_CONFIG[leaderboard]
+    -- Remove the absolute leaderboard embed from it so we can archive it.
+    PEARL.DiscordLeaderBoarder:SetEmbed(config.embed_pos, EMBEDS.LeaderboardArchived())
+    PEARL.DiscordLeaderBoarder:DoUpdate()
 end
 
 CreateNewUpdatingMessage = function()
     PEARL.debug("CreateNewUpdatingMessage")
-    local self = PEARL.DiscordLeaderBoarder
-
-    self:PostUpdatingMessage(function(message)
-
-        if type(message.id) ~= "string" then
-            return PEARL.error("Failed to post the initial updating message!")
-        end
-
-        -- Save the message id here as an internal configuration.
-        -- Since this should be managed completely by the mod.
-        SaveMessageID(message.id)
-        PEARL.DiscordLeaderBoarder:SetUpdateMessageID(message.id)
-    end)
+    return PEARL.DiscordLeaderBoarder:PostUpdatingMessage(CanEditMessages() and OnUpdatingMessagePosted or nil)
 end
 
 function PEARL.OnNewMonth(stb)
-    PEARL.debug("OnUpdate")
-
-    local leaderboard = _leaderboards[LD_TYPES.CURRENT]
-
-    local self = PEARL.DiscordLeaderBoarder
+    PEARL.debug("OnNewMonth")
 
     if stb and HasLeaderboardEnoughData(LD_TYPES.CURRENT) then
+        local leaderboard = _leaderboards[LD_TYPES.CURRENT]
         local name = PEARL.PlayerDB:GetField(leaderboard.players[1], "username")
         local monthname = PEARL.GetMonthFancyName(stb.month)
         local monthfullname = STRINGS.PEARL.FULL_MONTH_NAME:format(monthname, stb.year)
 
-        self:Announce("Best player of the month "..monthfullname.." is "..name.."! New month begins!")
+        PEARL.DiscordLeaderBoarder:Announce("Best player of the month "..monthfullname.." is "..name.."! New month begins!")
     end
 
-    if _leaderboards.message_id then
-        PEARL.debug("ARCHIVING...")
-        UpdateLeaderboardEmbeds()
-
-        local config = LD_CONFIG[LD_TYPES.ABSOLUTE]
-        -- Remove the absolute leaderboard embed from it so we can archive it.
-        self:SetEmbed(config.embed_pos, EMBEDS.LeaderboardArchived())
-
-        -- Do not force in case some other update request is queued.
-        -- We have to copy the embeds for the request to use.
-        self:DoUpdate()
+    if CanEditMessages() and UpdatingMessageExists() then
+        MarkLeaderboardArchived(LD_TYPES.ABSOLUTE)
     end
 
     ResetLeaderboard(LD_TYPES.CURRENT)
@@ -421,7 +470,7 @@ function PEARL.DisplayLeaderboard()
 end
 
 function PEARL.UpdateLeaderboard()
-    OnUpdate()
+    UpdateLeaderboards()
 end
 
 --------------------------------
@@ -433,19 +482,21 @@ local function OnTimestampUpdated(changes)
         return
     end
 
-    if type(_leaderboards.message_id) ~= "string" then
+    PEARL.debug("OnTimestampUpdated")
+
+    if CanEditMessages() and type(_leaderboards.message_id) ~= "string" then
         return CreateNewUpdatingMessage()
     end
 
     -- Everything is fine, just update
-    return OnUpdate()
+    return UpdateLeaderboards()
 end
 
-PEARL.AddGamePostInit(function()
-    local self = PEARL.DiscordLeaderBoarder
+-- Load the leaderboard data and set initial data for leaderboarder
 
-    OnLoad()
-    self:SetUpdateMessageID(_leaderboards.message_id)
+PEARL.AddGamePostInit(function()
+    local leaderboards = LoadLeaderboards()
+    PEARL.DiscordLeaderBoarder:SetUpdateMessageID(leaderboards.message_id)
 end)
 
 --------------------------------

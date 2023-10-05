@@ -44,7 +44,8 @@ local EXTINGUISHER_RADIUS = PEARL.CONSTS.EXTINGUISH_RADIUS
 local TIME_UNTIL_EXTINGUISH = 4 -- in seconds
 
 local MAX_ATTACKERS = 5
-local MAX_REMEMBERING_DELAY = 2
+local MAX_REMEMBERING_DELAY = 8 * 60 -- Circa one in-game cycle
+local MIN_DAMAGE_DEALT = 10
 
 ------------------------
 -- [[ Check Functions ]]
@@ -394,10 +395,11 @@ RegisterPlayerItemActionHandler(ACTIONS.GIVETOPLAYER,
 RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
     local prohibited = PEARL.PREFABS.RARE_ITEMS[item.prefab]
 
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer, "tool", item)
+    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.GIVE)
+        :AddToDynamicField(QueuedLogAction.STATIC_FIELDS.TOOL, item, 1)
         :SetIsSilent(not prohibited)
-        :AddTarget(target)
+        :AddTarget(target, 1)
 end)))
 
 RegisterPlayerItemActionHandler(ACTIONS.PLAY, function(doer, target, item)
@@ -408,14 +410,16 @@ RegisterPlayerItemActionHandler(ACTIONS.PLAY, function(doer, target, item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.MINE, function(doer, target)
-    local prohibited = PEARL.PREFABS.DO_NOT_MINE[target.prefab]
+    if not target.components.workable then
+        local prohibited = PEARL.PREFABS.DO_NOT_MINE[target.prefab]
 
-    -- Too spammy, announce only if prohibited.
-    if prohibited then
-        AL:QueueEntAct(STRINGS.PEARL.ACTIONS.MINE.GENERIC, doer)
-            :SetLogType(PEARL.CONSTS.ANN_TYPE.MINE)
-            :SetIsSilent(not prohibited)
-            :AddTarget(target)
+        -- Too spammy, announce only if prohibited.
+        if prohibited then
+            AL:QueueEntAct(STRINGS.PEARL.ACTIONS.MINE.GENERIC, doer)
+                :SetLogType(PEARL.CONSTS.ANN_TYPE.MINE)
+                :SetIsSilent(not prohibited)
+                :AddTarget(target, 1)
+        end
     end
 end)
 
@@ -579,11 +583,27 @@ local function onentitydeath(world, data)
     -- Bosses (announce their deaths even if they were not killed by a player)
     -- Handle special transition case for Klaus.
     if target:HasTag("epic") and not (target.sg and target.sg:HasStateTag("transition")) then
-        local doer_name = (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans"
-        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.BOSS, doer_name)
-            :SetLogType(PEARL.CONSTS.ANN_TYPE.DEFEAT)
-            :SetColorEntity(doer and doer.entity)
-            :AddTarget(target)
+        local pt = STRINGS.PEARL.ACTIONS.KILL.BOSS
+        pt = pt:nformat("target", target:GetBasicDisplayName())
+
+        if target.components.memory then
+            local doers = {}
+            local records = target.components.memory:Sorted()
+            for userid, _ in pairs(records) do
+                local player = LookupPlayerInstByUserID(userid)
+                if player then
+                    doers[#doers + 1] = player:GetDisplayName()
+                end
+            end
+
+            target.components.memory:Clear()
+            target:RemoveComponent("memory")
+            pt = pt:nformat("doer", PEARL.FancyTableConcat(doers))
+        else
+            pt = pt:nformat("doer", (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans")
+        end
+
+        return AL:LogAction(doer.entity, PEARL.CONSTS.ANN_TYPE.DEFEAT, pt)
     end
 
     if not (doer and doer:HasTag("player")) then
@@ -692,33 +712,76 @@ end
 -------------------
 -- Killers --
 -------------------
+
+local onhealthdelta
+onhealthdelta = function(target, data)
+    if data.cause == "regen" and target.components.memory and target.components.health then
+        PEARL.debug("onhealthdelta - REGEN", data.amount)
+
+        -- The boss was healed to maximal HP
+        if target.components.heatlh.currenthealth == target.components.health.maxhealth then
+            PEARL.debug("onhealthdelta: Boss was healed to maximal health! Clearing memory!")
+            target.components.memory:Clear()
+            target:RemoveComponent("memory")
+            target:RemoveEventCallback("healthdelta", onhealthdelta)
+        end
+
+        target.components.memory:ForEach(function(userid, damage, records)
+            records[userid] = damage - data.amount
+            if records[userid] <= MIN_DAMAGE_DEALT then
+                -- Remove the record if there is no damage delath.
+                records[userid] = nil
+            end
+        end)
+    end
+end
+
 -- Track damage dealt to bosses.
---- @TODO: Rework the defeat announcement to contain all attackers.
-local function onhitother(inst, data)
-    if not data or not data.target or not data.target:IsValid() or not data.target:HasTag("epic") then
+-- Higher level version of onhitother for players and their followers.
+local function onplayerhitother(player, target, damage)
+    -- Only for bosses for now.
+    if not target:HasTag("epic") then
         return
     end
 
-    local target = data.target
-    if not target.components.health then
-        return
-    end
-
-    print("HIT", data.damage, data.damageresolved)
-    local dmg = math.max(data.damageresolved or data.damage or 1, 1)
+    print("HIT", damage)
+    local dmg = math.max(damage or 1, 1)
     local maxhealth = target.components.health.maxhealth
 
     if type(target.components.memory) ~= "table" then
         target:AddComponent("memory")
     end
 
-    local total_dmg = (tonumber(target.components.memory:Get(inst.userid)) or 0) + dmg
-    target.components.memory:Add(inst.userid, total_dmg)
-    target.components.memory:SetLifetime(inst.userid, total_dmg / maxhealth * MAX_REMEMBERING_DELAY)
+    local total_dmg = (tonumber(target.components.memory:Get(player.userid)) or 0) + dmg
+    local ttl = math.min(MAX_REMEMBERING_DELAY * total_dmg / maxhealth, MAX_REMEMBERING_DELAY)
+    target.components.memory:Add(player.userid, total_dmg)
+    target.components.memory:SetLifetime(player.userid, ttl)
+    target:SafeListenForEvent("healthdelta", onhealthdelta)
 
     PEARL.Reputation:EarnFor(
-        inst.userid, dmg * REPUTATIONS.BOSS_DAMAGE
+        player.userid, dmg * REPUTATIONS.BOSS_DAMAGE
     )
+end
+
+local function onhitother(inst, data)
+    local target = data and data.target
+    if not (target and target.components.health and target:IsValid()) then
+        return
+    end
+
+    --- @DEBUG
+    if not inst.userid then
+        inst.userid = inst.GUID
+    end
+    --------------------------------------
+
+    local damage = math.max(data.damageresolved or data.damage or 1, 1)
+
+    local leader
+    --- @DEBUG
+    --local leader = inst.components.follower and inst.components.follower:GetLeader()
+
+    onplayerhitother(leader and leader:HasTag("player") and leader or inst, target, damage)
 end
 
 -------------------
@@ -750,9 +813,10 @@ local function onbuildstructure(doer, data)
 
         local near = target:GetPropagableBurnableEntities()
         if near and #near > 0 then
+            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BURNABLE_NEAR_FIRE * #near)
+
             silent = not (#near > 2 or table.find(near, structuresearchfn))
             type = PEARL.CONSTS.ANN_TYPE.BURN
-
             action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
         end
     end
@@ -850,7 +914,8 @@ PEARL.AddPlayerPostInit(function(player)
     player:SafeListenForEvent("respawnfromghost", onrespawnfromghost)
     player:SafeListenForEvent("death", ondeath)
 
-    player:SafeListenForEvent("onhitother", onhitother)
+    player:SafeListenForEvent("onhitother", onplayerhitother)
+    player:SafeListenForEvent("heatlhdelta", onhealthdelta)
 
     if player.components.builder then
         player:SafeListenForEvent("builditem", onbuilditem)
@@ -860,4 +925,17 @@ PEARL.AddPlayerPostInit(function(player)
     -- if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
     --     player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
     -- end
+end)
+
+PEARL.AddComponentPostInit("combat", function(self)
+    if not self.inst then
+        return
+    end
+
+    --- Do only track damage dealt by followers and players.
+    if not self.inst:HasTag("player") and not self.inst.components.follower then
+        return
+    end
+
+    self.inst:SafeListenForEvent("onhitother", onhitother)
 end)

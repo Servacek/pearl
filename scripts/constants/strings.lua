@@ -76,7 +76,7 @@ local STRINGS = {
             REMAINING   = "{doer} killed {target}! Remaining: {remaining}",
             LAST        = "{doer} killed the last {target}!",
             FOLLOWER    = "{doer} killed {target}! Owner: {owner}",
-            BOSS        = "{doer} defeated {target}!"
+            BOSS        = "{target} defeated {doer}!"
         },
 
         CHOP = {

@@ -132,12 +132,17 @@ local function OnClientConnectionClosed(userid, reason)
     ), PEARL.ICONS.PLAYER_STATE.FORCE_DISCONNECTED)
 end
 
-local function OnClientDisconnected(userid, expected, reason)
+local function OnClientDisconnected(userid, expected, reason, reason_title)
     -- The userid here can sometimes be an empty string
     -- if we have failed to authenticate the client.
     -- Do not announce such cases.
     if type(userid) ~= "string" or #userid < 3 then
         return
+    end
+
+    -- Hide custom reasons in public logs.
+    if type(reason_title) == "string" and #reason_title > 0 then
+        reason = "ID_DST_DYNAMIC_REASON"
     end
 
     local client = TheNet:GetClientTableForUser(userid)

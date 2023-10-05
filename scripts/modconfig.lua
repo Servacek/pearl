@@ -17,6 +17,16 @@
 setfenv(1, PEARL.ENV)
 
 -------------------------------------
+-- [[ Constants ]]
+-------------------------------------
+
+--- @TODO: Implement some warning system if this field is being overriden in file other than commonconfig.lua
+--- and commonconfig.lua is enabled.
+local SECRETS = {
+    "TOKEN"
+}
+
+-------------------------------------
 -- [[ Class Declaration ]]
 -------------------------------------
 
@@ -198,7 +208,13 @@ function ModConfig:LoadConfigOption(option)
         end
 
         if type(option.type) == "string" and option.type:match(type(option.saved)) == nil then
-            PEARL.warn("Option", option.name, "has incorrect type!")
+            local log = "Option "..tostring(option.name).." has incorrect type!"
+            if PEARL.CONFIG.DEBUG_MODE then
+                error(log)
+            else
+                PEARL.warn(log)
+            end
+
             failed = true
         end
     end

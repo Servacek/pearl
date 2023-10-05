@@ -158,6 +158,10 @@ function HTTPClient:IsOnCooldown()
     return self._cooldown_task and self._cooldown_task.running == true
 end
 
+function HTTPClient:IsProxyEnabled()
+    return self.proxy and self.proxy:IsEnabled()
+end
+
 -- Used for debugging purposes
 -- function HTTPClient:GetSentRequestsCount()
 --     return self._rcount

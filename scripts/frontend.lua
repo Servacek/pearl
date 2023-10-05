@@ -139,7 +139,9 @@ end
 
 --- @type AgreementManager
 PEARL.AgreementManager = PEARL.loadfile("libraries/agreementmanager")
-PEARL.AgreementManager:Load()
+if PEARL.AgreementManager:FileExists() then
+    PEARL.AgreementManager:Load()
+end
 
 ----------------------------------
 -- Client Network
@@ -154,11 +156,11 @@ PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 -- FrontEnd Debug Mode
 ----------------------------------
 
---if PEARL.CONFIG.DEBUG_MODE then
-    -- PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
-    -- PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
-    -- PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)
---end
+-- if PEARL.CONFIG.DEBUG_MODE then
+--     PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
+--     PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
+--     PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)
+-- end
 
 ----------------------------------
 -- Assets

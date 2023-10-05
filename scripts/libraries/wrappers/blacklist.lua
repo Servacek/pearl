@@ -97,6 +97,7 @@ function BlackList:Load()
             return
         end
 
+        -- We are saving only the IDs for now.
         blocklist[#blocklist+1] = {
             netid               = netid or "",
             userid              = userid or "",

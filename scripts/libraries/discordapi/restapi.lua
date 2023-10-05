@@ -11,6 +11,8 @@
 --]==]====================================================]]
 
 
+local Message = require("libraries/discordapi/models/message")
+
 
 local math = math
 
@@ -111,6 +113,10 @@ local function _SendActionRequest(url, action, data, force)
     local client = PEARL.HTTPClient
     if not PEARL.HTTPClient.METHODS[method] then
         -- This method seems to require proxy server to be used.
+        if not PEARL.HTTPClient.proxy or PEARL.HTTPClient.proxy:IsDisabled() then
+            return PEARL.error("Attempted to execute an action which requires the HTTP proxy to be enabled!")
+        end
+
         client = PEARL.HTTPClient.proxy
     end
 
@@ -179,8 +185,9 @@ function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message, force
         return
     end
 
-    if message and not message:IsValid() then
+    if message and Message.is_instance(message) and message:IsValid() then
         PEARL.error("Attempted to", action, "an invalid message!")
+        return
     end
 
     local data = message and message:ToTable()

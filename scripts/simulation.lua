@@ -9,7 +9,7 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
-
+--- @backend
 
 
 ----------------------------------
@@ -22,7 +22,7 @@ local function OnShardCrashed()
 end
 
 local function OnShardShutdown()
-    PEARL.EventProcessor:HandleEvent("shard_shutdown")
+    PEARL.EventProcessor:HandleEvent("shard_shutdown", false)
     PEARL.ModShutdown()
 end
 
@@ -70,9 +70,31 @@ PEARL.AddGlobalFunctionPreCall("VerifySpawnNewPlayerOnServerRequest", function(u
 end)
 
 PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
+
+-- Since these are very forcefull and destructive we have to delay their execution a bit.
+
 -- This is not being called by the game itself, but we use this to force a reboot from inside.
-PEARL.AddUserDataFunctionPreCall("Crash", OnShardShutdown, TheSim)
-PEARL.AddUserDataFunctionPreCall("ForceAbort", OnShardCrashed, TheSim)
+local _Crash
+_Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
+    if type(_Crash) == "function" then
+        PEARL.WallScheduler:ExecuteInTime(1, _Crash, nil, self, silent, ...)
+    end
+
+    if silent == true then
+        return OnShardShutdown()
+    end
+
+    OnShardCrashed()
+end, TheSim)
+
+local _ForceAbort
+_ForceAbort  = PEARL.OverrideUserdataValue("ForceAbort", function(...)
+    if type(_ForceAbort) == "function" then
+        PEARL.WallScheduler:ExecuteInTime(1, _ForceAbort, nil, ...)
+    end
+
+    OnShardCrashed()
+end, TheSim)
 
 ----------------------------------
 -- Simulation Post Init

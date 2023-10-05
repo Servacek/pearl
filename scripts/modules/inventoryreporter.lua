@@ -25,9 +25,9 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 
 --- <item_name>: <priority>
 local DROP_DEPOS = {
-    ["firepit"] = 1,
-    ["treasurechest"] = 2,
-    ["dragonflychest"] = 3,
+    ["firepit"]         = 1,
+    ["treasurechest"]   = 2,
+    ["dragonflychest"]  = 3,
 }
 
 -- custom_id is expected to be string
@@ -206,6 +206,41 @@ local function SortDepos()
     _sorted = true
 end
 
+local function GetDepoForItem(item)
+    local max_amount = -1
+    local cache = {}
+
+    return function()
+        PEARL.debug("MAX_AMOUNT", max_amount)
+        table.dump(cache)
+        for _, depo in ipairs(_depos) do
+            local amount = tonumber(cache[depo.GUID]) or nil
+            if cache[depo.GUID] == nil then
+                -- If not cached, calculate the amount and cache it.
+                amount = depo.components.container and depo.components.container:CountItem(item.prefab)
+                cache[depo.GUID] = amount
+            end
+
+            -- For non-container depos
+            if amount == nil then
+                cache[depo.GUID] = false
+
+                return depo
+            end
+
+            if cache[depo.GUID] ~= false and amount and amount >= max_amount then
+                max_amount = amount
+
+                -- Mark the depo as "visited" in the cache.
+                cache[depo.GUID] = false
+                return depo
+            end
+        end
+
+        -- End the iteration.
+    end
+end
+
 local function DepositItem(inventory, item)
     item.components.inventoryitem:RemoveFromOwner()
 
@@ -214,7 +249,7 @@ local function DepositItem(inventory, item)
         SortDepos()
     end
 
-    for _, depo in ipairs(_depos) do
+    for _, depo in ipairs(GetDepoForItem(item)) do
         if item == nil then
             return -- We have managed to add the whole item to the container.
         end
@@ -312,6 +347,7 @@ local function CheckPlayersInventory(world, player)
     local drop_type = DROP_TYPE.NONE
     if world.state.cycles > PEARL.CONFIG.INVENTORY_REPORTER.DROP_AFTER_CYCLE or PEARL.CONFIG.DEBUG_MODE then
         local reputation = PEARL.Reputation:GetOf(player.userid)
+        print("REP", reputation)
         if reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
             DepositAllItems(inventory)
 

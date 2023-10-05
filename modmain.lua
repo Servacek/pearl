@@ -190,6 +190,8 @@ GLOBAL.PEARL = setmetatable({
     -- Whether this is the initial launch of the mod or not.
     -- We only care about this on dedicated servers.
     INIT                = TheSim:GetNumLaunches() == 1,
+    INIT_FULL           = TheSim:GetNumLaunches() == 2,
+    LAUNCHES            = TheSim:GetNumLaunches(),
 
     -- Used for sending internal mod events.
     EventProcessor   = EventProcessor(),
@@ -379,6 +381,12 @@ if PEARL.CONFIG.DEBUG_MODE then
     --PEARL.OverrideGlobal("CONFIGURATION", "dev")
 
     if TheNet:GetIsServerAdmin() then
+        -- Fix for not saving the modindex state properly when in dev mode.
+        local original_filename = "boot_"..KnownModIndex:GetModIndexName()
+        PEARL.AddClassFunctionPreCall("EndStartupSequence", function(self, ...)
+            SavePersistentString(original_filename, "done", false, ...)
+        end, KnownModIndex)
+
         PEARL.OverrideVariable("ENCODE_SAVES", false)
         PEARL.OverrideVariable("BRANCH", "dev")
         PEARL.OverrideVariable("CHEATS_ENABLED", true)

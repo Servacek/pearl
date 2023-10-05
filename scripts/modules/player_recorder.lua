@@ -126,9 +126,12 @@ local function OnClientConnected(world, player)
 end
 
 local function OnClientDisconnected(world, player)
-    PEARL.PlayerDB:OptionalSafeSetField(player.userid, "lastseentime", os.time())
-    PEARL.PlayerDB:SaveRecordFor(player.userid)
-    PEARL.PlayerDB:UnloadRecord(player.userid) -- Free the memory
+    -- No loading here! Also the userid can be nil or an empty string.
+    if PEARL.PlayerDB:IsRecordLoadedFor(player.userid) then
+        PEARL.PlayerDB:OptionalSafeSetField(player.userid, "lastseentime", os.time())
+        PEARL.PlayerDB:SaveRecordFor(player.userid)
+        PEARL.PlayerDB:UnloadRecord(player.userid) -- Free the memory
+    end
 end
 
 local function OnClientProfileData(userid, data)
@@ -166,7 +169,7 @@ end
 --------------------------------------
 
 PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, count, age, player)
-    if not (type(player) == "table" and player:IsValid() and type(player.userid) == "string") and type(count) == "number" and count > 0 then
+    if not (type(player) == "table" and player:IsValid() and type(player.userid) == "string") and player.userid ~= "" and type(count) == "number" and count > 0 then
         return
     end
 

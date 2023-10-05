@@ -11,6 +11,11 @@
 --]==]====================================================]]
 
 
+--[[
+    For now, leaderboarder for correct functioning requires a proxy allowing it to use the PATCH method.
+--]]
+
+
 local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
@@ -31,11 +36,34 @@ local LeaderBoarder = Class(function(self)
 
     --- @type string
     self._message_id = nil
+
+    --- @type integer
+    self._mode = self.MODE.STACK
 end)
+
+-------------------------------------
+-- [[ Modes ]]
+-------------------------------------
+
+LeaderBoarder.MODE = {
+    STACK   = 1, -- New message on each update
+    UPDATE  = 2, -- Keeps the original message by updating only it's content (requires proxy)
+}
 
 -------------------------------------
 -- [[ Setters ]]
 -------------------------------------
+
+function LeaderBoarder:SetMode(mode)
+    PEARL.debug("LeaderBoarder:SetMode", mode)
+
+    mode = tonumber(mode)
+    if mode == nil or not table.contains(self.MODE, mode) then
+        return PEARL.error("Attempted to set an invalid mode for the leaderboard webhook!")
+    end
+
+    self._mode = mode
+end
 
 function LeaderBoarder:SetIsDisabled(disabled)
     self._disabled = disabled
@@ -63,6 +91,10 @@ end
 -- [[ Getters ]]
 -------------------------------------
 
+function LeaderBoarder:GetMode()
+    return self._mode
+end
+
 function LeaderBoarder:IsDisabled()
     return self._disabled
 end
@@ -71,34 +103,50 @@ function LeaderBoarder:IsEnabled()
     return not self._disabled
 end
 
+function LeaderBoarder:GetMessage()
+    return Message():AddEmbeds(self._embeds)
+end
+
 -------------------------------------
 -- [[ Public Methods ]]
 -------------------------------------
 
+--- @return Request? request The request for this action or nil if disabled.
 function LeaderBoarder:DoUpdate(force)
+    PEARL.debug("DoUpdate", force)
+
     if self:IsDisabled() then
         return
     end
 
-    return self._webhook:EditMessage(
-        self._message_id, Message():AddEmbeds(self._embeds), force
-    )
+    local message = self:GetMessage()
+    if self._mode == self.MODE.UPDATE then
+        return self._webhook:EditMessage(
+            self._message_id, message, force
+        )
+    end
+
+    return self._webhook:PostMessage(message, force)
 end
 
---- @return Request? request
+--- @return Request? request The request for this action or nil if disabled.
 function LeaderBoarder:PostUpdatingMessage(cb)
-    if self:IsDisabled() or not PEARL.HTTPClient.proxy or not PEARL.HTTPClient.proxy:IsEnabled() then
+    PEARL.info("PostUpdatingMessage")
+
+    if self:IsDisabled() then
         return
     end
 
-    local request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, self:GetMessageData())
-    if request then
-        -- We need the ID of this message to keep it updated so use the wait parameter.
+    local request
+    local message = self:GetMessage()
+    if self._mode == LeaderBoarder.MODE.UPDATE and PEARL.HTTPClient:IsProxyEnabled() then
+        request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, message:ToJson())
         request:SetParameters({ ["wait"] = true })
-        request:Send()
+    else -- Defaults to STACK mode
+        request = self._webhook:PostMessage(message)
     end
 
-    return request
+    return (request:Send())
 end
 
 function LeaderBoarder:PostNotification(message, ...)

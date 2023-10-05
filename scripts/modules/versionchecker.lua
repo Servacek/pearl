@@ -97,18 +97,13 @@ local function StartServerUpdate()
     -- Make sure the world is saved at this point.
     TheWorld:PushEvent("ms_save")
 
-    PEARL.ModShutdown()
-
     PEARL.WallScheduler:ExecuteInTime(2, function()
-        -- Keep this here so the default disconnect event wont have a chance to reach the server.
-        PEARL.ServerNetwork:DisconnectAllClients(nil, true)
+        PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastLua, "PEARL.Reboot()")
+        -- PEARL.WallScheduler:ExecuteInTime(1, function()
+        --     PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
 
-        PEARL.BroadcastRPCToConnectedShards(PEARL.RPC.BroadcastLua, "TheSim:Crash()")
-        PEARL.WallScheduler:ExecuteInTime(1, function()
-            PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
-
-            TheSim:Crash()
-        end)
+        --     TheSim:Crash(true)
+        -- end)
     end)
 end
 

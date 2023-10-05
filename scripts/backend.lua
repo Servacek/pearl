@@ -101,6 +101,8 @@ PEARL.SafeModTableExtend("CONSTS", {
         DIED                = -15,
         EXTINGUISH_STRUCT   = 5,
         BOSS_DAMAGE         = 0.01, -- Per HP dealt
+        BURNABLE_NEAR_FIRE  = -3,
+        STRUCT_NEAR_FIRE    = -6,
     },
 
     SHARD_ID = {
@@ -138,7 +140,12 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     SERVER_TOKEN_PATH           = "../../cluster_token.txt",
 
-    COMMON_CONFIG_PATH          = "../../commonconfig.lua"
+    COMMON_CONFIG_PATH          = "../../commonconfig.lua",
+
+    ------------------------------------
+
+    KLEI_ID_PATTERN     = "KU_"..string.rep("[%d%a%p]", 8),
+    STEAM_ID_PATTERN    = string.rep("%d", 17),
 
     --- @deprecated
     -- MARKDOWN_PATTERN            = "%~%*%_%>%|%~%`%:%[]",
@@ -264,7 +271,7 @@ if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     end
 
     if not PEARL.CONFIG.MOD_BLOCKLIST and not PEARL.CONFIG.MOD_ALLOWLIST then
-        PEARL.info("Mod blocker is enabled by the mod allowlist and blocklist are empty!")
+        PEARL.info("Mod blocker is enabled but the mod allowlist and blocklist are empty!")
         PEARL.CONFIG.MOD_BLOCKER.ENABLED = false
     end
 end
@@ -305,18 +312,14 @@ for _, tag in ipairs(PEARL.CONFIG.CUSTOM_SERVER_TAGS) do
     table.insert(PEARL.MOD_INFO.server_filter_tags, tag)
 end
 
--- Gets called after modindex is loaded and when a shard connects.
--- UpdateServerTagsString()
-
 --------------------------------
 -- [[ Klei Metrics ]]
 --------------------------------
 
---- @TODO: This seems to not be sufficient
-PEARL.OverrideValue(_G, "METRICS_ENABLED", PEARL.CONFIG.SEND_KLEI_METRICS)
-PEARL.OverrideValue(_G, "STATS_ENABLE", PEARL.CONFIG.SEND_KLEI_METRICS)
 if PEARL.CONFIG.SEND_KLEI_METRICS == false then
-    PEARL.OverrideUserdataVariable("SendProfileStats", function() end, TheNet)
+    PEARL.OverrideValue(_G, "METRICS_ENABLED", false)
+    PEARL.OverrideValue(_G, "STATS_ENABLE", false)
+    PEARL.OverrideUserdataValue("SendProfileStats", function() end, TheNet)
 end
 
 --------------------------------
@@ -401,13 +404,16 @@ if not PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
     PEARL.DiscordLogger:SetIsDisabled(true)
 end
 
-
 --- @type Reporter
 PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
 PEARL.DiscordReporter._webhook:FetchData()
 
 --- @type LeaderBorder
 PEARL.DiscordLeaderBoarder = PEARL.loadfile("libraries/discordapi/webhooks/leaderboarder")()
+
+if PEARL.HTTPClient:IsProxyEnabled() then
+    PEARL.DiscordLeaderBoarder:SetMode(PEARL.DiscordLeaderBoarder.MODE.UPDATE)
+end
 
 --------------------------------
 -- [[ Steam API ]]
@@ -569,25 +575,24 @@ ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.INVENTORY_REPORTER.ENABLED)
 ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
--- ModuleManager:AddModule("slashcommands", PEARL.CONFIG.SLASH_COMMANDS)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
-ModuleManager:AddModule("characterblocker", not table.empty(PEARL.CONFIG.CHARACTER_BLOCKLIST))
+ModuleManager:AddModule("characterblocker", PEARL.CONFIG.CHARACTER_BLOCKLIST)
 ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
-ModuleManager:AddModule("usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)
---- Looks like currently only Steam is supported as a platform.
-ModuleManager:AddModule("platformchecker", not table.empty(PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS))
+ModuleManager:AddModule("globalbanlist", PEARL.CONFIG.GLOBAL_BANLIST.ENABLED and PEARL.CONFIG.GLOBAL_BANLIST.URL)
+
+--- Filters
+ModuleManager:AddModule("filters/usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)
+ModuleManager:AddModule("filters/platformfilter", PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS)
+ModuleManager:AddModule("filters/customfilters.lua", PEARL.CONFIG.CUSTOM_CONNECTION_FILTERS)
 
 --- Master-only Modules
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
-
-    if PEARL.CONFIG.PROXY.ENABLED then
-        ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
-    end
+    ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
 end
 
 -- Logger Modules

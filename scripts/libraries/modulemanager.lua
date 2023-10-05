@@ -61,11 +61,27 @@ end
 
 --- Adds the given module to the cache.
 --- @param md_name string Name of the module file stored in the 'modules' folder (without the '.lua' postfix)
---- @param enabled boolean? Whether it should be loaded by LoadAllModules or not.
+--- @param enabled boolean|table|number? Whether it should be loaded by LoadAllModules or not.
+--- If this is a table then the return value of table.empty is used instead.
+--- If this is a number then everything above 0 is considered true and everything below is false.
+--- If this is a string then it's reversed emptiness is considered.
+--- Otherwise any non-null value is considered true.
 ---
 --- @return nil
 function ModuleManager:AddModule(md_name, enabled)
-    _modules[md_name] = enabled or false
+    if type(enabled) == "table" then
+        enabled = not table.empty(enabled)
+    end
+
+    if type(enabled) == "number" then
+        enabled = enabled > 0
+    end
+
+    if type(enabled) == "string" then
+        enabled = #enabled > 0
+    end
+
+    _modules[md_name] = enabled ~= nil and enabled ~= false or false
 end
 
 --- Loads the given module file from the mod's modules folder and returns it's results.

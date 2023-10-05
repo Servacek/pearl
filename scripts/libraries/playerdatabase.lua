@@ -99,6 +99,7 @@ end
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return table<string, any>? record The record of the provided player.
 function PlayerDB:GetRecordFor(userid)
+    print(PEARL.CalledFrom(5))
     if self:IsDisabled() then
         return
     end
@@ -130,7 +131,7 @@ function PlayerDB:GetSubField(userid, field, name, default)
     return tbl[name]
 end
 
-function PlayerDB:IsCached(userid)
+function PlayerDB:IsRecordLoadedFor(userid)
     return type(self._records[userid]) == "table"
 end
 
@@ -172,7 +173,7 @@ function PlayerDB:CacheRecord(userid, record)
         return PEARL.error("Invalid Klei ID provided!")
     end
 
-    if self:IsCached(userid) then
+    if self:IsRecordLoadedFor(userid) then
         return PEARL.error("Player already cached!")
     end
 
@@ -198,6 +199,10 @@ function PlayerDB:OptionalSetField(userid, name, value)
     end
 
     local prev = record[name]
+    if prev ~= nil and value ~= nil and type(prev) ~= type(value) then
+        return PEARL.error("Type conversions not allowed for DB record!", prev, value, "from", type(prev), "to", type(value))
+    end
+
     record[name] = value
 
     return true, prev
@@ -330,7 +335,7 @@ function PlayerDB:LoadDatabaseFile(path, ensure)
 end
 
 function PlayerDB:LoadUseridList()
-    self._userids = self:LoadDatabaseFile(DATABASE_LISTING_FILE_PATH, true) or self.userids
+    self._userids = self:LoadDatabaseFile(DATABASE_LISTING_FILE_PATH, true) or self._userids
     return self._userids
 end
 

@@ -262,7 +262,7 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
     local max_id_size = PEARL.GetMaxStringSize(modlist, false, "id")
 
     -- Data processed here are untrusted.
-    for _, mod in ipairs(modlist) do
+    for _, mod in pairs(modlist) do
         local type_icon = mod.private and PEARL.ICONS.LOCAL or PEARL.ICONS.STEAM
         local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
         local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN, nil, "...") or "???")
@@ -286,7 +286,7 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         description = description.."\n"
     end
 
-    local shown_count = #modlist
+    local shown_count = table.size(modlist)
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
         :SetColor(Embed.COLORS.RED)

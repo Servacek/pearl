@@ -88,6 +88,7 @@ function PEARL.SetValue(t, name, value, noraw)
     return rawset(t, name, value)
 end
 
+--- @return origin any, new any
 function PEARL.OverrideValue(t, name, value, noraw)
     t = t or _G
     local origin = PEARL.GetValue(t, name, noraw)
@@ -323,8 +324,7 @@ end
 -- Overriders
 ----------------------------------
 
---- Overrides a global from the main game's environment.
---- Use with care.
+--- @return nil
 function PEARL.OverrideVariable(name, value, tbl, optional)
     tbl = tbl or _G
 
@@ -340,16 +340,19 @@ function PEARL.OverrideVariable(name, value, tbl, optional)
     return rawset(tbl, name, value)
 end
 
+--- Overrides a global from the main game's environment.
+--- Use with care.
+--- @return nil
 function PEARL.OverrideGlobalVariable(name, value, optional)
     PEARL.OverrideVariable(name, value, _G, optional)
     PEARL.OverrideVariable(name, value, PEARL.ENV, optional)
 end
 
-function PEARL.OverrideUserdataVariable(name, value, userdata, optional)
+function PEARL.OverrideUserdataValue(name, value, userdata)
     local mt = type(userdata) == "userdata" and getmetatable(userdata) or nil
     assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")
 
-    return PEARL.OverrideVariable(name, value, mt.__index, optional)
+    return PEARL.OverrideValue(mt.__index, name, value)
 end
 
 function PEARL.GetGlobal(name)
@@ -552,4 +555,12 @@ function PEARL.ModShutdown(...)
     PEARL.info("Shutting down the mod and all it's components...")
 
     PEARL.EventProcessor:HandleEvent("quit", ...)
+end
+
+function PEARL.Reboot()
+    -- Keep this here so the default disconnect event wont have a chance to reach the server.
+    PEARL.ServerNetwork:DisconnectAllClients(nil, true)
+
+    PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
+    TheSim:Crash(true)
 end
