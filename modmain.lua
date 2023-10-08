@@ -178,6 +178,7 @@ GLOBAL.PEARL = setmetatable({
     MODULES_DIR_NAME    = "modules",
     FILTERS_DIR_NAME    = "filters",
     IMAGES_DIR_NAME     = "images",
+    LIBRARY_DIR_NAME    = "libraries",
 
     DEFAULT_LANGUAGE    = "english",
     LANGUAGES = {
@@ -294,16 +295,28 @@ PEARL.CONSTS = {
 -- [[ FileLoader ]]
 --------------------------------
 
-PEARL.loadfile = require("libraries/fileloader")
-if type(PEARL.loadfile) ~= "function" then
-    return error("Failed to load the file loader!", tostring(PEARL.loadfile))
+local loaders = require("libraries/fileloaders")
+
+--- Check the validity of the loaders
+for name, loader in pairs(loaders) do
+    if type(loader) ~= "function" then
+        return error("Failed to load "..name.."!", tostring(PEARL.loader))
+    end
+
+    if PEARL[name] ~= nil and PEARL.DEBUG_MODE then
+        error("Loader "..name.." already exists in the namespace table?!")
+    end
 end
+
+--- Adding it manually here instead of the loop for autocomplete to be smarter.
+PEARL.loadfile = loaders.loadfile
+PEARL.loadlib  = loaders.loadlib
 
 --------------------------------
 -- [[ Standard Libs ]]
 --------------------------------
 
-PEARL.loadfile("extensions/standard/builtin")
+PEARL.loadfile("extensions/standard/basic")
 PEARL.loadfile("extensions/standard/table")
 PEARL.loadfile("extensions/standard/math")
 PEARL.loadfile("extensions/standard/io")
@@ -348,13 +361,6 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
-
---------------------------------
--- [[ Wrappers ]]
---------------------------------
-
-PEARL.info("Loading wrappers...")
-PEARL.loadfile("libraries/wrappers/persistance")
 
 --------------------------------
 -- [[ License ]]
@@ -404,6 +410,14 @@ if PEARL.CONFIG.DEBUG_MODE then
 end
 
 --------------------------------
+-- [[ Cluster Persistance Lib ]]
+--------------------------------
+
+--- This has to load this soon because some of the following files use it.
+--- @class ClusterPersistance
+PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance")
+
+--------------------------------
 -- [[ Strings & Translations ]]
 --------------------------------
 
@@ -447,6 +461,8 @@ PEARL.loadfile("error")
 -- [[ Load ]]
 --------------------------------
 
+if not PEARL.INIT then
+
 PEARL.RegisterDefaultAnnouncementTypes()
 
 PEARL.AddAnnouncementIcon("ignite", "torch.tex")
@@ -482,6 +498,8 @@ PEARL.AddAnnouncementIcon("fertilize")
 --- @TODO: Add Icon:
 PEARL.AddAnnouncementIcon("mine")
 
+end
+
 --------------------------------
 -- [[ Instance Param Manager]]
 --------------------------------
@@ -489,6 +507,35 @@ PEARL.AddAnnouncementIcon("mine")
 PEARL.info("Loading game instance parameters manager...")
 --- @class GameInstParams
 PEARL.GameInstParams = PEARL.loadfile("instanceparams")
+
+--------------------------------
+-- [[ Post-Initialization ]]
+--------------------------------
+
+-- Let's give Frontend access to the HTTP Client as well!
+if not PEARL.INIT then
+    --------------------------------
+    -- [[ Wall Scheduler ]]
+    --------------------------------
+
+    PEARL.info("Setting up the wall-scheduler...")
+
+    --- @type WallScheduler
+    PEARL.WallScheduler = PEARL.loadfile("libraries/wallscheduler")
+    PEARL.WallScheduler:StartWallUpdate()
+
+
+    --------------------------------
+    -- [[ Network ]]
+    --------------------------------
+
+    PEARL.info("Loading HTTP client...")
+
+    --- @type HTTPClient
+    PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
+    PEARL.HTTPClient:Setup()
+    PEARL.HTTPClient:SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
+end
 
 --------------------------------
 -- [[ Backend ]]

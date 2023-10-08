@@ -13,7 +13,7 @@
 
 
 --[[
-    Capable of deffering the client's loading process when waiting for a server's response.
+    Capable of defering the client's loading process when waiting for a server's response.
 --]]
 
 ---------------------------------
@@ -30,19 +30,25 @@ local ClientLoader = {}
 local load_fn = Profile and Profile.Load
 local load_fn_args = nil
 local loaded = false
-local load_deffered = false
-local should_deffer = false
+local load_defered = false
+
+local preload_handlers      = {}
+local deferants             = {}
+
+---------------------------------
+-- [[ Local Functions ]]
+---------------------------------
 
 local function LoadOverride(...)
     -- Always save these args for the future.
     ClientLoader:SetLoadArgs(...)
 
-    -- If not deffered, then this is not being called but just to be sure.
+    -- If not defered, then this is not being called but just to be sure.
     -- In case we cachanged mind during that few frames.
-    if ClientLoader:ShouldDefferLoad() then
-        PEARL.debug("Deffering further loading of the client...")
+    if ClientLoader:ShouldDeferLoad() then
+        PEARL.debug("Defering further loading of the client...")
 
-        ClientLoader:SetLoadDeffered(true)
+        ClientLoader:SetLoadDefered(true)
         return false
     end
 
@@ -50,12 +56,16 @@ local function LoadOverride(...)
     return ClientLoader:Load()
 end
 
+local function IsLoaderOverriden()
+    return Profile.Load == LoadOverride
+end
+
 local function OverrideLoader()
     if type(Profile) ~= "table" then
         return PEARL.error("Profile is invalid!")
     end
 
-    if Profile.Load == LoadOverride then
+    if IsLoaderOverriden() then
         return PEARL.warn("Loader already overriden!")
     end
 
@@ -63,11 +73,17 @@ local function OverrideLoader()
 end
 
 local function RestoreLoader()
+    PEARL.debug("RestoreLoader")
+
     if type(Profile) ~= "table" then
         return PEARL.error("Profile is invalid!")
     end
 
-    if Profile.Load == load_fn then
+    if type(load_fn) ~= "function" then
+        return PEARL.error("Original loading function is invalid!")
+    end
+
+    if not IsLoaderOverriden() then
         return PEARL.warn("Loader wasn't changed!")
     end
 
@@ -79,8 +95,8 @@ end
 ---------------------------------
 
 function ClientLoader:Load()
-    if not self:IsLoadDeffered() then
-        return PEARL.debug("Loading was not deffered.")
+    if not self:IsLoadDefered() then
+        return PEARL.debug("Loading was not defered.")
     end
 
     if type(load_fn) ~= "function" then
@@ -100,34 +116,73 @@ function ClientLoader:Load()
     PEARL.debug("Restoring default load handler and cleaning up...")
     RestoreLoader()
 
-    -- Cleanup
-    self:SetLoadDeffered(false)
-    self:SetShouldDeffer(false)
+    self:Cleanup()
 
     PEARL.debug("Loading the client...")
-
     loaded = true
     load_fn(PEARL.unpack(load_fn_args))
 
-    -- Make sure we are not deffering garbage collection too!
+    -- Make sure we are not defering garbage collection too!
     load_fn_args = nil
 end
 
-function ClientLoader:ForceLoad()
-    return self:Load()
-end
+function ClientLoader:RemoveDeferant(name)
+    PEARL.debug("ClientLoader:RemoveDeferant", name)
 
--- Loading is only being deffered if ClientNetwork requests so. Else nothing is being overriden or
--- changed in any way.
-function ClientLoader:DefferLoad()
-    PEARL.debug("ClientLoader:DefferLoad")
-
-    if self:ShouldDefferLoad() then
-        return --PEARL.warn("Loading of the client was already deffered!")
+    if type(name) ~= "string" then
+        return PEARL.error("Invalid deferant name!")
     end
 
-    self:SetShouldDeffer(true)
-    OverrideLoader()
+    deferants[name] = nil
+
+    -- This was the last deferant preventing us from loading.
+    if not self:ShouldDeferLoad() then
+        self:Load()
+
+        return
+    end
+
+    -- In case the loader was not yet defered and we have
+    -- removed all deferants for some weird reason.
+    -- No point in keeping the loader overriden.
+    if not self:IsLoadDefered() and IsLoaderOverriden() then
+        RestoreLoader()
+    end
+end
+
+function ClientLoader:AddDeferant(name)
+    PEARL.debug("ClientLoader:AddDeferant", name)
+
+    if type(name) ~= "string" then
+        return PEARL.error("Invalid deferant name!")
+    end
+
+    if deferants[name] ~= nil then
+        PEARL.error("Deferant already exists!", name)
+        -- Do not return here so we ensure the value is always "true"
+    end
+
+    deferants[name] = true
+
+    if not IsLoaderOverriden() then
+        OverrideLoader()
+    end
+end
+
+function ClientLoader:AddPreLoadHandler(handler)
+    PEARL.debug("ClientLoader:AddPreloadFn")
+
+    if table.contains(preload_handlers, handler) then
+        PEARL.warn("Preload handler already exists!")
+    end
+
+    table.insert(preload_handlers, handler)
+end
+
+function ClientLoader:Cleanup()
+    self:SetLoadDefered(false)
+
+    table.clear(deferants)
 end
 
 ---------------------------------
@@ -138,12 +193,8 @@ function ClientLoader:SetLoadArgs(...)
     load_fn_args = {...}
 end
 
-function ClientLoader:SetShouldDeffer(deffer)
-    should_deffer = deffer
-end
-
-function ClientLoader:SetLoadDeffered(deffered)
-    load_deffered = deffered
+function ClientLoader:SetLoadDefered(defered)
+    load_defered = defered
 end
 
 ---------------------------------
@@ -154,13 +205,25 @@ function ClientLoader:IsLoaded()
     return loaded == true
 end
 
-function ClientLoader:ShouldDefferLoad()
-    return should_deffer == true
+function ClientLoader:ShouldDeferLoad()
+    return table.size(deferants) > 0
 end
 
-function ClientLoader:IsLoadDeffered()
-    return load_deffered == true
+function ClientLoader:IsLoadDefered()
+    return load_defered == true and IsLoaderOverriden()
 end
+
+---------------------------------
+-- [[ Post-Inits ]]
+---------------------------------
+
+PEARL.AddFrontEndPostInit(function(fe)
+    PEARL.debug("Running preloaders...")
+
+    for _, handler in ipairs(preload_handlers) do
+        PEARL.SafeRun(handler)
+    end
+end)
 
 ---------------------------------
 -- [[ Return ]]

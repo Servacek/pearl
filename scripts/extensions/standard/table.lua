@@ -85,6 +85,16 @@ function table:iclear()
     for i = #self, 1, -1 do
         self[i] = nil
     end
+
+    return self
+end
+
+function table:clear()
+    for k, _ in pairs(self) do
+        self[k] = nil
+    end
+
+    return self
 end
 
 function table.rcontains(t, value)

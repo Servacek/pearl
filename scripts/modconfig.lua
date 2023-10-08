@@ -247,7 +247,7 @@ function ModConfig:LoadConfigOption(option)
 end
 
 function ModConfig:LoadCommmonConfig()
-    local success, config_str = PEARL.GetPersistentString(PEARL.CONSTS.COMMON_CONFIG_PATH, true)
+    local success, config_str = PEARL.ClusterPersistance:GetFileContent(PEARL.CONSTS.COMMON_CONFIG_PATH, true)
     if not success or type(config_str) ~= "string" then
         return error("Failed to load common config!")
     end
@@ -265,9 +265,11 @@ function ModConfig:LoadCommmonConfig()
     return config
 end
 
-function ModConfig:ApplyCommonConfig(common, loaded, override)
-    loaded = loaded or PEARL.CONFIG
-    override = override or PEARL.CONFIG_OVERRIDES
+function ModConfig:ApplyCommonConfig(common, loaded, override, _recr)
+    --- Should be always a table since we are ensuring that.
+    loaded = _recr ~= true and (loaded or PEARL.CONFIG) or loaded
+    --- @type table?
+    override = _recr ~= true and (override or PEARL.CONFIG_OVERRIDES) or override
 
     for name, value in pairs(common) do
         -- Only verify config options on the first level.
@@ -281,10 +283,10 @@ function ModConfig:ApplyCommonConfig(common, loaded, override)
                 loaded[name] = {}
             end
 
-            self:ApplyCommonConfig(common[name], loaded[name], override[name])
+            self:ApplyCommonConfig(common[name], loaded[name], override and override[name], true)
         else
             -- If no override exists for this configuration
-            if override[name] == nil then
+            if not override or override[name] == nil then
                 loaded[name] = common[name]
             end
         end

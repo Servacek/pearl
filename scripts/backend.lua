@@ -223,7 +223,7 @@ end
 PEARL.info("Loading server token...")
 
 do
-    local success, token = PEARL.GetPersistentString(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
+    local success, token = PEARL.ClusterPersistance:GetFileContent(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
     if not success or type(token) ~= "string" then
         return error("Could not load the server token!")
     end
@@ -257,8 +257,8 @@ end
 if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     PEARL.info("Loading mod blocker configurations...")
 
-    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.GetAllPersistentStringLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
-    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.GetAllPersistentStringLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistance:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistance:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
 
     -- When the tables are empty, set them to nil to save some bytes when sending the config.
     -- Since these data are being zipped.
@@ -282,12 +282,12 @@ end
 
 if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     local fp = "../../loadingtips.lua"
-    if not PEARL.PersistentStringExists(fp) then
-        PEARL.SetPersistentString(fp, "return { }")
+    if not PEARL.ClusterPersistance:FileExists(fp) then
+        PEARL.ClusterPersistance:SetFileContent(fp, "return { }")
     end
 
     -- Run the file in our environment so it has access to all the globals it could possibly need.
-    local success, data = PEARL.LoadPersistentLuaString(fp, false, PEARL.ENV)
+    local success, data = PEARL.ClusterPersistance:LoadLuaFile(fp, false, PEARL.ENV)
     if not success or not data then
         -- Data should be in this case the traceback.
         return PEARL.error("Failed to load the custom loading tips!", data)
@@ -353,24 +353,9 @@ PEARL.EMOTES = PEARL.loadfile("constants/emotes")
 PEARL.ICONS = PEARL.loadfile("constants/icons")
 
 --------------------------------
--- [[ Wall Scheduler ]]
---------------------------------
-
-PEARL.info("Setting up the wall-scheduler...")
-
---- @type WallScheduler
-PEARL.WallScheduler = PEARL.loadfile("libraries/wallscheduler")
-PEARL.WallScheduler:StartWallUpdate()
-
---------------------------------
 -- [[ Network ]]
 --------------------------------
 PEARL.info("Loading network components...")
-
---- @type HTTPClient
-PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
-PEARL.HTTPClient:Setup()
-PEARL.HTTPClient:SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
 
 --- @type RestAPI
 PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")

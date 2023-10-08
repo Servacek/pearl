@@ -465,6 +465,8 @@ local STRINGS = {
 
         DM_DESIGNATOR = "[DM]",
 
+        LOADING_VERIFICATION = "Verifying connection...",
+
         CMD_ERRORS = {
             EXECUTION = "Error while executing the command!",
             NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",

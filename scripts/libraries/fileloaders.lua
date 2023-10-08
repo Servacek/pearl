@@ -16,6 +16,12 @@
 --          access to the mod's environment. Use PEARL.ENV to access it.
 
 --------------------------------
+-- [[ Constants ]]
+--------------------------------
+
+local FILE_EXTENSION = ".lua"
+
+--------------------------------
 -- [[ Private Variables ]]
 --------------------------------
 
@@ -33,7 +39,12 @@ local _cache = {}
 --- @param errcb function? The error handler this file.
 --- @return any results Any results the target file returns after loading.
 local function loadfile(rfp, env, reload, errcb)
-    local afp = PEARL.SRCDIR..tostring(rfp)..".lua"
+    local afp = PEARL.SRCDIR..tostring(rfp)
+
+    -- Add the extensions if missing since it's required by kleiloadlua.
+    if afp:utf8sub(-FILE_EXTENSION:len()) ~= FILE_EXTENSION then
+        afp = afp..FILE_EXTENSION
+    end
 
     if type(_cache[afp]) == "table" and not reload then
         return unpack(_cache[afp])
@@ -70,8 +81,27 @@ local function loadfile(rfp, env, reload, errcb)
     return unpack(_cache[afp])
 end
 
+--- Loads the mods libary from the libraries folder throwing an error if the returned
+--- type is invalid or none.
+--- @param name string Name of the library (file name).
+--- @param ... any Additional paramaters to "loadfile" function.
+--- @return table library The library table returned by the provided file.
+local function loadlib(name, ...)
+    name = tostring(name)
+
+    local lib = loadfile(PEARL.LIBRARY_DIR_NAME.."/"..name, ...)
+    if type(lib) ~= "table" then
+        error("Invalid library return type!".." Library: "..name.." Type: "..type(lib))
+    end
+
+    return lib
+end
+
 --------------------------------
--- [[ Functions ]]
+-- [[ Return ]]
 --------------------------------
 
-return loadfile
+return {
+    loadfile = loadfile,
+    loadlib  = loadlib,
+}

@@ -124,7 +124,7 @@ return function(fname, create_if_needed, subtitles)
         end
     end
 
-    PEARL.GetPersistentStringByLines(abs_path, function(line)
+    PEARL.ClusterPersistance:ForEachLineIn(abs_path, function(line)
         ParseLine(result, line, subtitles)
     end)
 

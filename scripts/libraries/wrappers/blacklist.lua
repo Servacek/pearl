@@ -89,7 +89,7 @@ function BlackList:Load()
     local blocklist = {}
 
     -- Even though this seems like an async function, it blocks.
-    PEARL.GetPersistentStringByLines(BLACKLIST_PATH, function(line)
+    PEARL.ClusterPersistance:ForEachLineIn(BLACKLIST_PATH, function(line)
         local netid = line:match(STEAM_ID_PATTERN)
         local userid = line:match(KLEI_ID_PATTERN)
 
