@@ -30,60 +30,17 @@ local CUSTOM_LOADING_IMAGES = {
 local TEX_PATTERN = "%s.tex"
 local XML_PATTERN = "images/bg_loading_%s.xml"
 
--- local LOADING_TIP_PARTS = {
---     "loading_tip_root",
-
---     --- These are not part of the root unfortunately...
---     --- They seem to be used only for the background
---     "loading_tip_text",
---     "loading_tip_icon",
--- }
-
----------------------------
--- [[ Local Variables ]]
----------------------------
-
-local original_loading_string
-
 ---------------------------
 -- [[ Public Methods ]]
 ---------------------------
-
-function LoadingWidget:SetLoadingString(str)
-    PEARL.debug("LoadingWidget:SetLoadingString", str)
-
-    if not original_loading_string then
-        original_loading_string = STRINGS.UI.NOTIFICATION.LOADING
-    end
-
-    STRINGS.UI.NOTIFICATION.LOADING = str
-    self:KeepAlive(true)
-end
-
-function LoadingWidget:ResetLoadingString()
-    PEARL.debug("LoadingWidget:ResetLoadingString")
-
-    STRINGS.UI.NOTIFICATION.LOADING = original_loading_string or STRINGS.UI.NOTIFICATION.LOADING
-    self:KeepAlive(true)
-end
 
 function LoadingWidget:Reload()
     self.is_enabled = false
     self:SetEnabled(true)
 end
 
-function LoadingWidget:GetLoadingTip()
-    return self.loading_tip_text and self.loading_tip_text:GetString()
-end
-
-function LoadingWidget:GetPreviousLoadingTip()
-    return self.loading_tip_text and self.loading_tip_text.__prev
-end
-
 function LoadingWidget:SetLoadingTip(text, type)
     if self.loading_tip_text then
-        self.loading_tip_text.__prev = self:GetLoadingTip()
-
         self.loading_tip_text:SetString(text)
     end
 
@@ -92,18 +49,6 @@ function LoadingWidget:SetLoadingTip(text, type)
         self.loading_tip_icon:SetTexture(assets.atlas, assets.icon)
     end
 end
-
--- function LoadingWidget:ForEachLoadingTipPart(fn)
---     for _, part in pairs(LOADING_TIP_PARTS) do
---         if type(self[part]) == "table" then
-
---             --- If one part throws an error break to prevent spam.
---             if not PEARL.SafeRun(fn, self[part]) then
---                 break
---             end
---         end
---     end
--- end
 
 ---------------------------
 -- [[ Local Functions ]]
@@ -179,16 +124,11 @@ PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
 
     self:SetEnabled(true)
 
-    -- --- Increase the size of the loading widget so we can fit longer texts on it.
-    -- if self.loading_widget then
-    --     local _, h = self.loading_widget:GetRegionSize()
-    --     self.loading_widget:SetRegionSize(500, h or 44)
-    -- end
-
     -- We should send CFD right from the start so this should be always true in this case.
     if PEARL.ClientNetwork:HasSentCFD() and PEARL.ClientNetwork:IsWaitingForResponse() then
         self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_VERIFICATION, "CONTROLS")
 
+        -- Hide the loading label since it's not actually true.
         if self and self.loading_widget then
             self.loading_widget:Hide()
         end
@@ -201,13 +141,8 @@ end)
 
 PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function(from_server)
     if global_loading_widget and from_server then
-        -- local prev = global_loading_widget:GetPreviousLoadingTip()
-        -- if prev then
-        --     global_loading_widget:SetLoadingTip(prev)
-        -- else
-            -- This will refresh the loading tips as well.
-            global_loading_widget:Reload()
-        --end
+        -- This will refresh the loading tips
+        global_loading_widget:Reload()
 
         if global_loading_widget.loading_widget then
             global_loading_widget.loading_widget:Show()
