@@ -58,49 +58,40 @@ local MAX_REQUEST_RETRIES = 3
 
 --- @class HTTPClient - singleton
 local HTTPClient = {
-    _frequency = DEFAULT_REQUEST_FREQUENCY,
+    -- _frequency = DEFAULT_REQUEST_FREQUENCY,
 
-    _force_threshold = MAX_FORCE_THRESHOLD,
+    -- _force_threshold = MAX_FORCE_THRESHOLD,
 
-    -- Lazy load the queue
-    --- @type Queue?
-    _queue = nil,
-    --- @type Task?
-    _cooldown_task = nil,
+    -- -- Lazy load the queue
+    -- --- @type Queue?
+    -- _queue = nil,
+    -- --- @type Task?
+    -- _cooldown_task = nil,
 
-    _last_host = nil,
+    -- _last_host = nil,
 
     -- Used for debugging
     --self._rcount = 0
 
     -- internal state
-    _shutting_down = false,
-    _waiting = false,
+    -- _shutting_down = false,
+    -- _waiting = false,
 
     --- This should be public
     --- @type HTTPClientProxy
     proxy = HTTPClientProxy,
 }
 
-
---------------------------------
--- [[ Event Handlers ]]
---------------------------------
-
-local function OnQuit()
-    HTTPClient:OnShutdown()
-end
-
 --------------------------------
 -- [[ Internal Handlers ]]
 --------------------------------
 
-local function OnFinishCooldown()
-    --PEARL.debug("Cooldown task finished!")
+-- local function OnFinishCooldown()
+--     --PEARL.debug("Cooldown task finished!")
 
-    HTTPClient:StopCooldown()
-    HTTPClient:ProcessNextRequest()
-end
+--     HTTPClient:StopCooldown()
+--     HTTPClient:ProcessNextRequest()
+-- end
 
 --------------------------------
 -- [[ Static Variables ]]
@@ -116,13 +107,13 @@ HTTPClient.METHODS = {
 -- [[ Setters ]]
 --------------------------------
 
-function HTTPClient:SetIsWaiting(waiting)
-    --PEARL.debug("HTTPClient:SetIsWaiting", waiting)
+-- function HTTPClient:SetIsWaiting(waiting)
+--     --PEARL.debug("HTTPClient:SetIsWaiting", waiting)
 
-    self._waiting = waiting
+--     self._waiting = waiting
 
-    return self
-end
+--     return self
+-- end
 
 function HTTPClient:SetRequestFrequency(frequency)
     if type(frequency) ~= "number" then
@@ -134,29 +125,29 @@ function HTTPClient:SetRequestFrequency(frequency)
     return self
 end
 
-function HTTPClient:ResetForceTreshold()
-    self._force_threshold = MAX_FORCE_THRESHOLD
-end
+-- function HTTPClient:ResetForceTreshold()
+--     self._force_threshold = MAX_FORCE_THRESHOLD
+-- end
 
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
 
-function HTTPClient:IsQueueDisabled()
-    return self._frequency <= 0
-end
+-- function HTTPClient:IsQueueDisabled()
+--     return self._frequency <= 0
+-- end
 
-function HTTPClient:IsShuttingDown()
-    return self._shutting_down
-end
+-- function HTTPClient:IsShuttingDown()
+--     return self._shutting_down
+-- end
 
-function HTTPClient:IsWaiting()
-    return self._waiting
-end
+-- function HTTPClient:IsWaiting()
+--     return self._waiting
+-- end
 
-function HTTPClient:IsOnCooldown()
-    return self._cooldown_task and self._cooldown_task.running == true
-end
+-- function HTTPClient:IsOnCooldown()
+--     return self._cooldown_task and self._cooldown_task.running == true
+-- end
 
 function HTTPClient:IsProxyEnabled()
     return self.proxy and self.proxy:IsEnabled()
@@ -171,32 +162,36 @@ end
 -- [[ Private Methods ]]
 --------------------------------
 
-function HTTPClient:_DoSendRequest(request, force)
+function HTTPClient:SendRequest(request)
     if type(request) ~= "table" then
         return PEARL.warn("Attempted to send an invalid request!")
     end
 
-    self._last_host = request.host
+    --self._last_host = request.host
 
     -- Run in a protected call so if an error occures and the request is not actually
     -- being sent, we do not block the requester.
     local success, err = pcall(TheSim.QueryServer, TheSim, request.url, function(...)
-        self:SetIsWaiting(false)
+        -- self:SetIsWaiting(false)
 
-        -- Wait a few seconds before executing next request
-        self:StartCooldown(force)
-        self:ResetForceTreshold()
+        -- -- Wait a few seconds before executing next request
+        -- self:StartCooldown(force)
+        -- self:ResetForceTreshold()
 
         request:OnCompleted(...)
     end, request.method, request:GetData(), request.timeout)
 
-    if success then
-        self:SetIsWaiting(true)
-        --self._rcount = self._rcount + 1
-    else -- If we have failed to execute the task
+    if not success then
         PEARL.error("Failed to execute request!", err)
-        OnFinishCooldown()
     end
+
+    -- if success then
+    --     self:SetIsWaiting(true)
+    --     --self._rcount = self._rcount + 1
+    -- else -- If we have failed to execute the task
+    --     PEARL.error("Failed to execute request!", err)
+    --     OnFinishCooldown()
+    -- end
 
     return success, err
 end
@@ -214,92 +209,83 @@ function HTTPClient:Setup()
     end
 
     -- [[ Events ]]
-    PEARL.EventProcessor:AddSafeEventHandler("quit", OnQuit)
+    --PEARL.EventProcessor:AddSafeEventHandler("quit", OnQuit)
 end
 
-function HTTPClient:StartCooldown(force)
-    if self:IsShuttingDown() then
-        return
-    end
+-- function HTTPClient:StartCooldown(force)
+--     if self:IsShuttingDown() then
+--         return
+--     end
 
-    -- Do not allow overriding except when the last request was force executed.
-    -- In this case we want to restart the cooldown task.
-    if not force and self:IsOnCooldown() then
-        return PEARL.warn("Attempted to override the cooldown task!")
-    end
+--     -- Do not allow overriding except when the last request was force executed.
+--     -- In this case we want to restart the cooldown task.
+--     if not force and self:IsOnCooldown() then
+--         return PEARL.warn("Attempted to override the cooldown task!")
+--     end
 
-    if self._cooldown_task then
-        --PEARL.debug("Restarting the cooldown task...")
-        self._cooldown_task:restart()
-    else
-        --PEARL.debug("Starting the cooldown task...", "Frequency:", self._frequency)
-        self._cooldown_task = PEARL.WallScheduler:ExecutePeriodic(
-            self._frequency, OnFinishCooldown, nil, nil, nil, self
-        )
-    end
-end
+--     if self._cooldown_task then
+--         --PEARL.debug("Restarting the cooldown task...")
+--         self._cooldown_task:restart()
+--     else
+--         --PEARL.debug("Starting the cooldown task...", "Frequency:", self._frequency)
+--         self._cooldown_task = PEARL.WallScheduler:ExecutePeriodic(
+--             self._frequency, OnFinishCooldown, nil, nil, nil, self
+--         )
+--     end
+-- end
 
-function HTTPClient:StopCooldown()
-    --PEARL.debug("Stopping the cooldown task...")
+-- function HTTPClient:StopCooldown()
+--     --PEARL.debug("Stopping the cooldown task...")
 
-    return self._cooldown_task and self._cooldown_task:stop()
-end
+--     return self._cooldown_task and self._cooldown_task:stop()
+-- end
 
 -- Returns the next processed request, if any.
-function HTTPClient:ProcessNextRequest(force)
-    local next_request = self._queue and self._queue:take()
-    if next_request then
-        self:_DoSendRequest(next_request, force)
-        return next_request
-    end
+-- function HTTPClient:ProcessNextRequest(force)
+--     local next_request = self._queue and self._queue:take()
+--     if next_request then
+--         self:_DoSendRequest(next_request, force)
+--         return next_request
+--     end
 
-    return next_request
-end
+--     return next_request
+-- end
 
-function HTTPClient:HandleRequest(request)
-    --PEARL.debug("HTTPClient:HandleRequest")
+-- function HTTPClient:HandleRequest(request)
+--     --PEARL.debug("HTTPClient:HandleRequest")
 
-    -- If we are not waiting for anything or the queue is disabled
-    -- then send the request immediately
-    if not (self:IsWaiting() or self:IsOnCooldown()) or self:IsQueueDisabled() or self:IsShuttingDown() then
-        return self:_DoSendRequest(request)
-    end
+--     -- If we are not waiting for anything or the queue is disabled
+--     -- then send the request immediately
+--     if not (self:IsWaiting() or self:IsOnCooldown()) or self:IsQueueDisabled() or self:IsShuttingDown() then
+--         return self:SendRequest(request)
+--     end
 
-    -- Lazy load the queue if needed
-    if not self._queue then
-        self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
-    end
+--     -- Lazy load the queue if needed
+--     if not self._queue then
+--         self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
+--     end
 
-    --PEARL.debug("Adding request to the queue...")
-    if not self._queue:push(request) then
-        return PEARL.error("Failed to push the request to the queue! Queue probably full.", request)
-    end
-end
+--     --PEARL.debug("Adding request to the queue...")
+--     if not self._queue:push(request) then
+--         return PEARL.error("Failed to push the request to the queue! Queue probably full.", request)
+--     end
+-- end
 
-function HTTPClient:ForceSend(request)
-    if self._force_threshold <= 0 then
-        PEARL.warn("Max force count reached!")
+-- function HTTPClient:ForceSend(request)
 
-        return false
-    end
+--     -- If we are forcefully sending multiple requests to the same host.
+--     -- This is here in order to prevent hitting the rate limits when something
+--     -- gets really wrong and some request loop is created.
+--     -- if request.host == self._last_host then
+--     --     self._force_threshold = self._force_threshold - 1
+--     -- end
 
-    if self:IsOnCooldown() then
-        self:StopCooldown()
-    end
+--     -- PEARL.debug(string.format("Forcing a request! (%d/%d)",
+--     --     self._force_threshold, MAX_FORCE_THRESHOLD
+--     -- ))
 
-    -- If we are forcefully sending multiple requests to the same host.
-    -- This is here in order to prevent hitting the rate limits when something
-    -- gets really wrong and some request loop is created.
-    if request.host == self._last_host then
-        self._force_threshold = self._force_threshold - 1
-    end
-
-    PEARL.debug(string.format("Forcing a request! (%d/%d)",
-        self._force_threshold, MAX_FORCE_THRESHOLD
-    ))
-
-    return self:_DoSendRequest(request, true)
-end
+--     return self:SendRequest(request, true)
+-- end
 
 function HTTPClient:RetryRequestAfter(request, seconds)
     if request.retries >= MAX_REQUEST_RETRIES then
@@ -359,38 +345,6 @@ function HTTPClient:POST(url, onsuccess, data, timeout, ...)
         :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
         :SetData(data)
-end
-
---------------------------------
--- [[ Callbacks ]]
---------------------------------
-
-function HTTPClient:OnShutdown()
-    PEARL.info("Shutting down...")
-    self._shutting_down = true
-
-    if self._cooldown_task then
-        self._cooldown_task:cancel()
-        self._cooldown_task = nil
-    end
-
-    if not self._queue or self._queue:empty() then
-        -- We are done here.
-        return
-    end
-
-    PEARL.info("Processing queued requests...")
-
-    for request in self._queue:iter() do
-        if request and not request:CanSkipOnDeadline() then
-            if not self:ForceSend(request) then
-                PEARL.info("Force-sent requests limit reached! Skipping the remaining requests...")
-                break
-            end
-        end
-    end
-
-    self._queue:clear()
 end
 
 --------------------------------

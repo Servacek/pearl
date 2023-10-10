@@ -238,7 +238,7 @@ end
 
 function Request:SetOnComplete(oncompletefn, ...)
     self.oncompletefn = oncompletefn
-    self.oncompletefn_args = {...}
+    self.oncompletefn_args = toarrayornil(...)
 
     return self
 end
@@ -293,22 +293,15 @@ end
 -- [[ Finalizers ]]
 -------------------------------------
 
---- @param force boolean? Whether to skip the queue or not.
 --- @return Request self, boolean success
-function Request:Send(force)
+function Request:Send()
     if self.sent then
         PEARL.error("Attempted to send an already sent request!")
         return self, false
     end
 
     --- @type boolean?
-    local success = false
-    if force then
-        success = PEARL.HTTPClient:ForceSend(self)
-    else
-        success = PEARL.HTTPClient:HandleRequest(self)
-    end
-
+    local success = PEARL.HTTPClient:SendRequest(self)
     if success then
         self.sent = true
     end
