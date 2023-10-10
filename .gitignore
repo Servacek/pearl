@@ -65,3 +65,5 @@ data/*
 
 .VSCodeCounter
 .VSCodeCounter/*
+
+scripts/languages/cache/*

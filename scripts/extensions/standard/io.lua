@@ -43,6 +43,15 @@ function io.noext(fp)
     return fp:match("(.+)%..+") or fp
 end
 
+--- Provide the extension with a prefix dot for more precise matching.
+function io.extensure(fp, ext)
+    if fp:utf8sub(-ext:len()) ~= ext then
+        return fp..ext
+    end
+
+    return fp
+end
+
 function io.strippedlines(...)
     local slines = {}
     for line in io.lines(...) do

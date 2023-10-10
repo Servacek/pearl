@@ -72,19 +72,19 @@ function AllowList:Contains(userid)
 end
 
 function AllowList:Load()
-    PEARL.GetPersistentStringByLines(ALLOWLIST_PATH, function(line)
+    PEARL.ClusterPersistance:ForEachLineIn(ALLOWLIST_PATH, function(line)
         self:Add(line:strip())
     end, true)
 end
 
 -- We are being saved manually for now.
 function AllowList:Save()
-    if not PEARL.EnsurePersistentString(ALLOWLIST_PATH) then
+    if not PEARL.ClusterPersistance:EnsureFile(ALLOWLIST_PATH) then
         PEARL.error("Couldn't create the allowlist file!")
         return false
     end
 
-    return PEARL.SetPersistentString(ALLOWLIST_PATH, self:ToString())
+    return PEARL.ClusterPersistance:SetFileContent(ALLOWLIST_PATH, self:ToString())
 end
 
 function AllowList:ToString()

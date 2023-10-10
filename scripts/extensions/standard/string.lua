@@ -93,7 +93,7 @@ end
 --- @param suffix string The suffix we are looking for
 --- @return boolean result Whether the suffix was found
 function string:endswith(suffix)
-    return suffix and suffix:utf8sub(-suffix:len()) == suffix
+    return suffix and self:utf8sub(-suffix:len()) == suffix
 end
 
 -- Replaces all known dst emoticons in a string with discord emojis

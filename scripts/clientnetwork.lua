@@ -19,6 +19,11 @@
 -- Give it a lot of time since we have the Steam profile checks now...
 local TIMEOUT = 60 -- seconds
 
+local DEFERANT = {
+    VERIFICATION    = "verification",
+    DISCONNECT      = "disconnect",
+}
+
 ----------------------------------
 -- Netvars
 ----------------------------------
@@ -52,10 +57,7 @@ local timeout_task = nil
 ----------------------------------
 
 --- @class ClientNetwork
-local ClientNetwork = {
-    --- @type ClientLoader
-    loader = PEARL.loadfile("clientloader")
-}
+local ClientNetwork = {}
 
 ----------------------------------
 -- Public
@@ -79,7 +81,8 @@ function ClientNetwork:Disconnect(reason, from_server, immediate, reason_title)
     end
 
     self:CancelTimeout()
-    self.loader:DefferLoad()
+    -- This one should be actually permanent
+    PEARL.ClientLoader:AddDeferant(DEFERANT.DISCONNECT)
 
     if type(reason_title) == "string" and type(reason) == "string" then
         local reason_body = reason
@@ -119,7 +122,7 @@ function ClientNetwork:SendCFDToServer()
     PEARL.SendRawRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(cfd))
 
     self:SetCFDSent(true)
-    self.loader:DefferLoad()
+    PEARL.ClientLoader:AddDeferant(DEFERANT.VERIFICATION)
     self:StartTimeout()
 end
 
@@ -194,6 +197,14 @@ function ClientNetwork:IsConnectionAllowed()
     return connection_allowed
 end
 
+function ClientNetwork:IsWaitingForResponse()
+    return timeout_task ~= nil
+end
+
+function ClientNetwork:ShouldSendCFDToServer()
+    return not self:HasSentCFD() and PEARL.CONFIG.SERVER_REQUIRE_CFD == true
+end
+
 function ClientNetwork:GetHostPerformance()
     -- For dedicated servers the first index is reserved for the "host" machine.
     return TheNet:GetClientTable()[1].performance
@@ -256,8 +267,11 @@ function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
     if allowed == true then
         self:SetIsConnectionAllowed(allowed)
 
-        -- If the connection is allowed, then load the client I guess.
-        return self.loader:Load()
+        PEARL.EventProcessor:HandleEvent("connection_allowed", from_server)
+
+        -- If the connection is allowed, remove the deferant
+        -- potentially loading the client as well if we are the last one.
+        return PEARL.ClientLoader:RemoveDeferant(DEFERANT.VERIFICATION)
     end
 
     self:Disconnect(reason, from_server, ...)
@@ -273,10 +287,9 @@ end
 
 -- The widgets should be loaded at this point.
 -- Call the defered OnNetworkDisconnect here!
--- Also all RPCS are loaded as well, so send the CFD too!
 PEARL.AddFrontEndPostInit(function(fe)
     -- All modules working with cfd should be loaded.
-    if PEARL.CONFIG.SERVER_REQUIRE_CFD and not ClientNetwork:HasSentCFD() then
+    if ClientNetwork:ShouldSendCFDToServer() then
         ClientNetwork:SendCFDToServer()
     end
 

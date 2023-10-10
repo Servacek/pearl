@@ -31,6 +31,26 @@ local TEX_PATTERN = "%s.tex"
 local XML_PATTERN = "images/bg_loading_%s.xml"
 
 ---------------------------
+-- [[ Public Methods ]]
+---------------------------
+
+function LoadingWidget:Reload()
+    self.is_enabled = false
+    self:SetEnabled(true)
+end
+
+function LoadingWidget:SetLoadingTip(text, type)
+    if self.loading_tip_text then
+        self.loading_tip_text:SetString(text)
+    end
+
+    if self.loading_tip_icon then
+        local assets = LOADING_SCREEN_TIP_ICONS[string.upper(type)]
+        self.loading_tip_icon:SetTexture(assets.atlas, assets.icon)
+    end
+end
+
+---------------------------
 -- [[ Local Functions ]]
 ---------------------------
 
@@ -77,23 +97,6 @@ local function SetupWrappers()
         end
     end, LoadingWidget)
 
-    PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
-        -- Make sure we are visible right from the start.
-
-        -- Just not for novices, because of the welcome screen and additional checks.
-        if PEARL.ClientNetwork:IsNovice() then
-            return
-        end
-
-        if TheFrontEnd then
-            TheFrontEnd:SetFadeLevel(1)
-        end
-
-        self:SetEnabled(true)
-
-        ShowCustomImage(self)
-    end)
-
     PEARL.AddUserDataFunctionPostCall("UnregisterAllPrefabs", function()
         PEARL.ENV.ReloadPreloadAssets()
 
@@ -104,6 +107,48 @@ local function SetupWrappers()
         end
     end, TheSim)
 end
+
+--- We have some additional functionality here aside from the custom images
+--- so this should be loaded always.
+PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
+    -- Make sure we are visible right from the start.
+
+    -- Just not for novices, because of the welcome screen and additional checks.
+    if PEARL.ClientNetwork:IsNovice() then
+        return
+    end
+
+    if TheFrontEnd then
+        TheFrontEnd:SetFadeLevel(1)
+    end
+
+    self:SetEnabled(true)
+
+    -- We should send CFD right from the start so this should be always true in this case.
+    if PEARL.ClientNetwork:HasSentCFD() and PEARL.ClientNetwork:IsWaitingForResponse() then
+        self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_VERIFICATION, "CONTROLS")
+
+        -- Hide the loading label since it's not actually true.
+        if self and self.loading_widget then
+            self.loading_widget:Hide()
+        end
+    end
+
+    if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
+        ShowCustomImage(self)
+    end
+end)
+
+PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function(from_server)
+    if global_loading_widget and from_server then
+        -- This will refresh the loading tips
+        global_loading_widget:Reload()
+
+        if global_loading_widget.loading_widget then
+            global_loading_widget.loading_widget:Show()
+        end
+    end
+end)
 
 if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
     LoadCustomImages()

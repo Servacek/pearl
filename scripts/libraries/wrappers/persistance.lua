@@ -10,10 +10,34 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--- @category Backend/Frontend
 
--- Registered as global for now.
+--[[
+    Class for managing save files inside a server's cluster and it's shard folders.
+    It can be also used for modifying files inside the client's cluster probably.
 
-function PEARL.PersistentStringExists(fp)
+    Acts as a wrapper for the default async-like TheSim file handlers
+    making them synchronous.
+--]]
+
+--------------------------------
+-- [[ Localization ]]
+--------------------------------
+
+local TheSim = TheSim
+
+--------------------------------
+-- [[ Class Declaration ]]
+--------------------------------
+
+--- @class ClusterPersistance
+local ClusterPersistance = {}
+
+--------------------------------
+-- [[ Getters ]]
+--------------------------------
+
+function ClusterPersistance:FileExists(fp)
     local file_exists = false
     TheSim:CheckPersistentStringExists(fp, function(exists)
         file_exists = exists
@@ -22,23 +46,8 @@ function PEARL.PersistentStringExists(fp)
     return file_exists
 end
 
-function PEARL.CreatePersistentString(fp)
-    return PEARL.SetPersistentString(fp, "")
-end
-
-function PEARL.EnsurePersistentString(fp)
-    if not PEARL.PersistentStringExists(fp) then
-        if not PEARL.CreatePersistentString(fp) then
-            PEARL.error("Failed to create file", fp)
-            return false
-        end
-    end
-
-    return true
-end
-
-function PEARL.GetPersistentString(fp, ensure)
-    if ensure and not PEARL.EnsurePersistentString(fp) then
+function ClusterPersistance:GetFileContent(fp, ensure)
+    if ensure and not self:EnsureFile(fp) then
         return false
     end
 
@@ -51,13 +60,53 @@ function PEARL.GetPersistentString(fp, ensure)
     return success, result
 end
 
--- This runs synchronously actually.
-function PEARL.GetPersistentStringByLines(fp, fn, ensure)
-    if PEARL.PersistentStringExists(fp) ~= true then
+function ClusterPersistance:GetAllFileLines(fp, ensure, strip)
+    local lines = {}
+    self:ForEachLineIn(fp, function(line)
+        if strip == true then
+            local stripped = string.strip(line)
+            if #stripped > 0 then
+                lines[#lines + 1] = stripped
+            end
+        else
+            lines[#lines + 1] = line
+        end
+    end, ensure)
+
+    return lines
+end
+
+--------------------------------
+-- [[ Setters ]]
+--------------------------------
+
+--- Always does implicit ensuring of the file similiar to the "w" read mode in "io".
+function ClusterPersistance:SetFileContent(fp, str, encode)
+    encode = encode or false
+
+    local s = false
+    TheSim:SetPersistentString(fp, str, encode, function(success)
+        s = success
+    end)
+
+    return s
+end
+
+--- Always does implicit ensuring of the file similiar to the "w" read mode in "io".
+function ClusterPersistance:SetFileLines(fp, lines, encode)
+    return self:SetFileContent(fp, table.concat(lines, "\n"), encode)
+end
+
+--------------------------------
+-- [[ Public Methods ]]
+--------------------------------
+
+function ClusterPersistance:ForEachLineIn(fp, fn, ensure)
+    if self:FileExists(fp) ~= true then
         if ensure == true then
             PEARL.info("Creating file", fp)
 
-            return PEARL.CreatePersistentString(fp)
+            return self:CreateFile(fp)
         end
 
         return PEARL.error("File not found!")
@@ -77,45 +126,28 @@ function PEARL.GetPersistentStringByLines(fp, fn, ensure)
     end)
 end
 
-function PEARL.GetAllPersistentStringLines(fp, ensure, strip)
-    local lines = {}
-    PEARL.GetPersistentStringByLines(fp, function(line)
-        if strip == true then
-            local stripped = string.strip(line)
-            if #stripped > 0 then
-                lines[#lines + 1] = stripped
-            end
-        else
-            lines[#lines + 1] = line
+function ClusterPersistance:CreateFile(fp)
+    return self:SetFileContent(fp, "")
+end
+
+-- Ensures the file with the provided path exists.
+function ClusterPersistance:EnsureFile(fp)
+    if not self:FileExists(fp) then
+        if not self:CreateFile(fp) then
+            PEARL.error("Failed to create file", fp)
+            return false
         end
-    end, ensure)
+    end
 
-    return lines
+    return true
 end
 
--- This will create the file if needed.
-function PEARL.SetPersistentStringLines(fp, lines, encode)
-    return PEARL.SetPersistentString(fp, table.concat(lines, "\n"), encode)
-end
-
--- This will create the file if needed.
-function PEARL.SetPersistentString(fp, str, encode)
-    encode = encode or false
-
-    local s = false
-    TheSim:SetPersistentString(fp, str, encode, function(success)
-        s = success
-    end)
-
-    return s
-end
-
-function PEARL.LoadPersistentLuaString(fp, ensure, env)
-    if ensure and not PEARL.EnsurePersistentString(fp) then
+function ClusterPersistance:LoadLuaFile(fp, ensure, env)
+    if ensure and not self:EnsureFile(fp) then
         return false, PEARL.error("Failed to create the file!")
     end
 
-    local success, lua_str = PEARL.GetPersistentString(fp, ensure)
+    local success, lua_str = self:GetFileContent(fp, ensure)
     if not success or type(lua_str) ~= "string" then
         return false, PEARL.error("Failed to load the given lua file!")
     end
@@ -128,3 +160,9 @@ function PEARL.LoadPersistentLuaString(fp, ensure, env)
 
     return RunInSandboxSafe(lua_str)
 end
+
+--------------------------------
+-- [[ Return ]]
+--------------------------------
+
+return ClusterPersistance

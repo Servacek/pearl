@@ -144,6 +144,15 @@ if PEARL.AgreementManager:FileExists() then
 end
 
 ----------------------------------
+-- Client Loader
+----------------------------------
+
+PEARL.info("Loading client loader...")
+
+--- @type ClientLoader
+PEARL.ClientLoader = PEARL.loadfile("clientloader")
+
+----------------------------------
 -- Client Network
 ----------------------------------
 
@@ -236,6 +245,7 @@ ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
+ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(

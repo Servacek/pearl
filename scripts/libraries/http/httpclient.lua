@@ -201,7 +201,11 @@ end
 --------------------------------
 
 function HTTPClient:Setup()
-    if PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
+    if not TheNet:IsDedicated() or PEARL.INIT then
+        return
+    end
+
+    if self.proxy and PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
         PEARL.info("Setting up the proxy...")
 
         self.proxy:SetEnabled(true)

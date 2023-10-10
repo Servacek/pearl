@@ -87,7 +87,7 @@ end
 -- - we change the _ext of a task
 -- - we add a new task to the stack.
 local function sort_tasks()
-    -- If this is called from inside the wall update loop then deffer the sort.
+    -- If this is called from inside the wall update loop then defer the sort.
     if looping == true then
         srt_def = true
         return

@@ -187,6 +187,7 @@ configuration_options = {
 
     {
         name = "PROXY",
+        general = true,
         default = {
             ENABLED = false,
             URL = nil,
@@ -201,6 +202,8 @@ configuration_options = {
     -- The number of seconds per one request.
     {
         name = "REQUEST_FREQUENCY", -- In seconds
+        public = true,
+        general = true,
         default = 1,
         type = "number",
     },
@@ -415,6 +418,18 @@ configuration_options = {
         type = "table",
     },
 
+    {
+        name="LANGUAGE_SERVER",
+        public = true,
+        default={
+            ENABLED     = false,
+            AUTOUPDATE  = false,
+            URL         = nil,
+            FILENAME    = nil,
+            --LANGUAGE    = nil,
+        },
+        type = "table",
+    },
 
     {
         name="COMMON_MOD_CONFIG",
