@@ -74,27 +74,19 @@ PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
 -- Since these are very forcefull and destructive we have to delay their execution a bit.
 
 -- This is not being called by the game itself, but we use this to force a reboot from inside.
-local _Crash
-_Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
-    if type(_Crash) == "function" then
-        PEARL.WallScheduler:ExecuteInTime(1, _Crash, nil, self, silent, ...)
-    end
+-- local _Crash
+-- _Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
+--     print("----------------- TheSim:Crash -----------------------")
+--     if type(_Crash) == "function" then
+--         PEARL.WallScheduler:ExecuteInTime(1, _Crash, nil, self, silent, ...)
+--     end
 
-    if silent == true then
-        return OnShardShutdown()
-    end
+--     if silent == true then
+--         return OnShardShutdown()
+--     end
 
-    OnShardCrashed()
-end, TheSim)
-
-local _ForceAbort
-_ForceAbort  = PEARL.OverrideUserdataValue("ForceAbort", function(...)
-    if type(_ForceAbort) == "function" then
-        PEARL.WallScheduler:ExecuteInTime(1, _ForceAbort, nil, ...)
-    end
-
-    OnShardCrashed()
-end, TheSim)
+--     OnShardCrashed()
+-- end, TheSim)
 
 ----------------------------------
 -- Simulation Post Init

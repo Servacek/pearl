@@ -41,7 +41,7 @@ local _cache = {}
 local function loadfile(rfp, env, reload, errcb)
     local afp = PEARL.SRCDIR..tostring(rfp)
 
-    -- Add the extensions if missing since it's required by kleiloadlua.
+    -- Remove the extensions if provided since kleiloadlua seems to add it implicitly.
     if afp:utf8sub(-FILE_EXTENSION:len()) ~= FILE_EXTENSION then
         afp = afp..FILE_EXTENSION
     end

@@ -88,6 +88,7 @@ local function _OnErrorStatusCode(response, status_code, request)
 
     if status_code == RestAPI.STATUS_CODES.NOT_FOUND then
         PEARL.error("Invalid endpoint url.")
+
         return request:SetMaxRetries(0)
     end
 
@@ -95,14 +96,17 @@ local function _OnErrorStatusCode(response, status_code, request)
         local retry_seconds = RETRY_SECONDS + math.random(RETRY_SECONDS)
         PEARL.error("Gateway Unavailable.")
         PEARL.HTTPClient:RetryRequestAfter(request, retry_seconds)
+
+        return
     end
 
     if status_code > 500 then
-        return PEARL.error("Server failed to proccess the request.")
+        PEARL.error("Server failed to proccess the request.")
+        return
     end
 end
 
-local function _SendActionRequest(url, action, data, force)
+local function _SendActionRequest(url, action, data)
     if RestAPI:IsDisabled() then
         return
     end
@@ -114,7 +118,8 @@ local function _SendActionRequest(url, action, data, force)
     if not PEARL.HTTPClient.METHODS[method] then
         -- This method seems to require proxy server to be used.
         if not PEARL.HTTPClient.proxy or PEARL.HTTPClient.proxy:IsDisabled() then
-            return PEARL.error("Attempted to execute an action which requires the HTTP proxy to be enabled!")
+            PEARL.error("Attempted to execute an action which requires the HTTP proxy to be enabled!")
+            return
         end
 
         client = PEARL.HTTPClient.proxy
@@ -123,13 +128,13 @@ local function _SendActionRequest(url, action, data, force)
     local request = client:Request(
         url, WEBHOOK_ACTION_METHODS[action], nil, data, REQUEST_TIMEOUT
     )
-    :SetErrorHandler(_OnErrorStatusCode)
+    :SetOnError(_OnErrorStatusCode)
 
     if client ~= PEARL.HTTPClient.proxy then
         request:SetMaxRetries(0)
     end
 
-    return request:Send(force)
+    request:Send()
 end
 
 --------------------------------
@@ -158,23 +163,20 @@ end
 
 --- @param wurl string The URL of the target webhook.
 --- @param action WEBHOOK_ACTIONS The action to be executed for the given webhook's message.
---- @return Request? request The request send for this action.
-function RestAPI:DoWebhookAction(wurl, action, force)
+function RestAPI:DoWebhookAction(wurl, action)
     if self:IsDisabled() then
         PEARL.error("Attempted to execute a webhook action but the Rest API is disabled!")
         return
     end
 
-    return _SendActionRequest(wurl, action, nil, force)
+    _SendActionRequest(wurl, action, nil)
 end
 
 --- @param wurl string The URL of the target webhook.
 --- @param message_id string? The snowflake of the target message.
 --- @param action WEBHOOK_ACTIONS The action to be executed for the given webhook's message.
 --- @param message Message The message object representing providing the data for this action.
---- @param force boolean? Whether to skip the queue for the action request or not.
---- @return Request? request The request send for this action.
-function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message, force)
+function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message)
     if self:IsDisabled() then
         PEARL.error("Attempted to execute a webhook message action but the Rest API is disabled!")
         return
@@ -192,53 +194,47 @@ function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message, force
 
     local data = message and message:ToTable()
     local endpoint_url = message_id and wurl..ENDPOINTS.W_MESSAGE:format(message_id) or wurl
-    return _SendActionRequest(endpoint_url, action, data, force)
+    _SendActionRequest(endpoint_url, action, data)
 end
 
 --- @param wurl string The URL of the target webhook.
 --- @param message Message The message to be posted by this webhook
---- @param force boolean? Whether to skip the queue for the action request or not.
---- @return Request? request The request send for this action.
-function RestAPI:PostWebhookMessage(wurl, message, force)
+function RestAPI:PostWebhookMessage(wurl, message)
     --PEARL.debug("PostWebhookMessage", message)
 
-    return self:DoWebhookMessageAction(
-        wurl, nil, WEBHOOK_ACTIONS.POST, message, force
+    self:DoWebhookMessageAction(
+        wurl, nil, WEBHOOK_ACTIONS.POST, message
     )
 end
 
 --- @param wurl string The URL of the target webhook.
 --- @param message_id string The snowflake of the target message.
 --- @param edited Message The message object representing the edited message.
---- @param force boolean? Whether to skip the queue for the action request or not.
---- @return Request? request The request send for this action.
-function RestAPI:EditWebhookMessage(wurl, message_id, edited, force)
+function RestAPI:EditWebhookMessage(wurl, message_id, edited)
     --PEARL.debug("EditWebhookMessage", message_id)
 
-    return self:DoWebhookMessageAction(
-        wurl, message_id, WEBHOOK_ACTIONS.EDIT, edited, force
+    self:DoWebhookMessageAction(
+        wurl, message_id, WEBHOOK_ACTIONS.EDIT, edited
     )
 end
 
 --- @param wurl string The URL of the target webhook.
 --- @param message_id string The snowflake of the target message.
---- @param force boolean? Whether to skip the queue for the action request or not.
 --- @return Request? request The request send for this action.
-function RestAPI:DeleteWebhookMessage(wurl, message_id, force)
+function RestAPI:DeleteWebhookMessage(wurl, message_id)
     --PEARL.debug("DeleteWebhookMessage", message_id)
 
     return self:DoWebhookMessageAction(
-        wurl, message_id, WEBHOOK_ACTIONS.DELETE, nil, force
+        wurl, message_id, WEBHOOK_ACTIONS.DELETE, nil
     )
 end
 
 --- @param wurl string The URL of the target webhook.
---- @param force boolean? Whether to skip the queue for the action request or not.
 --- @return Request? request The request send for this action.
-function RestAPI:FetchWebhookData(wurl, force)
+function RestAPI:FetchWebhookData(wurl)
     --PEARL.debug("FetchWebhookData", message_id)
 
-    return self:DoWebhookAction(wurl, WEBHOOK_ACTIONS.GET, force)
+    return self:DoWebhookAction(wurl, WEBHOOK_ACTIONS.GET)
 end
 
 --------------------------------

@@ -34,6 +34,9 @@ local MAX_TIMEOUT_RETRY_SECONDS = 30
 local URL_HOST_PATTERN          = "%w+://([%w.]+)/?"
 local REQUEST_FAILED_HEADER     = "(%s) [%d] Request Failed! Reason: %s"
 
+--- The time until the request should be sent.
+local REQUEST_SEND_TIMEOUT      = 5
+
 -------------------------------------
 -- [[ Class Declarations ]]
 -------------------------------------
@@ -58,7 +61,7 @@ local Request = Class(function(self, url, method, proxy)
     self.sent = false
 
     --- @type boolean
-    self.skipondeadline = true
+    self.completed = false
 
     --- @type fun(response: table|string, self: Request, ...: any)
     self.onsuccessfn = nil
@@ -103,6 +106,14 @@ local Request = Class(function(self, url, method, proxy)
     if not self.host then
         PEARL.error("Couldn't fetch host from request url.", url)
     end
+
+    PEARL.WallScheduler:ExecuteInTime(REQUEST_SEND_TIMEOUT, function()
+        if self:WasSentAny() then
+            return
+        end
+
+        PEARL.error("Request was created but not sent!")
+    end)
 end)
 
 -------------------------------------
@@ -126,21 +137,61 @@ end
 -------------------------------------
 -- Note: Always return 'self' in these setters so we can chain them
 
-function Request:SetTimeout(timeout)
-    if type(timeout) ~= "number" then
-        --PEARL.error("Attempted to set an invalid request timeout!")
+--- @param field string
+--- @param value any?
+--- @param tp string?
+--- @param optional boolean?
+--- @param static boolean?
+--- @param proxy boolean?
+--- @return Request request
+function Request:_SetField(field, value, tp, optional, static, proxy)
+    if type(field) ~= "string" then
+        PEARL.error("Invalid field provided!", field)
         return self
     end
 
-    self.timeout = timeout
+    if tp ~= nil and type(value) ~= tp and (not optional or value ~= nil) then
+        PEARL.error("Attempted to set", field, "to an invalid value!", value)
+        return self
+    end
+
+    if proxy == true and not self:IsProxied() then
+        PEARL.error("Attempted to set", field, "for a non-proxy request!")
+        return self
+    end
+
+    -- If the request is sent at least once, prohibit all changes.
+    if static and self:WasSentAny() then
+        PEARL.error("Attempted to set a static field", field, "after the request was already sent!")
+        return self
+    end
+
+    if not static and self:WasCompletedAny() then
+        PEARL.error("Attempted to set a dynamic field", field, "after the request was already completed!")
+        return self
+    end
+
+    local map = proxy and self.proxydata or self
+    map[field] = value
 
     return self
+end
+
+--- @param timeout number
+--- @return Request
+function Request:SetTimeout(timeout)
+    return self:_SetField("timeout", timeout, "number", true, true)
 end
 
 --- @param code number The status code number.
 --- @param handler fun(response: table|string, request: Request, ...)?
 --- @return Request self
 function Request:SetStatusCodeHandle(code, handler)
+    if self:WasCompletedAny() then
+        PEARL.error("Attempted to set status code handler for an already completed request!")
+        return self
+    end
+
     if type(self.rcode_handlers) ~= "table" then
         self.rcode_handlers = {}
     end
@@ -154,54 +205,52 @@ function Request:SetStatusCodeHandle(code, handler)
     return self
 end
 
---- @param errfn fun(response: table|string, code: number, request: Request, ...)
+--- @param errfn? fun(response: table|string, code: number, request: Request, ...)
 --- @return Request self
-function Request:SetErrorHandler(errfn, ...)
-    self.errfn = errfn
-    self.errfn_args = toarrayornil(...)
+function Request:SetOnError(errfn, ...)
+    self:_SetField("errfn", errfn, "function", true, false)
+    self:_SetField("errfn_args", toarrayornil(...), "table", true, false)
 
     return self
 end
 
+--- @param raw boolean
+--- @return Request
 function Request:SetIsRaw(raw)
-    self.raw = raw or false
-
-    return self
+    return self:_SetField("raw", raw or false, "boolean", false, true)
 end
 
-function Request:SetMaxRetries(retries)
-    self.maxretries = retries
-
-    return self
+--- @param maxretries number
+--- @return Request
+function Request:SetMaxRetries(maxretries)
+    return self:_SetField("maxretries", maxretries, "number", false, false)
 end
 
+--- @proxy
+--- @param params table?
+--- @return Request
 function Request:SetParameters(params)
-    if not self:IsProxied() then
-        PEARL.error("Attempted to set query string parameters for a non-proxied request!")
-    else
-        self.proxydata.params = params
-    end
-
-    return self
+    return self:_SetField("params", params, "table", true, true, true)
 end
 
+--- @proxy
+--- @param headers table?
+--- @return Request
 function Request:SetHeaders(headers)
-        if not self:IsProxied() then
-        PEARL.error("Attempted to set headers fo a non-proxied request!")
-    else
-        self.proxydata.headers = headers
-    end
-
-    return self
+    return self:_SetField("headers", headers, "table", true, true, true)
 end
 
 --- @param data string|table?
+--- @return Request
 function Request:SetData(data)
+    --- @type string?
+    local datastr = type(data) == "string" and data or nil
+
     if data ~= nil and type(data) ~= "string" then
         if type(data) == "table" then
             local success
-            success, data = pcall(json.encode_compliant, data)
-            if not success or type(data) ~= "string" then
+            success, datastr = pcall(json.encode_compliant, data)
+            if not success or type(datastr) ~= "string" then
                 PEARL.error("Failed to encode the given table to JSON!")
                 return self
             end
@@ -211,69 +260,80 @@ function Request:SetData(data)
         end
     end
 
+    -- Do not allow setting this field for a proxy request.
     if self:IsProxied() then
         PEARL.error("Attempted to send encoded data using a proxy request!")
         return self
     end
 
-    self.data = data
-
-    return self
+    return self:_SetField("data", datastr, "string", false, true)
 end
 
+--- @proxy
+--- @param proxydata table?
+--- @return Request
 function Request:SetProxyData(proxydata)
-    self.proxydata = proxydata
-
-    return self
+    return self:_SetField("proxydata", proxydata, PEARL.LUATYPES.TABLE, true, true, true)
 end
 
---- @param onsuccessfn fun(response: table|string, self: Request, ...: any)
+--- @param onsuccessfn? fun(response: table|string, self: Request, ...: any)
 --- @param ... any
+--- @return Request
 function Request:SetOnSuccess(onsuccessfn, ...)
-    self.onsuccessfn = onsuccessfn
-    self.onsuccessfn_args = toarrayornil(...)
+    self:_SetField("onsuccessfn", onsuccessfn, PEARL.LUATYPES.FUNCTION, true, false)
+    self:_SetField("onsuccessfn_args", toarrayornil(...), PEARL.LUATYPES.TABLE, true, false)
 
     return self
 end
 
+--- @param oncompletefn? fun(response: table|string, self: Request, ...: any)
+--- @param ... any
+--- @return Request
 function Request:SetOnComplete(oncompletefn, ...)
-    self.oncompletefn = oncompletefn
-    self.oncompletefn_args = toarrayornil(...)
+    self:_SetField("oncompletefn", oncompletefn, PEARL.LUATYPES.FUNCTION, true, false)
+    self:_SetField("oncompletefn_args", toarrayornil(...), PEARL.LUATYPES.TABLE, true, false)
 
     return self
 end
 
-function Request:SetSkipOnDeadline(skipondeadline)
-    self.skipondeadline = skipondeadline
-
-    return self
-end
-
+--- @param method string
+--- @return Request
 function Request:SetMethod(method)
-    if type(method) ~= "string" then
-        PEARL.error("Attempted to set an invalid request method!")
-        return self
-    end
-
-    self.method = method
-
-    return self
+    return self:_SetField("method", method, PEARL.LUATYPES.STRING, false, true)
 end
 
 -------------------------------------
 -- [[ Getters ]]
 -------------------------------------
 
-function Request:CanSkipOnDeadline()
-    return self.skipondeadline
-end
-
 function Request:IsProxied()
-    return self.proxy
+    return self.proxy == true
 end
 
+function Request:WasRetried()
+    return self.retries and self.retries > 0
+end
+
+function Request:WasSentAny()
+    return self:WasRetried() or self.sent == true
+end
+
+function Request:WasSent()
+    return self.sent == true
+end
+
+function Request:WasCompletedAny()
+    return self:WasRetried() or self.completed == true
+end
+
+function Request:WasCompleted()
+    return self:WasSent() and self.completed == true
+end
+
+--- If this is true then we can guarantee that the request was
+--- sent and completed at least once.
 function Request:IsRetryable()
-    return self.maxretries > self.retries
+    return self.maxretries and self.retries and self.maxretries > self.retries
 end
 
 function Request:GetData()
@@ -295,28 +355,41 @@ end
 
 --- @return Request self, boolean success
 function Request:Send()
-    if self.sent then
+    if self:WasSent() then
         PEARL.error("Attempted to send an already sent request!")
         return self, false
     end
 
-    --- @type boolean?
-    local success = PEARL.HTTPClient:SendRequest(self)
-    if success then
-        self.sent = true
-    end
-
-    return self, success or false
+    return self, PEARL.HTTPClient:SendRequest(self) or false
 end
 
 -------------------------------------
 -- [[ Handlers ]]
 -------------------------------------
 
+--- Called when the request gets successfully sent.
+function Request:OnSend()
+    self.sent = true
+end
+
+--- Called before an re-sending attempt after the previous returned an error.
+function Request:OnRetry()
+    self.retries    = (tonumber(self.retries) or 0) + 1
+
+    self.completed  = false
+    self.sent       = false
+end
+
 --- @param datastr string?
 --- @param success boolean?
 --- @param code number?
 function Request:OnCompleted(datastr, success, code)
+    if self:WasCompleted() then
+        PEARL.error("Request already completed!", datastr)
+    end
+
+    self.completed = true
+
     code = tonumber(code or 0)
     datastr = datastr or ""
 
@@ -369,7 +442,7 @@ function Request:OnCompleted(datastr, success, code)
         end
 
         -- Log only failed requests to reduce log spam
-        PEARL.error(
+        PEARL.warn(
             REQUEST_FAILED_HEADER:format(
                 self.host or "unknown", code, reason
             ), tonumber(code or 0) > 0 and self.data
@@ -382,5 +455,9 @@ function Request:OnCompleted(datastr, success, code)
         )
     end
 end
+
+----------------------------------
+-- Return
+----------------------------------
 
 return Request

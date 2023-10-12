@@ -83,22 +83,27 @@ end
 -- [[ Public Methods ]]
 -------------------------------------
 
-function Webhook:PostMessage(message, ...)
-    return PEARL.DiscordRestAPI:PostWebhookMessage(self.url, message, ...)
+--- @param message Message The message to be posted by this webhook.
+function Webhook:PostMessage(message)
+    PEARL.DiscordRestAPI:PostWebhookMessage(self.url, message)
 end
 
-function Webhook:EditMessage(message_id, edited, ...)
-    return PEARL.DiscordRestAPI:EditWebhookMessage(self.url, message_id, edited, ...)
+--- @param message_id string The ID of webhook's message to be edited.
+--- @param edited Message The message to replace the original.
+function Webhook:EditMessage(message_id, edited)
+    PEARL.DiscordRestAPI:EditWebhookMessage(self.url, message_id, edited)
 end
 
-function Webhook:DeleteMessage(message_id, ...)
-    return PEARL.DiscordRestAPI:DeleteWebhookMessage(self.url, message_id, ...)
+--- @param message_id string The ID of webhook's message to be edited.
+function Webhook:DeleteMessage(message_id)
+    return PEARL.DiscordRestAPI:DeleteWebhookMessage(self.url, message_id)
 end
 
-function Webhook:FetchData(...)
+--- Retrive webhook information.
+function Webhook:FetchData()
     PEARL.info("Retrieving webhook data...")
 
-    local request = PEARL.DiscordRestAPI:FetchWebhookData(self.url, ...)
+    local request = PEARL.DiscordRestAPI:FetchWebhookData(self.url)
     if not request then
         PEARL.error("Failed to send the webhook data fetch request!")
         return

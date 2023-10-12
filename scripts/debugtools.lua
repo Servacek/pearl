@@ -104,7 +104,7 @@ function PEARL.TESTS.TestRequesterQueue()
     for _ = 1, 5 do
         PEARL.HTTPClient:GET(
             "https://google.com"
-        ):SetSkipOnDeadline(false):SetIsRaw(true):Send()
+        ):SetIsRaw(true):Send()
     end
 end
 

@@ -167,31 +167,19 @@ function HTTPClient:SendRequest(request)
         return PEARL.warn("Attempted to send an invalid request!")
     end
 
-    --self._last_host = request.host
-
     -- Run in a protected call so if an error occures and the request is not actually
     -- being sent, we do not block the requester.
-    local success, err = pcall(TheSim.QueryServer, TheSim, request.url, function(...)
-        -- self:SetIsWaiting(false)
+    local success, err = pcall(TheSim.QueryServer, TheSim,
+        request.url, function(...)
+            request:OnCompleted(...)
+        end, request.method, request:GetData(), request.timeout
+    )
 
-        -- -- Wait a few seconds before executing next request
-        -- self:StartCooldown(force)
-        -- self:ResetForceTreshold()
-
-        request:OnCompleted(...)
-    end, request.method, request:GetData(), request.timeout)
-
-    if not success then
+    if success then
+        request:OnSend()
+    else
         PEARL.error("Failed to execute request!", err)
     end
-
-    -- if success then
-    --     self:SetIsWaiting(true)
-    --     --self._rcount = self._rcount + 1
-    -- else -- If we have failed to execute the task
-    --     PEARL.error("Failed to execute request!", err)
-    --     OnFinishCooldown()
-    -- end
 
     return success, err
 end
@@ -291,18 +279,20 @@ end
 --     return self:SendRequest(request, true)
 -- end
 
+--- @param request Request
+--- @param seconds number
 function HTTPClient:RetryRequestAfter(request, seconds)
-    if request.retries >= MAX_REQUEST_RETRIES then
+    if not request:IsRetryable() then
         return PEARL.warn("Max retry count reached! Request failed...")
     end
 
-    request.retries = request.retries + 1
+    request:OnRetry()
     PEARL.info(("Retrying request in %d seconds... (%d/%d)"):format(
         seconds, request.retries, MAX_REQUEST_RETRIES
     ))
 
-    return PEARL.WallScheduler:ExecuteInTime(
-        seconds, self.HandleRequest, nil, self, request
+    PEARL.WallScheduler:ExecuteInTime(
+        seconds, self.SendRequest, nil, self, request
     )
 end
 

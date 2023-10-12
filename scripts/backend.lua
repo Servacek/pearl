@@ -357,13 +357,43 @@ PEARL.ICONS = PEARL.loadfile("constants/icons")
 --------------------------------
 PEARL.info("Loading network components...")
 
+PEARL.info("Loading Discord REST API wrappers...")
+
 --- @type RestAPI
-PEARL.DiscordRestAPI = PEARL.loadfile("libraries/discordapi/restapi")
+PEARL.DiscordRestAPI = PEARL.loadlib("discordapi/restapi")
 
 PEARL.info("Loading server network...")
 
 --- @type ServerNetwork
 PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
+
+--------------------------------
+-- [[ Discord Proxy ]]
+--------------------------------
+
+PEARL.info("Loading Discord Proxy wrapper...")
+
+--- @type DiscordProxy
+PEARL.DiscordProxy = PEARL.loadlib("discordapi/discordproxy")
+
+--------------------------------
+-- [[ Steam API ]]
+--------------------------------
+
+PEARL.info("Loading the Steam Web API wrapper...")
+
+--- @type SteamAPI
+--- @class SteamAPI
+PEARL.SteamAPI = PEARL.loadfile("libraries/steamapi")
+
+--------------------------------
+-- [[ Klei Accounts ]]
+--------------------------------
+
+PEARL.info("Loading Klei REST API wrapper...")
+
+--- @type KleiAccounts
+PEARL.KleiAccounts = PEARL.loadlib("kleiaccounts")
 
 --------------------------------
 -- [[ Server Listing ]]
@@ -399,16 +429,6 @@ PEARL.DiscordLeaderBoarder = PEARL.loadfile("libraries/discordapi/webhooks/leade
 if PEARL.HTTPClient:IsProxyEnabled() then
     PEARL.DiscordLeaderBoarder:SetMode(PEARL.DiscordLeaderBoarder.MODE.UPDATE)
 end
-
---------------------------------
--- [[ Steam API ]]
---------------------------------
-
-PEARL.info("Wrapping up the Steam Web API...")
-
---- @type SteamAPI
---- @class SteamAPI
-PEARL.SteamAPI = PEARL.loadfile("libraries/steamapi")
 
 --------------------------------
 -- [[ Extensions ]]
@@ -577,7 +597,8 @@ ModuleManager:AddModule("filters/customfilters.lua", PEARL.CONFIG.CUSTOM_CONNECT
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
-    ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
+    --- @DEBUG
+    --ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
 end
 
 -- Logger Modules

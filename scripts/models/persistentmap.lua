@@ -40,8 +40,13 @@ end
 
 function PersistentMap:Save()
     local saved = PEARL.PlayerDB:SaveToDatabaseFile(self.filepath, self.autocreate, self.encode)
+    if not saved then
+        return PEARL.error("Failed to save persistant table map file!")
+    end
 end
 
-
+-------------------------------------
+-- [[ Return ]]
+-------------------------------------
 
 return PersistentMap

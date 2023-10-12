@@ -205,6 +205,16 @@ GLOBAL.PEARL = setmetatable({
 PEARL = GLOBAL.PEARL
 PEARL.CONFIG = {}
 
+PEARL.LUATYPES = {
+    STRING      = "string",
+    FUNCTION    = "function",
+    NUMBER      = "number",
+    USERDATA    = "userdata",
+    TABLE       = "table",
+    BOOLEAN     = "boolean",
+    NIL         = "nil",
+}
+
 --------------------------------
 -- [[ Server Mod Config ]]
 --------------------------------

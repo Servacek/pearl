@@ -153,7 +153,7 @@ function SteamAPI:ExecuteDataQuerySequenceFor(steamid)
             :SetStatusCodeHandle(SteamAPI.STATUS_CODES.FORBIDDEN)
             :SetMaxRetries(STEAM_QUERY_RETRIES)
             :SetOnComplete(OnQueryCompleted, steamid, i)
-            :Send(true)
+            :Send()
         end
     end
 end

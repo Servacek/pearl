@@ -538,6 +538,13 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, ...)
 end
 
 --------------------------------
+-- [[ Classes ]]
+--------------------------------
+
+--- @type fun(base: Class|fun(self: Class, ...: any), _ctor: fun(self: Class, ...: any)|table<string, fun(value)>?, props: table<string, fun(value)>?)
+PEARL.Class = Class
+
+--------------------------------
 -- [[ Mod's Internal State ]]
 --------------------------------
 

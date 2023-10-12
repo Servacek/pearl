@@ -282,7 +282,7 @@ SendCachedCommandResponses = function()
     PEARL.info("Sending command response to server.")
     PEARL.HTTPClient:POST(URLS.OUTPUT, OnProxyReceviedResponse, _response_cache)
         :SetIsRaw(true)
-        :SetErrorHandler(OnProxyResponseFailed)
+        :SetOnError(OnProxyResponseFailed)
         :Send()
 
     cleartable(_response_cache)
@@ -299,7 +299,7 @@ local function StartSession(retries)
         running = true,
     })
     :SetIsRaw(true)
-    :SetErrorHandler(OnSessionStartFailed)
+    :SetOnError(OnSessionStartFailed)
     :SetMaxRetries(retries or START_SESSION_RETRIES)
     :Send()
 end
@@ -326,7 +326,7 @@ local function StopSession()
     })
     :SetIsRaw(true)
     :SetMaxRetries(0)
-    :Send(true)
+    :Send()
 end
 
 local function FetchInput()

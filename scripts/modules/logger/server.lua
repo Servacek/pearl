@@ -110,7 +110,7 @@ local function OnFirstLaunch()
 end
 
 local function OnShardLoaded(master)
-    if POPULATING then
+    if POPULATING or PEARL.IsShuttingDown() then
         return
     end
 
@@ -121,9 +121,11 @@ local function OnShardLoaded(master)
 end
 
 local function OnModBackendPostInit()
-    PEARL.DiscordLogger:LogStringHighlighted(
-        STRINGS.PEARL.LOGS.SERVER_INITIALIZED, nil, true
-    )
+    if not PEARL.IsShuttingDown() then
+        PEARL.DiscordLogger:LogStringHighlighted(
+            STRINGS.PEARL.LOGS.SERVER_INITIALIZED, nil, true
+        )
+    end
 end
 
 local function OnInvalidClientRPC(rpc_name, userid)

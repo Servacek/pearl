@@ -32,7 +32,7 @@ local UserCommands = require("usercommands")
 
 local last_cycle
 local function OnCyclesChanged(world, cycle)
-    if last_cycle == cycle then
+    if last_cycle == cycle or PEARL.IsShuttingDown() then
         return
     end
 
@@ -55,7 +55,7 @@ local function OnCyclesChanged(world, cycle)
 end
 
 local function OnPhaseChanged(world, phase)
-    if phase == "day" or not InGamePlay() then
+    if phase == "day" or not InGamePlay() or PEARL.IsShuttingDown() then
         return
     end
 

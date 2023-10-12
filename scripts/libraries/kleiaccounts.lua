@@ -58,10 +58,8 @@ function KleiAccounts:QueryGameOwner(userid, gameid)
     end
 
     return (PEARL.HTTPClient:POST(
-        ENDPOINT.A_OWNER_LOOKUP, nil,
-        input_json, QUERY_TIMEOUT
-    )
-    :Send(true))
+        ENDPOINT.A_OWNER_LOOKUP, nil, input_json, QUERY_TIMEOUT
+    ))
 end
 
 --- @return Request? request The newly created request for the query.
@@ -77,7 +75,12 @@ function KleiAccounts:QueryLinkValidation(userid, platform, platformid)
     end
 
     return (PEARL.HTTPClient:POST(
-        ENDPOINT.A_LINK_VALIDATE, nil,input_json, QUERY_TIMEOUT
-    )
-    :Send(true))
+        ENDPOINT.A_LINK_VALIDATE, nil, input_json, QUERY_TIMEOUT
+    ))
 end
+
+------------------------------------------
+-- [[ Return ]]
+------------------------------------------
+
+return KleiAccounts

@@ -16,22 +16,16 @@
     Standalone module for identifing alternative accounts of players using
     Klei's built-in API. Alt accounts with banned root will be banned as well.
 
-    Uses a cache for verified accounts.
-
-    TODOS: (v2.1)
-        - Load the token from token.txt
+    Uses the database to cache verified accounts.
 ]]
 
-local json = json
 local TheNet = TheNet
 
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
 
-local FS_ROOT_CACHE_MAX_SIZE = 100
-local FS_QUERY_TIMEOUT       = 10
-
+local QUERY_MAX_RETRIES   = 3
 local QUERY_ERRORS        = {
     -- Getting this error in production usage most likely indicates
     -- some nasty formatting issues.
@@ -47,33 +41,6 @@ local DO_NOT_RETRY_ERRORS = {
 --------------------------------
 -- [[ Private ]]
 --------------------------------
-
---- @type table<string>
-local fs_root_cache = createTable(FS_ROOT_CACHE_MAX_SIZE)
-
-local function IsUserIDCached(userid)
-    for i = 1, #fs_root_cache do
-        if fs_root_cache[i] == userid then
-            return true
-        end
-    end
-
-    return false
-end
-
---- Adds the given userid to the cache so it will be counted as valid.
---- @param userid string The target valid userid to be cached.
-local function CacheRootUserid(userid)
-    if IsUserIDCached(userid) then
-        return
-    end
-
-    if #fs_root_cache >= FS_ROOT_CACHE_MAX_SIZE then
-        table.remove(fs_root_cache, 1)
-    end
-
-    table.insert(fs_root_cache, userid)
-end
 
 --- Returns true when the rootid is banned otherwise false.
 --- @param userid string The ID of the user's borrowed account.
@@ -91,7 +58,6 @@ end
 
 local function ShouldCheckClient(userid)
     return (
-        IsUserIDCached(userid) or
         PEARL.ServerNetwork:IsClientJoining(userid) or
         PEARL.ServerNetwork:IsClientPriviliged(userid)
     )
@@ -121,9 +87,9 @@ end
 -- [[ Query ]]
 --------------------------------
 
-local OnFSQueryComplete, SendRootRetriveQuery
+local OnGameOwnerFetched, SendRootRetriveQuery
 
-local function OnFSQueryFailed(response, http_code, request, userid, no_retry)
+local function OnGameOwnerQueryFailed(response, http_code, request, userid, no_retry)
     -- Try to log this error to discord as well.
     if not no_retry and not table.contains(QUERY_ERRORS, response.ErrorCode)then
         PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..tostring(userid).." failed with error code "..(http_code or "UNKNOWN"))
@@ -132,12 +98,12 @@ local function OnFSQueryFailed(response, http_code, request, userid, no_retry)
     return PEARL.error("Query failed with status code", http_code, "for user", userid)
 end
 
-OnFSQueryComplete = function(response, request, userid, no_retry, oncomplete)
+OnGameOwnerFetched = function(response, request, userid, no_retry, oncomplete)
     local valid = type(response) == "table"
 
     -- response.Error refers to a boolean
     if not valid or response.Error == true then
-        OnFSQueryFailed(response, request, userid, no_retry)
+        OnGameOwnerQueryFailed(response, request, userid, no_retry)
 
         -- When an error occurs, try to send the request one more time
         if not no_retry and not DO_NOT_RETRY_ERRORS[response.ErrorCode] then
@@ -150,21 +116,17 @@ OnFSQueryComplete = function(response, request, userid, no_retry, oncomplete)
 end
 
 SendRootRetriveQuery = function(userid, noretry, oncomplete)
-    local success_encode, input_json = pcall(json.encode, {
-        Token = PEARL.SERVER_TOKEN,
-        KU = userid,
-        Game = PEARL.CONSTS.DST_WEB_GAME_ID,
-    })
-    if not success_encode or not input_json then
-        return PEARL.error("JSON failed to encode query data!")
+    local query = PEARL.KleiAccounts:QueryGameOwner(userid, PEARL.KleiAccounts.GAME.DST)
+    if not query then
+        PEARL.error("Failed to create the game owner query!")
+        return oncomplete(true) -- Allow the connection on error
     end
 
-    PEARL.HTTPClient:POST(
-        PEARL.CONSTS.FSLS_QUERY_URL, OnFSQueryComplete,
-        input_json, FS_QUERY_TIMEOUT, userid, noretry or false, oncomplete
-    )
-    :SetErrorHandler(OnFSQueryFailed)
-    :Send(true)
+    query:SetOnSuccess(OnGameOwnerFetched, userid, noretry or false, oncomplete)
+    query:SetOnError(OnGameOwnerQueryFailed, userid, noretry, oncomplete)
+    query:SetOnComplete(oncomplete)
+    query:SetMaxRetries(QUERY_MAX_RETRIES)
+    query:Send()
 end
 
 --------------------------------
