@@ -65,18 +65,8 @@ end
 
 PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
     local root = self.player_list
-    if not root or table.empty(LINKS) then
+    if not root then
         return
-    end
-
-    --- Kill those widgets
-
-    if self.title then
-        self.title:Kill()
-    end
-
-    if self.players_number then
-        self.players_number:Kill()
     end
 
     -- Create the buttons for the freed space
@@ -103,6 +93,11 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
         )
     end
 
+    -- Free up the space for the buttons
+    if #root.site_buttons > 0 and self.title then
+        self.title:Kill()
+    end
+
     ---------------------
 
     -- Do not display the button if we are disabled.
@@ -114,6 +109,10 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
 
         button.__special_offset_x = VIEWAG_BUTTON_OFFSET
         root.site_buttons[#root.site_buttons+1] = button
+
+        if self.players_number then
+            self.players_number:Kill()
+        end
 
         -- Override the default callback
         root.site_buttons[#root.site_buttons]:SetOnClick(function()

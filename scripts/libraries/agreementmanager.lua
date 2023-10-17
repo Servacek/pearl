@@ -126,6 +126,9 @@ function AgreementManager:IsEnabled()
     return self:IsAgreementScreenEnabled() or self:IsIntroPopupEnabled()
 end
 
+---  BOTH are required for more precise searching
+--- @param userid string
+--- @oaram netid string
 function AgreementManager:GetRecord(userid, netid)
     for _, record in ipairs(self.records) do
         -- Both needs to be equal to the saved version

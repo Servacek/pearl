@@ -25,6 +25,7 @@ local TheNet = TheNet
 -- [[ Constants ]]
 --------------------------------
 
+local QUERY_RETRY_TIME    = 5
 local QUERY_MAX_RETRIES   = 3
 local QUERY_ERRORS        = {
     -- Getting this error in production usage most likely indicates
@@ -87,44 +88,44 @@ end
 -- [[ Query ]]
 --------------------------------
 
-local OnGameOwnerFetched, SendRootRetriveQuery
+local function OnGameOwnerQueryFailed(response, http_code, request, userid)
+    PEARL.error("Query failed with status code", http_code, "for user", userid)
 
-local function OnGameOwnerQueryFailed(response, http_code, request, userid, no_retry)
     -- Try to log this error to discord as well.
-    if not no_retry and not table.contains(QUERY_ERRORS, response.ErrorCode)then
+    if not table.contains(QUERY_ERRORS, response.ErrorCode)then
         PEARL.DiscordReporter:ReportFailedHTTPRequest("AO Query for "..tostring(userid).." failed with error code "..(http_code or "UNKNOWN"))
     end
 
-    return PEARL.error("Query failed with status code", http_code, "for user", userid)
+    -- When an error occurs, try to send the request one more time
+    if request:IsRetryable() and not DO_NOT_RETRY_ERRORS[response.ErrorCode] then
+        PEARL.info("Retrying request...")
+        PEARL.HTTPClient:RetryRequestAfter(request, QUERY_RETRY_TIME)
+    end
 end
 
-OnGameOwnerFetched = function(response, request, userid, no_retry, oncomplete)
+local function OnQueryCompleted(response, success, code, request, userid, oncomplete)
     local valid = type(response) == "table"
 
     -- response.Error refers to a boolean
-    if not valid or response.Error == true then
-        OnGameOwnerQueryFailed(response, request, userid, no_retry)
-
-        -- When an error occurs, try to send the request one more time
-        if not no_retry and not DO_NOT_RETRY_ERRORS[response.ErrorCode] then
-            PEARL.info("Retrying request...")
-            return SendRootRetriveQuery(userid, true)
-        end
+    if not success or not valid or response.Error == true then
+        OnGameOwnerQueryFailed(response, response.ErrorCode or -1, request, userid)
     end
 
     oncomplete(response and valid and response.ParentAccount)
 end
 
-SendRootRetriveQuery = function(userid, noretry, oncomplete)
+--------------------------------
+-- [[ Local Functions ]]
+--------------------------------
+
+local function SendRootRetriveQuery(userid, oncomplete)
     local query = PEARL.KleiAccounts:QueryGameOwner(userid, PEARL.KleiAccounts.GAME.DST)
     if not query then
         PEARL.error("Failed to create the game owner query!")
         return oncomplete(true) -- Allow the connection on error
     end
 
-    query:SetOnSuccess(OnGameOwnerFetched, userid, noretry or false, oncomplete)
-    query:SetOnError(OnGameOwnerQueryFailed, userid, noretry, oncomplete)
-    query:SetOnComplete(oncomplete)
+    query:SetOnComplete(OnQueryCompleted, userid, oncomplete)
     query:SetMaxRetries(QUERY_MAX_RETRIES)
     query:Send()
 end
@@ -145,7 +146,7 @@ PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, filtercb)
     end
 
     PEARL.debug("Rootid not saved, sending query to retrieve it...")
-    SendRootRetriveQuery(userid, nil, function(rootid)
+    SendRootRetriveQuery(userid, function(rootid)
         -- Root ID should not change since userid is bound to it.
         -- Save it even if it's invalid so we do not have to send another query in the future.
         PEARL.PlayerDB:OptionalSafeSetField(userid, "rootuserid", rootid)

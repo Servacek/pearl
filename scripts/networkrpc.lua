@@ -50,8 +50,8 @@ local CLIENT_RPCS = {
         return PEARL.ClientNetwork:Disconnect(reason, true, ...)
     end,
 
-    ConnectionAllowed = function(...)
-        return PEARL.ClientNetwork:OnResponse(true, true, ...)
+    ConnectionAllowed = function(hasrecord)
+        return PEARL.ClientNetwork:OnConnectionAllowed(hasrecord)
     end,
 }
 
@@ -142,46 +142,20 @@ local SERVER_USERID_RPCS = {
         PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
     end,
 
-    AgreementFinished = function(userid, agreed, datacollection, agreedintime, agreed_version)
-        PEARL.debug("AgreementFinished", userid, agreed, datacollection, agreedintime, agreed_version)
+    AgreementDataReceived = function(userid, agreed, datacollection, agreedintime, agreed_version)
+        PEARL.debug("AgreementDataReceived", userid, agreed, datacollection, agreedintime, agreed_version)
 
         if not optbool(agreed) or not optbool(datacollection) or not optnumber(agreedintime) or not optstring(agreed_version) then
-            return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementFinished", userid)
+            return PEARL.ServerNetwork:OnInvalidRPCFromClient("AgreementDataReceived", userid)
         end
 
-        PEARL.EventProcessor:HandleEvent("clientagreementfinished", {
+        PEARL.EventProcessor:HandleEvent("clientagreementdatareceived", {
             userid = userid,
             agreed = agreed,
             datacollection = datacollection,
             agreedintime = agreedintime,
             version = agreed_version,
         })
-
-        if not agreed then
-            return
-        end
-
-        local client = userid and TheNet:GetClientTableForUser(userid)
-        if not client and client.name then
-            return
-        end
-
-        local cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
-        if not cfd or cfd.novice ~= true then
-            return
-        end
-
-        -- Send a nice welcome message for novices.
-        local welcome_msg_template = STRINGS.PEARL.NOVICE_ANNOUNCEMENTS[math.random(1, #STRINGS.PEARL.NOVICE_ANNOUNCEMENTS)]
-        local welcome_msg = welcome_msg_template:format(client.name)
-        if PEARL.ServerNetwork:GetConnectedClientsCount() > 1 then
-            -- Only announce it if there are more people on the server.
-            return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANN_TYPE.WELCOME)
-        end
-
-        return PEARL.DiscordLogger:LogString(
-            welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANN_TYPE.WELCOME]
-        )
     end
 }
 

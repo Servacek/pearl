@@ -76,6 +76,19 @@ function ClusterPersistance:GetAllFileLines(fp, ensure, strip)
     return lines
 end
 
+--- @param userid string
+--- @param sessionid string? The ID of the target session or the newest one if not provided.
+--- @return boolean exists
+function ClusterPersistance:UserSessionExists(userid, sessionid)
+    sessionid = sessionid or TheNet:GetSessionIdentifier()
+    if type(sessionid) == "string" then
+        local filepath = TheNet:GetUserSessionFile(sessionid, userid)
+        return type(filepath) == "string" and self:FileExists(filepath)
+    end
+
+    return false
+end
+
 --------------------------------
 -- [[ Setters ]]
 --------------------------------

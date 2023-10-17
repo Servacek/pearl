@@ -15,8 +15,6 @@
 --- @class LoadingWidget
 local LoadingWidget = require("widgets/redux/loadingwidget")
 
-local LT_TYPES = PEARL.CONSTS.LT_TYPES
-
 ---------------------------
 -- [[ Constants ]]
 ---------------------------
@@ -25,6 +23,11 @@ local LT_TYPES = PEARL.CONSTS.LT_TYPES
 --- The element names in bg_loading_<name>.xml needs to be just <name> without the bg_loading part!
 local CUSTOM_LOADING_IMAGES = {
     "space",
+}
+
+local LT_TYPES = PEARL.CONSTS.LT_TYPES
+local DO_NOT_LOAD_TIPS = {
+    [LT_TYPES.WELCOME] = true
 }
 
 local TEX_PATTERN = "%s.tex"
@@ -54,21 +57,43 @@ end
 -- [[ Local Functions ]]
 ---------------------------
 
-local loading_screen_tips
+local function GetWelcomeLoadingTips()
+    local tips = {}
+
+    for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
+        lt.type = lt.type and string.upper(lt.type)
+
+        if lt.type == LT_TYPES.WELCOME then
+            tips[#tips + 1] = lt
+        end
+    end
+
+    return tips
+end
+
+local function LoadCustomLoadingTips()
+    if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
+        PEARL.info("Removing default loading tips...")
+        PEARL.RemoveDefaultLoadingTips()
+    end
+
+    PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
+    for _, loadingtip in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
+        if DO_NOT_LOAD_TIPS[loadingtip.type] ~= true then
+            local tbl = PEARL.CONSTS.LT_TYPE_TABLES[loadingtip.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
+            AddLoadingTip(tbl, loadingtip.name, loadingtip.text, loadingtip.data)
+        end
+    end
+end
+
+-- Load custom backgrounds before the LoadingWidget is initialized.
+local loading_screen_keys
 local custom_images = false
 local function LoadCustomImages()
     Settings.loading_screen_keys = Settings.loading_screen_keys or {}
-    loading_screen_tips = Settings.loading_screen_keys
+    loading_screen_keys = Settings.loading_screen_keys
     for _, image in ipairs(CUSTOM_LOADING_IMAGES) do
         Settings.loading_screen_keys[#Settings.loading_screen_keys + 1] = image
-    end
-
-    custom_images = false
-    if PEARL.ClientNetwork:IsNovice() and #CUSTOM_LOADING_IMAGES > 0 then
-        -- Always show custom loading screen for novices.
-        Settings.loading_screen_keys = shallowcopy(CUSTOM_LOADING_IMAGES)
-
-        custom_images = true
     end
 end
 
@@ -85,6 +110,16 @@ local function ShowCustomImage(self)
     end
 end
 
+PEARL.AddClassFunctionPostCall("SetEnabled", function(self, enabled)
+    if not enabled then
+        return
+    end
+
+    if PEARL.ClientNetwork:HasServerCrashed() then
+        self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_ERROR, LT_TYPES.CONTROLS)
+    end
+end, LoadingWidget)
+
 local function SetupWrappers()
     PEARL.AddClassFunctionPreCall("SetEnabled", function(self, enabled)
         if enabled == true then
@@ -92,31 +127,28 @@ local function SetupWrappers()
         end
 
         -- Restore loading screen keys after first hide.
-        if custom_images then
-            Settings.loading_screen_keys = loading_screen_tips
+        if custom_images and PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
+            Settings.loading_screen_keys = loading_screen_keys
         end
     end, LoadingWidget)
 
-    PEARL.AddUserDataFunctionPostCall("UnregisterAllPrefabs", function()
-        PEARL.ENV.ReloadPreloadAssets()
+    if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
+        PEARL.AddUserDataFunctionPostCall("UnregisterAllPrefabs", function()
+            PEARL.ENV.ReloadPreloadAssets()
 
-        -- It looks like we have to register the assets manually after they are unregistered
-        -- by the game logic.
-        if global_loading_widget then
-            ShowCustomImage(global_loading_widget)
-        end
-    end, TheSim)
+            -- It looks like we have to register the assets manually after they are unregistered
+            -- by the game logic.
+            if global_loading_widget then
+                ShowCustomImage(global_loading_widget)
+            end
+        end, TheSim)
+    end
 end
 
 --- We have some additional functionality here aside from the custom images
 --- so this should be loaded always.
 PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
     -- Make sure we are visible right from the start.
-
-    -- Just not for novices, because of the welcome screen and additional checks.
-    if PEARL.ClientNetwork:IsNovice() then
-        return
-    end
 
     if TheFrontEnd then
         TheFrontEnd:SetFadeLevel(1)
@@ -126,7 +158,7 @@ PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
 
     -- We should send CFD right from the start so this should be always true in this case.
     if PEARL.ClientNetwork:HasSentCFD() and PEARL.ClientNetwork:IsWaitingForResponse() then
-        self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_VERIFICATION, "CONTROLS")
+        self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_VERIFICATION, LT_TYPES.CONTROLS)
 
         -- Hide the loading label since it's not actually true.
         if self and self.loading_widget then
@@ -137,15 +169,37 @@ PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
     if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
         ShowCustomImage(self)
     end
+
+    if TheLoadingTips then
+        TheLoadingTips:CleanupShownLoadingTips()
+    end
 end)
 
-PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function(from_server)
-    if global_loading_widget and from_server then
+PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function()
+    --- @type LoadingWidget
+    local self = global_loading_widget
+    if self then
         -- This will refresh the loading tips
-        global_loading_widget:Reload()
+        self:Reload()
 
-        if global_loading_widget.loading_widget then
-            global_loading_widget.loading_widget:Show()
+        if self.loading_widget then
+            self.loading_widget:Show()
+        end
+
+        -- Show nice welcome loading tips for newcomers.
+        if PEARL.ClientNetwork:JoinedFirstTime() then
+            local welcome_tips = GetWelcomeLoadingTips()
+            local loading_tip = welcome_tips[math.random(#welcome_tips)]
+            if loading_tip then
+                self:SetLoadingTip(loading_tip.text, loading_tip.type)
+            end
+
+            -- Also show our custom loading screen if provided
+            if #CUSTOM_LOADING_IMAGES > 0 then
+                -- Always show custom loading screen for novices.
+                Settings.loading_screen_keys = shallowcopy(CUSTOM_LOADING_IMAGES)
+                custom_images = true
+            end
         end
     end
 end)
@@ -159,7 +213,11 @@ end
 -- [[ Loading Tips ]]
 ---------------------------
 
-local welcome_loading_tips = {}
+--- @TODO: Add custom loading tip category icons.
+-- Custom Categories:
+SetLoadingTipCategoryIcon(
+    LT_TYPES.WELCOME, LOADING_SCREEN_TIP_ICONS.SURVIVAL.atlas, LOADING_SCREEN_TIP_ICONS.SURVIVAL.icon
+)
 
 --[[
     <string_table> can be one of the following:
@@ -175,68 +233,5 @@ local welcome_loading_tips = {}
 ]]
 -- Loading screen tips setup
 if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
-    local default_removed = false
-    local function RemoveDefaultLoadingTips()
-        if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override ~= true then
-            return
-        end
-
-        if not default_removed then
-            PEARL.info("Removing default loading tips...")
-            PEARL.RemoveAllLoadingTips()
-        end
-
-        default_removed = true
-    end
-
-    local novice = PEARL.ClientNetwork:IsNovice()
-    local function OptionalAddLoadingTip(name, lt)
-        local type = PEARL.CONSTS.LT_TYPE_TABLES[lt.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
-
-        if novice and lt.type == LT_TYPES.WELCOME then
-            table.insert(welcome_loading_tips, {
-                type = string.upper(LT_TYPES.SURVIVAL),
-                text = lt.text,
-                name = name,
-            })
-
-            return -- Do not add this tip to the list of regular ones.
-        end
-
-        AddLoadingTip(type, name, lt.text, lt.data)
-    end
-
-    RemoveDefaultLoadingTips()
-
-    PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
-
-    for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
-        local name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
-        OptionalAddLoadingTip(name, lt)
-    end
-end
-
-if PEARL.ClientNetwork:IsNovice() and #welcome_loading_tips > 0 then
-    local welcome_tip_shown = false
-
-    --- @class LoadingTipsData
-    local LoadingTipsData = require("loadingtipsdata")
-    PEARL.OverrideReturnValue(LoadingTipsData, "PickLoadingTip", function(data)
-        if welcome_tip_shown then
-            return data
-        end
-
-        welcome_tip_shown = true
-
-        local loading_tip = welcome_loading_tips[math.random(#welcome_loading_tips)]
-        if loading_tip then
-            data.text   = loading_tip.text
-            data.id     = loading_tip.name
-
-            data.atlas   = LOADING_SCREEN_TIP_ICONS[loading_tip.type].atlas
-            data.icon   = LOADING_SCREEN_TIP_ICONS[loading_tip.type].icon
-        end
-
-        return data
-    end)
+    LoadCustomLoadingTips()
 end

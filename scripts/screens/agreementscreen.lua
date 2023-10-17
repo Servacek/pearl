@@ -375,10 +375,10 @@ function AgreementScreen:DoClose()
     TheFrontEnd:PopScreen(self)
 
     -- Make sure we try to enable the screen behind this
-    local screen = TheFrontEnd:GetActiveScreen()
-    if screen then
-        screen:Enable()
-    end
+    -- local screen = TheFrontEnd:GetActiveScreen()
+    -- if screen then
+    --     screen:Enable()
+    -- end
 end
 
 -------------------------------------

@@ -98,9 +98,14 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
         TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
     end
 
+    local hasrecord
+    if PEARL.PlayerDB:IsEnabled() then
+        hasrecord = PEARL.PlayerDB:FirstTimeJoined(userid)
+    end
+
     -- If all the filters have successfully passed, then the connection should be allowed.
-    PEARL.debug("Allowing connection for", userid)
-    return ServerNetwork:SendUserConnectionAllowedFor(userid)
+    PEARL.debug("Allowing connection for", userid, hasrecord)
+    return ServerNetwork:SendUserConnectionAllowedFor(userid, hasrecord)
 end
 
 ----------------------------------
@@ -196,9 +201,9 @@ function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_ti
     end)
 end
 
-function ServerNetwork:SendUserConnectionAllowedFor(userid, ...)
-    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, ...)
-    return PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, ...)
+function ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
+    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, initial)
+    return PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, initial)
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)

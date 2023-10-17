@@ -73,10 +73,10 @@ msgctxt "STRINGS.PEARL.LOGS.MIGRATING"
 msgid "%s is migrating to shard %s."
 msgstr "%s migruje do shardu %s."
 
-#. STRINGS.PEARL.UI.WHISPER_WARN_TEXT
-msgctxt "STRINGS.PEARL.UI.WHISPER_WARN_TEXT"
-msgid "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone."
-msgstr "Táto správa sa zobrazí len pre hráčov vo vašej blízkosti. Pre verejné správy použite klávesu %s"
+#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4"
+msgid "Let's welcome %s!"
+msgstr "%s sa po prvý raz podarilo dostať sem! Vitaj!"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED"
@@ -1013,10 +1013,10 @@ msgctxt "STRINGS.PEARL.LOGS.STAFF_CALLED"
 msgid "Admins and server moderators were notified."
 msgstr "Správcovia servera boli upozornení."
 
-#. STRINGS.PEARL.ACTIONS.SLEEP.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.SLEEP.GENERIC"
-msgid "{doer} slept in {target}."
-msgstr "{doer} použil/a {target}."
+#. STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED
+msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED"
+msgid "New World Seed"
+msgstr "Nový Seed Sveta"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS"
@@ -1043,10 +1043,10 @@ msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.LOCALE"
 msgid "Locale"
 msgstr "Národnosť"
 
-#. STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR
-msgctxt "STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR"
-msgid "Internal proxy server error."
-msgstr "Interná chyba proxy servera."
+#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"
+msgid "Say welcome to %s! It's their first time on the server!"
+msgstr "Privítajme %s! Je tu po prvý krát!"
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND"
@@ -1078,10 +1078,10 @@ msgctxt "STRINGS.PEARL.LOGS.AND"
 msgid "%s and %s"
 msgstr "%s a %s"
 
-#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1
-msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"
-msgid "Say welcome to %s! It's their first time on the server!"
-msgstr "Privítajme %s! Je tu po prvý krát!"
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT"
+msgid "The %s has passed."
+msgstr "%s prešlo."
 
 #. STRINGS.PEARL.ACTIONS.FEED.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.FEED.GENERIC"
@@ -1103,10 +1103,10 @@ msgctxt "STRINGS.PEARL.LOGS.STOP_VOTE"
 msgid "The vote was stopped."
 msgstr "Hlasovanie bolo zrušené."
 
-#. STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT
-msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT"
-msgid "The %s has passed."
-msgstr "%s prešlo."
+#. STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR
+msgctxt "STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR"
+msgid "Internal proxy server error."
+msgstr "Interná chyba proxy servera."
 
 #. STRINGS.PEARL.ACTIONS.KILL.NEAR
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.NEAR"
@@ -1115,7 +1115,7 @@ msgstr "{doer} zabil/a {target} pri {near}!"
 
 #. STRINGS.PEARL.LOGS.SPAWN_AT
 msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT"
-msgid "Spawning %s at: X: %d Y: %2.2f Z: %2.2f"
+msgid "Spawning %s in shard %s at: X: %d Y: %2.2f Z: %2.2f"
 msgstr "Spawnovanie hráča %s na pozícií: X: %2.2f Y: %2.2f Z: %2.2f"
 
 #. STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR
@@ -1203,10 +1203,10 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ALREADY_BANNED"
 msgid "Player is already banned on this server."
 msgstr "Hráč sa už nachádza na zozname blokovaných."
 
-#. STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT
-msgctxt "STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT"
-msgid "%s got a new skin: "
-msgstr "%s získal/a nový skin: "
+#. STRINGS.PEARL.UI.WHISPER_WARN_TEXT
+msgctxt "STRINGS.PEARL.UI.WHISPER_WARN_TEXT"
+msgid "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone."
+msgstr "Táto správa sa zobrazí len pre hráčov vo vašej blízkosti. Pre verejné správy použite klávesu %s"
 
 #. STRINGS.PEARL.SEASON_PREFIX_EARLY.autumn
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.autumn"
@@ -1383,10 +1383,10 @@ msgctxt "STRINGS.PEARL.ACTIONS.FERTILIZE.WITH"
 msgid "{doer} fertilized {target} with {item}."
 msgstr "{doer} pohnojil/a {target} s {item}."
 
-#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4
-msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4"
-msgid "Let's welcome %s!"
-msgstr "%s sa po prvý raz podarilo dostať sem! Vitaj!"
+#. STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT
+msgctxt "STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT"
+msgid "%s got a new skin: "
+msgstr "%s získal/a nový skin: "
 
 #. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_FINISH
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_FINISH"
@@ -1458,10 +1458,10 @@ msgctxt "STRINGS.PEARL.ACTIONS.DIG.GENERIC"
 msgid "{doer} dug up {target}."
 msgstr "{doer} vykopal/a {target}."
 
-#. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
-msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
-msgid "vote"
-msgstr "Hlasovanie"
+#. STRINGS.PEARL.ACTIONS.SLEEP.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.SLEEP.GENERIC"
+msgid "{doer} slept in {target}."
+msgstr "{doer} použil/a {target}."
 
 #. STRINGS.PEARL.ACTIONS.HAMMER.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.GENERIC"
@@ -1478,10 +1478,10 @@ msgctxt "STRINGS.PEARL.LOGS.REPAIR"
 msgid "Burnt structures were restored!"
 msgstr "Zhorené štruktúry boli obnovené!"
 
-#. STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED
-msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED"
-msgid "New World Seed"
-msgstr "Nový Seed Sveta"
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
+msgid "vote"
+msgstr "Hlasovanie"
 
 #. STRINGS.PEARL.SEASON_UNKNOWN
 msgctxt "STRINGS.PEARL.SEASON_UNKNOWN"
@@ -1878,19 +1878,24 @@ msgctxt "STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE"
 msgid "Server Agreement Update"
 msgstr ""
 
-#. STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
-msgid "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua."
-msgstr ""
-
 #. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE"
 msgid "Close"
 msgstr ""
 
+#. STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
+msgid "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua."
+msgstr ""
+
 #. STRINGS.PEARL.UI.MODS_BLOCKED_BODY
 msgctxt "STRINGS.PEARL.UI.MODS_BLOCKED_BODY"
 msgid "Some of the mods you are using were blocked by the server."
+msgstr ""
+
+#. STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.HOST
+msgctxt "STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.HOST"
+msgid "View Host"
 msgstr ""
 
 #. STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.DISCORD
@@ -2171,6 +2176,11 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC"
 msgid "Increases the allowlist with the given user ID."
+msgstr ""
+
+#. STRINGS.PEARL.UI.LOADING_ERROR
+msgctxt "STRINGS.PEARL.UI.LOADING_ERROR"
+msgid "Maybe it didn't work that well at the end..."
 msgstr ""
 
 #. STRINGS.PEARL.UI.MODS_BLOCKED_ALL_TITLE

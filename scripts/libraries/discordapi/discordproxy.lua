@@ -55,10 +55,13 @@ local DiscordProxy = {
     --- @type Task?
     fetch_task = nil,
 
-    --- @type table<string, table<string, any>>?
-    events = nil,
+    --- @type table<string, table<string, any>?>
+    events = {
+        player = nil,
+        shard = nil,
+    },
     --- @type table
-    response_cache = nil,
+    response_cache = {},
 }
 
 --- @type DiscordProxy
@@ -70,6 +73,11 @@ DiscordProxy = Library(DiscordProxy)
 
 DiscordProxy.STATE = STATE
 DiscordProxy.URL   = URL
+
+DiscordProxy.EVENT_CATEGORY = {
+    SHARD   = "shard",
+    PLAYER  = "player",
+}
 
 --------------------------------
 -- [[ Getters ]]
@@ -85,6 +93,14 @@ end
 
 function DiscordProxy:IsRunning()
     return self.state == DiscordProxy.STATE.RUNNING
+end
+
+function DiscordProxy:IsFetching()
+    return self.fetch_task and self.fetch_task.running == true
+end
+
+function DiscordProxy:HasAnyCommandResponses()
+    return not table.empty(self.response_cache)
 end
 
 function DiscordProxy:GetState()
@@ -117,6 +133,10 @@ function DiscordProxy:GetShardAutocompleteData()
     return shards
 end
 
+function DiscordProxy:GetAllAutocompleteData()
+
+end
+
 --------------------------------
 -- [[ Setters ]]
 --------------------------------
@@ -143,9 +163,6 @@ local function OnProxyUnreachable()
     DiscordProxy:SetState(DiscordProxy.STATE.FAILED)
 
     PEARL.EventProcessor:HandleEvent("proxy_server_unreachable")
-
-    --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
-    --PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
 end
 
 local function OnInputFetchingDone(data)
@@ -153,7 +170,7 @@ local function OnInputFetchingDone(data)
         return
     end
 
-    PEARL.EventProcessor:HandleEvent("input_fetching_done", data)
+    PEARL.EventProcessor:HandleEvent("proxy_fetching_done", data)
 end
 
 local function OnRetry()
@@ -183,7 +200,6 @@ local function OnSessionStarted()
 
     PEARL.info("The input proxy session has successfully started!")
     PEARL.EventProcessor:HandleEvent("proxy_server_start")
-    --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
 
     DiscordProxy:RestartFetchTask()
 end
@@ -206,7 +222,7 @@ end
 local function OnFetchInput()
     -- Do it explicitly. Since implicit method changes are prohibited.
     local request
-    if table.empty(DiscordProxy.events) then
+    if type(DiscordProxy.events) == "table" and table.empty(DiscordProxy.events) then
         request = PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT, OnInputFetchingDone, nil, FETCH_REQUEST_TIMEOUT)
     else
         request = PEARL.HTTPClient:POST(DiscordProxy.URL.INPUT, OnInputFetchingDone, DiscordProxy.events, FETCH_REQUEST_TIMEOUT)
@@ -223,18 +239,30 @@ local function OnFetchInput()
         end)
         :Send()
 
-    DiscordProxy:Cleanup()
+    DiscordProxy:CleanupEvents()
 end
 
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
 
-function DiscordProxy:AddEvent(name, ...)
+function DiscordProxy:CreateEvent(name, ...)
     return {
         name = name,
         args = toarrayornil(...),
     }
+end
+
+function DiscordProxy:SetEventData(category, data)
+    self.events[category] = data
+end
+
+function DiscordProxy:AddPlayerEvent(name, ...)
+    self:SetEventData(self.EVENT_CATEGORY.PLAYER, self:CreateEvent(name, ...))
+end
+
+function DiscordProxy:AddShardEvent(name, ...)
+    self:SetEventData(self.EVENT_CATEGORY.SHARD, self:CreateEvent(name, ...))
 end
 
 function DiscordProxy:AddCommandResponse(command_id, message_table)
@@ -258,11 +286,13 @@ function DiscordProxy:StartSession(retries)
     PEARL.info("Sending start session request to input proxy server...")
 
     PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, OnSessionStarted, {
+        running = true,
+
         messages = PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED,
         commands = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED,
+        -- Keep our data in sync from the start.
         players = DiscordProxy:GetPlayerAutocompleteData(),
         shards  = DiscordProxy:GetShardAutocompleteData(),
-        running = true,
     })
     :SetIsRaw(true)
     :SetOnError(OnSessionStartFailed)
@@ -278,7 +308,6 @@ function DiscordProxy:StopSession()
 
     PEARL.info("Sending stop session request to input proxy server...")
     PEARL.EventProcessor:HandleEvent("proxy_server_stop")
-    --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
 
     -- We do not care about the response at this point
     PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, nil, {
@@ -292,7 +321,6 @@ end
 function DiscordProxy:RestartSession(retries)
     if self:IsRunning() then
         PEARL.EventProcessor:HandleEvent("proxy_server_restart")
-        --PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
     end
 
     self:StartSession(retries)

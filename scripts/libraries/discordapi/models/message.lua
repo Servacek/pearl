@@ -340,9 +340,9 @@ function Message:ToTable()
     -- character we need to send one byte of data.
     return {
         content = utf8.decode_string(self:GetContent()),
-        embeds = not table.empty(self._embeds) and self._embeds or nil,
+        embeds = self._embeds and not table.empty(self._embeds) and self._embeds or nil,
         flags = self._flags,
-        allowed_mentions = not table.empty(self._allowed_mentions) and self._allowed_mentions or nil,
+        allowed_mentions = self._allowed_mentions and not table.empty(self._allowed_mentions) and self._allowed_mentions or nil,
     }
 end
 

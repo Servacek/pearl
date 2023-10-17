@@ -85,7 +85,7 @@ local function OnClientBanned(userid)
     PEARL.Reputation:SetFor(userid, PEARL.CONSTS.STARTING_REPUTATION)
 end
 
-local function OnClientAgreementFinished(data)
+local function OnClientAgreementDataReceived(data)
     local record = PEARL.PlayerDB:GetRecordFor(data.userid)
     if not record then
         return
@@ -169,17 +169,20 @@ end
 --------------------------------------
 
 PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, count, age, player)
-    if not (type(player) == "table" and player:IsValid() and type(player.userid) == "string") and player.userid ~= "" and type(count) == "number" and count > 0 then
+    if not (type(player) == "table" and player:IsValid() and player.userid ~= "") then
         return
     end
 
-    local record = PEARL.PlayerDB:GetRecordFor(player.userid)
-    if record then
-        record.totaldays = record.totaldays + count
+    count = tonumber(count)
+    if count and count > 0 then
+        local record = PEARL.PlayerDB:GetRecordFor(player.userid)
+        if record then
+            record.totaldays = record.totaldays + count
+        end
     end
 end)
 
-PEARL.EventProcessor:AddSafeEventHandler("clientagreementfinished", OnClientAgreementFinished)
+PEARL.EventProcessor:AddSafeEventHandler("clientagreementdatareceived", OnClientAgreementDataReceived)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
 

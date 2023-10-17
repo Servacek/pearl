@@ -197,18 +197,6 @@ configuration_options = {
     },
 
     --------------------
-    -- REST API
-    --------------------
-    -- The number of seconds per one request.
-    {
-        name = "REQUEST_FREQUENCY", -- In seconds
-        public = true,
-        general = true,
-        default = 1,
-        type = "number",
-    },
-
-    --------------------
     -- Languages
     --------------------
 
@@ -372,10 +360,13 @@ configuration_options = {
     },
 
     {
-        name = "HOST_NAME",
-        default = nil,
+        name = "HOST",
+        default = {
+            NAME = nil,
+            URL  = nil,
+        },
         public = true,
-        type = "string?",
+        type = "table",
     },
 
     --------------------

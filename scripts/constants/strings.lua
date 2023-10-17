@@ -284,7 +284,7 @@ local STRINGS = {
         DAY                     = "Day %d - %s (%s °C)",
         PHASE                   = "%s",
 
-        SPAWN_AT                = "Spawning %s at: X: %d Y: %2.2f Z: %2.2f",
+        SPAWN_AT                = "Spawning %s in shard %s at: X: %d Y: %2.2f Z: %2.2f",
 
         PRECIPITATION_START     = "It started %s!",
         PRECIPITATION_STOP      = "It stopped %s.",
@@ -466,6 +466,7 @@ local STRINGS = {
         DM_DESIGNATOR = "[DM]",
 
         LOADING_VERIFICATION = "Verifying connection...",
+        LOADING_ERROR = "Maybe it didn't work that well at the end...",
 
         CMD_ERRORS = {
             EXECUTION = "Error while executing the command!",
@@ -694,6 +695,8 @@ local STRINGS = {
             DISCORD = "View Discord",
             TWITCH  = "View Twitch",
             YOUTUBE = "View YouTube",
+
+            HOST    = "View Host",
         },
 
         AGREEMENT_BUTTON_HOVER = "View Agreement",
@@ -803,6 +806,11 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_PLATFORM_NOT_SUPPORTED",
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_NO_COMMUNITY_PROFILE",
     "Missing Community Profile",
     "In order for participating in this server,\nplease set up a community profile for your Steam account."
+)
+
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_SERVER_CRASHED",
+    "Server Crashed!",
+    "Something went awry with the server... Sorry!\nWe will make sure to look into it."
 )
 
 

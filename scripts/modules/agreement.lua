@@ -81,8 +81,9 @@ local function OnPlayerFinishedAgreement(data)
     local agreed = data.agreed or false
     local agreedintime = agreed and (os.time() - (_t_agreementstart or 0)) or nil
     local agreed_version = PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version
+    local datacollection = data.datacollection or false
 
-    PEARL.SendRPCToServer(PEARL.RPC.AgreementFinished, agreed, data.datacollection, agreedintime, agreed_version)
+    PEARL.ClientNetwork:SendAgreementData(agreed, datacollection, agreedintime, agreed_version)
 end
 
 local function OnDisagreeConfirmed(data)

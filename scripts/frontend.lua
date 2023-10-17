@@ -18,26 +18,17 @@
 PEARL.SafeModTableExtend("CONSTS", {
     -- Create the file in game's data directory which is more persistent on clients
     AGREEMENT_FILE_PATH = "AGREEMENT",
-
-    LT_TYPES = {
-        SURVIVAL    = "survival",
-        LORE        = "lore",
-        CONTROL     = "control",
-        CONSOLE     = "console",
-        NOCONSOLE   = "noconsole",
-        OTHER       = "other",
-        WELCOME     = "welcome",
-    },
 })
 
 local LT_TYPES = PEARL.CONSTS.LT_TYPES
 PEARL.CONSTS.LT_TYPE_TABLES = {
     [LT_TYPES.SURVIVAL]    = STRINGS.UI.LOADING_SCREEN_SURVIVAL_TIPS,
     [LT_TYPES.LORE]        = STRINGS.UI.LOADING_SCREEN_LORE_TIPS,
-    [LT_TYPES.CONTROL]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS,
+    [LT_TYPES.CONTROLS]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS,
     [LT_TYPES.CONSOLE]     = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_CONSOLE,
     [LT_TYPES.NOCONSOLE]   = STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_NOT_CONSOLE,
     [LT_TYPES.OTHER]       = STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
+
     -- Loadings tips for new players.
     [LT_TYPES.WELCOME]     = STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
 }
@@ -245,7 +236,7 @@ ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
-ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
+--ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(

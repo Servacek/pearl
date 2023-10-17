@@ -76,6 +76,13 @@ local PlayerDB = {
 -- [[ Getters ]]
 ------------------------------------------
 
+-- Currently we determine this by checking if "lastseentime" is nil,
+-- since lastseentime is asigned after the first leave.
+function PlayerDB:FirstTimeJoined(userid)
+    local record = self:GetRecordFor(userid)
+    return record and record.lastseentime == nil
+end
+
 --- @return boolean
 function PlayerDB:IsDataCollectionEnabledFor(userid)
     local record = self:GetRecordFor(userid)

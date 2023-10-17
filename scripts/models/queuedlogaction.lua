@@ -24,6 +24,7 @@ local MAX_DELAY                = 15
 -- [[ Local Functions ]]
 --------------------------------
 
+--- @param data table
 local function _GetStringFromStackableData(data)
     if table.empty(data) then
         return STRINGS.PEARL.LOGS.UNKNOWN

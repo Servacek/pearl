@@ -244,6 +244,24 @@ local function OnNewPlayerSpawn(self, player)
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.NEW_PLAYER_SPAWN:format(
         player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+
+    -- We have to also support the case where the agreement is disabled.
+    if not PEARL.PlayerDB:FirstTimeJoined(player.userid) then
+        return
+    end
+
+    -- Execute this here to make sure the player is new.
+    -- Send a nice welcome message for novices.
+    local welcome_msg_template = STRINGS.PEARL.NOVICE_ANNOUNCEMENTS[math.random(1, #STRINGS.PEARL.NOVICE_ANNOUNCEMENTS)]
+    local welcome_msg = welcome_msg_template:format(player:GetDisplayName())
+    if PEARL.ServerNetwork:GetConnectedClientsCount() > 1 then
+        -- Only announce it if there are more people on the server.
+        return PEARL.AnnounceWithType(welcome_msg, PEARL.CONSTS.ANN_TYPE.WELCOME)
+    end
+
+    return PEARL.DiscordLogger:LogString(
+        welcome_msg, PEARL.ICONS.ANNOUNCEMENTS[PEARL.CONSTS.ANN_TYPE.WELCOME]
+    )
 end
 
 --- Note: This seems to be a bit spammy.
@@ -279,13 +297,14 @@ local function OnResetCountDownStop(self)
 end
 
 local function OnPlayerSpawned(self, player)
+    print("OnPlayerSpawned")
     if not player.userid or player.userid == "" then
         return
     end
 
     local x, y, z = player.Transform:GetWorldPosition()
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN_AT:format(
-        player:GetDisplayName(), x, y, z
+        player:GetDisplayName(), PEARL.GetShardFancyName(), x, y, z
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end
 
@@ -383,7 +402,7 @@ PEARL.AddWorldPostInit(function(world)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_playerdespawnanddelete", OnPlayerDespawnAndDelete)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
-        world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
+        --world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
         world:SafeListenForEvent("ms_save", OnSaved)
 
         --> Mod Events

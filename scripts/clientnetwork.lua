@@ -47,6 +47,9 @@ local disconnected_by_server = false
 local force_disconnected = false
 local connection_allowed = false
 
+local _server_error = false
+local _hasrecord = false
+
 local cfd = {}
 
 --- @type Task?
@@ -126,6 +129,12 @@ function ClientNetwork:SendCFDToServer()
     self:StartTimeout()
 end
 
+function ClientNetwork:SendAgreementData(agreed, datacollection, agreedintime, version)
+    PEARL.SendRPCToServer(
+        PEARL.RPC.AgreementDataReceived, agreed, datacollection, agreedintime, version
+    )
+end
+
 function ClientNetwork:BuildCFD()
     cleartable(cfd)
 
@@ -135,8 +144,6 @@ function ClientNetwork:BuildCFD()
     cfd.username        = TheNet:GetLocalUserName()
 
     cfd.platform        = PLATFORM
-
-    cfd.novice          = self:IsNovice()
 
     return cfd
 end
@@ -193,6 +200,10 @@ end
 -- Getters
 ----------------------------------
 
+function ClientNetwork:HasServerCrashed()
+    return _server_error == true
+end
+
 function ClientNetwork:IsConnectionAllowed()
     return connection_allowed
 end
@@ -226,21 +237,17 @@ function ClientNetwork:IsDisconnected()
     return disconnected or disconnected_by_server or force_disconnected
 end
 
-function ClientNetwork:IsNovice()
+function ClientNetwork:JoinedFirstTime()
     if TheNet:GetIsServerAdmin() and not PEARL.CONFIG.DEBUG_MODE then
         return false
     end
 
-    if PEARL.AgreementManager:FileExists() then
-        if PEARL.AgreementManager:HasAnyRecords() then
-            return not PEARL.AgreementManager:HasRecord()
-        end
-
-        -- If the file exists but it's empty, this is most likely not a novice.
+    -- If agreement record exists for this player then it's definitely not a newcomer.
+    if PEARL.AgreementManager:FileExists() and PEARL.AgreementManager:HasRecord() then
         return false
     end
 
-    return true
+    return _hasrecord
 end
 
 ----------------------------------
@@ -248,33 +255,46 @@ end
 ----------------------------------
 
 function ClientNetwork:OnTimeout()
-    PEARL.info("Server response timed out!")
+    PEARL.info("ClientNetwork:OnTimeout")
+    self:CancelTimeout()
+
+    if self:IsConnectionAllowed() then
+        return
+    end
+
+    PEARL.warn("Server response timed out!")
+    if PEARL.CONFIG.FAIL_SAFE_NETWORK then
+        return PEARL.info("Ignoring because of fail safe network configuration...")
+    end
+
     -- Disconnect the client if we didn't get the response from the server in time.
-    return self:OnResponse(
-        false, PEARL.CONFIG.FAIL_SAFE_NETWORK, "ID_DST_SERVER_RESPONSE_TIMEOUT"
-    )
+    return self:Disconnect("ID_DST_SERVER_RESPONSE_TIMEOUT", false)
 end
 
 -- Note that it's common for servers to send multiple responses.
-function ClientNetwork:OnResponse(from_server, allowed, reason, ...)
-    PEARL.info("ClientNetwork:OnResponse", allowed)
+function ClientNetwork:OnConnectionAllowed(hasrecord)
+    PEARL.info("ClientNetwork:OnConnectionAllowed", hasrecord)
     self:CancelTimeout()
 
-    if self:IsDisconnected() or (allowed and self:IsConnectionAllowed()) then
+    -- This is for backwards compatibility when the database
+    -- doesn't have a record yet but we have already agreed to the agreement.
+    _hasrecord = hasrecord == true
+    if not _hasrecord and PEARL.AgreementManager:HasRecord() then
+        local version = PEARL.AgreementManager:GetLocalVersion()
+        local agreedintime = PEARL.AgreementManager:GetLocalLastAgreeTime()
+        self:SendAgreementData(true, true, agreedintime, version)
+    end
+
+    if self:IsDisconnected() or self:IsConnectionAllowed() then
         return -- Server already responded - Ignore
     end
 
-    if allowed == true then
-        self:SetIsConnectionAllowed(allowed)
+    self:SetIsConnectionAllowed(true)
+    PEARL.EventProcessor:HandleEvent("connection_allowed", hasrecord)
 
-        PEARL.EventProcessor:HandleEvent("connection_allowed", from_server)
-
-        -- If the connection is allowed, remove the deferant
-        -- potentially loading the client as well if we are the last one.
-        return PEARL.ClientLoader:RemoveDeferant(DEFERANT.VERIFICATION)
-    end
-
-    self:Disconnect(reason, from_server, ...)
+    -- If the connection is allowed, remove the deferant
+    -- potentially loading the client as well if we are the last one.
+    return PEARL.ClientLoader:RemoveDeferant(DEFERANT.VERIFICATION)
 end
 
 function ClientNetwork:OnConnectionClosed(reason)
@@ -308,6 +328,10 @@ end, TheNet)
 PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_reset, immediate, ...)
     PEARL.debug("ClientNetwork: OnNetworkDisconnect")
     ClientNetwork:CancelTimeout()
+
+    if reason == "ID_DST_SERVER_CRASHED" then
+        _server_error = true
+    end
 
     -- We have already showed a disconnection popup to the user
     -- Show only the first one.

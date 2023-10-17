@@ -218,6 +218,7 @@ end
 ------------------------------------
 
 local function extinguish_near(pos, radius)
+    radius = radius or PEARL.CONSTS.EXTINGUISH_RADIUS
     local onfire = TheSim:FindEntities(pos.x, pos.y, pos.z, radius,
         nil, -- must-have tags
         {'wildfireprotected', 'campfire', 'NOCLICK', 'FX','DECOR','INLIMBO','burnt'}, -- cant-have tags
@@ -245,7 +246,7 @@ AddCommand("fire", {
         if params.player then
             local player = UserToPlayer(params.player)
             if player ~= nil then
-                extinguish_near(player:GetPosition())
+                extinguish_near(player:GetPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
 
                 TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
                     caller and caller:GetDisplayName() or player:GetDisplayName(), player:GetDisplayName()

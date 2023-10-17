@@ -489,7 +489,7 @@ function PEARL.AddAnnouncementIcon(name, icon)
     PEARL.RegisterAnnouncementType(name)
 end
 
-function PEARL.RemoveAllLoadingTips()
+function PEARL.RemoveDefaultLoadingTips()
     PEARL.debug("PEARL.RemoveAllLoadingTips")
 
     for _, tv in pairs(PEARL.CONSTS.LT_TYPE_TABLES) do

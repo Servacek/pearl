@@ -299,6 +299,18 @@ PEARL.CONSTS = {
     },
 
     FPS = 60,
+
+    LT_TYPES = {
+        SURVIVAL    = "SURVIVAL",
+        LORE        = "LORE",
+        CONTROLS    = "CONTROLS",
+        CONSOLE     = "CONSOLE",
+        NOCONSOLE   = "NOCONSOLE",
+        OTHER       = "OTHER",
+
+        --- Custom
+        WELCOME     = "WELCOME",
+    },
 }
 
 --------------------------------
@@ -381,42 +393,6 @@ if TheNet:GetIsServer() then
     --- We are working with files here so load after the io extension
     PEARL.info("Loading licence...")
     PEARL.loadfile("licence")
-end
-
---------------------------------
--- [[ Debug Mode ]]
---------------------------------
-
--- Load the debug mode early so in case of errors we have Ctrl+R.
-if PEARL.CONFIG.DEBUG_MODE then
-    PEARL.info("Setting up debug mode!")
-
-    --KnownModIndex.modsettings.initdebugprint = true
-    -- Do not override this because it attempts to load some
-    -- test files that are not provided.
-    --PEARL.OverrideGlobal("CONFIGURATION", "dev")
-
-    if TheNet:GetIsServerAdmin() then
-        -- Fix for not saving the modindex state properly when in dev mode.
-        local original_filename = "boot_"..KnownModIndex:GetModIndexName()
-        PEARL.AddClassFunctionPreCall("EndStartupSequence", function(self, ...)
-            SavePersistentString(original_filename, "done", false, ...)
-        end, KnownModIndex)
-
-        PEARL.OverrideVariable("ENCODE_SAVES", false)
-        PEARL.OverrideVariable("BRANCH", "dev")
-        PEARL.OverrideVariable("CHEATS_ENABLED", true)
-        PEARL.OverrideVariable("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
-    end
-
-    --- @NOTE: DoReload doesn't really affect these...
-    --- Maybe this would require some further investigation
-    local modmain_fp = PEARL.ROOTDIR.."modmain.lua"
-    local modmain_ft = TheSim:GetFileModificationTime(modmain_fp)
-    local worldgenmain_fp = PEARL.ROOTDIR.."modworldgenmain.lua"
-    local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
-    RequiredFilesForReload[modmain_fp] = modmain_ft
-    RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
 end
 
 --------------------------------
@@ -519,6 +495,44 @@ PEARL.info("Loading game instance parameters manager...")
 PEARL.GameInstParams = PEARL.loadfile("instanceparams")
 
 --------------------------------
+-- [[ Debug Mode ]]
+--------------------------------
+
+-- Load the debug mode early so in case of errors we have Ctrl+R.
+if PEARL.CONFIG.DEBUG_MODE then
+    PEARL.info("Setting up debug mode!")
+
+    --KnownModIndex.modsettings.initdebugprint = true
+    -- Do not override this because it attempts to load some
+    -- test files that are not provided.
+    --PEARL.OverrideGlobal("CONFIGURATION", "dev")
+
+    if TheNet:GetIsServerAdmin() then
+        -- Fix for not saving the modindex state properly when in dev mode.
+        local original_filename = "boot_"..KnownModIndex:GetModIndexName()
+        PEARL.AddClassFunctionPreCall("EndStartupSequence", function(self, ...)
+            SavePersistentString(original_filename, "done", false, ...)
+        end, KnownModIndex)
+
+        PEARL.OverrideVariable("ENCODE_SAVES", false)
+        PEARL.OverrideVariable("BRANCH", "dev")
+        PEARL.OverrideVariable("CHEATS_ENABLED", true)
+        PEARL.OverrideVariable("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
+    end
+
+    PEARL.loadfile("debugtools")
+
+    --- @NOTE: DoReload doesn't really affect these...
+    --- Maybe this would require some further investigation
+    local modmain_fp = PEARL.ROOTDIR.."modmain.lua"
+    local modmain_ft = TheSim:GetFileModificationTime(modmain_fp)
+    local worldgenmain_fp = PEARL.ROOTDIR.."modworldgenmain.lua"
+    local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
+    RequiredFilesForReload[modmain_fp] = modmain_ft
+    RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
+end
+
+--------------------------------
 -- [[ Post-Initialization ]]
 --------------------------------
 
@@ -534,7 +548,6 @@ if not PEARL.INIT then
     PEARL.WallScheduler = PEARL.loadfile("libraries/wallscheduler")
     PEARL.WallScheduler:StartWallUpdate()
 
-
     --------------------------------
     -- [[ Network ]]
     --------------------------------
@@ -544,7 +557,6 @@ if not PEARL.INIT then
     --- @type HTTPClient
     PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
     PEARL.HTTPClient:Setup()
-    PEARL.HTTPClient:SetRequestFrequency(PEARL.CONFIG.REQUEST_FREQUENCY)
 end
 
 --------------------------------

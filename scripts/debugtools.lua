@@ -37,6 +37,22 @@ AddGlobalDebugKey(KEY_G, function()
     end
 end)
 
+function PEARL.DisplayLoadingTips()
+    local types = {
+        STRINGS.UI.LOADING_SCREEN_SURVIVAL_TIPS,
+        STRINGS.UI.LOADING_SCREEN_LORE_TIPS,
+        STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS,
+        STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_CONSOLE,
+        STRINGS.UI.LOADING_SCREEN_CONTROL_TIPS_NOT_CONSOLE,
+        STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
+        -- Loadings tips for new players.
+        STRINGS.UI.LOADING_SCREEN_OTHER_TIPS,
+    }
+    for _, t in ipairs(types) do
+        table.dump(t)
+    end
+end
+
 function PEARL.PrintTests()
     local i = 1
     for name, func in pairs(PEARL.TESTS) do

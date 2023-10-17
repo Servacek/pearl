@@ -293,6 +293,16 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
         return PEARL.error("Failed to load the custom loading tips!", data)
     end
 
+    -- Normalization
+    for i, lt in ipairs(data) do
+        lt.type = lt.type and string.upper(lt.type)
+        if not PEARL.CONSTS.LT_TYPES[lt.type] then
+            PEARL.error("Invalid type provided for loading tip!", lt.type)
+        end
+
+        lt.name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
+    end
+
     PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA = data
 end end
 
@@ -374,6 +384,7 @@ PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
 PEARL.info("Loading Discord Proxy wrapper...")
 
 --- @type DiscordProxy
+--- @class DiscordProxy
 PEARL.DiscordProxy = PEARL.loadlib("discordapi/discordproxy")
 
 --------------------------------
@@ -538,7 +549,7 @@ PEARL.loadfile("extensions/commands")
 
 if PEARL.CONFIG.DEBUG_MODE then
     PEARL.warn("Debug mode enabled! This is not recommended for production use.")
-    PEARL.loadfile("debugtools")
+    --PEARL.loadfile("debugtools")
     PEARL.loadfile("testing")
 
     PEARL.CreateWordFilterFile = PEARL.loadfile("utils/wordloader")
@@ -604,6 +615,7 @@ end
 -- Logger Modules
 ModuleManager:AddModule("logger/world", true)
 ModuleManager:AddModule("logger/player", true)
+ModuleManager:AddModule("logger/proxyserver", true)
 
 -- Discord only loggers
 if PEARL.DiscordLogger:IsEnabled() then

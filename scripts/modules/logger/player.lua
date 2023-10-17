@@ -808,7 +808,9 @@ local function onbuildstructure(doer, data)
 
     local action, silent = nil, true
     local type = PEARL.CONSTS.ANN_TYPE.BUILD
-    if target.components.propagator then
+    local propagator = target.components.propagator
+    -- Make sure we are actively propagating heat.
+    if propagator and propagator.spreading and (tonumber(propagator.heatouput) or 0) > 0 then
         type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
 
         local near = target:GetPropagableBurnableEntities()

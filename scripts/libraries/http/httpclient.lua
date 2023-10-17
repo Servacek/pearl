@@ -42,14 +42,6 @@ local TheSim = TheSim
 -- [[ Constants ]]
 --------------------------------
 
-local DEFAULT_QUEUE_SIZE_LIMIT = 10
--- This is here in case something fails and the request frequency
--- isn't set according to the configurations.
-local DEFAULT_REQUEST_FREQUENCY = 2
--- Determines the number of requests which can be force-sent from the queue
--- when the requester is shutting down.
-local MAX_FORCE_THRESHOLD = 5
-
 local MAX_REQUEST_RETRIES = 3
 
 --------------------------------
@@ -58,25 +50,6 @@ local MAX_REQUEST_RETRIES = 3
 
 --- @class HTTPClient - singleton
 local HTTPClient = {
-    -- _frequency = DEFAULT_REQUEST_FREQUENCY,
-
-    -- _force_threshold = MAX_FORCE_THRESHOLD,
-
-    -- -- Lazy load the queue
-    -- --- @type Queue?
-    -- _queue = nil,
-    -- --- @type Task?
-    -- _cooldown_task = nil,
-
-    -- _last_host = nil,
-
-    -- Used for debugging
-    --self._rcount = 0
-
-    -- internal state
-    -- _shutting_down = false,
-    -- _waiting = false,
-
     --- This should be public
     --- @type HTTPClientProxy
     proxy = HTTPClientProxy,
