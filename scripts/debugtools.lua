@@ -103,6 +103,20 @@ local function make_player_event_test(src, event, ...)
     print(src:SafePushEvent(event, fake_player, ...))
 end
 
+function PEARL.testassert(condition)
+    assert(condition)
+
+    PEARL.debug("TEST SUCCESSED!")
+end
+
+function PEARL.DebugConnectionFilter(filterfn, userid, expected_result, data)
+    filterfn(userid, data, function(allowed)
+        if expected_result ~= nil then
+            PEARL.testassert(allowed == expected_result)
+        end
+    end)
+end
+
 --------------------------------
 -- [[ Discord Webhook Tests ]]
 --------------------------------

@@ -32,18 +32,27 @@ function PEARL.EXT(testset_name, testname)
     end
 
     if testname then
-        return tests[testname]()
+        if PEARL.SafeRun(tests.test_all) then
+            PEARL.info("Test", testname, "ran successfully!")
+        end
+
+        return
     end
 
     if tests.test_all then
-        return tests.test_all()
+        if PEARL.SafeRun(tests.test_all) then
+            PEARL.info("All tests ran successfully!")
+        end
+
+        return
     end
 
     for name, test in pairs(tests) do
         print(string.rep("-", 30))
         PEARL.info("Executing test", name)
-        test()
-        PEARL.info("Test succeseded!")
+        if PEARL.SafeRun(test) then
+            PEARL.info("Test succeseded!")
+        end
         print(string.rep("-", 30))
     end
 end

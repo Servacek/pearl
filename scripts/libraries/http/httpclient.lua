@@ -259,9 +259,10 @@ function HTTPClient:RetryRequestAfter(request, seconds)
         return PEARL.warn("Max retry count reached! Request failed...")
     end
 
+    print("RETRIES", request.retries)
     request:OnRetry()
     PEARL.info(("Retrying request in %d seconds... (%d/%d)"):format(
-        seconds, request.retries, MAX_REQUEST_RETRIES
+        seconds, request.retries, request.maxretries
     ))
 
     PEARL.WallScheduler:ExecuteInTime(

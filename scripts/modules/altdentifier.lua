@@ -98,7 +98,6 @@ local function OnGameOwnerQueryFailed(response, http_code, request, userid)
 
     -- When an error occurs, try to send the request one more time
     if request:IsRetryable() and not DO_NOT_RETRY_ERRORS[response.ErrorCode] then
-        PEARL.info("Retrying request...")
         PEARL.HTTPClient:RetryRequestAfter(request, QUERY_RETRY_TIME)
     end
 end
@@ -153,4 +152,4 @@ PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, filtercb)
 
         RunRootFilterFor(userid, rootid, filtercb)
     end)
-end)
+end, nil, nil, "altdentifier")

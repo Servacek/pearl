@@ -242,17 +242,41 @@ end
 --- @param cfd table? The data proccessed by the filters.
 --- @param finishcb fun(userid: string, allowed: boolean?, reason: string?)
 function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
+    if not (async_conn_filters and #async_conn_filters > 0) then
+        return
+    end
+
     cfd = cfd or self:GetCachedCFDFor(userid)
 
-    local i = 0
+    -- Starting with the first filter in the set.
+    local i = 1
+
+    local default_timeout = math.max(ASYNC_FILTER_TIMEOUT / #async_conn_filters)
+
+    --- @type Task?
     local timeout_task
     local handle_async_filter
-    local function run_async_filter()
-        i = i + 1
+    local function run_async_filter(index)
+        local filter = async_conn_filters[index]
+        local timeout = filter.timeout or default_timeout
+
+        if timeout_task then
+            timeout_task:settime(timeout)
+            timeout_task:restart()
+        else -- In case the timeout task was disabled by the previous filter or something.
+            timeout_task  = PEARL.WallScheduler:ExecuteInTime(timeout, function()
+                if PEARL.CONFIG.DEBUG_MODE then
+                    return error("Async filter timed out!")
+                end
+
+                PEARL.error("Async filter timed out! Did you forgot to call 'oncomplete'?")
+                handle_async_filter(true)
+            end)
+        end
 
         PEARL.debug("Running asynchrounous connection filter at index", i)
         if PEARL.SafeRun(
-            async_conn_filters[i].fn, userid, cfd, handle_async_filter
+            filter.fn, userid, cfd, handle_async_filter
         ) == false then
             -- If the filter throws an error, ignore it and mark it as allowing the connection.
             handle_async_filter(true)
@@ -274,25 +298,12 @@ function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
             return finishcb(userid, allowed, reason)
         end
 
-        if timeout_task then
-            timeout_task:restart()
-        end
-
-        -- Else run the next filter.
-        run_async_filter()
+        -- Move to the next filter
+        i = i + 1
+        run_async_filter(i)
     end
 
-    local timeout = math.max(ASYNC_FILTER_TIMEOUT / #async_conn_filters)
-    timeout_task  = PEARL.WallScheduler:ExecuteInTime(timeout, function()
-        if PEARL.CONFIG.DEBUG_MODE then
-            return error("Async filter timed out!")
-        end
-
-        PEARL.error("Async filter timed out! Did you forgot to call 'oncomplete'?")
-        handle_async_filter(true)
-    end)
-
-    run_async_filter()
+    run_async_filter(i)
 end
 
 
@@ -424,11 +435,23 @@ function ServerNetwork:IsClientPriviliged(userid)
     return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid) or TheNet:GetUserID() == userid
 end
 
+--- Debugging puposes.
+
+function ServerNetwork:GetFilterByName(name, async)
+    local t = async == true and async_conn_filters or conn_filters
+
+    for _, filter in ipairs(t) do
+        if filter.name and filter.name == name then
+            return filter
+        end
+    end
+end
+
 ----------------------------------
 -- Setters
 ----------------------------------
 
-local function AddFilter(tbl, filter, priority, timeout)
+local function AddFilter(tbl, filter, priority, timeout, name)
     if type(filter) ~= "function" then
         error("Invalid filter function")
     end
@@ -438,7 +461,8 @@ local function AddFilter(tbl, filter, priority, timeout)
     table.insert(tbl, {
         fn = filter,
         priority = type(priority) == "number" and priority or math.huge,
-        timeout = type(timeout) == "number" and timeout or ASYNC_FILTER_TIMEOUT
+        timeout = type(timeout) == "number" and timeout or ASYNC_FILTER_TIMEOUT,
+        name = type(name) == "string" and name or nil,
     })
 
     -- Keep the filters sorted.
@@ -449,20 +473,21 @@ end
 
 --- @param filter function<userid, data>
 --- @param priority number? Whether this filter should be called sooner or later.
-function ServerNetwork:AddConnectionFilter(filter, priority)
+function ServerNetwork:AddConnectionFilter(filter, priority, name)
     PEARL.debug("ServerNetwork:AddConnectionFilter", filter, priority)
 
-    AddFilter(conn_filters, filter, priority)
+    -- Sync filters do not have timeouts
+    AddFilter(conn_filters, filter, priority, nil, name)
 end
 
 --- NOTE: Async filters ALWAYS require a response by calling the filter function!
 --- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
 --- @param priority number? Whether this filter should be called sooner or later.
 --- @param timeout number? Whether this filter should be called sooner or later.
-function ServerNetwork:AddAsyncConnectionFilter(filter, priority, timeout)
+function ServerNetwork:AddAsyncConnectionFilter(filter, priority, timeout, name)
     PEARL.debug("ServerNetwork:AddAsyncConnectionFilter", filter, priority)
 
-    AddFilter(async_conn_filters, filter, priority, timeout)
+    AddFilter(async_conn_filters, filter, priority, timeout, name)
 end
 
 function ServerNetwork:AddJoinServerFilter(filter)

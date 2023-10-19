@@ -31,7 +31,11 @@ local json = json
 ------------------------------------------
 
 local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"
-local DATABASE_LISTING_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/userids"
+
+local BINDING_TYPE = {
+    STEAM = "steamids",
+    DISCORD = "discordids",
+}
 
 local STARTING_REPUTATION = PEARL.CONSTS.STARTING_REPUTATION
 
@@ -67,10 +71,20 @@ end
 local PlayerDB = {
     -- Here we will safe all active (cached) records.
     _records = {},
-    _userids = {},
 
     _enabled = true,
+
+    _bindings = {
+        [BINDING_TYPE.DISCORD]  = nil,
+        [BINDING_TYPE.STEAM]    = nil,
+    }
 }
+
+------------------------------------------
+-- [[ Static ]]
+------------------------------------------
+
+PlayerDB.BINDING_TYPE = BINDING_TYPE
 
 ------------------------------------------
 -- [[ Getters ]]
@@ -92,7 +106,7 @@ end
 --- The total number of records saved in this database.
 --- @return number
 function PlayerDB:GetTotalRecordCount()
-    return self._userids.count or 0
+    return self._bindings and table.size(self._bindings[BINDING_TYPE.STEAM])
 end
 
 --- Checks whether the provided userid has a record file created.
@@ -111,7 +125,7 @@ function PlayerDB:GetRecordFor(userid)
         return
     end
 
-    userid = self:MapNetID(userid) or userid
+    userid = self:MapSteamID(userid) or userid
 
     return self._records[userid] or self:LoadRecordFor(userid)
 end
@@ -150,8 +164,12 @@ function PlayerDB:IsDisabled()
     return self._enabled ~= true
 end
 
-function PlayerDB:MapNetID(netid)
-    return self._userids[netid]
+function PlayerDB:MapSteamID(steamid)
+    return self._bindings[BINDING_TYPE.STEAM][steamid]
+end
+
+function PlayerDB:MapDiscordID(discordid)
+    return self._bindings[BINDING_TYPE.DISCORD][discordid]
 end
 
 ------------------------------------------
@@ -161,15 +179,39 @@ end
 -- Userids are mapped by Steam IDs for easier access.
 -- We store the whole list of IDs so we can traverse all records if needed,
 -- since we cannot list files.
-function PlayerDB:AddUserid(userid, netid)
+--- @param userid string
+--- @param bindid string
+--- @param bindtype string
+function PlayerDB:AddBinding(userid, bindid, bindtype)
     if self:IsDisabled() then
         return
     end
 
-    if not self._userids[netid] then
-        self._userids[netid] = userid
-        self._userids.count = (self._userids.count or 0) + 1
+    if type(self._bindings[bindtype]) ~= "table" then
+        return PEARL.error("Invalid bind type provided!")
     end
+
+    bindid = tostring(bindid)
+    userid = tostring(userid)
+
+    if self._bindings[bindtype][bindid] ~= nil then
+        if self._bindings[bindtype][bindid] == userid then
+            return PEARL.error("Binding", bindid, "->", userid, "already exists!")
+        end
+
+        return PEARL.error(bindid, "already bound to", userid)
+    end
+
+    self._bindings[bindtype][bindid] = userid
+
+    -- We have to save after every adding because there is no global saving for binding files.
+    -- Also save the userid list here, because this is the only place
+    -- where we are modifying it in some way.
+    -- We want to make sure that the info there is always up-to-date
+    -- with the record files created in case of some unexcpected shutdowns or crashes.
+    self:SaveBindingFile(bindtype)
+
+    PEARL.debug("Binding", bindid, "->", userid, "successfully added!")
 end
 
 --- @return table<string, any>?
@@ -247,18 +289,12 @@ function PlayerDB:EnsureRecordFor(userid)
             return PEARL.error("Failed to create record for", userid)
         end
 
-        -- Netid should never be nil
-        self:AddUserid(userid, record.netid)
-
         -- Make sure the file exists
         -- And the initial data are always recorded.
         self:SaveRecordFor(userid, record, true)
 
-        -- Also save the userid list here, because this is the only place
-        -- where we are modifying it in some way.
-        -- We want to make sure that the info there is always up-to-date
-        -- with the record files created in case of some unexcpected shutdowns or crashes.
-        self:SaveUseridList()
+        -- Netid should never be nil
+        self:AddBinding(userid, record.netid, BINDING_TYPE.STEAM)
 
         return record, true
     end
@@ -341,13 +377,21 @@ function PlayerDB:LoadDatabaseFile(path, ensure)
     return data
 end
 
-function PlayerDB:LoadUseridList()
-    self._userids = self:LoadDatabaseFile(DATABASE_LISTING_FILE_PATH, true) or self._userids
-    return self._userids
+function PlayerDB:LoadBindingFile(type)
+    PEARL.info("Loading bindings from", type)
+    self._bindings[type] = self:LoadDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, true)
 end
 
-function PlayerDB:SaveUseridList()
-    return self:SaveToDatabaseFile(DATABASE_LISTING_FILE_PATH, self._userids, true)
+function PlayerDB:LoadBindingFiles()
+    for _, type in pairs(BINDING_TYPE) do
+        self:LoadBindingFile(type)
+    end
+end
+
+function PlayerDB:SaveBindingFile(type)
+    PEARL.info("Saving binding file", type)
+
+    self:SaveToDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, self._bindings[type], true)
 end
 
 function PlayerDB:LoadRecordFor(userid)

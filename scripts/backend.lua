@@ -529,7 +529,7 @@ PEARL.AdminList:Load()
 PEARL.PlayerDB = PEARL.loadfile("libraries/playerdatabase")
 PEARL.PlayerDB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
 if PEARL.PlayerDB:IsEnabled() then
-    PEARL.PlayerDB:LoadUseridList()
+    PEARL.PlayerDB:LoadBindingFiles()
 end
 
 --- @type Reputation

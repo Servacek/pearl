@@ -75,9 +75,10 @@ local srt_def = false
 --------------------------------------
 
 -- Returns whether t1 < t2
+-- Used for reversed sorting of the task stack.
 -- Task having ext as nil should be on the end of the stack as well.
 local function task_comp(t1, t2)
-    return (t1 and t1._ext or -math.huge) > (t2 and t2._ext or -math.huge)
+    return (t1 and t1._ext or math.huge) > (t2 and t2._ext or -math.huge)
 end
 
 -- WARNING: NEVER DIRECTLY RESORT TASKS WHILE LOOPING!
@@ -113,7 +114,9 @@ local function add_task(task, nosort)
     tasks[task_count] = task
 
     -- Check if it needs resorting.
-    if nosort ~= true and (prev and task_comp(prev, task)) then
+    -- Looks like this check has some flaws, so better be safe than sorry.
+    --if nosort ~= true and (prev and task_comp(prev, task)) then
+    if nosort ~= true then
         sort_tasks()
     end
 
@@ -352,7 +355,7 @@ function WallScheduler:GetTasks()
 end
 
 function WallScheduler:DisplayTasks()
-    for i = 1, task_count do
+    for i = task_count, 1, -1 do
         local task = tasks[i]
 
         print(task.tostring and task:tostring() or tostring(task))
