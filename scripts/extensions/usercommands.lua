@@ -14,7 +14,6 @@
 -- This is a static singleton "class" (no self).
 local UserCommands = require("usercommands")
 
-
 local MENTION_DELIMETER = PEARL.CONSTS.DELIMS.PLAYER_NAME
 
 
@@ -23,23 +22,19 @@ local discord_commands = {}
 
 --- @param name string The name of the command.
 --- @param params table<string, any> Parameters provided to the command.
---- @param callername string The display name of the caller.
+--- @param caller table<string, any> The authors data.
+--- @param id string? The ID of the discord command that caused this function to be called.
 --- @return (Message|Embed|string)?
-function UserCommands.RunDiscordCommand(name, params, callername)
+function UserCommands.RunDiscordCommand(name, params, caller, id)
     local command = UserCommands.GetCommandFromName(name) or UserCommands.GetDiscordCommand(name)
     if not command or command.discord == false then
         PEARL.error("Attempted to run an invalid discord command!")
         return STRINGS.PEARL.COMMAND_RESPONSES.INVALID
     end
 
-    local caller = {
-        name = callername,
-        GetDisplayName = function() return callername end
-    }
-
     -- Even the main function is optional for discord only commands.
     local mainfn = command and command.mainfn
-    local response = mainfn and {mainfn(params, caller)}
+    local response = mainfn and {mainfn(params, caller, id)}
 
     if type(command.discordfn) == "function" then
         return command.discordfn(params, caller, PEARL.unpack(response))

@@ -34,7 +34,7 @@ local KleiAccounts = {}
 ------------------------------------------
 
 --- We are currently supporting link validation only for the discord platform account links.
-KleiAccounts.LINK = {
+KleiAccounts.PLATFORM = {
     DISCORD = "discord",
 }
 
@@ -47,7 +47,7 @@ KleiAccounts.GAME = {
 ------------------------------------------
 
 --- @return Request? request The newly created request for the query.
-function KleiAccounts:QueryGameOwner(userid, gameid)
+function KleiAccounts:QueryGameOwner(userid, gameid, cb)
     local success_encode, input_json = pcall(json.encode, {
         Token   = PEARL.SERVER_TOKEN,
         KU      = userid,
@@ -59,7 +59,13 @@ function KleiAccounts:QueryGameOwner(userid, gameid)
 
     return (PEARL.HTTPClient:POST(
         ENDPOINT.A_OWNER_LOOKUP, nil, input_json, QUERY_TIMEOUT
-    ))
+    )):SetOnComplete(function(data, request, success)
+        if not success and request:IsRetryable() then
+            return
+        end
+
+        cb(success and not data.Error and data.ParentAccount)
+    end)
 end
 
 --- @return Request? request The newly created request for the query.
@@ -70,6 +76,7 @@ function KleiAccounts:QueryLinkValidation(userid, platform, platformid)
         UserID          = userid,
         [PlatformID]    = tostring(platformid)
     })
+    print(input_json)
     if not success_encode or not input_json then
         return PEARL.error("JSON failed to encode query data!")
     end

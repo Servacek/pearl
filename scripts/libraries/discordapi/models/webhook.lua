@@ -85,13 +85,13 @@ end
 
 --- @param message Message The message to be posted by this webhook.
 function Webhook:PostMessage(message)
-    PEARL.DiscordRestAPI:PostWebhookMessage(self.url, message)
+    return PEARL.DiscordRestAPI:PostWebhookMessage(self.url, message)
 end
 
 --- @param message_id string The ID of webhook's message to be edited.
 --- @param edited Message The message to replace the original.
 function Webhook:EditMessage(message_id, edited)
-    PEARL.DiscordRestAPI:EditWebhookMessage(self.url, message_id, edited)
+    return PEARL.DiscordRestAPI:EditWebhookMessage(self.url, message_id, edited)
 end
 
 --- @param message_id string The ID of webhook's message to be edited.

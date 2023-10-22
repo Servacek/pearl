@@ -75,10 +75,6 @@ local function make_safe_cb(name, cb)
     end
 end
 
-local function GetTargetUserID(param)
-    return UserToClientID(param) or param
-end
-
 -- When executed from STDIN, these are always in a protected call.
 local function AddConsoleCommand(name, fn)
     PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), fn)
@@ -249,7 +245,7 @@ AddCommand("fire", {
                 extinguish_near(player:GetPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
 
                 TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
-                    caller and caller:GetDisplayName() or player:GetDisplayName(), player:GetDisplayName()
+                    caller and caller.name or player.name, player.name
                 ), caller and caller.entity)
                 return
             end
@@ -260,7 +256,7 @@ AddCommand("fire", {
         extinguish_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
 
         TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH"..pt_postfix]:format(
-            caller and caller:GetDisplayName() or "Shenanigans"
+            caller and caller.name or "Shenanigans"
         ), caller and caller.entity)
     end,
 })
@@ -299,7 +295,7 @@ AddCommand("repair", {
                 repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
 
                 TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_NEAR"..pt_postfix]:format(
-                    caller and caller:GetDisplayName() or "Shenanigans"
+                    caller and caller.name or "Shenanigans"
                 ), caller and caller.entity)
 
                 return
@@ -311,7 +307,7 @@ AddCommand("repair", {
         repair_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
 
         TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_ALL"..pt_postfix]:format(
-            caller and caller:GetDisplayName() or "Shenanigans"
+            caller and caller.name or "Shenanigans"
         ), caller and caller.entity)
     end,
 })
@@ -792,7 +788,7 @@ AddCommand("give", {
         end
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ON_SUCCESS:format(
-            count, item:GetBasicDisplayName(), player:GetDisplayName()
+            count, item:GetBasicDisplayName(), player.name
         )
     end,
 })
@@ -843,7 +839,7 @@ AddCommand("take", {
         end
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.ON_SUCCESS:format(
-            total_count, item_name or "UNKNOWN", player:GetDisplayName()
+            total_count, item_name or "UNKNOWN", player.name
         )
     end,
 })
@@ -869,7 +865,7 @@ AddCommand("drop", {
             player.components.inventory:DropEverything()
 
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP_ALL:format(
-                player:GetDisplayName()
+                player.name
             )
         end
 
@@ -899,7 +895,7 @@ AddCommand("drop", {
         end
 
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP:format(
-            total_amount, item_name or "UNKNOWN", player:GetDisplayName()
+            total_amount, item_name or "UNKNOWN", player.name
         )
     end,
 })
@@ -921,7 +917,7 @@ AddCommand("kill", {
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
         end
 
-        player:PushEvent("death", {cause = caller and caller:GetDisplayName()})
+        player:PushEvent("death", {cause = caller and caller.name})
 
         -- Implicit response via the announcement
         --return STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.ON_SUCCESS
@@ -1028,6 +1024,8 @@ AddCommand("skip", {
 })
 
 AddCommand("announce", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ANNOUNCE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ANNOUNCE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     console = false, -- Already implemented for console.
     discord = true,
@@ -1066,7 +1064,7 @@ AddCommand("dm", {
         message:SetReceiver(target.name)
 
         if caller then
-            local name = caller:GetDisplayName() or caller.name
+            local name = caller.name
             local client = caller.userid and TheNet:GetClientTableForUser(caller.userid)
             if client then
                 message:SetIcon(GetRemotePlayerVanityItem(client.vanity or {}, "profileflair"))
@@ -1086,6 +1084,8 @@ AddCommand("dm", {
 })
 
 AddCommand("system", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     console = true,
     discord = true,
@@ -1098,6 +1098,131 @@ AddCommand("system", {
     mainfn = function(params)
         TheNet:SystemMessage(params.message)
     end
+})
+
+AddCommand("gameowner", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    discord = true,
+    slash = false,
+    usermenu = false,
+    servermenu = false,
+    params = { "player" },
+    paramsoptional = { false },
+
+    mainfn = function(params, caller, commandid)
+        local userid = UserToClientID(params.player) or params.player
+        local request = PEARL.KleiAccounts:QueryGameOwner(
+            userid, PEARL.KleiAccounts.GAME.DST, function(rootid)
+                local result = STRINGS.PEARL.UI.BUILTINCOMMANDS.GAMEOWNER.ON_FAILURE
+                if type(rootid) == "string" and #rootid > 2 then
+                    result = STRINGS.PEARL.UI.BUILTINCOMMANDS.GAMEOWNER.ON_SUCCESS:format(rootid)
+                end
+
+                if commandid ~= nil then
+                    return PEARL.DiscordProxy:SendCommandResponse(commandid, Message(result))
+                end
+
+                PEARL.info(result)
+        end)
+
+        if not request then
+            error("Failed to encode verification json data!")
+        end
+
+        request:Send()
+    end
+})
+
+AddCommand("pair", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.DESC,
+    permission = COMMAND_PERMISSION.USER,
+    console = false,
+    discord = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    params = { "id" },
+    paramsoptional = { false },
+
+    mainfn = function(params, caller, commandid)
+        local bindtype = PEARL.PlayerDB.BINDING_TYPE.DISCORD
+        local userid = caller.userid or params.id
+        local discordid = caller.discordid or params.id
+
+        if not PEARL.PlayerDB:HasRecordFile(userid) then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.NOT_PLAYED
+        end
+
+        if PEARL.PlayerDB:BindingExists(userid, discordid, bindtype) then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ALREADY_PAIRED
+        end
+
+        local request = PEARL.KleiAccounts:QueryLinkValidation(
+            userid, PEARL.KleiAccounts.PLATFORM.DISCORD, discordid
+        )
+        if not request then
+            error("Failed to encode verification json data!")
+        end
+
+        request:SetOnComplete(function(data, self, success)
+            if not success then
+                if not self:IsRetryable() then
+                    PEARL.DiscordProxy:SendCommandResponse(
+                        commandid, Message(STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE)
+                    )
+                end
+
+                return
+            end
+
+            if data.Error ~= false then
+                error("Verification request failed!")
+            end
+
+            if data.Linked then
+                PEARL.PlayerDB:AddBinding(userid, discordid, bindtype)
+                return PEARL.DiscordProxy:SendCommandResponse(
+                    commandid, Message(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ON_SUCCESS)
+                )
+            end
+
+            return PEARL.DiscordProxy:SendCommandResponse(
+                commandid, Message(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.NOT_PAIR_OFFICIALLY)
+            )
+        end)
+        request:Send()
+    end,
+})
+
+AddCommand("unpair", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.DESC,
+    permission = COMMAND_PERMISSION.USER,
+    console = false,
+    discord = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+
+    mainfn = function(params, caller)
+        local bindtype = PEARL.PlayerDB.BINDING_TYPE.DISCORD
+        local userid = caller.userid
+        local discordid = caller.discordid
+        if userid and not discordid then
+            discordid = PEARL.PlayerDB:MapUserIDToType(userid, bindtype)
+        elseif discordid and not userid then
+            userid = PEARL.PlayerDB:MapDiscordID(discordid)
+        end
+
+        if not userid or not discordid or not PEARL.PlayerDB:BindingExists(userid, discordid, bindtype) then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.NOT_PAIRED
+        end
+
+        PEARL.PlayerDB:RemoveBinding(userid, discordid, bindtype)
+        return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.ON_SUCCESS
+    end,
 })
 
 AddCommand("blockmod", {
@@ -1163,12 +1288,12 @@ AddCommand("setdbfield", {
             return STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED
         end
 
-        local userid = UserToClientID(params.player)
-        if not PEARL.PlayerDB:HasRecord(userid) then
+        local userid = UserToClientID(params.player) or params.player
+        if not userid or not PEARL.PlayerDB:HasRecordFile(userid) then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
         end
 
-        if not PEARL.PlayerDB:OptionalSetField(userid, params.field, params.value) then
+        if not PEARL.PlayerDB:SetField(userid, params.field, params.value) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE
         end
 

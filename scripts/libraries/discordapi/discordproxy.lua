@@ -45,7 +45,7 @@ local START_SESSION_RETRIES = 3
 --------------------------------
 
 --- @singleton
---- @class DiscordProxy
+--- @class DiscordProxy: Library
 local DiscordProxy = {
     --- @type number
     state = STATE.STOPPED,
@@ -62,6 +62,9 @@ local DiscordProxy = {
     },
     --- @type table
     response_cache = {},
+
+    processingcount = 0,
+    processingtype = nil,
 }
 
 --- @type DiscordProxy
@@ -77,6 +80,11 @@ DiscordProxy.URL   = URL
 DiscordProxy.EVENT_CATEGORY = {
     SHARD   = "shard",
     PLAYER  = "player",
+}
+
+DiscordProxy.PROCESSING_TYPE = {
+    MESSAGES = 1,
+    COMMANDS = 2,
 }
 
 --------------------------------
@@ -133,8 +141,12 @@ function DiscordProxy:GetShardAutocompleteData()
     return shards
 end
 
-function DiscordProxy:GetAllAutocompleteData()
+function DiscordProxy:GetProcessingCount()
+    return self.processingcount
+end
 
+function DiscordProxy:IsProcessing(type)
+    return self.processingtype == type and self.processingcount > 0
 end
 
 --------------------------------
@@ -246,6 +258,18 @@ end
 -- [[ Public Methods ]]
 --------------------------------
 
+function DiscordProxy:StartProcessingData(type)
+    PEARL.debug("DiscordProxy:StartProcessingData", type)
+
+    self.processingtype = type
+end
+
+function DiscordProxy:StopProcessing()
+    PEARL.debug("DiscordProxy:StopProcessing", self.processingtype)
+
+    self.processingtype = nil
+end
+
 function DiscordProxy:CreateEvent(name, ...)
     return {
         name = name,
@@ -265,8 +289,8 @@ function DiscordProxy:AddShardEvent(name, ...)
     self:SetEventData(self.EVENT_CATEGORY.SHARD, self:CreateEvent(name, ...))
 end
 
-function DiscordProxy:AddCommandResponse(command_id, message_table)
-    self.response_cache[command_id] = message_table
+function DiscordProxy:AddCommandResponse(commandid, message_table)
+    self.response_cache[commandid] = message_table
 end
 
 function DiscordProxy:CleanupEvents()
@@ -295,7 +319,7 @@ function DiscordProxy:StartSession(retries)
         shards  = DiscordProxy:GetShardAutocompleteData(),
     })
     :SetIsRaw(true)
-    :SetOnError(OnSessionStartFailed)
+    :SetOnError(retries ~= 0 and OnSessionStartFailed or nil)
     :SetMaxRetries(retries or START_SESSION_RETRIES)
     :Send()
 end
@@ -323,6 +347,7 @@ function DiscordProxy:RestartSession(retries)
         PEARL.EventProcessor:HandleEvent("proxy_server_restart")
     end
 
+    self:SetState(DiscordProxy.STATE.STOPPED)
     self:StartSession(retries)
 end
 
@@ -334,6 +359,16 @@ function DiscordProxy:SendCachedCommandResponses()
         :Send()
 
     self:CleanupResponseCache()
+end
+
+--- @param commandid string
+--- @param message Message
+function DiscordProxy:SendCommandResponse(commandid, message)
+    self:AddCommandResponse(commandid, message:ToTable())
+
+    if not self:IsProcessing(self.PROCESSING_TYPE.COMMANDS) and self:HasAnyCommandResponses() then
+        self:SendCachedCommandResponses()
+    end
 end
 
 function DiscordProxy:StopFetchTask()

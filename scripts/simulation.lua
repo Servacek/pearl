@@ -79,7 +79,7 @@ _Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
     if type(_Crash) == "function" then
         if not silent then
             -- Real crash
-            return _Crash()
+            return _Crash(self)
         end
 
         PEARL.WallScheduler:ExecuteInTime(1, _Crash, nil, self, silent, ...)

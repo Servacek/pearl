@@ -288,7 +288,7 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
 
     -- Run the file in our environment so it has access to all the globals it could possibly need.
     local success, data = PEARL.ClusterPersistance:LoadLuaFile(fp, false, PEARL.ENV)
-    if not success or not data then
+    if not success or type(data) ~= "table" then
         -- Data should be in this case the traceback.
         return PEARL.error("Failed to load the custom loading tips!", data)
     end
@@ -609,7 +609,7 @@ if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
     --- @DEBUG
-    --ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
+    ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
 end
 
 -- Logger Modules

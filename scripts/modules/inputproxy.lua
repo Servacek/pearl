@@ -37,7 +37,7 @@ local function HandleCommand(command)
     PEARL.info("Executing discord command", command.name.."...")
 
     local success, response = PEARL.SafeRun(
-        UserCommands.RunDiscordCommand, command.name, command.params or {}, command.caller
+        UserCommands.RunDiscordCommand, command.name, command.params or {}, command.caller, command.id
     )
 
     local waiting_for_response = command.id ~= nil
@@ -79,20 +79,6 @@ local function HandleCommand(command)
     end
 end
 
-local function HandleCommands(commands)
-    for _, command in ipairs(commands) do
-        if PEARL.CONFIG.DEBUG_MODE then
-            table.dump(command)
-        end
-
-        HandleCommand(command)
-    end
-
-    if PEARL.DiscordProxy:HasAnyCommandResponses() then
-        PEARL.DiscordProxy:SendCachedCommandResponses()
-    end
-end
-
 local function HandleChatMessage(data)
     local a_colour
     local a_name = (data.admin == true and MESSAGE_NAME_ADMIN or MESSAGE_NAME):format(data.author)
@@ -112,12 +98,35 @@ local function HandleChatMessage(data)
     PEARL.ServerNetwork:DisplayChatMessage(message)
 end
 
+local function HandleCommands(commands)
+    PEARL.DiscordProxy:CleanupResponseCache()
+    PEARL.DiscordProxy:StartProcessingData(PEARL.DiscordProxy.PROCESSING_TYPE.MESSAGES)
+
+    for _, command in ipairs(commands) do
+        if PEARL.CONFIG.DEBUG_MODE then
+            table.dump(command)
+        end
+
+        HandleCommand(command)
+    end
+
+    if PEARL.DiscordProxy:HasAnyCommandResponses() then
+        PEARL.DiscordProxy:SendCachedCommandResponses()
+    end
+
+    PEARL.DiscordProxy:StopProcessing()
+end
+
 local function HandleChatMessages(messages)
+    PEARL.DiscordProxy:StartProcessingData(PEARL.DiscordProxy.PROCESSING_TYPE.MESSAGES)
+
     for _, data in ipairs(messages) do
         if PEARL.SafeRun(HandleChatMessage, data) == false then
             PEARL.EventProcessor:HandleEvent("proxy_message_failed", data)
         end
     end
+
+    PEARL.DiscordProxy:StopProcessing()
 end
 
 local function HandleEvents(events)
@@ -157,7 +166,7 @@ local function OnQuit()
 end
 
 local function OnSave()
-    if PEARL.DiscordProxy:IsRunning() then
+    if not PEARL.DiscordProxy:IsRunning() then
         -- Attempt to silently restart the session if not started yet.
         -- Do not retry here, just a one-shot to not flood the logs.
         PEARL.DiscordProxy:RestartSession(0)

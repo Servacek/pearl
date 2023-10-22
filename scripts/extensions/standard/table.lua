@@ -97,6 +97,16 @@ function table:clear()
     return self
 end
 
+--- Returns the first key for the specified value found in the the specified table.
+--- @return key? any
+function table:getkey(value)
+    for k, v in pairs(self) do
+        if v == value then
+            return k
+        end
+    end
+end
+
 function table.rcontains(t, value)
     for _, v in pairs(t) do
         if v == value then

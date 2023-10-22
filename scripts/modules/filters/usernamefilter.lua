@@ -31,6 +31,6 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
         valid = not ProfanityFilter:Detect(data.username)
     end
 
-    PEARL.PlayerDB:OptionalSafeSetField(userid, "usernamevalid", valid)
+    PEARL.PlayerDB:SafeSetField(userid, "usernamevalid", valid)
     return valid, "ID_DST_USERNAME_BLOCKED"
 end)

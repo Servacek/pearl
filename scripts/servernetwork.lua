@@ -473,6 +473,7 @@ end
 
 --- @param filter function<userid, data>
 --- @param priority number? Whether this filter should be called sooner or later.
+--- @param name string? Whether this filter should be called sooner or later.
 function ServerNetwork:AddConnectionFilter(filter, priority, name)
     PEARL.debug("ServerNetwork:AddConnectionFilter", filter, priority)
 
@@ -484,6 +485,7 @@ end
 --- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
 --- @param priority number? Whether this filter should be called sooner or later.
 --- @param timeout number? Whether this filter should be called sooner or later.
+--- @param name string? Whether this filter should be called sooner or later.
 function ServerNetwork:AddAsyncConnectionFilter(filter, priority, timeout, name)
     PEARL.debug("ServerNetwork:AddAsyncConnectionFilter", filter, priority)
 

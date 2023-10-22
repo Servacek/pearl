@@ -67,21 +67,22 @@ end
 -- end
 
 ------------------------------
---- @TODO: Looks like there is some error here: Investigate
-if wg_overrides then
+
+if wg_overrides then do
     local taskset_name = (wg_overrides and wg_overrides.task_set) or "default"
+    --- @type table?
     local required_tasks = GetModConfigData("REQUIRED_WORLDGEN_TASKS")
+    if type(required_tasks) ~= "table" or IsTableEmpty(required_tasks) then
+        return
+    end
 
     print("[PEARL] Applying required tasks for", taskset_name)
     AddTaskSetPreInit(taskset_name, function(taskset)
-
         for _, task_name in ipairs(required_tasks) do
             RequireTaskInTaskSet(taskset, task_name)
         end
     end)
-
-    --- @TODO: Maybe fix the wg_overrides.has_ocean flag?
-end
+end end
 
 ----------------------------------
 -- Seed

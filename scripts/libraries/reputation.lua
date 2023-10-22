@@ -43,7 +43,7 @@ local function OnDelta(userid, new_rep)
         TheNet:Ban(userid)
 
         --- @TODO: probably we want to save some more info here?
-        PEARL.PlayerDB:OptionalSafeSetField(userid, "wasautobanned", true)
+        PEARL.PlayerDB:SafeSetField(userid, "wasautobanned", true)
     end
 end
 
@@ -131,7 +131,7 @@ function Reputation:DoDeltaTo(userid, delta, limit)
         return
     end
 
-    if not PEARL.PlayerDB:HasRecord(userid) then
+    if not PEARL.PlayerDB:HasRecordFile(userid) then
         PEARL.error("Record not found for", userid)
         return
     end

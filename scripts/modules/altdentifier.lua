@@ -148,7 +148,7 @@ PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, filtercb)
     SendRootRetriveQuery(userid, function(rootid)
         -- Root ID should not change since userid is bound to it.
         -- Save it even if it's invalid so we do not have to send another query in the future.
-        PEARL.PlayerDB:OptionalSafeSetField(userid, "rootuserid", rootid)
+        PEARL.PlayerDB:SafeSetField(userid, "rootuserid", rootid)
 
         RunRootFilterFor(userid, rootid, filtercb)
     end)

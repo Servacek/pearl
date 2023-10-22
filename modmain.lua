@@ -322,7 +322,7 @@ local loaders = require("libraries/fileloaders")
 --- Check the validity of the loaders
 for name, loader in pairs(loaders) do
     if type(loader) ~= "function" then
-        return error("Failed to load "..name.."!", tostring(PEARL.loader))
+        return error("Failed to load "..name.."! "..tostring(PEARL.loader))
     end
 
     if PEARL[name] ~= nil and PEARL.DEBUG_MODE then

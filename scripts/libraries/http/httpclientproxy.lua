@@ -104,7 +104,7 @@ end
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param method string The method of the request.
 --- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
---- @param data table The data table body for the request.
+--- @param data table? The json data table for the request, if any.
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---

@@ -116,22 +116,24 @@ function EMBEDS.LeaderboardArchived()
         :SetColor(Embed.COLORS.LIGHT_GREY)
 end
 
-function EMBEDS.Leaderboard(leaderboard, cur, notenoughdata)
+--- @param leaderboard Leaderboard
+function EMBEDS.Leaderboard(leaderboard, monthly)
+    local data = leaderboard:GetData()
     --- @type Embed
     local embed = Embed()
-        :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD[cur and "TITLE_CUR" or "TITLE_ABS"])
-        :SetThumbnail(STRINGS.PEARL.EMBEDS.LEADERBOARD[cur and "THMB_CUR_URL" or "THMB_ABS_URL"])
+        :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD[monthly and "TITLE_CUR" or "TITLE_ABS"])
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.LEADERBOARD[monthly and "THMB_CUR_URL" or "THMB_ABS_URL"])
         :SetTimestamp(os.time())
 
-    if notenoughdata then
+    if not leaderboard:HasEnoughData() then
         embed:SetDescription(STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA)
     else
         local max_rep_len = 0
         local index_col, name_col, rep_col = "", "", ""
-        for i, userid in ipairs(leaderboard.players) do
+        for i, userid in ipairs(data.players) do
             local name = tostring(PEARL.PlayerDB:GetField(userid, "username") or "UNKNOWN")
             local netid = PEARL.PlayerDB:GetField(userid, "netid") or nil
-            local rep = tostring(PEARL.Reputation:GetRepFieldOf(userid, cur and "monthgains" or "value"))
+            local rep = tostring(PEARL.Reputation:GetRepFieldOf(userid, monthly and "monthgains" or "value"))
 
             if i == 1 then
                 max_rep_len = #rep
@@ -153,11 +155,11 @@ function EMBEDS.Leaderboard(leaderboard, cur, notenoughdata)
         embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL, name_col, true)
         embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL, rep_col, true)
 
-        if leaderboard.dayleader then
-            local netid = PEARL.PlayerDB:GetField(leaderboard.dayleader, "netid")
-            local username = tostring(PEARL.PlayerDB:GetField(leaderboard.dayleader, "username") or "UNKNOWN")
-            local gains = PEARL.Reputation:GetTodayGainsOf(leaderboard.dayleader)
-            local reputation = PEARL.Reputation:GetOf(leaderboard.dayleader)
+        if data.dayleader then
+            local netid = PEARL.PlayerDB:GetField(data.dayleader, "netid")
+            local username = tostring(PEARL.PlayerDB:GetField(data.dayleader, "username") or "UNKNOWN")
+            local gains = PEARL.Reputation:GetTodayGainsOf(data.dayleader)
+            local reputation = PEARL.Reputation:GetOf(data.dayleader)
             local percent = math.round(gains / reputation, 2)
 
             embed:AddField("Hráč Dňa", string.format("%s %s +%s (%s%%)",
@@ -167,11 +169,11 @@ function EMBEDS.Leaderboard(leaderboard, cur, notenoughdata)
         end
     end
 
-    local date = leaderboard.monthstart or leaderboard.timecreated
+    local date = data.monthstart or data.timecreated
     if date then
         local date_tbl = PEARL.TimestampToTable(date)
         local month_name = PEARL.GetMonthFancyName(date_tbl.month)
-        local fd_name = cur and STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.MONTH or STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.CREATED
+        local fd_name = monthly and STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.MONTH or STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.CREATED
         embed:AddField(
             fd_name, MARKDOWN.codeblock(
                 STRINGS.PEARL.FULL_MONTH_NAME:format(month_name, date_tbl.year)
@@ -179,8 +181,8 @@ function EMBEDS.Leaderboard(leaderboard, cur, notenoughdata)
         )
     end
 
-    local total_count = leaderboard.recordcount or PEARL.PlayerDB:GetTotalRecordCount()
-    local local_count = notenoughdata and 0 or #leaderboard.players
+    local total_count = data.recordcount or PEARL.PlayerDB:GetTotalRecordCount()
+    local local_count = leaderboard:HasEnoughData() and #data.players or 0
     embed:SetFooter(("%s/%s"):format(local_count, total_count))
 
     return embed
@@ -303,14 +305,27 @@ function EMBEDS.ClientProfile(userid, dbr)
     local prefab = dbr.lastprefabfancy or dbr.lastprefab or ""
     local icon = PEARL.ICONS.PLAYER_PREFABS[prefab]
 
-    return Embed()
+    local loc_icon = ":flag_"..string.lower(dbr.lastlocale)..":"
+    local loc_str = STRINGS.PEARL.LOGS.TAG:format(
+        STRINGS.PEARL.UI[dbr.hadallowedlocale and "ALLOWED" or "BLOCKED"]
+    )
+
+    local embed = Embed()
         :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
         :SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
         :SetColor(Embed.COLORS.BLUE)
         :SetThumbnail(dbr.avatar)
         :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(dbr.totaldays), true)
         :AddField(P_STRINGS.FD_NAMES.REP, MARKDOWN.codeline(dbr.reputation.value), true)
+        :AddField(P_STRINGS.FD_NAMES.SEEN, MARKDOWN.timestamp(dbr.lastseentime), true)
+        :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon.." "..loc_str, true)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootuserid or "UNKNOWN"))
+
+    if dbr[PEARL.PlayerDB.BINDING_FIELD[PEARL.PlayerDB.BINDING_TYPE.DISCORD]] then
+        embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
+    end
+
+    return embed
 end
 
 -------------------------------------

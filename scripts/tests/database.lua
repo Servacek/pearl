@@ -17,7 +17,7 @@ function CheckAdding()
     local count = PEARL.PlayerDB:GetTotalRecordCount()
     local userid = PEARL.GenerateRandomKleiID()
     print("REGISTER USER", userid)
-    local record, created = PEARL.PlayerDB:EnsureRecordFor(userid)
+    local record, created = PEARL.PlayerDB:CreateRecordFile(userid)
 
     print(record, created)
     assert(type(record) == "table")

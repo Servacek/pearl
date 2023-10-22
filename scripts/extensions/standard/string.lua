@@ -11,7 +11,12 @@
 --]==]====================================================]]
 
 
+---@diagnostic disable: param-type-mismatch
 
+--- Some magic to prevent the diagnostics from marking custom string methods
+--- @class string: stringlib
+local stringlib = string
+string = stringlib
 
 -------------------------------------
 -- [[ Global Localization ]]
@@ -20,9 +25,7 @@
 local pairs = pairs
 
 local rep = string.rep
-local upper = string.utf8upper
-local utf8char = string.utf8char
-local sbyte = string.byte
+local utf8upper = string.utf8upper
 
 -------------------------------------
 -- [[ Public Functions ]]
@@ -139,7 +142,7 @@ end
 --- Converts the first letter of the given string to uppercase
 --- @return string result The formatted result string
 function string:capitalize()
-    return self and (self:gsub("^%l", upper)) or self
+    return self and (self:gsub("^%l", utf8upper)) or self
 end
 
 function string:count(word)
@@ -168,6 +171,7 @@ end
 --- If name is a table, all formattings in that table will be applied.
 --- Otherwise, if it's a string then a only specific formatting with that name
 --- will be replaced with the value string provided.
+--- @param self string
 --- @param name table<string, any>|string
 --- @param value string?
 function string:nformat(name, value)

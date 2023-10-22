@@ -106,6 +106,7 @@ local function _OnErrorStatusCode(response, status_code, request)
     end
 end
 
+--- @return Request? request
 local function _SendActionRequest(url, action, data)
     if RestAPI:IsDisabled() then
         return
@@ -134,7 +135,7 @@ local function _SendActionRequest(url, action, data)
         request:SetMaxRetries(0)
     end
 
-    request:Send()
+    return (request:Send())
 end
 
 --------------------------------
@@ -162,20 +163,22 @@ end
 --------------------------------
 
 --- @param wurl string The URL of the target webhook.
---- @param action WEBHOOK_ACTIONS The action to be executed for the given webhook's message.
+--- @param action integer The action to be executed for the given webhook's message.
+--- @return Request? request
 function RestAPI:DoWebhookAction(wurl, action)
     if self:IsDisabled() then
         PEARL.error("Attempted to execute a webhook action but the Rest API is disabled!")
         return
     end
 
-    _SendActionRequest(wurl, action, nil)
+    return _SendActionRequest(wurl, action, nil)
 end
 
 --- @param wurl string The URL of the target webhook.
 --- @param message_id string? The snowflake of the target message.
---- @param action WEBHOOK_ACTIONS The action to be executed for the given webhook's message.
---- @param message Message The message object representing providing the data for this action.
+--- @param action integer The action to be executed for the given webhook's message.
+--- @param message Message? The message object representing providing the data for this action.
+--- @return Request? request
 function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message)
     if self:IsDisabled() then
         PEARL.error("Attempted to execute a webhook message action but the Rest API is disabled!")
@@ -194,15 +197,16 @@ function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message)
 
     local data = message and message:ToTable()
     local endpoint_url = message_id and wurl..ENDPOINTS.W_MESSAGE:format(message_id) or wurl
-    _SendActionRequest(endpoint_url, action, data)
+    return _SendActionRequest(endpoint_url, action, data)
 end
 
 --- @param wurl string The URL of the target webhook.
 --- @param message Message The message to be posted by this webhook
+--- @return Request? request
 function RestAPI:PostWebhookMessage(wurl, message)
     --PEARL.debug("PostWebhookMessage", message)
 
-    self:DoWebhookMessageAction(
+    return self:DoWebhookMessageAction(
         wurl, nil, WEBHOOK_ACTIONS.POST, message
     )
 end
@@ -210,10 +214,11 @@ end
 --- @param wurl string The URL of the target webhook.
 --- @param message_id string The snowflake of the target message.
 --- @param edited Message The message object representing the edited message.
+--- @return Request? request
 function RestAPI:EditWebhookMessage(wurl, message_id, edited)
     --PEARL.debug("EditWebhookMessage", message_id)
 
-    self:DoWebhookMessageAction(
+    return self:DoWebhookMessageAction(
         wurl, message_id, WEBHOOK_ACTIONS.EDIT, edited
     )
 end

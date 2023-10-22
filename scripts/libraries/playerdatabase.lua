@@ -18,6 +18,7 @@
         - Maybe we save the lastinv as well?
 ]]
 
+local Library = PEARL.loadfile("models/library")
 
 ------------------------------------------
 -- [[ Localization ]]
@@ -37,16 +38,27 @@ local BINDING_TYPE = {
     DISCORD = "discordids",
 }
 
-local STARTING_REPUTATION = PEARL.CONSTS.STARTING_REPUTATION
+local BINDING_FIELD = {
+    -- Shortcut used by the game, we inherit it for consistency.
+    [BINDING_TYPE.STEAM] = "netid"
+}
+for name, type in pairs(BINDING_TYPE) do
+    if BINDING_FIELD[type] == nil then
+        BINDING_FIELD[type] = string.lower(name).."id"
+    end
+end
 
+table.dump(BINDING_FIELD)
+
+--- Put default non-dynamic record data here.
 local RECORD_TEMPLATE = {
     joinedtime = nil,
     totaldays = 0,
     netid = nil,
     reputation = {
-        value = STARTING_REPUTATION,
-        peak = STARTING_REPUTATION,
-        lowest = STARTING_REPUTATION,
+        value = PEARL.CONSTS.STARTING_REPUTATION,
+        peak = PEARL.CONSTS.STARTING_REPUTATION,
+        lowest = PEARL.CONSTS.STARTING_REPUTATION,
         monthgains = 0,
         daygains = 0,
     },
@@ -59,6 +71,13 @@ local RECORD_TEMPLATE = {
 -- [[ Local Functions ]]
 ------------------------------------------
 
+-- local function CreateRecordMT(t)
+--     return {
+--         __saved     = deepcopy(t),
+--         __changes   = 0,
+--     }
+-- end
+
 local function IsClearValue(value)
     return value == nil or value == ""
 end
@@ -67,12 +86,11 @@ end
 -- [[ Class Declaration ]]
 ------------------------------------------
 
---- @class PlayerDB
+--- @singleton
+--- @class PlayerDB: Library
 local PlayerDB = {
     -- Here we will safe all active (cached) records.
     _records = {},
-
-    _enabled = true,
 
     _bindings = {
         [BINDING_TYPE.DISCORD]  = nil,
@@ -80,11 +98,15 @@ local PlayerDB = {
     }
 }
 
+--- @type PlayerDB
+PlayerDB = Library(PlayerDB)
+
 ------------------------------------------
 -- [[ Static ]]
 ------------------------------------------
 
-PlayerDB.BINDING_TYPE = BINDING_TYPE
+PlayerDB.BINDING_TYPE    = BINDING_TYPE
+PlayerDB.BINDING_FIELD   = BINDING_FIELD
 
 ------------------------------------------
 -- [[ Getters ]]
@@ -109,27 +131,41 @@ function PlayerDB:GetTotalRecordCount()
     return self._bindings and table.size(self._bindings[BINDING_TYPE.STEAM])
 end
 
+function PlayerDB:GetRecordFilePathFor(userid)
+    return DATABASE_FILE_PATH:format(userid)
+end
+
 --- Checks whether the provided userid has a record file created.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return boolean
-function PlayerDB:HasRecord(userid)
-    return io.exists(DATABASE_FILE_PATH:format(userid))
+function PlayerDB:HasRecordFile(userid)
+    return userid and io.exists(DATABASE_FILE_PATH:format(userid))
 end
 
 --- Supports Steam ID as well as Klei ID.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return table<string, any>? record The record of the provided player.
 function PlayerDB:GetRecordFor(userid)
-    print(PEARL.CalledFrom(5))
     if self:IsDisabled() then
         return
     end
 
     userid = self:MapSteamID(userid) or userid
 
-    return self._records[userid] or self:LoadRecordFor(userid)
+    if self._records[userid] then
+        return self._records[userid]
+    end
+
+    local record = self:LoadRecordFor(userid, true)
+    if record then
+        return self:CacheRecord(userid, record)
+    end
 end
 
+--- @param userid string
+--- @param name string
+--- @param default? any?
+--- @return any?
 function PlayerDB:GetField(userid, name, default)
     local record = self:GetRecordFor(userid)
     if not record or record[name] == nil then
@@ -156,20 +192,50 @@ function PlayerDB:IsRecordLoadedFor(userid)
     return type(self._records[userid]) == "table"
 end
 
-function PlayerDB:IsEnabled()
-    return self._enabled == true
-end
-
-function PlayerDB:IsDisabled()
-    return self._enabled ~= true
-end
-
 function PlayerDB:MapSteamID(steamid)
     return self._bindings[BINDING_TYPE.STEAM][steamid]
 end
 
 function PlayerDB:MapDiscordID(discordid)
     return self._bindings[BINDING_TYPE.DISCORD][discordid]
+end
+
+--- @param userid string
+--- @param bindtype string
+--- @return string? bindid
+function PlayerDB:MapUserIDToType(userid, bindtype)
+    if userid then
+        return
+    end
+
+    local bindid = self:GetField(userid, BINDING_FIELD[bindtype])
+    if bindid then
+        return bindid
+    end
+
+    bindid = table.getkey(self._bindings[bindtype], userid)
+    if bindid ~= nil then
+        return tostring(bindid)
+    end
+end
+
+function PlayerDB:BindingExists(userid, bindid, bindtype)
+    return(
+        -- The binding must exist in both files in order to be marked as existing.
+        self._bindings[bindtype][bindid] == userid and self:GetField(userid, BINDING_FIELD[bindtype]) == bindid
+    )
+end
+
+function PlayerDB:BindingExistsAny(userid, bindtype)
+    return (
+        table.contains(self._bindings[bindtype], userid)
+    )
+end
+
+--- @param bindtype string
+--- @return table? bindings
+function PlayerDB:GetBindings(bindtype)
+    return self._bindings[bindtype]
 end
 
 ------------------------------------------
@@ -183,26 +249,12 @@ end
 --- @param bindid string
 --- @param bindtype string
 function PlayerDB:AddBinding(userid, bindid, bindtype)
-    if self:IsDisabled() then
-        return
-    end
-
-    if type(self._bindings[bindtype]) ~= "table" then
-        return PEARL.error("Invalid bind type provided!")
-    end
-
-    bindid = tostring(bindid)
-    userid = tostring(userid)
-
-    if self._bindings[bindtype][bindid] ~= nil then
-        if self._bindings[bindtype][bindid] == userid then
-            return PEARL.error("Binding", bindid, "->", userid, "already exists!")
-        end
-
-        return PEARL.error(bindid, "already bound to", userid)
+    if self:BindingExists(userid, bindid, bindtype) then
+        return PEARL.error("Binding", bindid, "->", userid, "already exists!")
     end
 
     self._bindings[bindtype][bindid] = userid
+    self:SetField(userid, BINDING_FIELD[bindtype], bindid)
 
     -- We have to save after every adding because there is no global saving for binding files.
     -- Also save the userid list here, because this is the only place
@@ -214,6 +266,36 @@ function PlayerDB:AddBinding(userid, bindid, bindtype)
     PEARL.debug("Binding", bindid, "->", userid, "successfully added!")
 end
 
+--- @param userid string
+--- @param bindid string
+--- @param bindtype string
+function PlayerDB:RemoveBinding(userid, bindid, bindtype)
+    local bindings = self:GetBindings(bindtype)
+    if not bindings then
+        return PEARL.error("Invalid binding type provided!")
+    end
+
+    --- @TODO: Use PersistentMap instead? (Add change tracking to it)
+    -- local current = bindings[bindid]
+    -- local mt = getmetatable(bindings)
+    -- if mt and mt.__saved and mt.__changes then
+    --     if current ~= nil and mt.__saved == nil and mt.__changes > 0 then
+    --         mt.__changes = mt.__changes - 1
+    --     elseif mt.__saved ~= nil then
+
+    --     end
+    -- end
+    -- Bidirectional binding, remove both references
+    bindings[bindid] = nil
+    self:SetField(userid, BINDING_FIELD[bindtype], nil)
+
+    self:SaveBindingFile(bindtype)
+
+    PEARL.debug("Binding", bindid, "->", userid, "successfully removed!")
+end
+
+--- @param userid string
+--- @param record table<string, any>
 --- @return table<string, any>?
 function PlayerDB:CacheRecord(userid, record)
     PEARL.debug("CacheRecord", userid, record)
@@ -226,13 +308,14 @@ function PlayerDB:CacheRecord(userid, record)
         return PEARL.error("Player already cached!")
     end
 
-    self._records[userid] = record
+    self._records[userid] = record --setmetatable(record, CreateRecordMT(record))
 
     return record
 end
 
 --- We cannot delete files from this limited environment.
 --- Used to free the memory of record after the player leaves.
+--- @param userid string
 --- @return table<string, any>?
 function PlayerDB:UnloadRecord(userid)
     local record = self._records[userid]
@@ -241,32 +324,51 @@ function PlayerDB:UnloadRecord(userid)
     return record
 end
 
-function PlayerDB:OptionalSetField(userid, name, value)
+--- @param userid string
+--- @param name string Name of the field in the database.
+--- @param value any|nil
+--- @return boolean success, any? previous
+function PlayerDB:SetField(userid, name, value)
     local record = PEARL.PlayerDB:GetRecordFor(userid)
     if not record then
         return false -- optional
     end
 
     local prev = record[name]
+    if prev == value then
+        return true
+    end
+
     if prev ~= nil and value ~= nil and type(prev) ~= type(value) then
-        return PEARL.error("Type conversions not allowed for DB record!", prev, value, "from", type(prev), "to", type(value))
+        PEARL.error("Type conversions not allowed for DB record!", prev, value, "from", type(prev), "to", type(value))
+
+        return false
     end
 
     record[name] = value
+    -- local mt = getmetatable(record)
+    -- if mt and mt.__changes and mt.__saved then
+    --     local saved = mt.__saved[name]
+    --     if saved ~= prev and saved == value and mt.__changes > 0 then
+    --         mt.__changes = mt.__changes - 1
+    --     elseif saved == prev and saved ~= value then
+    --         mt.__changes = mt.__changes + 1
+    --     end
+    -- end
 
     return true, prev
 end
 
-function PlayerDB:OptionalSafeSetField(userid, name, value)
+--- @param userid string
+--- @param name string
+--- @param value any
+--- @return boolean success, any? previous
+function PlayerDB:SafeSetField(userid, name, value)
     if not IsClearValue(value) then
-        return self:OptionalSetField(userid, name, value)
+        return self:SetField(userid, name, value)
     end
 
-    return false
-end
-
-function PlayerDB:SetIsEnabled(enabled)
-    self._enabled = enabled
+    return false, nil
 end
 
 ------------------------------------------
@@ -275,46 +377,38 @@ end
 
 --- Returns the record and a boolean determining whether the record was created or not.
 --- This doesn't save the newly created record.
-function PlayerDB:EnsureRecordFor(userid)
-    if type(userid) ~= "string" or #userid ~= 11 then
-        return PEARL.error("Invalid Klei ID provided!", PEARL.CalledFrom(5))
+--- @param userid string
+--- @return table<string, any>? record
+function PlayerDB:CreateRecordFile(userid)
+    PEARL.debug("Creating database record for", userid)
+
+    local record = self:AllocateRecordTableFor(userid)
+    if type(record) ~= "table" or not self:CacheRecord(userid, record) then
+        return PEARL.error("Failed to create record for", userid)
     end
 
-    local record = self:GetRecordFor(userid)
-    if not record then
-        PEARL.debug("Creating database record for", userid)
+    -- Make sure the file exists
+    -- And the initial data are always recorded.
+    self:SaveRecordFor(userid, record)
 
-        record = self:CacheRecord(userid, self:CreateRecordFor(userid))
-        if type(record) ~= "table" then
-            return PEARL.error("Failed to create record for", userid)
-        end
-
-        -- Make sure the file exists
-        -- And the initial data are always recorded.
-        self:SaveRecordFor(userid, record, true)
-
-        -- Netid should never be nil
-        self:AddBinding(userid, record.netid, BINDING_TYPE.STEAM)
-
-        return record, true
-    end
-
-    return record, false
-end
-
--- Put stuff that's available from the start and doesn't change here.
-function PlayerDB:CreateRecordFor(userid)
-    local record = deepcopy(RECORD_TEMPLATE)
-    record.joinedtime = os.time()
-    record.userid = userid
-
+    -- Apply default bindings
     local netid = TheNet:GetNetIdForUser(userid)
     if not netid then
         PEARL.error("Failed to retrive Steam ID for ", userid)
+    else
+        -- This should ALWAYS be string but just in case it's not...
+        self:AddBinding(userid, tostring(netid), BINDING_TYPE.STEAM)
     end
 
-    -- This should ALWAYS be string but just in case it's not...
-    record.netid = netid and tostring(netid)
+    return record
+end
+
+-- Put stuff that's available from the start and doesn't change here.
+--- @param userid string
+function PlayerDB:AllocateRecordTableFor(userid)
+    local record = deepcopy(RECORD_TEMPLATE)
+    record.joinedtime = os.time()
+    record.userid = userid
 
     return record
 end
@@ -377,45 +471,113 @@ function PlayerDB:LoadDatabaseFile(path, ensure)
     return data
 end
 
+--- Loads a single binding file with the specified type from disk.
+--- @return table<string, string>? bindings The binding data that was loaded from the file, if any.
 function PlayerDB:LoadBindingFile(type)
     PEARL.info("Loading bindings from", type)
-    self._bindings[type] = self:LoadDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, true)
+
+    local bindings = self:LoadDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, true)
+    if not bindings then
+        return PEARL.error("Failed to load binding file with type", type)
+    end
+
+    self._bindings[type] = bindings --setmetatable(bindings, CreateRecordMT(bindings))
+
+    return bindings
 end
 
+--- Loads all binding files from disk.
 function PlayerDB:LoadBindingFiles()
     for _, type in pairs(BINDING_TYPE) do
         self:LoadBindingFile(type)
     end
 end
 
+--- Saves the binding file with the specified type.
+--- @param type string
 function PlayerDB:SaveBindingFile(type)
+    local bindings = self:GetBindings(type)
+    if not bindings then
+        return PEARL.error("Failed to load the binding file", type)
+    end
+
+    -- local mt = getmetatable(bindings)
+    -- if mt and mt.__changes and mt.__changes <= 0 then
+    --     return PEARL.debug("Not saving the binding file ", type, "because there were no changes made.")
+    -- end
+
     PEARL.info("Saving binding file", type)
 
-    self:SaveToDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, self._bindings[type], true)
+    self:SaveToDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, bindings, true)
+
+    --setmetatable(bindings, CreateRecordMT(bindings))
 end
 
-function PlayerDB:LoadRecordFor(userid)
-    PEARL.debug("LoadRecordFor", userid)
+--- Makes sure that the database record contains valid data and bindings.
+--- @param record table<string, any>
+function PlayerDB:ValidateRecord(record)
+    local userid = record.userid
+    for _, bindtype in pairs(BINDING_TYPE) do
+        local mapped = self:MapUserIDToType(userid, bindtype)
+        local saved  = record[BINDING_FIELD[bindtype]]
 
-    self._records[userid] = self:LoadDatabaseFile(DATABASE_FILE_PATH:format(userid))
-    return self._records[userid]
+        if mapped ~= nil and saved ~= nil and mapped ~= saved then
+            self:AddBinding(userid, mapped or saved, bindtype)
+        end
+    end
 end
 
-function PlayerDB:SaveRecordFor(userid, record, force)
-    PEARL.debug("SaveRecordFor", userid, record, force)
+--- WARNING: This function doesn't cache the record!
+--- Loads the record data from the actual database file for the given player.
+--- @param userid string
+--- @param validate boolean?
+function PlayerDB:LoadRecordFor(userid, validate)
+    PEARL.info("Loading record for ", userid.."...")
+
+    local record = self:LoadDatabaseFile(self:GetRecordFilePathFor(userid))
+    if type(record) ~= "table" then
+        PEARL.error("Failed to load record for", userid)
+        return
+    end
+
+    if validate == true then
+        self:ValidateRecord(record)
+    end
+
+    return record
+end
+
+--- Save the database record data for the given player.
+--- @param userid string
+--- @param record table<string, any>?
+function PlayerDB:SaveRecordFor(userid, record)
+    PEARL.debug("SaveRecordFor", userid, record)
 
     record = record or self._records[userid]
     -- Only save data for users that have agreed to the agreement.
     --- @TODO: Re-think the data collection complication.
     --- @TODO: Make the first agreement screen popup up before joining the server.
     if not record then --or (not self:IsDataCollectionEnabledFor(userid) and force ~= true) then
-        return
+        return PEARL.error("Record not found for", userid)
     end
 
-    return self:SaveToDatabaseFile(
-        DATABASE_FILE_PATH:format(userid), record, true
-    )
+    -- local mt = getmetatable(record)
+    -- if mt and mt.__changes and mt.__changes <= 0 then
+    --     return PEARL.debug("Not saving the record file because no changes were done!")
+    -- end
+
+    if not self:SaveToDatabaseFile(
+        self:GetRecordFilePathFor(userid), record, true
+    ) then
+        PEARL.error("Failed to save record for", userid)
+    end
+
+    --setmetatable(record, CreateRecordMT(record))
 end
+
+------------------------------------------
+-- [[ Debugging ]]
+------------------------------------------
 
 function PlayerDB:PrintDebugInfo()
     table.dump(self._records)
@@ -437,10 +599,15 @@ local function OnSave()
     local time_now = os.time()
     for userid, _ in pairs(PlayerDB._records) do
         if PEARL.ServerNetwork:IsUserConnected(userid) then
-            PlayerDB:OptionalSafeSetField(userid, "lastseentime", time_now)
+            PlayerDB:SafeSetField(userid, "lastseentime", time_now)
         end
 
         PlayerDB:SaveRecordFor(userid)
+    end
+
+    -- Save all loaded bindings in case the binding file got removed during our runtime.
+    for bindtype, _ in pairs(PlayerDB._bindings) do
+        PlayerDB:SaveBindingFile(bindtype)
     end
 end
 

@@ -75,10 +75,8 @@ local function OnServerError(traceback)
     else
         -- Silent crash in case of an error occuring at loading time.
         -- Do not load any further.
-        -- We wait exactly two ticks so that at least the crash can be reported gracefully.
-        PEARL.WallScheduler:ExecuteInTime(0, function()
-            PEARL.WallScheduler:ExecuteInTime(0, TheSim.Crash, nil, TheSim)
-        end)
+        -- We wait exactly one tick so that at least the crash can be reported gracefully.
+        PEARL.WallScheduler:ExecuteInTime(0, TheSim.Crash, nil, TheSim)
     end
 end
 

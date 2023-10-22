@@ -23,7 +23,7 @@
 -- [[ Localization ]]
 ---------------------------
 
-local type, tostring = type, tostring
+local tp, tostring = type, tostring
 local string = string
 
 ---------------------------
@@ -35,6 +35,10 @@ local string = string
 --local HYPERLINK_PATTERN = "%[.+%]%(.+%)"
 
 local LINK_ESCAPE_PATTERN = "<%s>"
+
+local MENTION_PATTERN  = "<%s%s>"
+local TIMESTAMP_PATTERN = "<t:%s>"
+local TIMESTAMP_TYPE_PATTERN = "<t:%s:%s>"
 
 local ZERO_WIDTH_SPACE = "​"
 local HAIR_WIDTH_SPACE = " "
@@ -63,6 +67,23 @@ local MARKDOWN = {
         HEADER_SML          = "### %s",
         SPOILER             = "||%s||",
         LIST_ITEM           = "- %s", -- Use this instead of the asterisk to prevent any conflicts.
+    },
+
+    MENTION_TYPE = {
+        USER    = "@",  -- @User
+        ROLE    = "@&", -- @Role
+        CHANNEL = "#",  -- #Channel
+    },
+
+    TIMESTAMP_TYPE = {
+        DEFAULT         = "",  -- 28 November 2018 09:01
+        SHORT_TIME      = "t", -- 09:01
+        LONG_TIME       = "T", -- 09:01:00
+        SHORT_DATE      = "d", -- 28/11/2018
+        LONG_DATE       = "D", -- 28 November 2018
+        SHORT_DATE_TIME = "f", -- 28 November 2018 09:01
+        LONG_DATE_TIME  = "F", -- Wednesday, 28 November 2018 09:01
+        RELATIVE_TIME   = "R", -- 3 years ago
     }
 }
 
@@ -97,12 +118,26 @@ function MARKDOWN.codeline(s)
     return s and MARKDOWN.PATTERNS.CODE_LINE:format(tostring(s):gsub("`", "ˋ"))
 end
 
+--- @param discordid string
+--- @param tp string
+function MARKDOWN.mention(discordid, tp)
+    return MENTION_PATTERN:format(tp, discordid)
+end
+
+--- @param timestamp number|string
+--- @param tp string?
+function MARKDOWN.timestamp(timestamp, tp)
+    tp = tp or MARKDOWN.TIMESTAMP_TYPE.DEFAULT
+    local pt = tp == MARKDOWN.TIMESTAMP_TYPE.DEFAULT and TIMESTAMP_PATTERN or TIMESTAMP_TYPE_PATTERN
+    return pt:format(timestamp, tp)
+end
+
 --- Formats a string to the codeblock format using the discord markdown characters
 --- @return string result The formatted string
 function MARKDOWN.codeblock(s, lang_code)
     s = tostring(s):gsub("`", "ˋ")
 
-    if type(lang_code) == "string" then
+    if tp(lang_code) == "string" then
         return MARKDOWN.PATTERNS.CODE_BLOCK_SYNTAX:format(lang_code, s)
     end
 
@@ -137,7 +172,7 @@ end
 -- Do not use this with user's input
 -- Note: The link parameter can be nil.
 function MARKDOWN.hlink(s, link)
-    if type(s) ~= "string" then
+    if tp(s) ~= "string" then
         return s
     end
 

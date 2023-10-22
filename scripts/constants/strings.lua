@@ -234,11 +234,12 @@ local STRINGS = {
             TITLE = "%s %s",
             FOOTER = "Klei ID: %s Steam ID: %s Root Klei ID: %s",
             FD_NAMES = {
-                PLAYED = "Total Days Played",
-                REP    = "Reputation",
-                JOINED = "Joined At",
-                LOCALE = "Locale",
-                SEEN   = "Last Time Seen",
+                PLAYED  = "Total Days Played",
+                REP     = "Reputation",
+                JOINED  = "Joined At",
+                LOCALE  = "Locale",
+                SEEN    = "Last Time Seen",
+                DISCORD = "Discord",
             },
         },
     },
@@ -453,6 +454,9 @@ local STRINGS = {
     UI = {
         CONSOLE_DISABLED = "Disabled :)",
 
+        ALLOWED = "Allowed",
+        BLOCKED = "Blocked",
+
         -- Mod blocker popup
         MODS_BLOCKED_TITLE = "Mods Disabled",
         MODS_BLOCKED_ALL_TITLE = "All Mods Blocked",
@@ -480,6 +484,7 @@ local STRINGS = {
             MOD_ALREADY_BLOCKED = "The specified mod is already blocked on the server.",
             SHARD_NOT_FOUND = "The specified shard is not connected to Master!",
             DB_DISABLED = "The database is not enabled!",
+            KLEI_SERVERS_UNREACHABLE = "There was an error contacting Klei servers."
         },
 
         -- Add more translations
@@ -679,6 +684,41 @@ local STRINGS = {
                 DESC       = "Sends a message visible only to the specified player and you!",
 
                 ON_SUCCESS = "The message was sent to %s."
+            },
+
+            SYSTEM = {
+                PRETTYNAME = "Send System Message",
+                DESC       = "Sends a message as the server user.",
+            },
+
+            ANNOUNCE = {
+                PRETTYNAME = "Announce",
+                DESC       = "Displays an announcement in chat!",
+            },
+
+            PAIR = {
+                PRETTYNAME = "Pair Discord Account",
+                DESC       = "Links up your Klei and discord account in our database. The accounts need to be already paired.",
+
+                ON_SUCCESS = "Account successfully paired!",
+                ALREADY_PAIRED = "Account already paired!",
+                NOT_PLAYED = "You have to play on our server first before pairing accounts!",
+                ON_FAILED = "Failed to pair your account!",
+                NOT_PAIR_OFFICIALLY = "In order to pair your account you need to add your Klei account to your Discord profile."
+            },
+
+            UNPAIR = {
+                PRETTYNAME = "Unpair Discord Account",
+                DESC       = "Removes the link with your discord account from our database.",
+
+                ON_SUCCESS = "Account successfully unpaired!",
+                NOT_PAIRED = "Account not paired!",
+                ON_FAILURE = "Failed to unpair your account!",
+            },
+
+            GAMEOWNER = {
+                ON_SUCCESS = "Owner of the game is %s",
+                ON_FAILURE = "Couldn't retrive the game owner for the specified account."
             },
 
             SET_SLOTS = {
