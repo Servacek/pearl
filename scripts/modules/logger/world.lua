@@ -83,14 +83,63 @@ local function OnPrecipitationChanged(world, precipitation)
         return
     end
 
-    local started = precipitation ~= "none"
-    local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[(started and precipitation or prev_prec)]
+    PEARL.WallScheduler:ExecuteInTime(0, function()
+        local started = precipitation ~= "none"
+        if TheWorld.components.frograin then
+            local frogdata = TheWorld.components.frograin:OnSave()
+            if frogdata then
+                local frogcap = tonumber(frogdata.frogcap)
+                if frogcap > 0 then
+                    precipitation = "frograin"
+                end
+            end
+        end
 
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
-        prec_name
-    ))
+        local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[(started and precipitation or prev_prec)]
 
-    prev_prec = precipitation
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
+            prec_name
+        ))
+
+        prev_prec = precipitation
+    end)
+end
+
+local quakeing = false
+local function OnQuakeStarted()
+    if quakeing then
+        return
+    end
+
+    quakeing = true
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.QUAKE_START)
+end
+
+local function OnQuakeEnded()
+    if not quakeing then
+        return
+    end
+
+    quakeing = false
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.QUAKE_END)
+end
+
+local function OnSendLightningStrike(world, pos)
+    local ents = TheSim:FindEntities(pos.x, pos.y, pos.z, 3, {"canlight"})
+    if #ents <= 0 then
+        return
+    end
+
+    local blockers = TheSim:FindEntities(pos.x, pos.y, pos.z, 3, {"lightningrod", "lightningblocker"})
+    local x, y, z = pos:Get()
+    for blocker in ipairs(blockers) do
+        if blocker.components.lightningblocker and blocker:GetDistanceSqToPoint(x, y, z) <= (blocker.components.lightningblocker.block_rsq + 0.0001) then
+            return -- This strike was in a range of a lightning blocker -> ignore...
+        end
+    end
+
+    local str = PEARL.BuildFancyStringFor(PEARL.GroupEntitiesByPrefab(ents))
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.LIGHTNING_STRIKE:format(str), PEARL.ICONS.LIGHTNING)
 end
 
 -------------------------------
@@ -392,6 +441,8 @@ PEARL.AddWorldPostInit(function(world)
             world:SafeListenForEvent("showworldreset", OnResetCountDownStart)
             world:SafeListenForEvent("hideworldreset", OnResetCountDownStop)
 
+            world:SafeListenForEvent("ms_sendlightningstrike", OnSendLightningStrike)
+
             world:SafeListenForEvent("ms_startvote", OnStartVote)
             world:SafeListenForEvent("ms_stopvote", OnStopVote)
         else
@@ -422,6 +473,16 @@ PEARL.AddWorldPostInit(function(world)
         -- end
     end
 end)
+
+local function RegisterNetworkListeners(network)
+    if network.components.quaker or PEARL.CONFIG.DEBUG_MODE then
+        network:ListenForEvent("endquake", OnQuakeEnded)
+        network:ListenForEvent("startquake", OnQuakeStarted)
+    end
+end
+
+AddPrefabPostInit("cave_network", RegisterNetworkListeners)
+AddPrefabPostInit("forest_network", RegisterNetworkListeners)
 
 --> Mod Internal Events
 PEARL.EventProcessor:AddSafeEventHandler("clientconnectionclosed", OnClientConnectionClosed)

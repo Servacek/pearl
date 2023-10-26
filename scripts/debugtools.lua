@@ -117,6 +117,18 @@ function PEARL.DebugConnectionFilter(filterfn, userid, expected_result, data)
     end)
 end
 
+function PEARL.AddDebugRecord(userid, name, reputation)
+    local record = PEARL.PlayerDB:CreateRecordFile(userid)
+    if record then
+        record.username = name
+        record.reputation.value = reputation
+
+        PEARL.PlayerDB:AddBinding(userid, userid, PEARL.PlayerDB.BINDING_TYPE.STEAM)
+    end
+
+    PEARL.PlayerDB:SaveRecordFor(userid, record)
+end
+
 --------------------------------
 -- [[ Discord Webhook Tests ]]
 --------------------------------

@@ -37,7 +37,7 @@ local EXP_NEUTRAL_THRESHOLD = 200 * 60
 -- [[ Local Functions ]]
 --------------------------------------
 
-local function OnDelta(userid, new_rep)
+local function OnReputationChanged(userid, new_rep)
     if new_rep <= BAN_REP_THRESHOLD then
         --- @TODO: Play some fancy animation here.
         TheNet:Ban(userid)
@@ -113,6 +113,10 @@ function Reputation:SetFieldFor(userid, field, value)
 
     record["reputation"][field] = value
 
+    if field == "value" then
+        OnReputationChanged(userid, value)
+    end
+
     return true
 end
 
@@ -162,7 +166,7 @@ function Reputation:DoDeltaTo(userid, delta, limit)
 
     PEARL.EventProcessor:HandleEvent("onreputationdelta", userid, delta, rep, new_rep)
 
-    OnDelta(userid, new_rep)
+    OnReputationChanged(userid, new_rep)
 
     return new_rep
 end

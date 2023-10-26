@@ -22,6 +22,9 @@ local ICONS = {
     STEAM = "<:steam:1076608091656814643>",
     LOCAL = "<:local:1076609330905878588>",
     GAINS = "<:arrow_up_green:1130590082349400084>",
+    LIGHTNING = "<:lightning:1166029673076105276>",
+    SYNC   = "<:connect:1166026349157302332>",
+    UNSYNC = "<:disconnect:1030926979463135313>",
 
     PLAYER_PREFABS = {
         ["walter"] =             "<:avatar_walter:1152542346253180938>",

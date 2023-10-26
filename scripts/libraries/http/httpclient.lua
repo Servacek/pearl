@@ -11,7 +11,6 @@
 --]==]====================================================]]
 
 
-
 --[[
     Manages the REST client's request queue so requests are not sent directly.
 
@@ -25,13 +24,8 @@
           from Master to prevent exceeding any rate limits.
 
         - The discord REST API rate limit is 16 requests/second.
-
-    - TODOS:
-        - Fix request caching. It cannot rely just on the URL. Probably best
-        option would be to explicitly cache the requests with an unique ID.
 --]]
 
-local Queue = PEARL.loadfile("libraries/queue")
 --- @type Request
 local Request = PEARL.loadfile("libraries/http/models/request")
 local HTTPClientProxy = PEARL.loadfile("libraries/http/httpclientproxy")
@@ -39,32 +33,23 @@ local HTTPClientProxy = PEARL.loadfile("libraries/http/httpclientproxy")
 local TheSim = TheSim
 
 --------------------------------
--- [[ Constants ]]
---------------------------------
-
-local MAX_REQUEST_RETRIES = 3
-
---------------------------------
 -- [[ Class Declaration ]]
 --------------------------------
 
---- @class HTTPClient - singleton
+--- @singleton
+--- @class HTTPClient
 local HTTPClient = {
     --- This should be public
     --- @type HTTPClientProxy
     proxy = HTTPClientProxy,
 }
 
---------------------------------
--- [[ Internal Handlers ]]
---------------------------------
+if HTTPClient.proxy and PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
+    PEARL.info("Setting up the proxy...")
 
--- local function OnFinishCooldown()
---     --PEARL.debug("Cooldown task finished!")
-
---     HTTPClient:StopCooldown()
---     HTTPClient:ProcessNextRequest()
--- end
+    HTTPClient.proxy:SetEnabled(true)
+    HTTPClient.proxy:SetURL(PEARL.CONFIG.PROXY.URL)
+end
 
 --------------------------------
 -- [[ Static Variables ]]
@@ -77,59 +62,12 @@ HTTPClient.METHODS = {
 }
 
 --------------------------------
--- [[ Setters ]]
---------------------------------
-
--- function HTTPClient:SetIsWaiting(waiting)
---     --PEARL.debug("HTTPClient:SetIsWaiting", waiting)
-
---     self._waiting = waiting
-
---     return self
--- end
-
-function HTTPClient:SetRequestFrequency(frequency)
-    if type(frequency) ~= "number" then
-        return PEARL.error("Invalid frequency parameter!")
-    end
-
-    self._frequency = frequency
-
-    return self
-end
-
--- function HTTPClient:ResetForceTreshold()
---     self._force_threshold = MAX_FORCE_THRESHOLD
--- end
-
---------------------------------
 -- [[ Getters ]]
 --------------------------------
-
--- function HTTPClient:IsQueueDisabled()
---     return self._frequency <= 0
--- end
-
--- function HTTPClient:IsShuttingDown()
---     return self._shutting_down
--- end
-
--- function HTTPClient:IsWaiting()
---     return self._waiting
--- end
-
--- function HTTPClient:IsOnCooldown()
---     return self._cooldown_task and self._cooldown_task.running == true
--- end
 
 function HTTPClient:IsProxyEnabled()
     return self.proxy and self.proxy:IsEnabled()
 end
-
--- Used for debugging purposes
--- function HTTPClient:GetSentRequestsCount()
---     return self._rcount
--- end
 
 --------------------------------
 -- [[ Private Methods ]]
@@ -160,97 +98,6 @@ end
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
-
-function HTTPClient:Setup()
-    if not TheNet:IsDedicated() or PEARL.INIT then
-        return
-    end
-
-    if self.proxy and PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
-        PEARL.info("Setting up the proxy...")
-
-        self.proxy:SetEnabled(true)
-        self.proxy:SetURL(PEARL.CONFIG.PROXY.URL)
-    end
-
-    -- [[ Events ]]
-    --PEARL.EventProcessor:AddSafeEventHandler("quit", OnQuit)
-end
-
--- function HTTPClient:StartCooldown(force)
---     if self:IsShuttingDown() then
---         return
---     end
-
---     -- Do not allow overriding except when the last request was force executed.
---     -- In this case we want to restart the cooldown task.
---     if not force and self:IsOnCooldown() then
---         return PEARL.warn("Attempted to override the cooldown task!")
---     end
-
---     if self._cooldown_task then
---         --PEARL.debug("Restarting the cooldown task...")
---         self._cooldown_task:restart()
---     else
---         --PEARL.debug("Starting the cooldown task...", "Frequency:", self._frequency)
---         self._cooldown_task = PEARL.WallScheduler:ExecutePeriodic(
---             self._frequency, OnFinishCooldown, nil, nil, nil, self
---         )
---     end
--- end
-
--- function HTTPClient:StopCooldown()
---     --PEARL.debug("Stopping the cooldown task...")
-
---     return self._cooldown_task and self._cooldown_task:stop()
--- end
-
--- Returns the next processed request, if any.
--- function HTTPClient:ProcessNextRequest(force)
---     local next_request = self._queue and self._queue:take()
---     if next_request then
---         self:_DoSendRequest(next_request, force)
---         return next_request
---     end
-
---     return next_request
--- end
-
--- function HTTPClient:HandleRequest(request)
---     --PEARL.debug("HTTPClient:HandleRequest")
-
---     -- If we are not waiting for anything or the queue is disabled
---     -- then send the request immediately
---     if not (self:IsWaiting() or self:IsOnCooldown()) or self:IsQueueDisabled() or self:IsShuttingDown() then
---         return self:SendRequest(request)
---     end
-
---     -- Lazy load the queue if needed
---     if not self._queue then
---         self._queue = Queue(DEFAULT_QUEUE_SIZE_LIMIT)
---     end
-
---     --PEARL.debug("Adding request to the queue...")
---     if not self._queue:push(request) then
---         return PEARL.error("Failed to push the request to the queue! Queue probably full.", request)
---     end
--- end
-
--- function HTTPClient:ForceSend(request)
-
---     -- If we are forcefully sending multiple requests to the same host.
---     -- This is here in order to prevent hitting the rate limits when something
---     -- gets really wrong and some request loop is created.
---     -- if request.host == self._last_host then
---     --     self._force_threshold = self._force_threshold - 1
---     -- end
-
---     -- PEARL.debug(string.format("Forcing a request! (%d/%d)",
---     --     self._force_threshold, MAX_FORCE_THRESHOLD
---     -- ))
-
---     return self:SendRequest(request, true)
--- end
 
 --- @param request Request
 --- @param seconds number

@@ -14,18 +14,6 @@
 local EMBEDS = require("utils/embeds")
 
 --------------------------------------
--- [[ Constants ]]
---------------------------------------
-
-local POST_COOLDOWN = 12 * 60 * 60
-
-local LEADERBOARD_FILE_PATH = "leaderboard"
-
-local MIN_GAINS_FOR_LEADERBOARDING = 25
-local MIN_REP_FOR_LEADERBOARDING = 200
-local LEADERBOARD_MAX_LEN = PEARL.CONSTS.LEADERBOARD_MAX_LEN
-
---------------------------------------
 -- [[ Local Functions ]]
 --------------------------------------
 
@@ -40,28 +28,9 @@ local function CreateValidDataFrom(data)
     data.players     = type(data.players) == "table" and data.players or {}
     data.records     = type(data.records) == "number" and data.records or 0
     data.timecreated = type(data.timecreated) == "number" and data.timecreated or os.time()
-    data.changes     = type(data.changes) == "boolean" and data.changes or false
     data.dayleader   = type(data.dayleader) == "string" and data.dayleader or nil
 
     return data
-end
-
---------------------------------------
--- [[ Sorters ]]
---------------------------------------
-
-local function CompRepFields(name, uid1, uid2)
-    return PEARL.PlayerDB:GetSubField(
-        uid1, "reputation", name
-    ) > PEARL.PlayerDB:GetSubField(uid2, "reputation", name)
-end
-
-local function CompByTotalRep(...)
-    return CompRepFields("value", ...)
-end
-
-local function CompByMonthRepGains(...)
-    return CompRepFields("monthgains", ...)
 end
 
 --------------------------------------
@@ -73,10 +42,25 @@ local Leaderboard
 
 --- @param self Leaderboard
 Leaderboard = Class(function(self, data)
+    print("LEADERBOARD", data)
+    --- @type boolean
+    self.loaded = type(data) == "table" and not table.empty(data)
+    --- @type boolean
+    self.changed = not self.loaded
+
     --- @type string
     self.type = Leaderboard.TYPE.ABSOLUTE
+    --- @type integer
+    self.minplayers = 1
+    --- @type integer
+    self.maxplayers = PEARL.CONSTS.LEADERBOARD_MAX_LEN
     --- @type table
     self.data = CreateValidDataFrom(data)
+
+    --- @type function?
+    self.sortfn = nil
+    --- @type function?
+    self.checkfn = nil
 
     self:Validate()
 
@@ -92,51 +76,32 @@ Leaderboard.TYPE = {
     MONTHLY  = "monthly",
 }
 
-Leaderboard.CONFIGURATION = {
-    [Leaderboard.TYPE.ABSOLUTE] = {
-        -- The number of players need for the leaderboard to show.
-        min_records = LEADERBOARD_MAX_LEN,
-        comp = CompByTotalRep,
-        embed_pos = 1,
-    },
-
-    [Leaderboard.TYPE.MONTHLY] = {
-        min_records = 3,
-        comp = CompByMonthRepGains,
-        embed_pos = 2,
-
-        --- @TODO:
-        check = function(userid)
-            local monthgains = PEARL.Reputation:GetRepFieldOf(userid, "monthgains")
-            if monthgains and monthgains >= MIN_GAINS_FOR_LEADERBOARDING then
-                return true
-            end
-
-            return false
-        end
-}
-}
-
-function Leaderboard.CanAddPlayer(userid)
-    local reputation = PEARL.Reputation:GetOf(userid) or 0
-    if reputation < MIN_REP_FOR_LEADERBOARDING then
-        return false
-    end
-
-    return not PEARL.ServerNetwork:IsClientBanned(userid) and
-           not PEARL.ServerNetwork:IsAdmin(userid)
-end
-
 --------------------------------------
 -- [[ Getters ]]
 --------------------------------------
+
+function Leaderboard:IsValid(userid)
+    return not self.checkfn or self.checkfn(userid)
+end
+
+function Leaderboard:HasAnyUnsavedChanges()
+    return self.changed == true
+end
+
+function Leaderboard:GetIndex()
+    return self.index
+end
+
+function Leaderboard:GetMinRecords()
+    return self.minplayers
+end
 
 function Leaderboard:GetLeaderUserID()
     return self.data.players[1]
 end
 
-function Leaderboard:HasEnoughData()
-    return #self.data.players >= Leaderboard.CONFIGURATION[self.type].min_records
+function Leaderboard:HasEnoughPlayers()
+    return #self.data.players >= self.minplayers
 end
 
 function Leaderboard:HasPlayer(userid)
@@ -144,23 +109,11 @@ function Leaderboard:HasPlayer(userid)
 end
 
 function Leaderboard:GetPositionFor(userid)
-    for i = 1, LEADERBOARD_MAX_LEN, 1 do
-        if self.data.players[i] == userid then
-            return i
-        end
-    end
+    return table.index(self.data.players, userid)
 end
 
 function Leaderboard:GetData()
     return self.data
-end
-
-function Leaderboard:GetConfig()
-    return Leaderboard.CONFIGURATION[self.type]
-end
-
-function Leaderboard:GetEmbedPosition()
-    return self:GetConfig().embed_pos
 end
 
 function Leaderboard:GetEmbed()
@@ -171,8 +124,36 @@ end
 -- [[ Setters ]]
 --------------------------------------
 
+function Leaderboard:SetDayLeaderUserID(userid)
+    if self.data.dayleader ~= userid then
+        self.data.dayleader = userid
+        self.changed = true
+    end
+end
+
+function Leaderboard:SetIndex(index)
+    self.index = index
+end
+
+function Leaderboard:SetCheckFn(checkfn)
+    self.checkfn = checkfn
+end
+
+function Leaderboard:SetSortFn(sortfn)
+    self.sortfn = sortfn
+end
+
 function Leaderboard:SetData(data)
     self.data = data
+    self.changed = true
+end
+
+function Leaderboard:SetMinPlayers(count)
+    self.minplayers = count
+end
+
+function Leaderboard:SetMaxPlayers(count)
+    self.maxplayers = count
 end
 
 function Leaderboard:SetType(type)
@@ -189,7 +170,7 @@ end
 
 function Leaderboard:Validate()
     for i = #self.data.players, 1, -1 do
-        if not self.CanAddPlayer(self.data.players[i]) then
+        if not self:IsValid(self.data.players[i]) then
             self:RemovePlayer(i)
         end
     end
@@ -203,6 +184,7 @@ function Leaderboard:InsertPlayer(i, userid)
     end
 
     self.data.players[i] = userid
+    self.changed = true
 
     --- @TODO:
     -- We are counting the total number of records the leaderboard was built from.
@@ -210,59 +192,78 @@ function Leaderboard:InsertPlayer(i, userid)
         self.data.records = self.data.records + 1
     end
 
-    self.data.changes = true
-
     return userid
 end
 
 function Leaderboard:RemovePlayer(i)
-    PEARL.debug("Leaderboard:InsertPlayer", i, self.type)
+    PEARL.debug("Leaderboard:RemovePlayer", i, self.type)
 
     local userid = table.remove(self.data.players, i)
     if userid ~= nil then
         PEARL.info("User", userid, "removed from", self.type, "leaderboard...")
 
-        self.data.changes = true
+        self.data.changed = true
     end
 
     return userid
 end
 
+--- @param userid string The userid of the player to remove.
+--- @return string? userid The userid of the removed player, if any.
 function Leaderboard:RemovePlayerByID(userid)
     return self:RemovePlayer(self:GetPositionFor(userid))
 end
 
 function Leaderboard:RemoveAllPlayers()
-    table.iclear(self.data.players)
+    if not table.empty(self.data.players) then
+        table.iclear(self.data.players)
+        self.changed = true
+    end
 end
 
 function Leaderboard:ClearData()
-    return table.clear(self.data)
+    if not table.empty(self.data) then
+        table.clear(self.data)
+        self.changed = true
+    end
+
+    return self.data
 end
 
-function Leaderboard:ResetData()
+function Leaderboard:Reset()
     PEARL.debug("Leaderboard:Reset()")
 
-    self.data = CreateValidDataFrom(self:ClearData())
+    self:SetData(CreateValidDataFrom(self:ClearData()))
 end
 
 --------------------------------------
 -- [[ Handlers ]]
 --------------------------------------
 
-function Leaderboard:OnReputationChanged(userid)
-    local leaders = self.data.players
-    local init_pos = self:GetPositionFor(userid)
+function Leaderboard:OnSave()
+    self.changed = false
+    return self:GetData()
+end
 
-    local config = self:GetConfig()
-    local comp = config.comp or CompByTotalRep
-    local last_index = math.min(#leaders + 1, LEADERBOARD_MAX_LEN)
-    local last_userid = leaders[last_index]
-    if not init_pos and (not last_userid or comp(userid, last_userid)) then
-        self:InsertPlayer(last_index, userid)
+function Leaderboard:OnReputationChanged(userid)
+    -- Reputation has changed, verify that the player is still allowed to be on the leaderboard.
+    if not self:IsValid(userid) then
+        PEARL.debug("Checkfn failed! Removing player.")
+        self:RemovePlayerByID(userid)
+        return
     end
 
-    table.sort(leaders, comp)
+    local players = self.data.players
+    local init_pos = self:GetPositionFor(userid)
+
+    local comp = type(self.sortfn) == "function" and self.sortfn or nil
+    local last_index = math.min(#players + 1, self.maxplayers)
+    local last_userid = players[last_index]
+    if not init_pos and (not last_userid or (comp and comp(userid, last_userid))) then
+        self:InsertPlayer(last_index, userid)
+
+        table.sort(players, comp)
+    end
 
     -- If our position in the leaderboard has changed, make it visible.
     return self:GetPositionFor(userid) ~= init_pos

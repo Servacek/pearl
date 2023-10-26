@@ -24,9 +24,32 @@ local Leaderboard = PEARL.loadfile("models/leaderboard")
 
 local LEADERBOARD_FILE_PATH = "leaderboards"
 
+local MIN_GAINS_FOR_LEADERBOARDING = 25
+
+local MIN_ABS_RECORDS = 3
+local MIN_CURRENT_RECORDS = 5
+
 local MIN_DAY_LEADER_GAINS = 25
 
 local MAX_MESSAGE_RETRIES = 1
+
+local REP_BUFFER_TIME = 5
+
+--------------------------------------
+-- [[ Sorters ]]
+--------------------------------------
+
+local function CompRepFields(name, uid1, uid2)
+    return PEARL.Reputation:GetRepFieldOf(uid1, name) > PEARL.Reputation:GetRepFieldOf(uid2, name)
+end
+
+local function CompByTotalRep(...)
+    return CompRepFields("value", ...)
+end
+
+local function CompByMonthRepGains(...)
+    return CompRepFields("monthgains", ...)
+end
 
 --------------------------------------
 -- [[ Locals ]]
@@ -37,11 +60,7 @@ local leaderboard_map = PersistentMap(LEADERBOARD_FILE_PATH)
 leaderboard_map:SetOnLoad(function(leaderboard_data)
     local data = {}
     for name, value in pairs(leaderboard_data) do
-        if table.contains(Leaderboard.TYPE, name) then
-            data[name] = Leaderboard(value)
-        else
-            data[name] = value
-        end
+        data[name] = table.contains(Leaderboard.TYPE, name) and Leaderboard(value) or value
     end
 
     return data
@@ -49,11 +68,7 @@ end)
 leaderboard_map:SetOnSave(function(leaderboards)
     local data = {}
     for name, value in pairs(leaderboards) do
-        if Leaderboard.is_instance(value) then
-            data[name] = value:GetData()
-        else
-            data[name] = value
-        end
+        data[name] = Leaderboard.is_instance(value) and value:OnSave() or value
     end
 
     return data
@@ -63,14 +78,33 @@ leaderboard_map:Load()
 --- @type table<string, any>
 local lbs_data = leaderboard_map:GetData()
 
--- If nothing was able to load create new data.
-if not lbs_data or table.empty(lbs_data) then
-    for _, ld_type in pairs(Leaderboard.TYPE) do
-        local leaderboard = Leaderboard()
-        leaderboard:SetType(ld_type)
-        leaderboard_map:SetValue(ld_type, leaderboard)
+--- @type Leaderboard
+local absolute_leaderboard = lbs_data[Leaderboard.TYPE.ABSOLUTE] or Leaderboard()
+absolute_leaderboard:SetType(Leaderboard.TYPE.ABSOLUTE)
+absolute_leaderboard:SetSortFn(CompByTotalRep)
+--absolute_leaderboard:SetMinRecords(MIN_ABS_RECORDS)
+absolute_leaderboard:SetIndex(1)
+lbs_data[Leaderboard.TYPE.ABSOLUTE] = absolute_leaderboard
+
+--- @type Leaderboard
+local monthly_leaderboard  = lbs_data[Leaderboard.TYPE.MONTHLY] or Leaderboard()
+monthly_leaderboard:SetType(Leaderboard.TYPE.MONTHLY)
+monthly_leaderboard:SetSortFn(CompByMonthRepGains)
+monthly_leaderboard:SetCheckFn(function(userid)
+    local monthgains = PEARL.Reputation:GetRepFieldOf(userid, "monthgains")
+    if monthgains and monthgains >= MIN_GAINS_FOR_LEADERBOARDING then
+        return true
     end
 
+    return false
+end)
+--monthly_leaderboard:SetMinRecords(MIN_CURRENT_RECORDS)
+monthly_leaderboard:SetIndex(2)
+lbs_data[Leaderboard.TYPE.MONTHLY] = monthly_leaderboard
+
+if absolute_leaderboard.loaded or monthly_leaderboard.loaded then
+    leaderboard_map:SetValue(absolute_leaderboard.type, absolute_leaderboard)
+    leaderboard_map:SetValue(monthly_leaderboard.type, monthly_leaderboard)
     leaderboard_map:Save()
 end
 
@@ -86,11 +120,6 @@ for _, lt in pairs(Leaderboard.TYPE) do
 
     leaderboards[lt] = leaderboard
 end
-
---- @type Leaderboard
-local absolute_leaderboard = lbs_data[Leaderboard.TYPE.ABSOLUTE]
---- @type Leaderboard
-local monthly_leaderboard  = lbs_data[Leaderboard.TYPE.MONTHLY]
 
 local message_retries = 0
 
@@ -113,6 +142,12 @@ local function SaveMessageID(messageid)
     SaveLeaderboards()
 end
 
+local function IsLeaderboardingEnabledFor(userid)
+    return PEARL.PlayerDB:HasRecordFile(userid) and
+            not PEARL.ServerNetwork:IsClientBanned(userid) and
+           (not PEARL.ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.DEBUG_MODE)
+end
+
 --------------------------------------
 -- [[ Event Handlers ]]
 --------------------------------------
@@ -125,15 +160,9 @@ local function CanEditMessages()
     return PEARL.DiscordLeaderBoarder:GetMode() == PEARL.DiscordLeaderBoarder.MODE.UPDATE
 end
 
-local function RemoveFromAllLeaderboards(userid)
-    for _, leaderboard in pairs(leaderboards) do
-        leaderboard:RemovePlayerByID(userid)
-    end
-end
-
 local function UpdateLeaderboardEmbeds()
     for _, leaderboard in pairs(leaderboards) do
-        PEARL.DiscordLeaderBoarder:SetEmbed(leaderboard:GetEmbedPosition(), leaderboard:GetEmbed())
+        PEARL.DiscordLeaderBoarder:SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed())
     end
 end
 
@@ -161,9 +190,6 @@ local function UpdateLeaderboards()
         return
     end
 
-    lbs_data.last_update = os.time()
-    lbs_data.changes = false
-
     SaveLeaderboards()
 
     if self:GetMode() == self.MODE.UPDATE then
@@ -172,56 +198,27 @@ local function UpdateLeaderboards()
 end
 
 local function CompeteDayLeader(rivalid)
-    if monthly_leaderboard.dayleader == rivalid then
-        return false
+    local leaderid = monthly_leaderboard:GetLeaderUserID()
+    if leaderid == rivalid then
+        return
     end
 
     local rivalgains = PEARL.Reputation:GetTodayGainsOf(rivalid)
     if not rivalgains or rivalgains < MIN_DAY_LEADER_GAINS then
-        return false
+        return
     end
 
-    local leadergains = PEARL.Reputation:GetTodayGainsOf(monthly_leaderboard.dayleader)
-    if not monthly_leaderboard.dayleader or leadergains < rivalgains then
-        monthly_leaderboard.dayleader = rivalid
-
-        return true
-    end
-end
-
-local function OnReputationChangedFor(userid, delta)
-    PEARL.debug("OnReputationChangedFor")
-
-    local update, save = false, false
-
-    if delta > 0 then
-        if CompeteDayLeader(userid) then
-            -- The day leader was changed, update the leadeboard.
-            update = true
-        end
-    end
-
-    for _, leaderboard in pairs(leaderboards) do
-        if leaderboard:OnReputationChanged(userid) then
-            if leaderboard:HasEnoughData() then
-                update = true
-            else
-                save = true
-            end
-        end
-    end
-
-    if update then
-        UpdateLeaderboards()
-    elseif save then
-        SaveLeaderboards()
+    local leadergains = PEARL.Reputation:GetTodayGainsOf(leaderid)
+    if leadergains < rivalgains then
+        monthly_leaderboard:SetDayLeaderUserID(rivalid)
     end
 end
 
 local function OnClientBanned(userid)
     local update = false
-    for _, lt in pairs(Leaderboard.TYPE) do
-        if lbs_data[lt]:RemovePlayerByID(userid) ~= nil then
+    for _, leaderboard in pairs(leaderboards) do
+        -- Do this for all leaderboards.
+        if leaderboard:RemovePlayerByID(userid) ~= nil then
             update = true
         end
     end
@@ -231,17 +228,56 @@ local function OnClientBanned(userid)
     end
 end
 
-local function OnReputationDelta(userid, delta)
-    if not delta or delta == 0 then
+--- @type table<string, Task>
+local buffer = {}
+local buffer_task
+local function OnBufferDone()
+    -- Clear the buffer and handle the changes for the players inside it.
+    for userid, old_rep in pairs(buffer) do
+        buffer[userid] = nil
+
+        local new_rep = PEARL.Reputation:GetOf(userid)
+        local delta = new_rep - old_rep
+
+        if delta > 0 then
+            CompeteDayLeader(userid)
+        end
+
+        for _, leaderboard in pairs(leaderboards) do
+            leaderboard:OnReputationChanged(userid)
+        end
+    end
+
+    -- Check if any of the leaderboards needs an update or needs to be saved.
+    for _, leaderboard in pairs(leaderboards) do
+        if leaderboard:HasAnyUnsavedChanges() then
+            if leaderboard:HasEnoughPlayers() then
+                UpdateLeaderboards()
+                break
+            end
+
+            SaveLeaderboards()
+        end
+    end
+
+    buffer_task:cancel()
+    buffer_task = nil
+end
+
+local function OnReputationDelta(userid, delta, old_rep)
+    delta = tonumber(delta) or 0
+    PEARL.debug("OnReputationDelta", userid, delta)
+    if delta <= 0 or not IsLeaderboardingEnabledFor(userid) then
         return
     end
 
-    -- Admins should not appear on the leadeboard
-    if not Leaderboard.CanAddPlayer(userid) then
-        return RemoveFromAllLeaderboards(userid)
+    if not buffer[userid] then
+        buffer[userid] = old_rep
     end
 
-    OnReputationChangedFor(userid, delta)
+    if not buffer_task then
+        buffer_task = PEARL.WallScheduler:ExecuteInTime(REP_BUFFER_TIME, OnBufferDone)
+    end
 end
 
 function PEARL.DisplayLeaderboard()
@@ -295,7 +331,9 @@ end
 function PEARL.OnNewMonth(stb)
     PEARL.debug("OnNewMonth")
 
-    if stb and monthly_leaderboard:HasEnoughData() then
+    -- If the monthly leaderboard has enough players (it does display them),
+    -- choosing the player of the month is automatically enabled.
+    if stb and monthly_leaderboard:HasEnoughPlayers() then
         local monthleaderid = monthly_leaderboard:GetLeaderUserID()
         local name = PEARL.PlayerDB:GetField(monthleaderid, "username")
         local monthname = PEARL.GetMonthFancyName(stb.month)
@@ -307,11 +345,11 @@ function PEARL.OnNewMonth(stb)
 
     -- Since we are creating a new updating message, archive the old one.
     if CanEditMessages() and UpdatingMessageExists() then
-        local config = absolute_leaderboard:GetConfig()
-        ArchiveLeaderboardEmbed(config.embed_pos)
+        ArchiveLeaderboardEmbed(absolute_leaderboard:GetIndex())
     end
 
-    monthly_leaderboard:ResetData()
+    -- Clear all the player data and start again.
+    monthly_leaderboard:Reset()
     UpdateLeaderboardEmbeds()
     CreateNewUpdatingMessage()
 end

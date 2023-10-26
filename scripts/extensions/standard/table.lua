@@ -97,6 +97,16 @@ function table:clear()
     return self
 end
 
+--- Optimized version of table:getkey for true arrays.
+--- @return integer? index
+function table:index(value)
+    for i = 1, #self do
+        if self[i] == value then
+            return i
+        end
+    end
+end
+
 --- Returns the first key for the specified value found in the the specified table.
 --- @return key? any
 function table:getkey(value)

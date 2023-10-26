@@ -172,11 +172,11 @@ end
 -- Do not use this with user's input
 -- Note: The link parameter can be nil.
 function MARKDOWN.hlink(s, link)
-    if tp(s) ~= "string" then
+    if tp(s) ~= "string" or tp(link) ~= "string" then
         return s
     end
 
-    return MARKDOWN.PATTERNS.HYPERLINK:format(s, tostring(link))
+    return MARKDOWN.PATTERNS.HYPERLINK:format(s, link)
 end
 
 function MARKDOWN.listitem(s, indent)

@@ -125,7 +125,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         :SetThumbnail(STRINGS.PEARL.EMBEDS.LEADERBOARD[monthly and "THMB_CUR_URL" or "THMB_ABS_URL"])
         :SetTimestamp(os.time())
 
-    if not leaderboard:HasEnoughData() then
+    if not leaderboard:HasEnoughPlayers() then
         embed:SetDescription(STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA)
     else
         local max_rep_len = 0
@@ -182,7 +182,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
     end
 
     local total_count = data.recordcount or PEARL.PlayerDB:GetTotalRecordCount()
-    local local_count = leaderboard:HasEnoughData() and #data.players or 0
+    local local_count = leaderboard:HasEnoughPlayers() and #data.players or 0
     embed:SetFooter(("%s/%s"):format(local_count, total_count))
 
     return embed

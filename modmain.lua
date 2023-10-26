@@ -556,7 +556,6 @@ if not PEARL.INIT then
 
     --- @type HTTPClient
     PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
-    PEARL.HTTPClient:Setup()
 end
 
 --------------------------------

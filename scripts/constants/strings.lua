@@ -281,6 +281,9 @@ local STRINGS = {
         WARNED                  = "%s was warned for griefing!",
         STAFF_CALLED            = "Admins and server moderators were notified.",
         SKIN_RECEIVED           = "%s received %s!",
+        QUAKE_START             = "An earthquake has started!",
+        QUAKE_END               = "The earthquake has ended!",
+        LIGHTNING_STRIKE        = "Lightning stuck near %s!",
         --DAY                     = "Day %d - %s (%s °C) - %d/%d Players",
         DAY                     = "Day %d - %s (%s °C)",
         PHASE                   = "%s",
@@ -417,9 +420,10 @@ local STRINGS = {
     },
 
     PRECIPITATION_NAMES = {
-        ["rain"] = "raining",
-        ["snow"] = "snowing",
-        ["none"] = "no precipitation",
+        ["rain"]        = "raining",
+        ["snow"]        = "snowing",
+        ["frograin"]    = "raining frogs",
+        ["none"]        = "no precipitation",
     },
 
     DATE_FORMAT = "%s. of %s %s",

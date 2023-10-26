@@ -1196,6 +1196,7 @@ AddCommand("pair", {
     end,
 })
 
+--- @TODO: Add SYNC and UNSYNC icons
 AddCommand("unpair", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.DESC,
