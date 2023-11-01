@@ -295,7 +295,7 @@ local function OnNewPlayerSpawn(self, player)
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
 
     -- We have to also support the case where the agreement is disabled.
-    if not PEARL.PlayerDB:FirstTimeJoined(player.userid) then
+    if not PEARL.DB:FirstTimeJoined(player.userid) then
         return
     end
 

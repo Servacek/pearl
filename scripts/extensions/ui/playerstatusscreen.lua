@@ -54,6 +54,32 @@ local CUSTOM_HOST_BUTTON = not TheNet:GetServerIsClientHosted() and type(HOST_NA
 local VALID_HOST_URL = type(HOST_URL) == "string" and #HOST_URL > 1
 
 ---------------------------
+-- [[ Locals ]]
+---------------------------
+
+-- Show the label only if proxy is enabled.
+local proxy_state_label, proxy_state
+local function OnProxyStateChanged(new)
+    if proxy_state_label then
+        proxy_state_label:SetColour(new and WEBCOLOURS.GREEN or WEBCOLOURS.RED)
+        proxy_state_label:SetString(STRINGS.PEARL.UI.PROXY_STATE:format(
+            new == true and STRINGS.PEARL.UI.ONLINE or STRINGS.PEARL.UI.OFFLINE
+        ))
+    end
+end
+
+if PEARL.CONFIG.PROXY.ENABLED then
+    PEARL.AddPlayerPostInit(function(inst)
+        proxy_state = net_bool(inst.GUID, "proxy_state", "proxy_state_changed")
+        proxy_state:set_local(false)
+
+        inst:ListenForEvent("proxy_state_changed", function()
+            OnProxyStateChanged(proxy_state:value())
+        end)
+    end)
+end
+
+---------------------------
 -- [[ Overrides ]]
 ---------------------------
 
@@ -92,6 +118,22 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
         PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD_FOCUS
     ))
     self.viewdiscord_button:SetPosition(DISCORD_BUTTON_X + (self.servermenunumbtns > 1 and self.servermenunumbtns * SCREEN_BUTTONS_OFFSET or 0), DISCORD_BUTTON_Y)
+
+    if PEARL.CONFIG.PROXY.ENABLED then
+        if not proxy_state_label then
+            proxy_state_label = Text(TALKINGFONT, 24)
+            proxy_state_label:SetHAlign(ANCHOR_MIDDLE)
+            proxy_state_label:SetVAlign(ANCHOR_MIDDLE)
+
+            OnProxyStateChanged(proxy_state and proxy_state:value() or false)
+        end
+
+        local host_widget = type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]
+        if host_widget then
+            host_widget:AddChild(proxy_state_label)
+            proxy_state_label:SetPosition(0, 0, 0)
+        end
+    end
 
     if CUSTOM_HOST_BUTTON and VALID_HOST_URL then
         local host_widget =  type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]

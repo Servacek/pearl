@@ -371,6 +371,8 @@ PEARL.info("Loading Discord REST API wrappers...")
 
 --- @type RestAPI
 PEARL.DiscordRestAPI = PEARL.loadlib("discordapi/restapi")
+-- Enabling and disabling is changed internaly when rate limitting.
+PEARL.DiscordRestAPI:SetIsEnabled(true)
 
 PEARL.info("Loading server network...")
 
@@ -467,6 +469,7 @@ local function LoadExtensions()
     end
 
     PEARL.info("Loading game script extensions...")
+    PEARL.loadfile("extensions/scripts/entity")
     PEARL.loadfile("extensions/scripts/entityscript")
     PEARL.loadfile("extensions/scripts/playercommon")
 
@@ -525,11 +528,11 @@ PEARL.AdminList:Load()
 -- [[ Player Libraries ]]
 -------------------------------------
 
---- @type PlayerDB
-PEARL.PlayerDB = PEARL.loadfile("libraries/playerdatabase")
-PEARL.PlayerDB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
-if PEARL.PlayerDB:IsEnabled() then
-    PEARL.PlayerDB:LoadBindingFiles()
+--- @type DB
+PEARL.DB = PEARL.loadfile("libraries/playerdatabase")
+PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
+if PEARL.DB:IsEnabled() then
+    PEARL.DB:LoadBindingFiles()
 end
 
 --- @type Reputation
@@ -598,6 +601,7 @@ ModuleManager:AddModule("characterblocker", PEARL.CONFIG.CHARACTER_BLOCKLIST)
 ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
 ModuleManager:AddModule("globalbanlist", PEARL.CONFIG.GLOBAL_BANLIST.ENABLED and PEARL.CONFIG.GLOBAL_BANLIST.URL)
+ModuleManager:AddModule("autoban", PEARL.CONFIG.AUTOBAN.ENABLED)
 
 --- Filters
 ModuleManager:AddModule("filters/usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)

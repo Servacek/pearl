@@ -42,7 +42,7 @@ local MAX_DEBUG_FILE_LEN = 10000
 
 --- @type file*?
 local _debug_file
---- @type string|stringlib
+--- @type string
 local _debug_file_content = ""
 
 ---------------------------

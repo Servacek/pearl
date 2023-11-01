@@ -28,24 +28,6 @@ local EntityScript = EntityScript
 -- [[ Member Functions ]]
 -----------------------------------
 
--- function EntityScript:HasBuilder()
---     return self.builder     ~= nil
---     and self.builder.userid ~= nil
---     and self.builder.name   ~= nil
--- end
-
--- function EntityScript:SetBuilder(builder)
---     self.builder = builder
--- end
-
--- function EntityScript:GetBuilderName()
---     return self:HasBuilder() and tostring(self.builder.name) or "UNKNOWN"
--- end
-
--- function EntityScript:IsBuildBy(userid)
---     return userid and self.builder.userid == userid
--- end
-
 function EntityScript:IsBaseStructure()
     return self:IsValid()
         and self:HasOneOfTags(PEARL.CONSTS.BASE_STRUCTURE_TAGS)
@@ -110,7 +92,7 @@ function EntityScript:GetValue()
         end
 
         for _, ingredient in ipairs(recipe.ingredients) do
-            
+
         end
     end
 end

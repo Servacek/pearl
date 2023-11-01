@@ -23,16 +23,20 @@ local QUERIES = PEARL.SteamAPI.QUERIES
 -- RECORDS ARE CREATED HERE
 local function RecordClientConnectionData(userid, data)
     -- This is the place where we want to create the record if needed.
-    if PEARL.PlayerDB:HasRecordFile(userid) then
-        PEARL.PlayerDB:CreateRecordFile(userid)
+    if PEARL.DB:HasRecordFile(userid) then
+        if not PEARL.DB:CreateRecordFile(userid) then
+            return -- We have failed to create the record.
+        end
+
+        PEARL.Reputation:InitializeFor(userid)
     end
 
-    PEARL.PlayerDB:SafeSetField(userid, "lastmods", data.enabled_mods)
-    PEARL.PlayerDB:SafeSetField(userid, "lastlocale", data.locale)
-    PEARL.PlayerDB:SafeSetField(userid, "lastplatform", data.platform)
+    PEARL.DB:SafeSetField(userid, "lastmods", data.enabled_mods)
+    PEARL.DB:SafeSetField(userid, "lastlocale", data.locale)
+    PEARL.DB:SafeSetField(userid, "lastplatform", data.platform)
 
     -- Make sure these data are saved, because they are important.
-    PEARL.PlayerDB:SaveRecordFor(userid)
+    PEARL.DB:SaveRecordFor(userid)
 end
 
 function PEARL.RecordProfileData(userid, cb)
@@ -60,7 +64,7 @@ function PEARL.RecordProfileData(userid, cb)
         end
 
         -- This is in minutes!
-        PEARL.PlayerDB:SafeSetField(userid, "gameplaytime", gameplaytime)
+        PEARL.DB:SafeSetField(userid, "gameplaytime", gameplaytime)
 
         if type(cb) == "function" then
             cb()
@@ -88,7 +92,7 @@ local function OnClientBanned(userid)
 end
 
 local function OnClientAgreementDataReceived(data)
-    local record = PEARL.PlayerDB:GetRecordFor(data.userid)
+    local record = PEARL.DB:GetRecordFor(data.userid)
     if not record then
         return
     end
@@ -111,12 +115,12 @@ local function OnClientAgreementDataReceived(data)
 
     -- Here we can finally save the data with clear mind.
     -- On disagreement this will be the last saved data for this record.
-    PEARL.PlayerDB:SaveRecordFor(data.userid, record)
+    PEARL.DB:SaveRecordFor(data.userid, record)
 end
 
 -- Called after all connection filters successed!
 local function OnClientConnected(world, player)
-    PEARL.PlayerDB:SafeSetField(player.userid, "lastjoinedtime", os.time())
+    PEARL.DB:SafeSetField(player.userid, "lastjoinedtime", os.time())
 
     local client = TheNet:GetClientTableForUser(player.userid)
     if not client or not client.name then
@@ -124,15 +128,15 @@ local function OnClientConnected(world, player)
     end
 
     -- Update this on every connect since it could possibly change.
-    PEARL.PlayerDB:SafeSetField(player.userid, "username", client.name)
+    PEARL.DB:SafeSetField(player.userid, "username", client.name)
 end
 
 local function OnClientDisconnected(world, player)
     -- No loading here! Also the userid can be nil or an empty string.
-    if PEARL.PlayerDB:IsRecordLoadedFor(player.userid) then
-        PEARL.PlayerDB:SafeSetField(player.userid, "lastseentime", os.time())
-        PEARL.PlayerDB:SaveRecordFor(player.userid)
-        PEARL.PlayerDB:UnloadRecord(player.userid) -- Free the memory
+    if PEARL.DB:IsRecordLoadedFor(player.userid) then
+        PEARL.DB:SafeSetField(player.userid, "lastseentime", os.time())
+        PEARL.DB:SaveRecordFor(player.userid)
+        PEARL.DB:UnloadRecord(player.userid) -- Free the memory
     end
 end
 
@@ -140,11 +144,11 @@ local function OnClientProfileData(userid, data)
     -- Maybe a pairs loop would be better here but then we would have to rely
     -- on the names provided by steamprofilechecker.
     -- This way, changing the names there won't break the DB.
-    PEARL.PlayerDB:SafeSetField(userid, "profilecountrycode", data.loccountrycode)
-    PEARL.PlayerDB:SafeSetField(userid, "profiletimecreated", data.timecreated)
-    PEARL.PlayerDB:SafeSetField(userid, "profilerep", data.profilerep)
-    PEARL.PlayerDB:SafeSetField(userid, "communityprofile", data.communityprofile)
-    PEARL.PlayerDB:SafeSetField(userid, "avatar", data.avatar)
+    PEARL.DB:SafeSetField(userid, "profilecountrycode", data.loccountrycode)
+    PEARL.DB:SafeSetField(userid, "profiletimecreated", data.timecreated)
+    PEARL.DB:SafeSetField(userid, "profilerep", data.profilerep)
+    PEARL.DB:SafeSetField(userid, "communityprofile", data.communityprofile)
+    PEARL.DB:SafeSetField(userid, "avatar", data.avatar)
 end
 
 local function OnPlayerChanged(world, player)
@@ -154,13 +158,13 @@ local function OnPlayerChanged(world, player)
         return
     end
 
-    PEARL.PlayerDB:SetField(
+    PEARL.DB:SetField(
         player.userid, "lastprefab", prefab
     )
 
     local fancyprefab = player:GetFancyPrefabName()
     if type(fancyprefab) == "string" then
-        PEARL.PlayerDB:SetField(
+        PEARL.DB:SetField(
             player.userid, "lastprefabfancy", fancyprefab
         )
     end
@@ -177,7 +181,7 @@ PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, count
 
     count = tonumber(count)
     if count and count > 0 then
-        local record = PEARL.PlayerDB:GetRecordFor(player.userid)
+        local record = PEARL.DB:GetRecordFor(player.userid)
         if record then
             record.totaldays = record.totaldays + count
         end

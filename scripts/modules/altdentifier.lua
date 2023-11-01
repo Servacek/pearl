@@ -54,7 +54,7 @@ local function HasAccountInvalidRoot(userid, rootid)
 end
 
 local function GetSavedRootFor(userid)
-    return PEARL.PlayerDB:GetField(userid, "rootuserid")
+    return PEARL.DB:GetField(userid, "rootuserid")
 end
 
 local function ShouldCheckClient(userid)
@@ -148,7 +148,7 @@ PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, filtercb)
     SendRootRetriveQuery(userid, function(rootid)
         -- Root ID should not change since userid is bound to it.
         -- Save it even if it's invalid so we do not have to send another query in the future.
-        PEARL.PlayerDB:SafeSetField(userid, "rootuserid", rootid)
+        PEARL.DB:SafeSetField(userid, "rootuserid", rootid)
 
         RunRootFilterFor(userid, rootid, filtercb)
     end)

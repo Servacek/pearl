@@ -67,13 +67,13 @@ HTTPClientProxy.METHODS = {
 -- [[ Local Functions ]]
 --------------------------------
 
-local function _CreateProxyRequest(callbackfn, ...)
-    return Request(HTTPClientProxy._url, PEARL.HTTPClient.METHODS.POST, true)
+local function _CreateProxyRequest(oncompletefn, ...)
+    return PEARL.HTTPClient:Request(HTTPClientProxy._url, PEARL.HTTPClient.METHODS.POST, true)
         :SetStatusCodeHandle(0, _OnProxyRequestTimeout)
         :SetTimeout(PROXY_REQUEST_TIMEOUT)
-        :SetCallbackFn(function(response, request, ...)
-            if type(callbackfn) == "function" then
-                callbackfn(response, request, ...)
+        :SetOnComplete(function(response, request, ...)
+            if type(oncompletefn) == "function" then
+                oncompletefn(response, request, ...)
             end
 
             _timeouts_in_row = 0
@@ -103,14 +103,18 @@ end
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param method string The method of the request.
---- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param oncompletefn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
 --- @param data table? The json data table for the request, if any.
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:Request(url, method, callbackfn, data, timeout, ...)
-    return _CreateProxyRequest(callbackfn, ...)
+function HTTPClientProxy:Request(url, method, oncompletefn, data, timeout, ...)
+    if data ~= nil and type(data) ~= "table" then
+        error("Attempted to create a proxy request with invalid data!")
+    end
+
+    return _CreateProxyRequest(oncompletefn, ...)
         :SetProxyData({ -- Data for the proxied request
             url = url,
             timeout = timeout,
@@ -144,25 +148,25 @@ end
 
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
---- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param oncompletefn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:GET(url, callbackfn, timeout, ...)
-    return self:Request(url, self.METHODS.GET, callbackfn, nil, timeout, ...)
+function HTTPClientProxy:GET(url, oncompletefn, timeout, ...)
+    return self:Request(url, self.METHODS.GET, oncompletefn, nil, timeout, ...)
 end
 
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
---- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
+--- @param oncompletefn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
 --- @param data table The data table body for the request.
 --- @param timeout number? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:POST(url, callbackfn, data, timeout, ...)
-    return self:Request(url, self.METHODS.POST, callbackfn, data, timeout, ...)
+function HTTPClientProxy:POST(url, oncompletefn, data, timeout, ...)
+    return self:Request(url, self.METHODS.POST, oncompletefn, data, timeout, ...)
 end
 
 --------------------------------

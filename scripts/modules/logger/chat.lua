@@ -60,8 +60,6 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon, receive
         pattern = STRINGS.PEARL.LOGS.SAY_DM:iformat(2, receiver)
     end
 
-    print("PATTERN:", pattern)
-
     PEARL.DiscordLogger:LogStringRaw(pattern:format(
         -- This is all user input so it can contain some encoded stuff.
         -- This should be handled when we encode the message as JSON string.

@@ -184,7 +184,6 @@ local STRINGS = {
                 SEED            = "New World Seed",
                 SESSION_ID      = "World ID",
                 SAVE_VERSION    = "Save Version",
-                --- @TODO
                 REED_TRAP       = "Reed Trap",
                 WALRUS_CAMPS    = "Walrus Camps",
             },
@@ -457,6 +456,10 @@ local STRINGS = {
 
     UI = {
         CONSOLE_DISABLED = "Disabled :)",
+
+        PROXY_STATE = "Proxy Server: %s",
+        ONLINE = "Online",
+        OFFLINE = "Offline",
 
         ALLOWED = "Allowed",
         BLOCKED = "Blocked",

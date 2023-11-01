@@ -73,9 +73,17 @@ end
 -- [[ Private Methods ]]
 --------------------------------
 
+--- @param request Request
 function HTTPClient:SendRequest(request)
+    --PEARL.debug("HTTPClient:SendRequest", request, request.url, request.method)
+
     if type(request) ~= "table" then
-        return PEARL.warn("Attempted to send an invalid request!")
+        return PEARL.error("Attempted to send an invalid request!")
+    end
+
+    local data = request:GetData()
+    if request.method == HTTPClient.METHODS.POST and type(data) ~= "string" then
+        return PEARL.error("Attempted to send a POST request with invalid data provided!", request)
     end
 
     -- Run in a protected call so if an error occures and the request is not actually
@@ -83,7 +91,7 @@ function HTTPClient:SendRequest(request)
     local success, err = pcall(TheSim.QueryServer, TheSim,
         request.url, function(...)
             request:OnCompleted(...)
-        end, request.method, request:GetData(), request.timeout
+        end, request.method, data, request.timeout
     )
 
     if success then
@@ -106,7 +114,6 @@ function HTTPClient:RetryRequestAfter(request, seconds)
         return PEARL.warn("Max retry count reached! Request failed...")
     end
 
-    print("RETRIES", request.retries)
     request:OnRetry()
     PEARL.info(("Retrying request in %d seconds... (%d/%d)"):format(
         seconds, request.retries, request.maxretries
@@ -120,17 +127,11 @@ end
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param method string The method of the request.
---- @param callbackfn? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
---- @param data string|table? The json data body for the request (JSON or table)
---- @param timeout number? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
+--- @param proxy boolean? Whether this
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClient:Request(url, method, callbackfn, data, timeout, ...)
-    return Request(url, method)
-        :SetOnSuccess(callbackfn, ...)
-        :SetData(data)
-        :SetTimeout(timeout)
+function HTTPClient:Request(url, method, proxy)
+    return Request(url, method, proxy)
 end
 
 --- @nodiscard
@@ -141,7 +142,7 @@ end
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClient:GET(url, onsuccess, timeout, ...)
-    return Request(url, HTTPClient.METHODS.GET)
+    return self:Request(url, HTTPClient.METHODS.GET)
         :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
 end
@@ -155,8 +156,9 @@ end
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClient:POST(url, onsuccess, data, timeout, ...)
-    assert(data, "Invalid data provided for POST request. Method would be changed to GET implicitly.")
-    return Request(url, HTTPClient.METHODS.POST)
+    assert(data ~= nil, "Invalid data provided for POST request. Method would be changed to GET implicitly.")
+
+    return self:Request(url, HTTPClient.METHODS.POST)
         :SetOnSuccess(onsuccess, ...)
         :SetTimeout(timeout)
         :SetData(data)

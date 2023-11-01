@@ -590,7 +590,7 @@ AddCommand("mods", {
 
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
-        local mods = PEARL.PlayerDB:GetField(userid, "lastmods")
+        local mods = PEARL.DB:GetField(userid, "lastmods")
         if not mods then
             local cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
             mods = cfd and cfd.enabled_mods
@@ -655,7 +655,7 @@ AddCommand("setrep", {
     mainfn = function(params, caller)
         local userid = UserToClientID(params.player) or params.player
         if PEARL.Reputation:SetTo(userid, tonumber(params.value)) then
-            PEARL.PlayerDB:SaveRecordFor(userid)
+            PEARL.DB:SaveRecordFor(userid)
 
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS
         end
@@ -732,7 +732,7 @@ AddCommand("profile", {
 
     discordfn = function(params)
         local userid = UserToClientID(params.player) or params.player
-        local record = PEARL.PlayerDB:GetRecordFor(userid)
+        local record = PEARL.DB:GetRecordFor(userid)
         if not record then
             return "Player not found!"
         end
@@ -1147,15 +1147,15 @@ AddCommand("pair", {
     paramsoptional = { false },
 
     mainfn = function(params, caller, commandid)
-        local bindtype = PEARL.PlayerDB.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.DB.BINDING_TYPE.DISCORD
         local userid = caller.userid or params.id
         local discordid = caller.discordid or params.id
 
-        if not PEARL.PlayerDB:HasRecordFile(userid) then
+        if not PEARL.DB:HasRecordFile(userid) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.NOT_PLAYED
         end
 
-        if PEARL.PlayerDB:BindingExists(userid, discordid, bindtype) then
+        if PEARL.DB:BindingExists(userid, discordid, bindtype) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ALREADY_PAIRED
         end
 
@@ -1182,7 +1182,7 @@ AddCommand("pair", {
             end
 
             if data.Linked then
-                PEARL.PlayerDB:AddBinding(userid, discordid, bindtype)
+                PEARL.DB:AddBinding(userid, discordid, bindtype)
                 return PEARL.DiscordProxy:SendCommandResponse(
                     commandid, Message(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ON_SUCCESS)
                 )
@@ -1208,20 +1208,20 @@ AddCommand("unpair", {
     servermenu = false,
 
     mainfn = function(params, caller)
-        local bindtype = PEARL.PlayerDB.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.DB.BINDING_TYPE.DISCORD
         local userid = caller.userid
         local discordid = caller.discordid
         if userid and not discordid then
-            discordid = PEARL.PlayerDB:MapUserIDToType(userid, bindtype)
+            discordid = PEARL.DB:MapUserIDToType(userid, bindtype)
         elseif discordid and not userid then
-            userid = PEARL.PlayerDB:MapDiscordID(discordid)
+            userid = PEARL.DB:MapDiscordID(discordid)
         end
 
-        if not userid or not discordid or not PEARL.PlayerDB:BindingExists(userid, discordid, bindtype) then
+        if not userid or not discordid or not PEARL.DB:BindingExists(userid, discordid, bindtype) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.NOT_PAIRED
         end
 
-        PEARL.PlayerDB:RemoveBinding(userid, discordid, bindtype)
+        PEARL.DB:RemoveBinding(userid, discordid, bindtype)
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.ON_SUCCESS
     end,
 })
@@ -1285,20 +1285,20 @@ AddCommand("setdbfield", {
     paramsoptional = {false, false, false},
 
     mainfn = function(params)
-        if not PEARL.PlayerDB:IsEnabled() then
+        if not PEARL.DB:IsEnabled() then
             return STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED
         end
 
         local userid = UserToClientID(params.player) or params.player
-        if not userid or not PEARL.PlayerDB:HasRecordFile(userid) then
+        if not userid or not PEARL.DB:HasRecordFile(userid) then
             return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
         end
 
-        if not PEARL.PlayerDB:SetField(userid, params.field, params.value) then
+        if not PEARL.DB:SetField(userid, params.field, params.value) then
             return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE
         end
 
-        PEARL.PlayerDB:SaveRecordFor(userid)
+        PEARL.DB:SaveRecordFor(userid)
         return STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_SUCCESS
     end
 })

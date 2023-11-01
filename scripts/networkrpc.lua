@@ -139,7 +139,7 @@ local SERVER_USERID_RPCS = {
         PEARL.DiscordReporter:SendPlayerReportMessage(userid, message)
 
         -- Anounce it so it logs the message and also other players can see it as well.
-        PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED)
+        PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED, "default")
     end,
 
     AgreementDataReceived = function(userid, agreed, datacollection, agreedintime, agreed_version)

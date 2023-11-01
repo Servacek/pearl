@@ -30,6 +30,12 @@ local MESSAGE_NAME_ADMIN = "[ADMIN] %s"
 local PMESSAGE_COLOR = Colour.FromRGBA(173, 216, 230)
 
 ----------------------------------
+-- Locals
+----------------------------------
+
+local proxy_state
+
+----------------------------------
 -- Query Handlers
 ----------------------------------
 
@@ -139,6 +145,12 @@ end
 -- Event Handlers
 ----------------------------------
 
+local function OnProxyStateChanged(state)
+    if proxy_state then
+        proxy_state:set(state == PEARL.DiscordProxy.STATE.RUNNING)
+    end
+end
+
 local function OnProxyFetchingDone(data)
     if type(data) ~= "table" then
         return
@@ -161,8 +173,13 @@ local function OnProxyFetchingDone(data)
 end
 
 local function OnQuit()
-    PEARL.DiscordProxy:StopSession()
-    PEARL.DiscordProxy:StopFetchTask()
+    if PEARL.DiscordProxy:IsRunning() then
+        PEARL.DiscordProxy:StopSession()
+    end
+
+    if PEARL.DiscordProxy:IsFetching() then
+        PEARL.DiscordProxy:StopFetchTask()
+    end
 end
 
 local function OnSave()
@@ -203,6 +220,11 @@ PEARL.AddSimPostInit(function()
     PEARL.DiscordProxy:StartSession()
 end)
 
+PEARL.AddPlayerPostInit(function(inst)
+    proxy_state = net_bool(inst.GUID, "proxy_state")
+    proxy_state:set(PEARL.DiscordProxy:IsRunning())
+end)
+
 ----------------------------------
 -- Event Listeners
 ----------------------------------
@@ -216,3 +238,4 @@ PEARL.EventProcessor:AddSafeEventHandler("ms_clientauthenticationcomplete", OnCl
 PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
 
 PEARL.EventProcessor:AddSafeEventHandler("proxy_fetching_done", OnProxyFetchingDone)
+PEARL.EventProcessor:AddSafeEventHandler("proxy_state_changed", OnProxyStateChanged)

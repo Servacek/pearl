@@ -30,6 +30,7 @@ local LeaderBoarder = Class(function(self)
         return
     end
 
+    --- @type Webhook
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.BHOOK.ID, PEARL.CONFIG.DISCORD.BHOOK.TOKEN)
 
     self._embeds = {}
@@ -139,8 +140,12 @@ function LeaderBoarder:PostUpdatingMessage(cb)
 
     local request
     local message = self:GetMessage()
+    if not message:IsValid() then
+        return PEARL.error("No leaderboard embeds were added!")
+    end
+
     if self._mode == LeaderBoarder.MODE.UPDATE and PEARL.HTTPClient:IsProxyEnabled() then
-        request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, message:ToJson())
+        request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, message:ToTable())
         request:SetParameters({ ["wait"] = true })
     else -- Defaults to STACK mode
         request = self._webhook:PostMessage(message)

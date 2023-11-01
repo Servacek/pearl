@@ -11,8 +11,8 @@
 --]==]====================================================]]
 
 
+local Library = require("models/library")
 local Message = require("libraries/discordapi/models/message")
-
 
 local math = math
 
@@ -47,13 +47,15 @@ local WEBHOOK_ACTION_METHODS = {
 -- [[ Initialization ]]
 --------------------------------
 
---- @class RestAPI - singleton
+--- @singleton
+--- @class RestAPI: Library
 local RestAPI = {
-    _is_disabled = false,
-
     --- @type Task?
     _rate_limit_task = nil,
 }
+
+--- @type RestAPI
+RestAPI = Library(RestAPI)
 
 --------------------------------
 -- [[ Static ]]
@@ -81,8 +83,9 @@ RestAPI.STATUS_CODES = {
 local function _OnErrorStatusCode(response, status_code, request)
     -- Handle rate limits first
     if status_code == RestAPI.STATUS_CODES.TOO_MANY_REQUESTS then
+        -- WallScheduler doesn't support floats with the current precision.
         return RestAPI:RateLimitForTime(
-            response and tonumber(response.retry_after or 0) or nil
+            response and math.ceil(tonumber(response.retry_after or 1) or 1) or nil
         )
     end
 
@@ -114,8 +117,7 @@ local function _SendActionRequest(url, action, data)
 
     local method = WEBHOOK_ACTION_METHODS[action]
 
-    --- @type HTTPClient|HTTPClientProxy
-    local client = PEARL.HTTPClient
+    local request
     if not PEARL.HTTPClient.METHODS[method] then
         -- This method seems to require proxy server to be used.
         if not PEARL.HTTPClient.proxy or PEARL.HTTPClient.proxy:IsDisabled() then
@@ -123,17 +125,15 @@ local function _SendActionRequest(url, action, data)
             return
         end
 
-        client = PEARL.HTTPClient.proxy
+        request = PEARL.HTTPClient.proxy:Request(url, method, nil, data, REQUEST_TIMEOUT)
+            :SetMaxRetries(0)
+    else
+        request = PEARL.HTTPClient:Request(url, method)
+            :SetData(data)
+            :SetTimeout(REQUEST_TIMEOUT)
     end
 
-    local request = client:Request(
-        url, WEBHOOK_ACTION_METHODS[action], nil, data, REQUEST_TIMEOUT
-    )
-    :SetOnError(_OnErrorStatusCode)
-
-    if client ~= PEARL.HTTPClient.proxy then
-        request:SetMaxRetries(0)
-    end
+    request:SetOnError(_OnErrorStatusCode)
 
     return (request:Send())
 end
@@ -142,20 +142,8 @@ end
 -- [[ Getters ]]
 --------------------------------
 
-function RestAPI:IsDisabled()
-    return self._is_disabled
-end
-
 function RestAPI:IsRateLimited()
     return self._rate_limit_task ~= nil and self._rate_limit_task.limit > 0
-end
-
---------------------------------
--- [[ Setters ]]
---------------------------------
-
-function RestAPI:SetIsDisabled(disabled)
-    self._is_disabled = disabled
 end
 
 --------------------------------
@@ -204,7 +192,7 @@ end
 --- @param message Message The message to be posted by this webhook
 --- @return Request? request
 function RestAPI:PostWebhookMessage(wurl, message)
-    --PEARL.debug("PostWebhookMessage", message)
+    PEARL.debug("PostWebhookMessage", message)
 
     return self:DoWebhookMessageAction(
         wurl, nil, WEBHOOK_ACTIONS.POST, message
@@ -247,9 +235,9 @@ end
 --------------------------------
 
 function RestAPI:RateLimitForTime(seconds)
-    --PEARL.debug("RateLimitForTime", seconds)
+    PEARL.debug("RateLimitForTime", seconds)
 
-    self:SetIsDisabled(true)
+    self:SetIsEnabled(false)
 
     if type(seconds) == "number" and seconds >= 0 then
         PEARL.info("Disabling for", seconds, "seconds...")
@@ -262,10 +250,12 @@ function RestAPI:RateLimitForTime(seconds)
 
         self._rate_limit_task = PEARL.WallScheduler:ExecuteInTime(seconds, function()
             PEARL.info("Reanabling...")
-            self:SetIsDisabled(false)
+            self:SetIsEnabled(true)
 
-            self._rate_limit_task:cancel()
-            self._rate_limit_task = nil
+            if self._rate_limit_task then
+                self._rate_limit_task:cancel()
+                self._rate_limit_task = nil
+            end
         end)
     else
         -- When seconds are nil, keep the webhook disabled (so it's permanent)

@@ -99,8 +99,8 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
     end
 
     local hasrecord
-    if PEARL.PlayerDB:IsEnabled() then
-        hasrecord = PEARL.PlayerDB:FirstTimeJoined(userid)
+    if PEARL.DB:IsEnabled() then
+        hasrecord = PEARL.DB:FirstTimeJoined(userid)
     end
 
     -- If all the filters have successfully passed, then the connection should be allowed.
@@ -737,8 +737,13 @@ PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)
     end
     TheInput.overridepos = (x ~= nil and z ~= nil and Vector3(x, 0, z)) or nil
 
-    local success, response = pcall(loadstring(fnstr))
-    if success then
+    local success = false
+    local fn, response = loadstring(fnstr)
+    if fn then
+        success, response = pcall(fn)
+    end
+
+    if success == true then
         local doer = Ents[guid]
         if doer then
             doer:PushModEvent("ms_commandexecuted", fnstr)

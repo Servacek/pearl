@@ -45,7 +45,9 @@ local iclear = table.iclear
 -- [[ Constants ]]
 -------------------------------------
 
-local CROP_POSTFIX = "..."
+local DEFAULT_ALLOWED_MENTIONS = {
+    parse = {}
+}
 
 -------------------------------------
 -- [[ Class Declarations ]]
@@ -57,15 +59,12 @@ local CROP_POSTFIX = "..."
 -- 3. The embeds.
 -- (Currently loglines and raw content are combined)
 
--- A message object can contain multiple log lines
 --- @param content string? The content of the message
 --- @class Message
-local Message = Class(function(self, content)
-    -- Create the table only when it's needed
-    -- for embed only messages
-
+local Message = PEARL.Class(function(self, content)
     --- @type string?
     self._content = content
+
     -- This table is rarely used so create it
     -- only when it's needed
     --- @type table?
@@ -73,18 +72,11 @@ local Message = Class(function(self, content)
 
     --- @type integer?
     self._flags = nil
-    -- We don't support these yet
-    --self.attachments = {}
 
-    -- All mentions are disabled by default
-    -- Posibble categories:
-    --    parse,
-    --    roles,
-    --    users,
-    -- Settings parse to false disabled the @everyone and @here ping
-    -- Therefore this should be always a table.
+    -- Setting parse to an empty array disables all mentions in the message.
+    -- That's what we want by default.
     --- @type table<string, table>
-    self._allowed_mentions = shallowcopy(self.DEFAULT_ALLOWED_MENTIONS)
+    self._allowed_mentions = shallowcopy(DEFAULT_ALLOWED_MENTIONS)
 end)
 
 ------------------------------------------
@@ -122,10 +114,6 @@ Message.FLAGS                   = {
     HAS_THREAD	            = bit.lshift(1, 5),	-- this message has an associated thread, with the same id as the message
     EPHEMERAL	            = bit.lshift(1, 6),	-- this message is only visible to the user who invoked the Interaction
     LOADING	                = bit.lshift(1, 7),	-- this message is an Interaction Response and the bot is "thinking"
-}
-
-Message.DEFAULT_ALLOWED_MENTIONS = {
-    parse = {}
 }
 
 ------------------------------------------

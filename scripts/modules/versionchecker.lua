@@ -59,9 +59,9 @@ end
 
 local function get_target_version(query_result_str)
     local status, version_list = pcall(json.decode, query_result_str)
-
     if not status or not version_list then
-        return PEARL.error("JSON failed to decode the version query result.")
+        PEARL.error("JSON failed to decode the version query result.")
+        return
     end
 
     local releases = version_list.release
@@ -99,11 +99,6 @@ local function StartServerUpdate()
 
     PEARL.WallScheduler:ExecuteInTime(2, function()
         PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastLua, "PEARL.Reboot()")
-        -- PEARL.WallScheduler:ExecuteInTime(1, function()
-        --     PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
-
-        --     TheSim:Crash(true)
-        -- end)
     end)
 end
 

@@ -24,13 +24,13 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid, data)
 
     -- Check if the username has changed.
     -- Note: On first join the username will be nil!
-    local saved_username = PEARL.PlayerDB:GetField(userid, "username")
+    local saved_username = PEARL.DB:GetField(userid, "username")
     if saved_username == data.username then
-        valid = PEARL.PlayerDB:GetField(userid, "usernamevalid")
+        valid = PEARL.DB:GetField(userid, "usernamevalid")
     else
         valid = not ProfanityFilter:Detect(data.username)
     end
 
-    PEARL.PlayerDB:SafeSetField(userid, "usernamevalid", valid)
+    PEARL.DB:SafeSetField(userid, "usernamevalid", valid)
     return valid, "ID_DST_USERNAME_BLOCKED"
 end)

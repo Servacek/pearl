@@ -143,7 +143,7 @@ local function SaveMessageID(messageid)
 end
 
 local function IsLeaderboardingEnabledFor(userid)
-    return PEARL.PlayerDB:HasRecordFile(userid) and
+    return PEARL.DB:IsRecordLoadedFor(userid) and
             not PEARL.ServerNetwork:IsClientBanned(userid) and
            (not PEARL.ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.DEBUG_MODE)
 end
@@ -197,6 +197,20 @@ local function UpdateLeaderboards()
     end
 end
 
+local function UpToDateCheck()
+    -- Check if any of the leaderboards needs an update or needs to be saved.
+    for _, leaderboard in pairs(leaderboards) do
+        if leaderboard:HasAnyUnsavedChanges() then
+            if leaderboard:HasEnoughPlayers() then
+                UpdateLeaderboards()
+                break
+            end
+
+            SaveLeaderboards()
+        end
+    end
+end
+
 local function CompeteDayLeader(rivalid)
     local leaderid = monthly_leaderboard:GetLeaderUserID()
     if leaderid == rivalid then
@@ -237,9 +251,7 @@ local function OnBufferDone()
         buffer[userid] = nil
 
         local new_rep = PEARL.Reputation:GetOf(userid)
-        local delta = new_rep - old_rep
-
-        if delta > 0 then
+        if new_rep > old_rep then
             CompeteDayLeader(userid)
         end
 
@@ -248,31 +260,20 @@ local function OnBufferDone()
         end
     end
 
-    -- Check if any of the leaderboards needs an update or needs to be saved.
-    for _, leaderboard in pairs(leaderboards) do
-        if leaderboard:HasAnyUnsavedChanges() then
-            if leaderboard:HasEnoughPlayers() then
-                UpdateLeaderboards()
-                break
-            end
-
-            SaveLeaderboards()
-        end
-    end
+    UpToDateCheck()
 
     buffer_task:cancel()
     buffer_task = nil
 end
 
-local function OnReputationDelta(userid, delta, old_rep)
-    delta = tonumber(delta) or 0
-    PEARL.debug("OnReputationDelta", userid, delta)
-    if delta <= 0 or not IsLeaderboardingEnabledFor(userid) then
+local function OnReputationChanged(userid, old, new)
+    PEARL.debug("OnReputationDelta", userid, new, old)
+    if not (old and new) or old == new or not IsLeaderboardingEnabledFor(userid)  then
         return
     end
 
     if not buffer[userid] then
-        buffer[userid] = old_rep
+        buffer[userid] = old
     end
 
     if not buffer_task then
@@ -298,6 +299,9 @@ local function ArchiveLeaderboardEmbed(position)
 end
 
 CreateNewUpdatingMessage = function()
+    -- Make sure the newest embeds are assigned.
+    UpdateLeaderboardEmbeds()
+
     PEARL.debug("CreateNewUpdatingMessage")
     return PEARL.DiscordLeaderBoarder:PostUpdatingMessage(CanEditMessages() and OnUpdatingMessagePosted or nil)
 end
@@ -335,7 +339,7 @@ function PEARL.OnNewMonth(stb)
     -- choosing the player of the month is automatically enabled.
     if stb and monthly_leaderboard:HasEnoughPlayers() then
         local monthleaderid = monthly_leaderboard:GetLeaderUserID()
-        local name = PEARL.PlayerDB:GetField(monthleaderid, "username")
+        local name = PEARL.DB:GetField(monthleaderid, "username")
         local monthname = PEARL.GetMonthFancyName(stb.month)
         local monthfullname = STRINGS.PEARL.FULL_MONTH_NAME:format(monthname, stb.year)
 
@@ -350,7 +354,6 @@ function PEARL.OnNewMonth(stb)
 
     -- Clear all the player data and start again.
     monthly_leaderboard:Reset()
-    UpdateLeaderboardEmbeds()
     CreateNewUpdatingMessage()
 end
 
@@ -374,8 +377,10 @@ end
 -- [[ Event Listeners ]]
 --------------------------------
 
-PEARL.EventProcessor:AddEventHandler("onreputationdelta", OnReputationDelta)
-PEARL.EventProcessor:AddEventHandler("clientbanned", OnClientBanned)
+PEARL.EventProcessor:AddSafeEventHandler("onreputationchanged", OnReputationChanged)
+PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
+
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_start", UpToDateCheck)
 
 PEARL.EventProcessor:AddSafeEventHandler("newday", OnNewDay)
 PEARL.EventProcessor:AddSafeEventHandler("newmonth", PEARL.OnNewMonth)

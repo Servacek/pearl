@@ -177,7 +177,7 @@ function Request:_SetField(field, value, tp, optional, static, proxy)
     return self
 end
 
---- @param timeout number
+--- @param timeout number?
 --- @return Request
 function Request:SetTimeout(timeout)
     return self:_SetField("timeout", timeout, "number", true, true)
@@ -273,7 +273,7 @@ end
 --- @param proxydata table?
 --- @return Request
 function Request:SetProxyData(proxydata)
-    return self:_SetField("proxydata", proxydata, PEARL.LUATYPES.TABLE, true, true, true)
+    return self:_SetField("proxydata", proxydata, PEARL.LUATYPES.TABLE, true, true, false)
 end
 
 --- @param onsuccessfn? fun(response: table|string, self: Request, ...: any)
@@ -423,7 +423,7 @@ function Request:OnCompleted(datastr, success, code)
         return -- If custom handlers exist, do not call the default callbacks.
     end
 
-    if success ~= true or code >= 400 then
+    if (success ~= true or code >= 400) and code ~= 200 then
         if type(self.errfn) == "function" then
             self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
         end

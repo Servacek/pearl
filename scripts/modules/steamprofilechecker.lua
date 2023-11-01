@@ -191,7 +191,7 @@ local function CalculateProfileData(steamid, cfd, cb)
         local banned_count = 0
         for _, friend in pairs(query.friendslist.friends) do
             -- Attempt to conver the Steam ID to Klei ID since its used more frequently for banning.
-            local userid = PEARL.PlayerDB:MapSteamID(friend.steamid) or friend.steamid
+            local userid = PEARL.DB:MapSteamID(friend.steamid) or friend.steamid
             if PEARL.BlackList:Contains(userid) then
                 banned_count = banned_count + 1
             end
@@ -308,7 +308,7 @@ end
 --------------------------------
 
 PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cfd, cb)
-    local record = PEARL.PlayerDB:GetRecordFor(userid)
+    local record = PEARL.DB:GetRecordFor(userid)
     if record and RunSteamProfileFilters(record, cb) then
         return -- We already have all the required data to complete the verification.
     end

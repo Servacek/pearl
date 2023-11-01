@@ -383,6 +383,7 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
+PEARL.loadfile("extensions/scripts/entity")
 
 --------------------------------
 -- [[ License ]]

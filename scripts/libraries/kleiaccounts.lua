@@ -76,7 +76,6 @@ function KleiAccounts:QueryLinkValidation(userid, platform, platformid)
         UserID          = userid,
         [PlatformID]    = tostring(platformid)
     })
-    print(input_json)
     if not success_encode or not input_json then
         return PEARL.error("JSON failed to encode query data!")
     end

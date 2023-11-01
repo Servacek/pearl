@@ -122,6 +122,7 @@ end
 ---
 --- @return string result The modified string.
 function string:ltake(count, init, postfix)
+    count = postfix and count - #postfix or count
     local r = self:utf8sub(init or 1, count)
     return postfix and count > 0 and #self > count and r..postfix or r
 end

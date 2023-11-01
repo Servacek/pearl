@@ -66,7 +66,7 @@ PEARL.AddGlobalFunctionPreCall("VerifySpawnNewPlayerOnServerRequest", function(u
         return
     end
 
-    return type(PEARL.PlayerDB:GetField(userid, "agreement")) == "table"
+    return type(PEARL.DB:GetField(userid, "agreement")) == "table"
 end)
 
 PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)

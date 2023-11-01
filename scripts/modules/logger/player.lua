@@ -288,7 +288,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
     local action = AL:QueueEntAct(pattern, doer, "tool", tool)
     if stewer and stewer.ingredient_prefabs and not table.empty(stewer.ingredient_prefabs) then
         for _, prefab in ipairs(stewer.ingredient_prefabs) do
-            action:AddTarget(PEARL.PrefabToName(prefab), true)
+            action:AddTarget(PEARL.PrefabToName(prefab), 1)
 
             if (PEARL.PREFABS.RARE_ITEMS[prefab] or 0) > 0 then
                 prohibited = true
@@ -368,11 +368,10 @@ RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
-    print("PLANT", doer, target, item)
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.PLANT)
         :SetIsSilent(true)
-        :AddTarget(item, true)
+        :AddTarget(item, 1)
 end)
 
 --- @TODO: Add reputation for this
@@ -740,7 +739,7 @@ end
 -- Higher level version of onhitother for players and their followers.
 local function onplayerhitother(player, target, damage)
     -- Only for bosses for now.
-    if not target:HasTag("epic") then
+    if not target or not target.HasTag or not target:HasTag("epic") then
         return
     end
 

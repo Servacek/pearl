@@ -191,7 +191,21 @@ configuration_options = {
         default = {
             ENABLED = false,
             URL = nil,
-            KEY = "dst0qy97fkfvAapK-VPFfcKNdtzFHG1F-rwFwrajnG8=",
+        },
+        public = "PROXY.ENABLED",
+        type = "table",
+    },
+
+    --------------------
+    -- Auto-Ban
+    --------------------
+
+    {
+        name = "AUTOBAN",
+        default = {
+            ENABLED = false,
+            THRESHOLD = 0,
+            DURATION = nil, -- Forever
         },
         type = "table",
     },

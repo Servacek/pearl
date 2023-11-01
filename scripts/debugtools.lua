@@ -118,15 +118,18 @@ function PEARL.DebugConnectionFilter(filterfn, userid, expected_result, data)
 end
 
 function PEARL.AddDebugRecord(userid, name, reputation)
-    local record = PEARL.PlayerDB:CreateRecordFile(userid)
-    if record then
-        record.username = name
-        record.reputation.value = reputation
-
-        PEARL.PlayerDB:AddBinding(userid, userid, PEARL.PlayerDB.BINDING_TYPE.STEAM)
+    local record = PEARL.DB:CreateRecordFile(userid)
+    if not record then
+        return
     end
 
-    PEARL.PlayerDB:SaveRecordFor(userid, record)
+    record.username = name or "UNKNOWN"
+
+    PEARL.Reputation:InitializeFor(userid)
+    PEARL.Reputation:SetFor(userid, reputation)
+
+    PEARL.DB:AddBinding(userid, userid, PEARL.DB.BINDING_TYPE.STEAM)
+    PEARL.DB:SaveRecordFor(userid, record)
 end
 
 --------------------------------

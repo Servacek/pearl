@@ -506,7 +506,7 @@ end
 --- or just to discord (according to the configurations).
 ---
 ---@param str string The content text of the announcement (supports multiline).
----@param tp string? The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
+---@param tp string The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
 ---@param entity? unknown The entity the announcement is about.
 ---@param silent? boolean Whether the announcement should be sent to game or not.
 ---@param ... any Additional arguments to the TheNet:Announce function.

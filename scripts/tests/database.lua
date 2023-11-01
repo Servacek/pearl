@@ -13,17 +13,17 @@
 
 
 function CheckAdding()
-    PEARL.PlayerDB:SetIsEnabled(true)
-    local count = PEARL.PlayerDB:GetTotalRecordCount()
+    PEARL.DB:SetIsEnabled(true)
+    local count = PEARL.DB:GetTotalRecordCount()
     local userid = PEARL.GenerateRandomKleiID()
     print("REGISTER USER", userid)
-    local record, created = PEARL.PlayerDB:CreateRecordFile(userid)
+    local record, created = PEARL.DB:CreateRecordFile(userid)
 
     print(record, created)
     assert(type(record) == "table")
-    assert(PEARL.PlayerDB:GetTotalRecordCount() == count + 1)
-    assert(PEARL.PlayerDB._records[userid] ~= nil)
-    assert(PEARL.PlayerDB:IsRecordLoadedFor(userid))
+    assert(PEARL.DB:GetTotalRecordCount() == count + 1)
+    assert(PEARL.DB._records[userid] ~= nil)
+    assert(PEARL.DB:IsRecordLoadedFor(userid))
 
-    PEARL.PlayerDB:UnloadRecord(userid)
+    PEARL.DB:UnloadRecord(userid)
 end

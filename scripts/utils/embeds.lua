@@ -18,7 +18,6 @@ local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 local TEMPLATES = require("widgets/redux/templates")
-local WorldSettings_Overrides = require("worldsettings_overrides")
 local Customize = require("map/customize")
 
 -------------------------------------
@@ -131,8 +130,8 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         local max_rep_len = 0
         local index_col, name_col, rep_col = "", "", ""
         for i, userid in ipairs(data.players) do
-            local name = tostring(PEARL.PlayerDB:GetField(userid, "username") or "UNKNOWN")
-            local netid = PEARL.PlayerDB:GetField(userid, "netid") or nil
+            local name = tostring(PEARL.DB:GetField(userid, "username") or "UNKNOWN")
+            local netid = PEARL.DB:GetField(userid, "netid") or nil
             local rep = tostring(PEARL.Reputation:GetRepFieldOf(userid, monthly and "monthgains" or "value"))
 
             if i == 1 then
@@ -156,8 +155,8 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL, rep_col, true)
 
         if data.dayleader then
-            local netid = PEARL.PlayerDB:GetField(data.dayleader, "netid")
-            local username = tostring(PEARL.PlayerDB:GetField(data.dayleader, "username") or "UNKNOWN")
+            local netid = PEARL.DB:GetField(data.dayleader, "netid")
+            local username = tostring(PEARL.DB:GetField(data.dayleader, "username") or "UNKNOWN")
             local gains = PEARL.Reputation:GetTodayGainsOf(data.dayleader)
             local reputation = PEARL.Reputation:GetOf(data.dayleader)
             local percent = math.round(gains / reputation, 2)
@@ -181,7 +180,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         )
     end
 
-    local total_count = data.recordcount or PEARL.PlayerDB:GetTotalRecordCount()
+    local total_count = data.recordcount or PEARL.DB:GetTotalRecordCount()
     local local_count = leaderboard:HasEnoughPlayers() and #data.players or 0
     embed:SetFooter(("%s/%s"):format(local_count, total_count))
 
@@ -217,29 +216,34 @@ function EMBEDS.WorldRegen(world, session_id)
     local is_master = world.worldprefab == "forest"
     local default_world_settings = Customize.GetWorldSettingsOptionsWithLocationDefaults(world.worldprefab, is_master)
     local default_world_gen_options = Customize.GetWorldGenOptionsWithLocationDefaults(world.worldprefab, is_master)
+    local customizations = JoinArrays(default_world_settings, default_world_gen_options)
 
-    local overrides = {}
-    for _, setting in ipairs(default_world_settings) do
-        local override = world.topology.overrides[setting.name] or setting.default
-        if override ~= setting.default then
-            overrides[setting.name] = override
-        end
-    end
+    local displayed = {}
+    local displayed_count = 0
+    local max_displayed = 10 * 2 -- For generation options and world setting
+    for i, customization in ipairs(customizations) do
+        local override = world.topology.overrides[customization.name] or customization.default
+        if override ~= customization.default then
+            displayed[customization.name] = override
+            displayed_count = displayed_count + 1
 
-    for _, option in ipairs(default_world_gen_options) do
-        local override = world.topology.overrides[option.name] or option.default
-        if override ~= option.default then
-            overrides[option.name] = override
+            if displayed_count >= max_displayed then
+                break
+            end
         end
     end
 
     local description = ""
-    if not table.empty(overrides) then
-        local max_key_len = PEARL.GetMaxStringSize(overrides, true)
+    if not table.empty(displayed) then
+        local max_key_len = PEARL.GetMaxStringSize(displayed, true)
 
-        for name, value in pairs(overrides) do
+        for name, value in pairs(displayed) do
             local spacing = max_key_len - #name
             description = description..name..string.rep(" ", spacing).." = "..value.."\n"
+        end
+
+        if #displayed < #customizations then
+            description = description.."...\n"
         end
 
         description = STRINGS.PEARL.EMBEDS.REGEN.DESC_TITLE..MARKDOWN.codeblock(description, "ini")
@@ -255,6 +259,8 @@ function EMBEDS.WorldRegen(world, session_id)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
+        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.WALRUS_CAMPS, tostring(c_countprefabs("walrus_camp") or 0), true)
 end
 
 --- @return Embed
@@ -321,7 +327,7 @@ function EMBEDS.ClientProfile(userid, dbr)
         :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon.." "..loc_str, true)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootuserid or "UNKNOWN"))
 
-    if dbr[PEARL.PlayerDB.BINDING_FIELD[PEARL.PlayerDB.BINDING_TYPE.DISCORD]] then
+    if dbr[PEARL.DB.BINDING_FIELD[PEARL.DB.BINDING_TYPE.DISCORD]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
     end
 

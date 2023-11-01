@@ -10,6 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
@@ -17,7 +18,6 @@
 local STARTING_REPUTATION = PEARL.CONSTS.STARTING_REPUTATION
 
 local BAD_REP_THRESHOLD = 25
-local BAN_REP_THRESHOLD = 0
 
 local LOW_REP_THRESHOLD  = PEARL.CONSTS.STARTING_REPUTATION * 2
 local LOW_REP_MULTIPLIER = 2
@@ -33,19 +33,15 @@ local REP_BASE = 1.39
 local EXP_NEWBIE_THRESHOLD  = 60 * 60
 local EXP_NEUTRAL_THRESHOLD = 200 * 60
 
---------------------------------------
--- [[ Local Functions ]]
---------------------------------------
+local DEFAULT_REP_DATA = {
+    value = PEARL.CONSTS.STARTING_REPUTATION,
+    peak = PEARL.CONSTS.STARTING_REPUTATION,
+    lowest = PEARL.CONSTS.STARTING_REPUTATION,
+    monthgains = 0,
+    daygains = 0,
+}
 
-local function OnReputationChanged(userid, new_rep)
-    if new_rep <= BAN_REP_THRESHOLD then
-        --- @TODO: Play some fancy animation here.
-        TheNet:Ban(userid)
-
-        --- @TODO: probably we want to save some more info here?
-        PEARL.PlayerDB:SafeSetField(userid, "wasautobanned", true)
-    end
-end
+local FIELD_NAME = "reputation"
 
 --------------------------------------
 -- [[ Class Declaration ]]
@@ -61,7 +57,7 @@ local Reputation = {}
 function Reputation:GetRepFieldOf(userid, field)
     field = field or "value"
 
-    return PEARL.PlayerDB:GetSubField(userid, "reputation", field)
+    return PEARL.DB:GetSubField(userid, "reputation", field)
 end
 
 function Reputation:GetOf(userid)
@@ -90,12 +86,12 @@ function Reputation:IsReputable(userid)
 end
 
 function Reputation:IsNewbie(userid)
-    local playtime = PEARL.PlayerDB:GetField(userid, "gameplaytime")
+    local playtime = PEARL.DB:GetField(userid, "gameplaytime")
     return playtime and playtime < EXP_NEWBIE_THRESHOLD or false
 end
 
 function Reputation:IsExperienced(userid)
-    local playtime = PEARL.PlayerDB:GetField(userid, "gameplaytime")
+    local playtime = PEARL.DB:GetField(userid, "gameplaytime")
     return playtime and playtime > EXP_NEUTRAL_THRESHOLD or false
 end
 
@@ -106,15 +102,32 @@ end
 function Reputation:SetFieldFor(userid, field, value)
     field = field or "value"
 
-    local record = PEARL.PlayerDB:GetRecordFor(userid)
+    local record = PEARL.DB:GetRecordFor(userid)
     if not record or type(record["reputation"]) ~= "table" then
         return false
     end
 
+    local old = record["reputation"][field]
     record["reputation"][field] = value
 
-    if field == "value" then
-        OnReputationChanged(userid, value)
+    if field == "value" and old ~= value then
+        local delta = value - old
+        local monthgains = self:GetMonthGainsOf(userid)
+        self:SetFieldFor(userid, "monthgains", math.floor(monthgains + delta))
+        local daygains = self:GetTodayGainsOf(userid)
+        self:SetFieldFor(userid, "daygains", math.floor(daygains + delta))
+
+        local peak = self:GetPeakOf(userid)
+        if peak < value then
+            self:SetFieldFor(userid, "peak", value)
+        end
+
+        local lowest = self:GetLowestOf(userid)
+        if lowest > value then
+            self:SetFieldFor(userid, "lowest", value)
+        end
+
+        PEARL.EventProcessor:HandleEvent("onreputationchanged", userid, old, value)
     end
 
     return true
@@ -131,11 +144,11 @@ end
 function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
 
-    if PEARL.PlayerDB:IsDisabled() then
+    if PEARL.DB:IsDisabled() then
         return
     end
 
-    if not PEARL.PlayerDB:HasRecordFile(userid) then
+    if not PEARL.DB:HasRecordFile(userid) then
         PEARL.error("Record not found for", userid)
         return
     end
@@ -148,25 +161,6 @@ function Reputation:DoDeltaTo(userid, delta, limit)
     end
 
     self:SetFor(userid, new_rep)
-
-    local monthgains = self:GetMonthGainsOf(userid)
-    self:SetFieldFor(userid, "monthgains", math.floor(monthgains + delta))
-    local daygains = self:GetTodayGainsOf(userid)
-    self:SetFieldFor(userid, "daygains", math.floor(daygains + delta))
-
-    local peak = self:GetPeakOf(userid)
-    if peak < new_rep then
-        self:SetFieldFor(userid, "peak", new_rep)
-    end
-
-    local lowest = self:GetLowestOf(userid)
-    if lowest > new_rep then
-        self:SetFieldFor(userid, "lowest", new_rep)
-    end
-
-    PEARL.EventProcessor:HandleEvent("onreputationdelta", userid, delta, rep, new_rep)
-
-    OnReputationChanged(userid, new_rep)
 
     return new_rep
 end
@@ -195,6 +189,13 @@ end
 
 function Reputation:SetTo(userid, value)
     return self:SetFieldFor(userid, "value", value)
+end
+
+function Reputation:InitializeFor(userid)
+    local data = deepcopy(DEFAULT_REP_DATA)
+    if PEARL.DB:SetField(userid, FIELD_NAME, data) then
+        PEARL.EventProcessor:HandleEvent("onreputationchanged", userid, 0, data.value)
+    end
 end
 
 --------------------------------------

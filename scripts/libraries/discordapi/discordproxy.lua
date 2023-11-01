@@ -49,6 +49,7 @@ local START_SESSION_RETRIES = 3
 local DiscordProxy = {
     --- @type number
     state = STATE.STOPPED,
+
     --- @type number
     retries = 0,
 
@@ -66,6 +67,8 @@ local DiscordProxy = {
     processingcount = 0,
     processingtype = nil,
 }
+
+DiscordProxy.net_running:set(false)
 
 --- @type DiscordProxy
 DiscordProxy = Library(DiscordProxy)
@@ -158,7 +161,11 @@ function DiscordProxy:SetState(state)
         return PEARL.error("Attempted to set an invalid state for discord proxy.")
     end
 
-    self.state = state
+    if self.state ~= state then
+        self.state = state
+
+        PEARL.EventProcessor:HandleEvent("proxy_state_changed", state)
+    end
 
     return self
 end

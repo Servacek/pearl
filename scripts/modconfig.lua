@@ -14,6 +14,7 @@
 
 --- Some mod debug utilities used by 'GetConfigData' require the presence of the mod's environment
 --- in this file and since it's being loaded via 'require' we need to set it manually.
+---@diagnostic disable-next-line: param-type-mismatch
 setfenv(1, PEARL.ENV)
 
 -------------------------------------
@@ -305,7 +306,10 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     local data_str = ModConfig:GetEnabledServerModsConfigDataString(PEARL.CONFIG.HIDE_SERVER_ONLY_MODS)
 
     if PEARL.CONFIG.DEBUG_MODE then
-        TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:\n"..data_str)
+        TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:")
+        for _, line in pairs(data_str:split("\n")) do
+            TheSim:LuaPrint(line)
+        end
     end
 
     return data_str
