@@ -15,19 +15,22 @@
 -- [[ Constants ]]
 --------------------------------------
 
-local STARTING_REPUTATION = PEARL.CONSTS.STARTING_REPUTATION
-
-local BAD_REP_THRESHOLD = 25
-
-local LOW_REP_THRESHOLD  = PEARL.CONSTS.STARTING_REPUTATION * 2
-local LOW_REP_MULTIPLIER = 2
+local VERY_BAD_REP_THRESHOLD = PEARL.CONSTS.STARTING_REPUTATION / 4
+local BAD_REP_THRESHOLD = PEARL.CONSTS.STARTING_REPUTATION / 2
 
 local MAX_REP_EARN = 750
+local MAX_REP_LOSE = -100
+
+local REMEMBER_LOSE_THRESHOLD = -5
 
 local NEGATIVE_REP_MULTIPLIER = 1
 
 local REP_EARN_SCALE = 0.16
 local REP_BASE = 1.39
+
+-- If we have lost at least REMEMBER_LOSE_THRESHOLD of reputation
+-- we won't gain any reputation again until this cooldown finishes.
+local GAIN_COOLDOWN = 60
 
 -- In minutes
 local EXP_NEWBIE_THRESHOLD  = 60 * 60
@@ -37,6 +40,7 @@ local DEFAULT_REP_DATA = {
     value = PEARL.CONSTS.STARTING_REPUTATION,
     peak = PEARL.CONSTS.STARTING_REPUTATION,
     lowest = PEARL.CONSTS.STARTING_REPUTATION,
+    lastlose = 0,
     monthgains = 0,
     daygains = 0,
 }
@@ -51,33 +55,40 @@ local FIELD_NAME = "reputation"
 local Reputation = {}
 
 --------------------------------------
+-- [[ Static ]]
+--------------------------------------
+
+--- @type number
+Reputation.STARTING_VALUE = PEARL.CONSTS.STARTING_REPUTATION
+
+--------------------------------------
 -- [[ Getters ]]
 --------------------------------------
 
-function Reputation:GetRepFieldOf(userid, field)
+function Reputation:GetFieldOf(userid, field)
     field = field or "value"
 
     return PEARL.DB:GetSubField(userid, "reputation", field)
 end
 
 function Reputation:GetOf(userid)
-    return self:GetRepFieldOf(userid)
+    return self:GetFieldOf(userid)
 end
 
 function Reputation:GetPeakOf(userid)
-    return userid and self:GetRepFieldOf(userid, "peak") or 0
+    return userid and self:GetFieldOf(userid, "peak") or 0
 end
 
 function Reputation:GetTodayGainsOf(userid)
-    return userid and self:GetRepFieldOf(userid, "daygains") or 0
+    return userid and self:GetFieldOf(userid, "daygains") or 0
 end
 
 function Reputation:GetMonthGainsOf(userid)
-    return userid and self:GetRepFieldOf(userid, "monthgains") or 0
+    return userid and self:GetFieldOf(userid, "monthgains") or 0
 end
 
 function Reputation:GetLowestOf(userid)
-    return userid and self:GetRepFieldOf(userid, "lowest") or 0
+    return userid and self:GetFieldOf(userid, "lowest") or 0
 end
 
 --- @TODO: Handle special case for non-reputable users trying to display they own reputation.
@@ -154,7 +165,7 @@ function Reputation:DoDeltaTo(userid, delta, limit)
     end
 
     local rep = self:GetOf(userid)
-    delta = math.min(delta, MAX_REP_EARN)
+    delta = math.max(math.min(delta, MAX_REP_EARN), MAX_REP_LOSE)
     local new_rep = math.floor(rep + delta)
     if limit then
         new_rep = math.max(new_rep, limit)
@@ -167,24 +178,37 @@ end
 
 -- Players are earning reputation from their own in-game actions and behaviour.
 -- The more reputation they have the less they earn and vice versa.
--- This has no limits, so the reputation can go below zero which then causes the player to be banned.
-function Reputation:EarnFor(userid, amount)
-    local rep = self:GetOf(userid)
+-- This has no limits if marked as griefing, so the reputation can go below zero
+-- which then causes the player to be banned.
+function Reputation:EarnFor(userid, amount, griefing)
+    -- Preventing quick changes in reputation.
+    local lastlose = self:GetFieldOf(userid, "lastlose")
+    if amount > 0 and lastlose > 0 and (os.time() - lastlose) < GAIN_COOLDOWN then
+        return -- We are on cooldown!
+    end
 
-    local gained = math.max(rep - STARTING_REPUTATION, 0)
+    local old_rep = self:GetOf(userid)
+    local gained = math.max(old_rep - Reputation.STARTING_VALUE, 0)
     local mult = REP_BASE / math.log(math.max(gained ^ REP_EARN_SCALE, 2))
     if amount < 0 then
         mult = NEGATIVE_REP_MULTIPLIER
     end
 
-    self:DoDeltaTo(userid, amount * mult)
+    -- Stop right before warnings would start. Only push warning when doing really bad things.
+    local limit = not griefing and BAD_REP_THRESHOLD or nil
+    local new_rep = self:DoDeltaTo(userid, amount * mult, limit)
+    if (new_rep - old_rep) <= REMEMBER_LOSE_THRESHOLD then
+        self:SetFieldFor(userid, "lastlose", os.time())
+    end
+
+    PEARL.EventProcessor:HandleEvent("onreputationearned", userid, old_rep, new_rep)
 end
 
 -- This is for giving specific amounts of reputation to a player.
 -- This amount is not being changed by any multiplayer.
 -- This can't go bellow the minimal player reputation so the player wont get banned this way.
 function Reputation:GiveTo(userid, amount)
-    return self:DoDeltaTo(userid, amount, BAD_REP_THRESHOLD)
+    return self:DoDeltaTo(userid, amount, VERY_BAD_REP_THRESHOLD)
 end
 
 function Reputation:SetTo(userid, value)

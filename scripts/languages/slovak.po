@@ -1533,9 +1533,34 @@ msgctxt "STRINGS.PEARL.FULL_MONTH_NAME"
 msgid "%s %s"
 msgstr ""
 
+#. STRINGS.PEARL.ACTIONS.SEW.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.SEW.GENERIC"
+msgid "{doer} sewn {target}."
+msgstr ""
+
+#. STRINGS.PEARL.ACTIONS.SEW.USING
+msgctxt "STRINGS.PEARL.ACTIONS.SEW.USING"
+msgid "{doer} sewn {target} using {tool}."
+msgstr ""
+
 #. STRINGS.PEARL.ACTIONS.ACTIVATE
 msgctxt "STRINGS.PEARL.ACTIONS.ACTIVATE"
 msgid "%s activated %s!"
+msgstr ""
+
+#. STRINGS.PEARL.ACTIONS.HEAL.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.HEAL.GENERIC"
+msgid "{doer} healed."
+msgstr ""
+
+#. STRINGS.PEARL.ACTIONS.HEAL.TARGET
+msgctxt "STRINGS.PEARL.ACTIONS.HEAL.TARGET"
+msgid "{doer} healed {target} using {tool}."
+msgstr ""
+
+#. STRINGS.PEARL.ACTIONS.HEAL.USING
+msgctxt "STRINGS.PEARL.ACTIONS.HEAL.USING"
+msgid "{doer} healed using {tool}."
 msgstr ""
 
 #. STRINGS.PEARL.ACTIONS.COOK.IN

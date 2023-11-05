@@ -40,7 +40,7 @@ local REP_BUFFER_TIME = 5
 --------------------------------------
 
 local function CompRepFields(name, uid1, uid2)
-    return PEARL.Reputation:GetRepFieldOf(uid1, name) > PEARL.Reputation:GetRepFieldOf(uid2, name)
+    return PEARL.Reputation:GetFieldOf(uid1, name) > PEARL.Reputation:GetFieldOf(uid2, name)
 end
 
 local function CompByTotalRep(...)
@@ -91,7 +91,7 @@ local monthly_leaderboard  = lbs_data[Leaderboard.TYPE.MONTHLY] or Leaderboard()
 monthly_leaderboard:SetType(Leaderboard.TYPE.MONTHLY)
 monthly_leaderboard:SetSortFn(CompByMonthRepGains)
 monthly_leaderboard:SetCheckFn(function(userid)
-    local monthgains = PEARL.Reputation:GetRepFieldOf(userid, "monthgains")
+    local monthgains = PEARL.Reputation:GetFieldOf(userid, "monthgains")
     if monthgains and monthgains >= MIN_GAINS_FOR_LEADERBOARDING then
         return true
     end

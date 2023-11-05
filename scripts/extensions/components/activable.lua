@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
+--- @TODO: Activator should be cleared after the object is deactivated by something else.
 
 --- @class Activatable
 local Activatable = require("components/activatable")

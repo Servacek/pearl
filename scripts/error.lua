@@ -105,31 +105,31 @@ end)
 -- RPC
 ----------------------------------
 
-PEARL.AddRawServerRPCHandler("ClientError", function(userid, data)
-    if not checkstring(data) then
+PEARL.AddRawServerRPCHandler("ClientError", function(userid, datastr)
+    if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
+        return PEARL.error("Client", userid, "crashed! Reports to discord are either disabled or not initialized!", datastr)
+    end
+
+    local data = checkstring(datastr) and DecodeAndUnzipString(datastr)
+    if type(data) ~= "table" or
+        (data.mod and type(data.mod) ~= "table") or
+        (data.enabled_mods and type(data.enabled_mods) ~= "table") or
+        not checkbool(data.catched) or
+        not optstring(data.traceback)
+    then
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientError", userid)
     end
 
-    if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
-        return
-    end
-
-    local error_data = DecodeAndUnzipString(data)
-    if type(error_data) ~= "table" then
-        return PEARL.error("Failed to decode error data!")
-    end
-
-    PEARL.DiscordReporter:ReportClientLuaError(
-        userid, error_data
-    )
+    PEARL.DiscordReporter:ReportClientLuaError(userid, data)
 end, true)
 
-function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname, ...)
+--- Defined here so we do not rely on ClientNetwork being loaded.
+function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname)
     PEARL.info("Sending the error traceback to the server...")
 
-    --- @DEBUG
     local mod
-    local enabled_mods = KnownModIndex:GetEnabledModFancyNames()
+    -- In case our KnownModIndex extension is not loaded use default function.
+    local enabled_mods = KnownModIndex.GetEnabledModFancyNames and KnownModIndex:GetEnabledModFancyNames() or ModManager:GetEnabledModNames()
     if type(afflicter_modname) == "string" then
         mod = {
             id          = GetWorkshopIdNumber(afflicter_modname),
@@ -143,7 +143,7 @@ function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname,
         catched         = catched == true,
         enabled_mods    = enabled_mods,
         mod             = mod,
-    }), ...)
+    }))
 end
 
 if TheNet:IsDedicated() then

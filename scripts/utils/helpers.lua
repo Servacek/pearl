@@ -573,11 +573,16 @@ function PEARL.ExtinguishFires(x, y, z, radius)
         {'fire','smolder'} -- must-have-one tags
     )
 
+    local count = 0
     for i = 1, #onfire do
         if onfire[i].components and onfire[i].components.burnable then
             onfire[i].components.burnable:Extinguish()
+
+            count = count + 1
         end
     end
+
+    return count
 end
 
 function PEARL.ExtinguishAllFires()

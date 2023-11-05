@@ -109,8 +109,11 @@ function ClientNetwork:SendPlayerReportToServer(message, ...)
     return PEARL.SendRPCToServer(PEARL.RPC.PlayerReportMessage, message, ...)
 end
 
-function ClientNetwork:SendErrorTracebackToServer(traceback, ...)
-    return PEARL.SendErrorTracebackToServer(traceback, ...)
+--- @param traceback string?
+--- @param catched boolean?
+--- @param afflicter_modname strimg?
+function ClientNetwork:SendErrorTracebackToServer(traceback, catched, afflicter_modname)
+    PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname)
 end
 
 --- CFD = Connection Filter Data = Client Filter Data

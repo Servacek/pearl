@@ -77,9 +77,12 @@ configuration_options = {
                 BUFFER_TIMEOUT  = 4,
             },
             RHOOK = {
-                ID      = "",
-                TOKEN   = "",
-                ENABLED = true,
+                ID          = "",
+                TOKEN       = "",
+                ENABLED     = true,
+                COOLDOWN    = 300, -- 5 minutes
+                MAX_REPORTS = 5,   -- Number of reports until cooldown is triggered.
+                -- Note: During cooldown are all reports ignored (except uncatched ones)
             },
             BHOOK = {
                 ID      = "",

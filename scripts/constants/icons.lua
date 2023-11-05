@@ -206,6 +206,8 @@ local ICONS = {
         ["fertilize"]=  PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.POOP],
         ["waste"]=      PEARL.EMOTES.DISCORD.WORMHOLE,
         ["cook"]=       PEARL.EMOTES.DISCORD.CROCKPOT,
+        ["heal"]=       PEARL.EMOTES.DISCORD.HEART,
+        ["sew"]=        "<:sewing_kit:1170438166168215652>",
     },
 }
 

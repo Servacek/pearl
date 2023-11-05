@@ -97,12 +97,33 @@ PEARL.SafeModTableExtend("CONSTS", {
     STARTING_REPUTATION         = 100,
 
     REPUTATION_TABLES           = {
-        REVIVE              = 35,
+        REVIVE              = 25,
         DIED                = -15,
-        EXTINGUISH_STRUCT   = 5,
+        EXTINGUISH_STRUCT   = 2.5,
+        EXTINGUISH          = 1.5,
         BOSS_DAMAGE         = 0.01, -- Per HP dealt
         BURNABLE_NEAR_FIRE  = -3,
         STRUCT_NEAR_FIRE    = -6,
+        BUILT_STRUCTURE     = 5,
+        FERTILIZED          = 1,
+        CRAFTED_ITEM        = 1,
+        PLAYER_HEALED       = 4,
+        OFFENSIVE_WORD_USED = -1,
+        AFK_GHOST           = -8,
+        AFK_GHOST_KICKED    = -16,
+        AFK_KICKED          = -8,
+        PLANT               = 1,
+        PLANT_WITHERABLE    = 2, -- Usually a resource plant´
+        FUEL_WASTED         = 1, -- States for 100% fuel wasted.
+        CHOPPED_PROHIBITED  = -20,
+        COOKED_RARE         = -20, -- When rarity is 100%
+        COOKED_RARE_INGRED  = -10,
+        READ_OFFENSIVE_BOOK = -5,
+        REPAIR_ITEM         = 1, -- For 100% repaired durability
+        EAT_RARE            = -10, -- For 100% rarity
+        HAMMER_STRUCTURE    = -7,
+        IGNITED_STRUCTURE   = -3, -- Per One Structure
+        IGNITING_AT_BASE    = -8,
     },
 
     SHARD_ID = {

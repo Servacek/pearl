@@ -132,7 +132,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         for i, userid in ipairs(data.players) do
             local name = tostring(PEARL.DB:GetField(userid, "username") or "UNKNOWN")
             local netid = PEARL.DB:GetField(userid, "netid") or nil
-            local rep = tostring(PEARL.Reputation:GetRepFieldOf(userid, monthly and "monthgains" or "value"))
+            local rep = tostring(PEARL.Reputation:GetFieldOf(userid, monthly and "monthgains" or "value"))
 
             if i == 1 then
                 max_rep_len = #rep

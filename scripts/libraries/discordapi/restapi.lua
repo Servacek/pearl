@@ -115,9 +115,8 @@ local function _SendActionRequest(url, action, data)
         return
     end
 
-    local method = WEBHOOK_ACTION_METHODS[action]
-
     local request
+    local method = WEBHOOK_ACTION_METHODS[action]
     if not PEARL.HTTPClient.METHODS[method] then
         -- This method seems to require proxy server to be used.
         if not PEARL.HTTPClient.proxy or PEARL.HTTPClient.proxy:IsDisabled() then
