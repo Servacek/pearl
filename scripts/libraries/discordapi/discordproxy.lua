@@ -11,7 +11,7 @@
 --]==]====================================================]]
 
 
-local Library = PEARL.loadfile("models/library.lua")
+local Library = PEARL.loadfile("models/library")
 
 --------------------------------
 -- [[ Constants ]]
@@ -67,8 +67,6 @@ local DiscordProxy = {
     processingcount = 0,
     processingtype = nil,
 }
-
-DiscordProxy.net_running:set(false)
 
 --- @type DiscordProxy
 DiscordProxy = Library(DiscordProxy)

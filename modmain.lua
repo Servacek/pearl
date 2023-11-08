@@ -383,7 +383,6 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
-PEARL.loadfile("extensions/scripts/entity")
 
 --------------------------------
 -- [[ License ]]
@@ -395,6 +394,21 @@ if TheNet:GetIsServer() then
     PEARL.info("Loading licence...")
     PEARL.loadfile("licence")
 end
+
+--------------------------------
+-- [[ RPCS ]]
+--------------------------------
+
+PEARL.info("Loading RPC handlers...")
+PEARL.loadfile("networkrpc")
+
+--------------------------------
+-- [[ Custom Error Handler ]]
+--------------------------------
+
+-- Requires the RPCs for correct functionality
+PEARL.info("Loading mod error handler...")
+PEARL.loadfile("error")
 
 --------------------------------
 -- [[ Cluster Persistance Lib ]]
@@ -428,21 +442,6 @@ if PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE and io.exists(path) then
 else
     PEARL.error("Language", PEARL.CONFIG.LANGUAGE, "not supported!")
 end
-
---------------------------------
--- [[ RPCS ]]
---------------------------------
-
-PEARL.info("Loading RPC handlers...")
-PEARL.loadfile("networkrpc")
-
---------------------------------
--- [[ Custom Error Handler ]]
---------------------------------
-
--- Requires the RPCs for correct functionality
-PEARL.info("Loading mod error handler...")
-PEARL.loadfile("error")
 
 --------------------------------
 -- [[ Load ]]
@@ -481,6 +480,8 @@ PEARL.AddAnnouncementIcon("propagator")
 PEARL.AddAnnouncementIcon("play")
 PEARL.AddAnnouncementIcon("chop")
 PEARL.AddAnnouncementIcon("fertilize")
+PEARL.AddAnnouncementIcon("heal")
+PEARL.AddAnnouncementIcon("sew")
 
 --- @TODO: Add Icon:
 PEARL.AddAnnouncementIcon("mine")

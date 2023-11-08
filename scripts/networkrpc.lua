@@ -126,10 +126,13 @@ local SERVER_USERID_RPCS = {
             -- Make sure we close the connection
             PEARL.ServerNetwork:CloseConnectionFor(userid, "ID_DST_USER_INACTIVE")
 
+            PEARL.EventProcessor:HandleEvent("afk_kicked", userid)
             return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
                 name
             ), PEARL.CONSTS.ANN_TYPE.KICKED_FROM_GAME, entity)
         end
+
+        PEARL.EventProcessor:HandleEvent("afk_statechanged", is_afk)
 
         local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
         local type = PEARL.CONSTS.ANN_TYPE[is_afk and "AFK_START" or "AFK_STOP"]

@@ -23,7 +23,7 @@ local QUERIES = PEARL.SteamAPI.QUERIES
 -- RECORDS ARE CREATED HERE
 local function RecordClientConnectionData(userid, data)
     -- This is the place where we want to create the record if needed.
-    if PEARL.DB:HasRecordFile(userid) then
+    if not PEARL.DB:HasRecordFile(userid) then
         if not PEARL.DB:CreateRecordFile(userid) then
             return -- We have failed to create the record.
         end
@@ -118,7 +118,7 @@ local function OnClientAgreementDataReceived(data)
     PEARL.DB:SaveRecordFor(data.userid, record)
 end
 
--- Called after all connection filters successed!
+-- Called after all connection filters succeeded!
 local function OnClientConnected(world, player)
     PEARL.DB:SafeSetField(player.userid, "lastjoinedtime", os.time())
 

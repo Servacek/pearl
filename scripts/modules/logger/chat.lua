@@ -28,7 +28,7 @@ local UserCommands = require("usercommands")
 -- [[ Networking Handlers ]]
 -----------------------------
 
-local function OnChatMessage(guid, prefab, name, content, whisper, icon, receiver)
+local function OnChatMessage(guid, prefab, name, content, whisper, icon, receiver, userid)
     if type(content) ~= "string" or type(name) ~= "string" then
         return
     end
@@ -41,8 +41,28 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon, receive
 
     -- Escape here so even profanity filter is safe when using spoilers
     content = MARKDOWN.escape(content)
-    if ProfanityFilter and PEARL.CONFIG.PROFANITY_FILTERS.enabled then
-        content = ProfanityFilter:Apply(content, MARKDOWN.PATTERNS.SPOILER, true)
+    if ProfanityFilter then
+        if PEARL.CONFIG.PROFANITY_FILTERS.enabled then
+            local words, slurs
+            content, words, slurs = ProfanityFilter:Apply(
+                content, MARKDOWN.PATTERNS.SPOILER, true
+            )
+
+            if userid ~= nil and slurs > 0 then
+                local mult = 1
+                if words and words > 0 and slurs > 0 then
+                    mult = slurs / words > .5 and 2 or mult
+                end
+
+                PEARL.Reputation:EarnFor(
+                    userid, PEARL.CONSTS.REPUTATION_TABLES.OFFENSIVE_WORD_USED * slurs * mult)
+            end
+        elseif userid ~= nil then
+            local slurs = ProfanityFilter:CountSwears(content)
+            local mult = 2 -- More penalty for the words being not censored.
+            PEARL.Reputation:EarnFor(
+                userid, PEARL.CONSTS.REPUTATION_TABLES.OFFENSIVE_WORD_USED * slurs * mult)
+        end
     end
 
     local player = Ents[guid]
@@ -136,7 +156,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, prefab, message, colour, whisper, isemote, vanity)
-    OnChatMessage(guid, prefab, name, message, whisper)
+    OnChatMessage(guid, prefab, name, message, whisper, nil, nil, userid)
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)

@@ -266,7 +266,7 @@ function Request:SetData(data)
         return self
     end
 
-    return self:_SetField("data", datastr, "string", false, true)
+    return self:_SetField("data", datastr, "string", true, true)
 end
 
 --- @proxy
@@ -408,7 +408,7 @@ function Request:OnCompleted(datastr, success, code)
         response = type(datatbl) == "table" and datatbl or {}
     end
 
-    -- OnComplete handler gets called no matter if we successeded or not.
+    -- OnComplete handler gets called no matter if we succeeded or not.
     if type(self.oncompletefn) == "function" then
         self.oncompletefn(response, success, code, self, PEARL.unpack(self.oncompletefn_args))
     end

@@ -50,6 +50,17 @@ local STRINGS = {
             FULL        = "{doer} overeated with {target}."
         },
 
+        HEAL = {
+            GENERIC     = "{doer} healed.",
+            USING       = "{doer} healed using {tool}.",
+            TARGET      = "{doer} healed {target} using {tool}.",
+        },
+
+        SEW = {
+            GENERIC     = "{doer} sewn {target}.",
+            USING       = "{doer} sewn {target} using {tool}."
+        },
+
         READ = {
             GENERIC     = "{doer} read {target}.",
             NEAR        = "{doer} read {target} near {near}!",

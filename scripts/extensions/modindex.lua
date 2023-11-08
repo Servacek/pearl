@@ -11,6 +11,9 @@
 --]==]====================================================]]
 
 
+--- @type KnownModIndex
+KnownModIndex = KnownModIndex
+
 --- @class KnownModIndex
 local KnownModIndex = KnownModIndex
 

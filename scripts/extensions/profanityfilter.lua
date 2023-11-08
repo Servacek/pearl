@@ -88,13 +88,16 @@ end
 -- repl can be either a pattern for replacing the slur word or a character replacing it.
 function ProfanityFilter:Apply(text, repl, pattern)
     if type(text) ~= "string" or #text <= 1 then
-        return text
+        return text, 0, 0
     end
 
+    local words, slurs
     repl = repl or DEFAULT_REPL_CHAR
-    text = text:gsub(WORD_PATTERN, function(word)
+    text, words = text:gsub(WORD_PATTERN, function(word)
         -- No lowering or other changes here. Keep the word as is.
         if self:Detect(word) then
+            slurs = slurs + 1
+
             if pattern == true then
                 return repl:format(word)
             else
@@ -103,7 +106,7 @@ function ProfanityFilter:Apply(text, repl, pattern)
         end
     end)
 
-    return text
+    return text, words, slurs
 end
 
 -- We use our custom function for this since the default one doesn't support patterns.
@@ -138,21 +141,21 @@ function ProfanityFilter:CountSwears(text)
         return 0
     end
 
-    local count = 0
+    local slurs = 0
     for word in lower(text):gmatch(WORD_PATTERN) do
         if exact_patterns[strhash(word)] then
-            count = count + 1
+            slurs = slurs + 1
         else
             for i = 1, #lose_patterns do
                 if word:find(lose_patterns[i]) ~= nil then
-                    count = count + 1
+                    slurs = slurs + 1
                     break -- There is just one possible profanity per word.
                 end
             end
         end
     end
 
-    return count
+    return slurs
 end
 
 -------------------------------------

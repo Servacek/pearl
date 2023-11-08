@@ -47,12 +47,21 @@ function PEARL.EXT(testset_name, testname)
         return
     end
 
+    local success_count = 0
     for name, test in pairs(tests) do
         print(string.rep("-", 30))
+
         PEARL.info("Executing test", name)
-        if PEARL.SafeRun(test) then
-            PEARL.info("Test succeseded!")
+        local success, errmsg = pcall(test)
+        if success == true then
+            PEARL.info("Test succeeded!")
+            success_count = success_count + 1
+        else
+            PEARL.info("Test", name, "failed! Reason:\n", errmsg)
         end
+
         print(string.rep("-", 30))
     end
+
+    PEARL.info(string.format("%d of %d tests", success_count, table.size(tests)), "succeeded!")
 end

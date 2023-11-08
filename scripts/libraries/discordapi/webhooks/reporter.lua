@@ -11,9 +11,6 @@
 --]==]====================================================]]
 
 
-
---- @TODO: Think about a way to reduce duplication here...
-
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local MESSAGES = PEARL.loadfile("utils/messages")
 
@@ -25,7 +22,7 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 -------------------------------------
 
 local MAX_TRACEBACK_LENGHT = 1024
-local ERROR_ID_PATTERN = "^(.*)\n.*"
+local ERROR_ID_PATTERN = "([^\n\r]*)"
 
 -------------------------------------
 -- [[ Class Declarations ]]
@@ -39,14 +36,18 @@ local Reporter = Class(function(self)
     end
 
     self._webhook = Webhook(PEARL.CONFIG.DISCORD.RHOOK.ID, PEARL.CONFIG.DISCORD.RHOOK.TOKEN)
-
     if not self._webhook:IsValid() then
         self:SetIsDisabled(true)
         return PEARL.error("Token and/or ID is not configured for the reporter webhook correctly!")
     end
 
-    --- @type table<string>
     self._reported = {}
+    self._last_reports = 0
+    self._last_report_time = 0
+
+    -- Config
+    self._cooldown_time = PEARL.CONFIG.DISCORD.RHOOK.COOLDOWN
+    self._max_reports   = PEARL.CONFIG.DISCORD.RHOOK.MAX_REPORTS
 end)
 
 -------------------------------------
@@ -65,7 +66,7 @@ function Reporter:_SendReportMessage(content, force)
 end
 
 function Reporter:_GetErrorID(traceback)
-    return traceback and traceback:match(ERROR_ID_PATTERN)
+    return type(traceback) == "string" and traceback:match(ERROR_ID_PATTERN)
 end
 
 function Reporter:_WasErrorReported(error_id)
@@ -73,13 +74,36 @@ function Reporter:_WasErrorReported(error_id)
         return false
     end
 
-    for i = 1, #self._reported do
-        if self._reported[i] == error_id then
-            return true
-        end
+    return self._reported[error_id] or nil
+end
+
+--- @return boolean success
+function Reporter:HandleError(traceback)
+    if self:IsDisabled() then
+        return false
     end
 
-    return false
+    local error_id = self:_GetErrorID(traceback)
+    if not error_id then
+        return false
+    end
+
+    if self:_WasErrorReported(error_id) then
+        return false -- Error with this ID already reported.
+    end
+
+    if (os.time() - self._last_report_time) < self._cooldown_time then
+        return false -- We are on cooldown, so ignore this error
+    end
+
+    self._reported[error_id] = true
+    self._last_reports = self._last_reports + 1
+    if self._last_reports >= self._max_reports then
+        self._last_report_time = os.time()
+        self._last_reports = 0
+    end
+
+    return true
 end
 
 -------------------------------------
@@ -100,8 +124,11 @@ end
 
 --- @param message Message
 --- @param force boolean?
+--- @return Request?
 function Reporter:SendRawReportMessage(message, force)
-    return self._webhook:PostMessage(message, force)
+    if self:IsEnabled() then
+        return self._webhook:PostMessage(message, force)
+    end
 end
 
 --- @param str string
@@ -144,7 +171,7 @@ function Reporter:ReportUncatchedLuaError(traceback, modname)
 
     local content
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    if modname and not mod_self then
+    if mod_fancyname and not mod_self then
         content = STRINGS.PEARL.LOGS.EXC_MOD_SHARD:format(
             MARKDOWN.hlink(MARKDOWN.codeline(mod_fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(mod_id)),
             MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
@@ -158,23 +185,12 @@ function Reporter:ReportUncatchedLuaError(traceback, modname)
     return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
         :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS), true
     )
-
-    -- if modname then
-    --     return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_MOD_SERVER:format(
-    --         MARKDOWN.hlink(MARKDOWN.codeline(mod_fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(mod_id)),
-    --         traceback
-    --     )), true) -- Force-send uncatched errors.
-    -- end
-
-    -- return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_SERVER:format(
-    --     traceback
-    -- )), true) -- Force-send uncatched errors.
 end
 
 --- @param traceback string
 function Reporter:ReportCatchedLuaError(traceback)
-    if type(traceback) ~= "string" or self:IsDisabled() then
-        return
+    if not self:HandleError(traceback) then
+        return -- Error was already handled
     end
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
@@ -186,8 +202,8 @@ end
 --- @param userid string The identifier of the client where the error happened on.
 --- @param data table The error data.
 function Reporter:ReportClientLuaError(userid, data)
-    if type(data) ~= "table" or self:IsDisabled() then
-        return
+    if type(data) ~= "table" or not self:HandleError(data.traceback) then
+        return -- Error was already handled
     end
 
     local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
