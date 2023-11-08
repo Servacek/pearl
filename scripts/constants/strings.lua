@@ -243,6 +243,10 @@ local STRINGS = {
         },
     },
 
+    REPORTS     = {
+        NO_STACKTRACE = "No Traceback",
+    },
+
     LOGS        = {
         --PLAYER_COUNT            = "%s Total players: %d/%d", -- Not needed currently
         OWNER                   = "%s Owner: %s",
@@ -422,6 +426,7 @@ local STRINGS = {
         ["rain"]        = "raining",
         ["snow"]        = "snowing",
         ["frograin"]    = "raining frogs",
+        ["lunarhail"]   = "the Lunar Hail",
         ["none"]        = "no precipitation",
     },
 

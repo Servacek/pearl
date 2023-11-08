@@ -25,6 +25,17 @@ local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 -- Initialization
 --------------------------
 
+-- local ServerUseridRPCHandler = function(fn)
+--     return type(fn) ~= "function" and function(userid, ...)
+--         local success, err = pcall(fn)
+--         local stacktrace = StackTrace(err)
+--         if stacktrace then
+--             PEARL.DiscordReporter:
+--         end
+
+--     end or function() end
+-- end
+
 PEARL.RPC = {
     _size = 0
 }
@@ -177,11 +188,15 @@ function PEARL.AddRawServerRPCHandler(name, fn, useridrpc)
     local i = #RPC_HANDLERS + 1
     assert(RPC_HANDLERS[i] == nil)
 
-    RPC_HANDLERS[i] = fn
+    fn = type(fn) == "function" and function(...)
+        pcall(fn, ...)
+    end or function() end
+
     PEARL.RPC[name] = i
+    RPC_HANDLERS[i] = fn
     RAW_RPCS[i] = fn
 
-    if fn and useridrpc == true then
+    if useridrpc == true then
         USERID_RPCS[fn] = true
     end
 end

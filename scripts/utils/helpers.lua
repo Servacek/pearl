@@ -488,18 +488,18 @@ function PEARL.SafeRun(func, ...)
             return func()
         end,
         function(err)
-            local stacktrace = StackTrace(err)
+            local stacktrace = StackTrace(err) or err
             PEARL.error(
                 "Error in function call:", stacktrace or "Unknown"
             )
 
-            if stacktrace then
-                -- This function is being used in frontend as well!
-                if PEARL.DiscordReporter then
-                    PEARL.DiscordReporter:ReportCatchedLuaError(stacktrace)
-                elseif PEARL.ClientNetwork then
-                    PEARL.ClientNetwork:SendErrorTracebackToServer(stacktrace)
-                end
+            -- Try to always print at least something when an error happens.
+            local traceback = stacktrace or STRINGS.PEARL.REPORTS.NO_STACKTRACE
+            -- This function is being used in frontend as well!
+            if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+                PEARL.DiscordReporter:ReportCatchedLuaError(traceback)
+            elseif PEARL.ClientNetwork then
+                PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
             end
         end
     )}

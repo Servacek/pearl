@@ -95,7 +95,8 @@ local function OnPrecipitationChanged(world, precipitation)
             end
         end
 
-        local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[(started and precipitation or prev_prec)]
+        local prec = started and precipitation or prev_prec
+        local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[prec] or prec
 
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
             prec_name
