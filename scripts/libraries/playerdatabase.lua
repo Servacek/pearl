@@ -34,11 +34,12 @@ local json = json
 -- [[ Constants ]]
 ------------------------------------------
 
-local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"
+local FILE_EXTENSION = ".json"
+local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"..FILE_EXTENSION
 
 local BINDING_TYPE = {
-    STEAM = "steamids",
-    DISCORD = "discordids",
+    STEAM = "steamids"..FILE_EXTENSION,
+    DISCORD = "discordids"..FILE_EXTENSION,
 }
 
 local BINDING_FIELD = {

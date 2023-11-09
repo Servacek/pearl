@@ -22,7 +22,7 @@ local Leaderboard = PEARL.loadfile("models/leaderboard")
 -- [[ Constants ]]
 --------------------------------------
 
-local LEADERBOARD_FILE_PATH = "leaderboards"
+local LEADERBOARD_FILE_PATH = "leaderboards.json"
 
 local MIN_GAINS_FOR_LEADERBOARDING = 25
 
@@ -82,7 +82,7 @@ local lbs_data = leaderboard_map:GetData()
 local absolute_leaderboard = lbs_data[Leaderboard.TYPE.ABSOLUTE] or Leaderboard()
 absolute_leaderboard:SetType(Leaderboard.TYPE.ABSOLUTE)
 absolute_leaderboard:SetSortFn(CompByTotalRep)
---absolute_leaderboard:SetMinRecords(MIN_ABS_RECORDS)
+absolute_leaderboard:SetMinPlayers(MIN_ABS_RECORDS)
 absolute_leaderboard:SetIndex(1)
 lbs_data[Leaderboard.TYPE.ABSOLUTE] = absolute_leaderboard
 
@@ -98,7 +98,7 @@ monthly_leaderboard:SetCheckFn(function(userid)
 
     return false
 end)
---monthly_leaderboard:SetMinRecords(MIN_CURRENT_RECORDS)
+monthly_leaderboard:SetMinPlayers(MIN_CURRENT_RECORDS)
 monthly_leaderboard:SetIndex(2)
 lbs_data[Leaderboard.TYPE.MONTHLY] = monthly_leaderboard
 

@@ -256,6 +256,8 @@ local STRINGS = {
 
     REPORTS     = {
         NO_STACKTRACE = "No Traceback",
+        INVALID_RPC   = "Received invalid RPC on shard `%s` from client `%s`:```lua\n%s```",
+        USERID_UNKNOWN = "<UNKNOWN>"
     },
 
     LOGS        = {

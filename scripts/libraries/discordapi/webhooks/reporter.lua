@@ -153,6 +153,15 @@ function Reporter:ReportFailedHTTPRequest(reason)
     )))
 end
 
+function Reporter:ReportInvalidClientRPC(userid, reason)
+    userid = userid or STRINGS.PEARL.REPORTS.USERID_UNKNOWN
+    reason = reason or STRINGS.PEARL.REPORTS.NO_STACKTRACE
+
+    self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.REPORTS.INVALID_RPC:format(
+        MARKDOWN.codeline(PEARL.GetShardFancyName()), userid, reason:ltake(MAX_TRACEBACK_LENGHT, nil, "...")
+    )))
+end
+
 --- WARNING: Uses force sending to send the report. Use with caution!
 --- The reporter will be disabled after calling this for safety reasons.
 --- We expect that the server will shutdown after an uncatched error.

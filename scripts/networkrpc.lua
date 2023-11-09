@@ -11,12 +11,6 @@
 --]==]====================================================]]
 
 
-
---[[
-    Here we handle all the client RPCs. Therefore, this is loaded only
-    client side. So we do not have access to the SUB table here.
---]]
-
 local TheNet = TheNet
 
 local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
@@ -25,16 +19,24 @@ local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 -- Initialization
 --------------------------
 
--- local ServerUseridRPCHandler = function(fn)
---     return type(fn) ~= "function" and function(userid, ...)
---         local success, err = pcall(fn)
---         local stacktrace = StackTrace(err)
---         if stacktrace then
---             PEARL.DiscordReporter:
---         end
+--- @DEBUG
+local ServerRPCHandler = function(fn)
+    return type(fn) ~= "function" and function(sender, ...)
+        local success, err = pcall(fn)
+        if success and err == nil then
+            return -- The RPC was executed successfully.
+        end
 
---     end or function() end
--- end
+        --- @type string
+        local reason = type(err) == "string" and err or STRINGS.PEARL.REPORTS.NO_STACKTRACE
+        if success ~= true then
+            reason = StackTrace(err) or reason
+        end
+
+        local userid = type(sender) == "table" and sender.userid or sender
+        PEARL.DiscordReporter:ReportInvalidClientRPC(userid, reason)
+    end or function() end
+end
 
 PEARL.RPC = {
     _size = 0
@@ -182,6 +184,7 @@ local RAW_RPCS = {}
 --- @type table<integer, any>
 local RPC_HANDLERS = UpvalueHacker:GetUpvalue(HandleRPC, "RPC_HANDLERS")
 local USERID_RPCS  = UpvalueHacker:GetUpvalue(HandleRPC, "USERID_RPCS")
+assert(type(RPC_HANDLERS) == "table" and type(USERID_RPCS) == "table")
 
 function PEARL.SendRawRPCToServer(rpc_id, ...)
     return SendRPCToServer(rpc_id, ...)
@@ -190,10 +193,10 @@ end
 function PEARL.AddRawServerRPCHandler(name, fn, useridrpc)
     local i = #RPC_HANDLERS + 1
     assert(RPC_HANDLERS[i] == nil)
+    assert(type(fn) == "function")
+    assert(type(name) == "string")
 
-    fn = type(fn) == "function" and function(...)
-        pcall(fn, ...)
-    end or function() end
+    fn = ServerRPCHandler(fn)
 
     PEARL.RPC[name] = i
     RPC_HANDLERS[i] = fn
@@ -336,6 +339,10 @@ end
 ------------------------------------
 
 function PEARL.RegisterRPC(name)
+    if type(PEARL.RPC[name]) == "number" then
+        return PEARL.RPC[name] -- Already registered
+    end
+
     PEARL.RPC._size = PEARL.RPC._size + 1
     PEARL.RPC[name] = PEARL.RPC._size
 
@@ -343,19 +350,20 @@ function PEARL.RegisterRPC(name)
 end
 
 function PEARL.AddServerUseridRPCHandler(name, handler)
-    local id = PEARL.RegisterRPC(name)
-
-    AddModRPCHandler(PEARL.RPC_NAME, id, handler)
-    MarkUserIDRPC(PEARL.RPC_NAME, id)
+    PEARL.AddServerRPCHandler(name, handler)
+    PEARL.MarkServerUseridRPC(name)
 end
 
-function PEARL.RegisterServerUseridRPC(name)
-    MarkUserIDRPC(PEARL.RPC_NAME, PEARL.RegisterRPC(name))
+function PEARL.MarkServerUseridRPC(name)
+    local rpc = PEARL.RPC[name]
+    assert(rpc, "Attempted to mark a non-registered RPC!")
+
+    MarkUserIDRPC(PEARL.RPC_NAME, rpc)
 end
 
 function PEARL.AddServerRPCHandler(name, handler)
     return AddModRPCHandler(
-        PEARL.RPC_NAME, PEARL.RegisterRPC(name), handler
+        PEARL.RPC_NAME, PEARL.RegisterRPC(name), ServerRPCHandler(handler)
     )
 end
 
@@ -511,4 +519,4 @@ PEARL.AddGlobalFunctionPreCall("HandleClientRPC", function(sender, tick, namespa
 end)
 
 -- Disable RPC disabling
-PEARL.AddGlobalFunctionPreCall("DisableRPCSending", function() end)
+-- PEARL.AddGlobalFunctionPreCall("DisableRPCSending", function() end)

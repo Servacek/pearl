@@ -159,7 +159,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             local username = tostring(PEARL.DB:GetField(data.dayleader, "username") or "UNKNOWN")
             local gains = PEARL.Reputation:GetTodayGainsOf(data.dayleader)
             local reputation = PEARL.Reputation:GetOf(data.dayleader)
-            local percent = math.round(gains / reputation, 2)
+            local percent = math.round(gains / reputation, 4) * 100
 
             embed:AddField("Hráč Dňa", string.format("%s %s +%s (%s%%)",
                 PEARL.ICONS.GAINS, MARKDOWN.hlink(
@@ -180,8 +180,8 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         )
     end
 
-    local total_count = data.recordcount or PEARL.DB:GetTotalRecordCount()
     local local_count = leaderboard:HasEnoughPlayers() and #data.players or 0
+    local total_count = math.max(local_count, data.recordcount or PEARL.DB:GetTotalRecordCount())
     embed:SetFooter(("%s/%s"):format(local_count, total_count))
 
     return embed
