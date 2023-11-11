@@ -15,7 +15,6 @@
 -- Note: Prefer %s over %d because sometimes we want to format
 -- the number variables as a codeline.
 --- @TODO: Maybe most of the markdown should be added here instead of dynamically.
---- @TODO: Fix some incorrect translations on the UI.
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 

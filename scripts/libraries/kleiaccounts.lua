@@ -46,6 +46,7 @@ KleiAccounts.GAME = {
 -- [[ Public Methods ]]
 ------------------------------------------
 
+--- @param cb fun(rootid: string?)?
 --- @return Request? request The newly created request for the query.
 function KleiAccounts:QueryGameOwner(userid, gameid, cb)
     local success_encode, input_json = pcall(json.encode, {
@@ -57,15 +58,19 @@ function KleiAccounts:QueryGameOwner(userid, gameid, cb)
         return PEARL.error("JSON failed to encode query data!")
     end
 
-    return (PEARL.HTTPClient:POST(
+    local request = (PEARL.HTTPClient:POST(
         ENDPOINT.A_OWNER_LOOKUP, nil, input_json, QUERY_TIMEOUT
-    )):SetOnComplete(function(data, request, success)
-        if not success and request:IsRetryable() then
-            return
-        end
+    ))
 
-        cb(success and not data.Error and data.ParentAccount)
-    end)
+    if cb then
+        request:SetOnComplete(function(data, request, success)
+            if not success and request:IsRetryable() then
+                return
+            end
+
+            cb((success and not data.Error) and data.ParentAccount or nil)
+        end)
+    end
 end
 
 --- @return Request? request The newly created request for the query.

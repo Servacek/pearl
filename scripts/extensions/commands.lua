@@ -45,6 +45,38 @@ local ROLLBACK_DELAY = 3
 
 local GIVEREP_AMOUNT = 25
 
+local CONTEXT_TYPE = {
+    CONSOLE = 1,
+    SLASH   = 2,
+    DISCORD = 3,
+}
+
+--- @type table<integer, fun(context: CommandContext)>
+local CONTEXT_INPUT_HANDLERS = {
+    [CONTEXT_TYPE.CONSOLE] = function(context)
+        context.command.consolefn(context)
+    end,
+    [CONTEXT_TYPE.SLASH]   = function(context)
+        context.command.serverfn(context)
+    end,
+    [CONTEXT_TYPE.DISCORD] = function(context)
+        context.command.discordfn(context)
+    end,
+}
+
+--- @type stable<type, fun(context: CommandContext)>
+local CONTEXT_OUTPUT_HANDLERS = {
+    [CONTEXT_TYPE.CONSOLE] = function(context, response)
+        PEARL.info(response)
+    end,
+    [CONTEXT_TYPE.SLASH]   = function(context, response)
+        PEARL.ServerNetwork:SendCommandResponse(context.author.userid, response)
+    end,
+    [CONTEXT_TYPE.DISCORD] = function(context, response)
+        PEARL.DiscordProxy:SendCommandResponse(context.command.id, Message(response))
+    end,
+}
+
 -------------------------------------
 -- Helpers
 -------------------------------------
@@ -75,8 +107,31 @@ local function make_safe_cb(name, cb)
     end
 end
 
--- When executed from STDIN, these are always in a protected call.
+local function RunCommand(command, context)
+    --- Main Handler
+
+    local responses = type(command.mainfn) == "function" and {command.mainfn(context)} or nil
+
+    -- Handling the input
+
+    local response = type(responses) == "table" and responses[1]
+    local ihandler = CONTEXT_INPUT_HANDLERS[context.type]
+    if type(ihandler) == "function" then
+        response = ihandler(context, PEARL.unpack(responses))
+    end
+
+    -- Handling the output
+
+    if type(response) == "string" then
+        local ohandler = CONTEXT_OUTPUT_HANDLERS[context.type]
+        if type(ohandler) == "function" then
+            ohandler(context, response)
+        end
+    end
+end
+
 local function AddConsoleCommand(name, fn)
+    -- When executed from STDIN, these are always in a protected call so no need for make_safe_cb.
     PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), fn)
 end
 
@@ -160,6 +215,7 @@ local function AddCommand(name, command, ...)
     EnsureRequiredFields(command)
 
     PEARL.info("Registering command", name)
+    command.name = name
 
     command.slash = command.slash ~= false and PEARL.CONFIG.SLASH_COMMANDS
     command.console = command.console ~= false and PEARL.CONFIG.CONSOLE_COMMANDS
@@ -685,6 +741,29 @@ AddCommand("giverep", {
         end
 
         return STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
+    end,
+})
+
+AddCommand("borrowed", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    params = {"player"},
+    paramsoptional = {false},
+    slash = false,
+    discord = true,
+    console = true,
+
+    --- @TODO: Add some context table-
+    mainfn = function(params, caller, commandid)
+        local userid = UserToClientID(params.player) or params.player
+        if caller.userid == userid and not PEARL.CONFIG.DEBUG_MODE then
+            return STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF
+        end
+
+        PEARL.KleiAccounts:QueryGameOwner(userid, PEARL.KleiAccounts.GAME.DST, function(rootid)
+            if rootid then
+                return PEARL.DiscordProxy:SendCommandResponse()
+            end
+        end)
     end,
 })
 
@@ -1459,6 +1538,7 @@ end
 -- Command Prediction
 -------------------------------------------
 
+--- @DEBUG
 -- AddClassPostConstruct("screens/chatinputscreen", function(self)
 --     local permission = COMMAND_PERMISSION.USER
 --     if TheNet:GetIsServerAdmin() then

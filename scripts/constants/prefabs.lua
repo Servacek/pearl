@@ -63,7 +63,8 @@ return {
 		["krampus_sack"] 		= .9,
 		["eyeturret_item"] 		= 1,
 
-        ["gears"]               = .5,
+        ["gears"]               = .5, -- Highly renewable
+        ["fossil_piece"]             = .9, -- Non-renewable currently. Required for the final boss.
 
 		["moonrockseed"] 		= 0,
 		["mandrake"]	 		= .7,
@@ -129,6 +130,7 @@ return {
 		["firesuppressor"] = true,
 	},
 
+    -- Use Character STARTING ITEMS instead
 	-- table of character specific items
 	-- {'<item.prefab>' = {character_prefabs}}
 	-- CHARACTER_ITEMS = {
@@ -140,25 +142,15 @@ return {
     },
 
     DO_NOT_MINE = {
-        ["statueglommer"] = true,
+        ["statueglommer"]        = true,
+
+        -- Announce mining stalagmites as well,
+        -- since they are not renewable (the only source of fossils).
+        ["stalagmite_full"]      = true,
+        ["stalagmite_med"]       = true,
+        ["stalagmite_low"]       = true,
+        ["stalagmite_tall_full"] = true,
+        ["stalagmite_tall_med"]  = true,
+        ["stalagmite_tall_low"]  = true,
     },
-
-	FOOD = {
-		deerclops_eyeball = 6,
-		gears = 2,
-		minotaurhorn = 6,
-		mandrake = 6,
-		cookedmandrake = 4,
-		mandrakesoup = 3,
-	},
-
-	--- @deprecated Use tag "weapon" instead
-	-- WEAPONS = {
-	-- 	"firestaff",
-	-- 	"torch",
-	-- 	"lighter",
-	-- 	"blowdart_fire",
-	-- 	"staff_tornado",
-	-- -- greenstaff",
-	-- },
 }
