@@ -58,3 +58,6 @@ data/*
 # TODO Folder
 .todo
 .todo/*
+
+logs/*
+scripts/languages/cache/*
