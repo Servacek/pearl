@@ -71,6 +71,8 @@ function KleiAccounts:QueryGameOwner(userid, gameid, cb)
             cb((success and not data.Error) and data.ParentAccount or nil)
         end)
     end
+
+    return request
 end
 
 --- @return Request? request The newly created request for the query.

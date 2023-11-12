@@ -11,7 +11,6 @@
 --]==]====================================================]]
 
 
-
 -- Note: This loads before modmain.lua
 
 -- During world generation process TheNet and TheSim are nil.
@@ -24,10 +23,7 @@ end
 -- Contants
 ----------------------------------
 
--- local LOCATION_TYPE = {
---     FOREST = "forest",
---     CAVES  = "cave",
--- }
+local SEED_PATH = MODROOT.."data/seed.txt"
 
 local wg_overrides
 local gen_params = GLOBAL.json.decode(GLOBAL.GEN_PARAMETERS)
@@ -54,17 +50,32 @@ local function RequireTaskInTaskSet(taskset, task_name)
     table.insert(taskset.tasks, task_name)
 end
 
---- @deprecated This can be set directly via leveldataoverrides.lua
--- local function AddRequiredSetpiece(name)
--- 	AddLevelPreInitAny(function(level)
---         if not level.required_setpieces or table.contains(level.required_setpieces, name) then
---             return
---         end
+----------------------------------
+-- Seed
+----------------------------------
 
---         print("[PEARL] [WorldGen] Setting setpiece", name, "as required!")
---         table.insert(level.required_setpieces, name)
--- 	end)
--- end
+local io = GLOBAL.io
+local tonumber = GLOBAL.tonumber
+
+local SEED = tonumber(GetModConfigData("SEED"))
+local rf = io.open(SEED_PATH, "r")
+if rf then
+    local content = rf:read()
+    rf:close()
+
+    SEED = tonumber(content) or SEED
+
+    -- Clear the file, this is just an single-use seed.
+    local wf = io.open(SEED_PATH, "w")
+    if wf then
+        wf:close()
+    end
+end
+
+if SEED ~= nil then
+    print("[PEARL] Using configured world seed ", SEED)
+    GLOBAL.rawset(GLOBAL, "SEED", SEED)
+end
 
 ------------------------------
 
@@ -83,10 +94,3 @@ if wg_overrides then do
         end
     end)
 end end
-
-----------------------------------
--- Seed
-----------------------------------
-
-print("[PEARL] Using configured world seed...")
-GLOBAL.rawset(GLOBAL, "SEED", GetModConfigData("SEED") or GLOBAL.rawget(GLOBAL, "SEED"))

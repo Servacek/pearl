@@ -30,7 +30,7 @@ local toarrayornil = toarrayornil
 
 local DEFAULT_REQUEST_TIMEOUT   = 10
 local TIMEOUT_RETRY_SECONDS     = 5
-local MAX_TIMEOUT_RETRY_SECONDS = 30
+local MAX_TIMEOUT_RETRY_SECONDS = 60
 local URL_HOST_PATTERN          = "%w+://([%w.]+)/?"
 local REQUEST_FAILED_HEADER     = "(%s) [%d] Request Failed! Reason: %s"
 
@@ -55,7 +55,10 @@ local Request = Class(function(self, url, method, proxy)
     self.method = method
     --- @type string?
     self.data = nil
+    --- @type number?
     self.timeout = DEFAULT_REQUEST_TIMEOUT
+    --- @type number
+    self.retry_timeout = TIMEOUT_RETRY_SECONDS
 
     --- @type boolean
     self.sent = false
@@ -120,8 +123,9 @@ end)
 -- [[ Static ]]
 -------------------------------------
 
-Request.NO_RETRY_CODES = {
-    [429] = true,
+--- @TODO: This should be configurable and request specific
+Request.RETRY_CODES = {
+    [0] = true,
 }
 
 -------------------------------------
@@ -181,6 +185,10 @@ end
 --- @return Request
 function Request:SetTimeout(timeout)
     return self:_SetField("timeout", timeout, "number", true, true)
+end
+
+function Request:SetTimeBetweenRetries(time)
+    return self:_SetField("retry_timeout", time, "number", false, false)
 end
 
 --- @param code number The status code number.
@@ -302,6 +310,14 @@ function Request:SetMethod(method)
     return self:_SetField("method", method, PEARL.LUATYPES.STRING, false, true)
 end
 
+function Request:SetIsRetryable(retryable)
+    if self:IsRetryable() == retryable then
+        return
+    end
+
+    self.retries = retryable and 0 or self.maxretries
+end
+
 -------------------------------------
 -- [[ Getters ]]
 -------------------------------------
@@ -372,6 +388,12 @@ function Request:OnSend()
     self.sent = true
 end
 
+function Request:OnCantRetry()
+    PEARL.info("Received a non-retryable status code.")
+
+    self:SetIsRetryable(false)
+end
+
 --- Called before an re-sending attempt after the previous returned an error.
 function Request:OnRetry()
     self.retries    = (tonumber(self.retries) or 0) + 1
@@ -424,17 +446,24 @@ function Request:OnCompleted(datastr, success, code)
     end
 
     if (success ~= true or code >= 400) and code ~= 200 then
+        local retryable_code = Request.RETRY_CODES[code] == true
+        if not retryable_code then
+            self:OnCantRetry()
+        end
+
         if type(self.errfn) == "function" then
             self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
         end
 
         local reason
-        if code == 0 then
-            reason = "Operation timed out!"
+        if retryable_code then
+            if code == 0 then
+                reason = "Operation timed out!"
+            end
 
-            if self:IsRetryable() and Request.NO_RETRY_CODES[code] == nil then
+            if self:IsRetryable() then
                 PEARL.HTTPClient:RetryRequestAfter(
-                    self, math.min(math.max(TIMEOUT_RETRY_SECONDS * self.retries, TIMEOUT_RETRY_SECONDS), MAX_TIMEOUT_RETRY_SECONDS)
+                    self, math.min(math.max(self.retry_timeout * (self.retries + 1), self.retry_timeout), MAX_TIMEOUT_RETRY_SECONDS)
                 )
             end
         else

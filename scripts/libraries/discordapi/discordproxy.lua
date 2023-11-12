@@ -37,6 +37,7 @@ local URL = {
 }
 
 local FETCH_REQUEST_TIMEOUT = 5
+local RETRY_TIMEOUT         = 30
 
 local START_SESSION_RETRIES = 3
 
@@ -49,9 +50,6 @@ local START_SESSION_RETRIES = 3
 local DiscordProxy = {
     --- @type number
     state = STATE.STOPPED,
-
-    --- @type number
-    retries = 0,
 
     --- @type Task?
     fetch_task = nil,
@@ -190,20 +188,15 @@ local function OnInputFetchingDone(data)
     PEARL.EventProcessor:HandleEvent("proxy_fetching_done", data)
 end
 
-local function OnRetry()
-    DiscordProxy.retries = DiscordProxy.retries + 1
-end
-
---- @TODO
-local function OnFetchingFailed()
-    if DiscordProxy.retries >= MAX_RETRIES and DiscordProxy.fetch_task then
-        PEARL.info("Stopping the fetching task...")
-        DiscordProxy.fetch_task:stop()
-
-        return OnProxyUnreachable()
+local function OnFetchingFailed(response, code, request)
+    if not request:IsRetryable() then
+        OnProxyUnreachable()
     end
 
-    OnRetry()
+    if DiscordProxy:IsFetching() then
+        PEARL.info("Fetching failed! Stopping the fetching task...")
+        DiscordProxy.fetch_task:stop()
+    end
 end
 
 local function OnProxyInternalError()
@@ -246,8 +239,10 @@ local function OnFetchInput()
     end
 
     request
-        :SetMaxRetries(0)
-        :SetStatusCodeHandle(0, OnFetchingFailed)
+        -- We will retry again implicitly on the next cycle.
+        :SetMaxRetries(MAX_RETRIES)
+        :SetTimeBetweenRetries(RETRY_TIMEOUT)
+        :SetOnError(OnFetchingFailed)
         :SetStatusCodeHandle(500, OnProxyInternalError)
         :SetStatusCodeHandle(204, function() end) -- Ignore empty responses
         :SetStatusCodeHandle(202, function()

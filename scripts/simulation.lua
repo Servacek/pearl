@@ -16,11 +16,6 @@
 -- Local Functions
 ----------------------------------
 
-local function OnShardCrashed()
-    PEARL.EventProcessor:HandleEvent("shard_shutdown", true)
-    PEARL.ModShutdown()
-end
-
 local function OnShardShutdown()
     PEARL.EventProcessor:HandleEvent("shard_shutdown", false)
     PEARL.ModShutdown()

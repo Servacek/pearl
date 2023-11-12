@@ -414,7 +414,9 @@ PEARL.AddGlobalFunctionPreCall("AddUserCommand", function(name, ...)
         return
     end
 
-    for _, fn in ipairs(usercommand_pre_inits[name]) do
+    local pre_inits = usercommand_pre_inits[name]
+    usercommand_pre_inits[name] = nil
+    for _, fn in ipairs(pre_inits) do
         fn(...)
     end
 end)
@@ -568,6 +570,8 @@ function PEARL.Reboot()
     -- Keep this here so the default disconnect event wont have a chance to reach the server.
     PEARL.ServerNetwork:DisconnectAllClients(nil, true)
 
+    --- @HACK: Crashing the server will result in automatic restart by the provider.
+    --- This is an engine side crash so no reports are sent to discord.
     PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
     TheSim:Crash(true)
 end

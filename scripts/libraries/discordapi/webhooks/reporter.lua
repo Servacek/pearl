@@ -55,14 +55,13 @@ end)
 -------------------------------------
 
 --- @param content string
---- @param force boolean?
-function Reporter:_SendReportMessage(content, force)
+function Reporter:_SendReportMessage(content)
     if type(content) ~= "string" then
         return PEARL.error("Attempted to send an invalid report message...")
     end
 
     PEARL.info("Sending error log to discord...")
-    return self:SendRawReportMessage(Message(content), force)
+    return self:SendRawReportMessage(Message(content))
 end
 
 function Reporter:_GetErrorID(traceback)
@@ -123,22 +122,20 @@ function Reporter:SetIsDisabled(disabled)
 end
 
 --- @param message Message
---- @param force boolean?
 --- @return Request?
-function Reporter:SendRawReportMessage(message, force)
+function Reporter:SendRawReportMessage(message)
     if self:IsEnabled() then
-        return self._webhook:PostMessage(message, force)
+        return self._webhook:PostMessage(message)
     end
 end
 
 --- @param str string
---- @param force boolean?
-function Reporter:SendRawReportString(str, force)
+function Reporter:SendRawReportString(str)
     if type(str) ~= "string" then
         return PEARL.error("Invalid report string provided!")
     end
 
-    return self:SendRawReportMessage(Message(str), force)
+    return self:SendRawReportMessage(Message(str))
 end
 
 --- @param reason string A short description of the issue that has occured.
@@ -168,11 +165,8 @@ end
 --- @param traceback string
 function Reporter:ReportUncatchedLuaError(traceback, modname)
     if type(traceback) ~= "string" or self:IsDisabled() then
-        return
+        return PEARL.error("Invalid error data or the webhook is disabled!")
     end
-
-    -- Disable to prevent any looping since these reports are sent by force.
-    self:SetIsDisabled(true)
 
     local mod_fancyname = modname and GetModFancyName(modname)
     local mod_id = modname and GetWorkshopIdNumber(modname)
@@ -191,9 +185,12 @@ function Reporter:ReportUncatchedLuaError(traceback, modname)
         )
     end
 
-    return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
-        :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS), true
+    self:SendRawReportMessage(Message(MARKDOWN.bold(content))
+        :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
     )
+
+    -- Disable to prevent any looping.
+    self:SetIsDisabled(true)
 end
 
 --- @param traceback string

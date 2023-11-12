@@ -10,6 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 --- @type PersistentMap

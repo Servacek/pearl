@@ -190,6 +190,7 @@ local STRINGS = {
             TITLE = "Shard `%s` Regenerated",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066443002630918236/world.png",
             DESC_TITLE = "**World Setting Overrides**",
+            OTHER = "+%d other change(s)",
             FD_NAMES = {
                 SEED            = "New World Seed",
                 SESSION_ID      = "World ID",
@@ -498,6 +499,7 @@ local STRINGS = {
 
         CMD_ERRORS = {
             EXECUTION = "Error while executing the command!",
+            NO_LHOOK = "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua.",
             NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",
             NO_SNAPSHOT_FOUND = "Couldn't find any snaphots for day %d.",
             FAILED_SNAPHOTS_LOAD = "Failed to load the snapshots for this session.",
@@ -740,7 +742,7 @@ local STRINGS = {
                 ON_FAILURE = "Failed to unpair your account!",
             },
 
-            GAMEOWNER = {
+            BORROWED = {
                 ON_SUCCESS = "Owner of the game is %s",
                 ON_FAILURE = "Couldn't retrive the game owner for the specified account."
             },

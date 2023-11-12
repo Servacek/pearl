@@ -59,6 +59,8 @@ end
 
 local function OnServerError(traceback)
     if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+        PEARL.info("Sending error report to discord...")
+
         PEARL.DiscordReporter:ReportUncatchedLuaError(traceback, TryGetAfflicterMod(traceback))
     else
         PEARL.error("DiscordReporter disabled or not initialized yet!")

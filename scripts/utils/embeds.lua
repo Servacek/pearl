@@ -243,7 +243,9 @@ function EMBEDS.WorldRegen(world, session_id)
         end
 
         if #displayed < #customizations then
-            description = description.."...\n"
+            description = description.."... ("..STRINGS.PEARL.EMBEDS.REGEN.OTHER:format(
+                table.size(customizations) - displayed_count
+            )..")\n"
         end
 
         description = STRINGS.PEARL.EMBEDS.REGEN.DESC_TITLE..MARKDOWN.codeblock(description, "ini")

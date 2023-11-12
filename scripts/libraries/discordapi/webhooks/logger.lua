@@ -185,6 +185,20 @@ function Logger:LogLine(logline, force)
     return self:_OnNewLog(force)
 end
 
+--- @param message Message
+--- @return Request? request
+function Logger:LogMessage(message)
+    if self:IsDisabled() or not message:IsValid() then
+        return PEARL.error("Attempted to send an invalid message or the webhook is disabled!")
+    end
+
+    -- Send and clear the current buffer.
+    -- This is here in order to keep some order of the messages.
+    self._buffered:Timeout()
+
+    self._webhook:PostMessage(message)
+end
+
 --- @param str string The string to be logged.
 --- @param icon string? The icon of the logline to be logged.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.

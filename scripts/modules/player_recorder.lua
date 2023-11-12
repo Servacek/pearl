@@ -135,6 +135,8 @@ local function OnClientDisconnected(world, player)
     -- No loading here! Also the userid can be nil or an empty string.
     if PEARL.DB:IsRecordLoadedFor(player.userid) then
         PEARL.DB:SafeSetField(player.userid, "lastseentime", os.time())
+        PEARL.DB:SafeSetField(player.userid, "lastsessionid", TheNet:GetSessionIdentifier())
+
         PEARL.DB:SaveRecordFor(player.userid)
         PEARL.DB:UnloadRecord(player.userid) -- Free the memory
     end
