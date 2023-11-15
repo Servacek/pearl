@@ -623,27 +623,14 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     _OnConnectionFiltersFinished(userid, allowed, reason, title)
 end
 
-function ServerNetwork:HandleRawConnectionData(userid, data, shardid)
+function ServerNetwork:HandleRawConnectionData(userid, data)
     -- All the data is untrusted in this case.
     local data_tbl = DecodeAndUnzipString(data)
     if type(data_tbl) ~= "table" or IsTableEmpty(data_tbl) then
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 
-    --PEARL.debug("Received CFD from client:", DataDumper(data_tbl))
-
     PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
-
-    -- This won't be needed in the future because we will save all
-    -- the important stuff in the DB.
-    -- if TheShard:IsMaster() then
-    --     -- Broadcast the CFD to all connected shards so they have the fresh info as well.
-    --     PEARL.BroadcastRPCToShardsExcept(
-    --         PEARL.RPC.ClientCFDRecevied, shardid, userid, data
-    --     )
-    -- elseif tostring(shardid) ~= tostring(SHARDID.MASTER) then
-    --     PEARL.SendRPCToMaster(PEARL.RPC.ClientCFDRecevied, userid, data)
-    -- end
 end
 
 ----------------------------------

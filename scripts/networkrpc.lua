@@ -19,22 +19,26 @@ local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 -- Initialization
 --------------------------
 
+local function HandleRPCError(err, sender, traceback)
+    --- @type string
+    local reason = type(err) == "string" and err or STRINGS.PEARL.REPORTS.NO_STACKTRACE
+    if traceback then
+        reason = StackTrace(err) or reason
+    end
+
+    local userid = type(sender) == "table" and sender.userid or sender
+    PEARL.DiscordReporter:ReportInvalidClientRPC(userid, reason)
+end
+
 --- @DEBUG
 local ServerRPCHandler = function(fn)
-    return type(fn) ~= "function" and function(sender, ...)
-        local success, err = pcall(fn)
+    return type(fn) == "function" and function(sender, ...)
+        local success, err = pcall(fn, ...)
         if success and err == nil then
             return -- The RPC was executed successfully.
         end
 
-        --- @type string
-        local reason = type(err) == "string" and err or STRINGS.PEARL.REPORTS.NO_STACKTRACE
-        if success ~= true then
-            reason = StackTrace(err) or reason
-        end
-
-        local userid = type(sender) == "table" and sender.userid or sender
-        PEARL.DiscordReporter:ReportInvalidClientRPC(userid, reason)
+        HandleRPCError(err, sender, success)
     end or function() end
 end
 
@@ -100,11 +104,6 @@ local SHARD_RPCS = {
         PEARL.WallScheduler:ExecuteInTime(
             0, PEARL.SendRPCToClient, nil, client_rpc_id, sender_list, ...
         )
-    end,
-
-    ClientCFDRecevied = function(shardid, userid, data)
-        -- Always keep just the newest record
-        PEARL.ServerNetwork:HandleRawConnectionData(userid, data, shardid)
     end,
 }
 
@@ -186,18 +185,35 @@ local RPC_HANDLERS = UpvalueHacker:GetUpvalue(HandleRPC, "RPC_HANDLERS")
 local USERID_RPCS  = UpvalueHacker:GetUpvalue(HandleRPC, "USERID_RPCS")
 assert(type(RPC_HANDLERS) == "table" and type(USERID_RPCS) == "table")
 
+---------------
+
 function PEARL.SendRawRPCToServer(rpc_id, ...)
     return SendRPCToServer(rpc_id, ...)
 end
 
+--- @param name string
+--- @param fn function
+--- @param useridrpc boolean?
 function PEARL.AddRawServerRPCHandler(name, fn, useridrpc)
-    local i = #RPC_HANDLERS + 1
-    assert(RPC_HANDLERS[i] == nil)
     assert(type(fn) == "function")
     assert(type(name) == "string")
 
-    fn = ServerRPCHandler(fn)
+    fn = useridrpc == true and fn or ServerRPCHandler(fn)
+    PEARL.RegisterRawServerRPC(name, fn, useridrpc)
+end
 
+--- @param name string
+--- @param fn function?
+--- @param useridrpc boolean?
+function PEARL.RegisterRawServerRPC(name, fn, useridrpc)
+    assert(type(name) == "string")
+
+    local i = #RPC_HANDLERS + 1
+    assert(RPC_HANDLERS[i] == nil)
+
+    PEARL.debug("Registering raw RPC", name, i, useridrpc)
+
+    fn = type(fn) == "function" and fn or function() end
     PEARL.RPC[name] = i
     RPC_HANDLERS[i] = fn
     RAW_RPCS[i] = fn
@@ -205,14 +221,6 @@ function PEARL.AddRawServerRPCHandler(name, fn, useridrpc)
     if useridrpc == true then
         USERID_RPCS[fn] = true
     end
-end
-
-function PEARL.RegisterRawServerRPC(name)
-    local i = #RPC_HANDLERS + 1
-    assert(RPC_HANDLERS[i] == nil)
-
-    RPC_HANDLERS[i] = function() end
-    PEARL.RPC[name] = i
 end
 
 function PEARL.AddRawServerUseridRPCHandler(name, fn)
@@ -463,7 +471,12 @@ local function CustomHandleRPC(sender, tick, code, data, namespace)
         return -- Let the game handle Rate limits
     end
 
-    PEARL.SafeRun(TheNet.CallRPC, TheNet, handler, userid, data)
+    PEARL.debug("Received Raw Mod RPC", code, "from", sender)
+
+    local success, err = PEARL.SafeRun(TheNet.CallRPC, TheNet, handler, userid, data)
+    if not success or err ~= nil then
+        HandleRPCError(nil, userid, success)
+    end
 
     return false
 end
@@ -503,15 +516,13 @@ PEARL.AddGlobalFunctionPreCall("HandleShardModRPC", function(sender, tick, names
 end)
 
 PEARL.AddGlobalFunctionPreCall("HandleClientRPC", function(sender, tick, namespace, code, data)
-    if not CLIENT_MOD_RPC_HANDLERS[namespace] then
-        return -- Leave the game handle it.
-    end
-
     local ns_handlers = CLIENT_MOD_RPC_HANDLERS[namespace]
     local handler = ns_handlers and ns_handlers[code]
     if not handler then
         return -- Leave the game handle it.
     end
+
+    PEARL.debug("Received Raw Mod RPC", code, "from", sender)
 
     PEARL.SafeRun(TheNet.CallClientRPC, TheNet, handler, sender, data)
 

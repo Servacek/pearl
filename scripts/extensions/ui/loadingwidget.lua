@@ -12,6 +12,8 @@
 
 
 
+local MovieDialog = require("screens/moviedialog")
+
 --- @class LoadingWidget
 local LoadingWidget = require("widgets/redux/loadingwidget")
 
@@ -145,6 +147,10 @@ local function SetupWrappers()
     end
 end
 
+local function OnIntroMovieDone()
+    print("INTO MOVIE DONE!!!")
+end
+
 --- We have some additional functionality here aside from the custom images
 --- so this should be loaded always.
 PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
@@ -202,6 +208,19 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function()
             end
         end
     end
+
+    -- local dialog = MovieDialog("movies/intro.ogv", OnIntroMovieDone)
+    -- dialog.OnControl = function(this, control, down)
+    --     if MovieDialog._base.OnControl(this, control, down) then
+    --         return true
+    --     end
+
+    --     print("OnControl")
+    --     if down and (control == KEY_ENTER) then
+    --         this:Cancel()
+    --         return true
+    --     end
+    -- end
 end)
 
 if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then

@@ -104,11 +104,6 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     end
 end
 
--- Deprecated
--- PEARL.SafeModTableExtend("CONTROLS", {
---     TOGGLE_CHAT = KEY_F1 -- 282
--- })
-
 ----------------------------------
 -- Game Extensions
 ----------------------------------
@@ -197,6 +192,8 @@ PEARL.info("Loading preload assets...")
 PEARL.ENV.PreloadAssets = {
     Asset("PKGREF", "images/bg_loading_space.tex"),
     Asset("DYNAMIC_ATLAS", "images/bg_loading_space.xml"),
+
+    --Asset("PKGREF", "movies/test_video.ogv")
 }
 
 PEARL.ENV.ReloadPreloadAssets()
