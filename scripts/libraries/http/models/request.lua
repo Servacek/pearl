@@ -55,9 +55,9 @@ local Request = Class(function(self, url, method, proxy)
     self.method = method
     --- @type string?
     self.data = nil
-    --- @type number?
+    --- @type integer?
     self.timeout = DEFAULT_REQUEST_TIMEOUT
-    --- @type number
+    --- @type integer
     self.retry_timeout = TIMEOUT_RETRY_SECONDS
 
     --- @type boolean
@@ -68,25 +68,25 @@ local Request = Class(function(self, url, method, proxy)
 
     --- @type fun(response: table|string, self: Request, ...: any)
     self.onsuccessfn = nil
-    --- @type table<number, any>?
+    --- @type table<string, any>?
     self.onsuccessfn_args = nil
 
-    --- @type fun(response: table|string, success: boolean, code: number, self: Request, ...: any)
+    --- @type fun(response: table|string, success: boolean, code: string, self: Request, ...: any)
     self.oncompletefn = nil
-    --- @type table<number, any>?
+    --- @type table<string, any>?
     self.oncompletefn_args = nil
 
     --- @type fun(result, http_code, request, ...)?
     self.errfn = nil
-    --- @type table<number, any>?
+    --- @type table<string, any>?
     self.errfn_args = nil
 
-    --- @type table<number, fun(result, request, ...)>?
+    --- @type table<string, fun(result, request, ...)>?
     self.rcode_handlers = nil
 
-    --- @type number
+    --- @type integer
     self.retries = 0
-    --- @type number
+    --- @type integer
     self.maxretries = PEARL.CONSTS.MAX_REQUEST_RETRIES
 
     --- @type boolean
@@ -181,7 +181,7 @@ function Request:_SetField(field, value, tp, optional, static, proxy)
     return self
 end
 
---- @param timeout number?
+--- @param timeout integer?
 --- @return Request
 function Request:SetTimeout(timeout)
     return self:_SetField("timeout", timeout, "number", true, true)
@@ -191,7 +191,7 @@ function Request:SetTimeBetweenRetries(time)
     return self:_SetField("retry_timeout", time, "number", false, false)
 end
 
---- @param code number The status code number.
+--- @param code integer The status code number.
 --- @param handler fun(response: table|string, request: Request, ...)?
 --- @return Request self
 function Request:SetStatusCodeHandle(code, handler)
@@ -213,7 +213,7 @@ function Request:SetStatusCodeHandle(code, handler)
     return self
 end
 
---- @param errfn? fun(response: table|string, code: number, request: Request, ...)
+--- @param errfn? fun(response: table|string, code: string, request: Request, ...)
 --- @return Request self
 function Request:SetOnError(errfn, ...)
     self:_SetField("errfn", errfn, "function", true, false)
@@ -228,7 +228,7 @@ function Request:SetIsRaw(raw)
     return self:_SetField("raw", raw or false, "boolean", false, true)
 end
 
---- @param maxretries number
+--- @param maxretries integer
 --- @return Request
 function Request:SetMaxRetries(maxretries)
     return self:_SetField("maxretries", maxretries, "number", false, false)
@@ -404,7 +404,7 @@ end
 
 --- @param datastr string?
 --- @param success boolean?
---- @param code number?
+--- @param code integer?
 function Request:OnCompleted(datastr, success, code)
     if self:WasCompleted() then
         PEARL.error("Request already completed!", datastr)
@@ -430,6 +430,8 @@ function Request:OnCompleted(datastr, success, code)
         response = type(datatbl) == "table" and datatbl or {}
     end
 
+    success = success == true and code < 300
+
     -- OnComplete handler gets called no matter if we succeeded or not.
     if type(self.oncompletefn) == "function" then
         self.oncompletefn(response, success, code, self, PEARL.unpack(self.oncompletefn_args))
@@ -445,44 +447,46 @@ function Request:OnCompleted(datastr, success, code)
         return -- If custom handlers exist, do not call the default callbacks.
     end
 
-    if (success ~= true or code >= 400) and code ~= 200 then
-        local retryable_code = Request.RETRY_CODES[code] == true
-        if not retryable_code then
-            self:OnCantRetry()
+    if success then
+        if type(self.onsuccessfn) == "function" then
+            self.onsuccessfn(
+                response, self, PEARL.unpack(self.onsuccessfn_args)
+            )
         end
 
-        if type(self.errfn) == "function" then
-            self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
-        end
-
-        local reason
-        if retryable_code then
-            if code == 0 then
-                reason = "Operation timed out!"
-            end
-
-            if self:IsRetryable() then
-                PEARL.HTTPClient:RetryRequestAfter(
-                    self, math.min(math.max(self.retry_timeout * (self.retries + 1), self.retry_timeout), MAX_TIMEOUT_RETRY_SECONDS)
-                )
-            end
-        else
-            reason = (#datastr > 1 and datastr) or "Reason unknown."
-        end
-
-        -- Log only failed requests to reduce log spam
-        PEARL.warn(
-            REQUEST_FAILED_HEADER:format(
-                self.host or "unknown", code, reason
-            ), tonumber(code or 0) > 0 and self.data
-        )
-    -- Call the request's callback, if provided
-    -- Only call the callback if we have successesed!
-    elseif type(self.onsuccessfn) == "function" then
-        self.onsuccessfn(
-            response, self, PEARL.unpack(self.onsuccessfn_args)
-        )
+        return
     end
+
+    local retryable_code = Request.RETRY_CODES[code] == true
+    if not retryable_code then
+        self:OnCantRetry()
+    end
+
+    if type(self.errfn) == "function" then
+        self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
+    end
+
+    local reason
+    if retryable_code then
+        if code == 0 then
+            reason = "Operation timed out!"
+        end
+
+        if self:IsRetryable() then
+            PEARL.HTTPClient:RetryRequestAfter(
+                self, math.min(math.max(self.retry_timeout * (self.retries + 1), self.retry_timeout), MAX_TIMEOUT_RETRY_SECONDS)
+            )
+        end
+    else
+        reason = (#datastr > 1 and datastr) or "Reason unknown."
+    end
+
+    -- Log only failed requests to reduce log spam
+    PEARL.warn(
+        REQUEST_FAILED_HEADER:format(
+            self.host or "unknown", code, reason
+        ), tonumber(code or 0) > 0 and self.data
+    )
 end
 
 ----------------------------------

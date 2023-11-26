@@ -15,6 +15,7 @@
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 
+--- @class EMOTES
 local EMOTES = {
     -- Game utf-8 formatted emotes accessed by name
     GAME = {
@@ -133,9 +134,19 @@ local EMOTES = {
     },
 }
 
+-- Game Icon Name -> Discord Emoji
 EMOTES.DISCORD = {}
 for name, symbol in pairs(EMOTES.GAME) do
     EMOTES.DISCORD[name] = EMOTES.MAP_DISCORD[symbol]
 end
+
+EMOTES.MAP_GAME = {}
+for game, discord in pairs(EMOTES.MAP_DISCORD) do
+    EMOTES.MAP_GAME[discord] = game
+end
+
+--------------------------------
+-- [[ Return ]]
+--------------------------------
 
 return EMOTES

@@ -127,10 +127,10 @@ local function has_task(task)
     return task_count > 0 and table_contains(tasks, task)
 end
 
---- @param time number Time from now in seconds.
+--- @param time integer Time from now in seconds.
 --- @param fn function The callback that should be called after 'time'.
---- @param limit number? The maximum number of times this task should be executed.
---- @param initialdelay number? The time we should wait until executing the task for the first time.
+--- @param limit integer? The maximum number of times this task should be executed.
+--- @param initialdelay integer? The time we should wait until executing the task for the first time.
 --- @param id any? The identifier of the task. Used for debugging purposes only.
 --- @param ... any? All the additional parameters for the callback function.
 local function create_task(time, fn, limit, initialdelay, id, ...)

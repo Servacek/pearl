@@ -82,16 +82,25 @@ Embed.COLORS = {
 --- @param url?   string url of embed
 --- @return Embed
 function Embed:SetTitle(title, url)
-    if not (type(title) == "string" and string.utf8len(title) < Embed.MAX_TITLE_LENGTH) then
-        PEARL.warn("Attempted to set an invalid title!")
+    if type(title) ~= "string" then
+        if title ~= nil then
+            PEARL.error("Invalid embed title provided!")
+        end
 
         return self
     end
 
+    if string.utf8len(title) >= Embed.MAX_TITLE_LENGTH then
+        PEARL.warn("Provided embed title is too long! Cropping...")
+        title = title:ltake(Embed.MAX_TITLE_LENGTH, nil, "...")
+    end
+
     self.title = title
 
-    if type(url) == "string" then
+    if url == nil or type(url) == "string" then
         self.url = url
+    else
+        PEARL.error("Invalid embed title URL provided!")
     end
 
     return self
@@ -118,9 +127,17 @@ end
 --- @param description?	string	description of embed
 --- @return Embed
 function Embed:SetDescription(description)
-    if not (type(description) == "string" and string.utf8len(description) < Embed.MAX_DESCRIPTION_LENGTH) then
-        PEARL.warn("Attempted to set an invalid description! Cropping...")
-        description = tostring(description):ltake(Embed.MAX_DESCRIPTION_LENGTH, nil, "...")
+    if type(description) ~= "string" then
+        if description ~= nil then
+            PEARL.error("Invalid embed description provided!")
+        end
+
+        return self
+    end
+
+    if string.utf8len(description) >= Embed.MAX_DESCRIPTION_LENGTH then
+        PEARL.warn("Provided embed description is too long! Cropping...")
+        description = description:ltake(Embed.MAX_DESCRIPTION_LENGTH, nil, "...")
     end
 
     self.description = description
@@ -136,11 +153,14 @@ function Embed:SetColor(color)
     return self
 end
 
---- @param url	string	source url of thumbnail (only supports http(s) and attachments)
+--- @param url?	string	source url of thumbnail (only supports http(s) and attachments)
 --- @return Embed
 function Embed:SetImage(url)
     if type(url) ~= "string" then
-        PEARL.error("Invalid embed image URL provided!")
+        if url ~= nil then
+            PEARL.error("Invalid embed image URL provided!")
+        end
+
         return self
     end
 
@@ -153,11 +173,14 @@ function Embed:SetImage(url)
     return self
 end
 
---- @param url	string	source url of thumbnail (only supports http(s) and attachments)
+--- @param url?	string	source url of thumbnail (only supports http(s) and attachments)
 --- @return Embed
 function Embed:SetThumbnail(url)
     if type(url) ~= "string" then
-        PEARL.error("Invalid embed thumbnail URL provided.")
+        if url ~= nil then
+            PEARL.error("Invalid embed thumbnail URL provided.")
+        end
+
         return self
     end
 
@@ -170,7 +193,7 @@ function Embed:SetThumbnail(url)
     return self
 end
 
---- @param timestamp?	number|string	timestamp of embed content
+--- @param timestamp? integer|string	timestamp of embed content
 --- @return Embed
 function Embed:SetTimestamp(timestamp)
     if type(timestamp) == "number" then
@@ -205,7 +228,7 @@ function Embed:SetFooter(text, icon_url, proxy_icon_url)
     return self
 end
 
---- @param url string	url of embed
+--- @param url string?	url of embed
 --- @return Embed
 function Embed:SetUrl(url)
     self.url = url

@@ -948,6 +948,10 @@ local function onafkstatechanged(userid, is_afk)
     return PEARL.AnnounceWithType(message:format(name), type, entity)
 end
 
+local function onplayerkicked()
+
+end
+
 -------------------
 -- THIEFS --
 -------------------
@@ -1059,3 +1063,6 @@ end)
 
 PEARL.EventProcessor:AddSafeEventHandler("afk_kicked", onafkdisconnected)
 PEARL.EventProcessor:AddSafeEventHandler("afk_statechanged", onafkstatechanged)
+
+--- @TODO: Maybe remove some reputation when being kicked?
+--PEARL.EventProcessor:AddSafeEventHandler("clientkicked", onplayerkicked)

@@ -126,7 +126,7 @@ PEARL.AddFrontEndPreInit(function()
     local count = 0
     local prohibited_count = 0
     for modname, _ in pairs(KnownModIndex.savedata.known_mods) do
-        if KnownModIndex:IsModEnabledAny(modname) and not KnownModIndex:IsModAllowed(modname) then
+        if KnownModIndex:IsModEnabledAny(modname) or table.contains(ModManager.enabledmods, modname)then
             count = count + 1
             if not KnownModIndex:IsModAllowed(modname) then
                 prohibited_count = prohibited_count + 1

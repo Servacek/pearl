@@ -42,7 +42,7 @@ local QueuedLogAction = Class(function(self, pattern)
     --- @type string
     self.pattern = pattern
 
-    --- @type number
+    --- @type string
     self.timestart = os.time()
 
     --- @type table<name, count>?
@@ -60,9 +60,9 @@ local QueuedLogAction = Class(function(self, pattern)
     self.queuefn = nil
     self.queuefninst = nil
 
-    --- @type number
+    --- @type string
     self.queuetime = QUEUE_TIME
-    --- @type number
+    --- @type string
     self.queuetimemult = QUEUE_REPEAT_MULT
 
     self.queued = false

@@ -108,7 +108,7 @@ end
 --------------------------------
 
 --- @param request Request
---- @param seconds number
+--- @param seconds integer
 function HTTPClient:RetryRequestAfter(request, seconds)
     if not request:IsRetryable() then
         return PEARL.warn("Max retry count reached! Request failed...")
@@ -136,8 +136,8 @@ end
 
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
---- @param onsuccess? fun(result: string, success: boolean, http_code: number, ...: any): any The function that should be called after the request completes.
---- @param timeout number? The number of seconds before timeout should occur.
+--- @param onsuccess? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
+--- @param timeout integer? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
@@ -151,7 +151,7 @@ end
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param onsuccess? fun(response: table|string, self: Request, ...: any): any The function that should be called after the request completes.
 --- @param data string|table The json data body for the request (JSON or table)
---- @param timeout number? The number of seconds before timeout should occur.
+--- @param timeout integer? The number of seconds before timeout should occur.
 --- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.

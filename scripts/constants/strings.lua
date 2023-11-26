@@ -243,6 +243,7 @@ local STRINGS = {
             -- Prefab + Username
             TITLE = "%s %s",
             FOOTER = "Klei ID: %s Steam ID: %s Root Klei ID: %s",
+            PLAYING = "Playing Now!",
             FD_NAMES = {
                 PLAYED  = "Total Days Played",
                 REP     = "Reputation",
@@ -475,6 +476,13 @@ local STRINGS = {
     UI = {
         CONSOLE_DISABLED = "Disabled :)",
 
+        STATIC_BAN_REASONS = {
+            NONE = "Reason not specified.",
+            AUTO = "Automatically banned for repeated violation of the rules.",
+            ALT  = "Banned for using an alternative account of a banned user."
+
+        },
+
         PROXY_STATE = "Proxy Server: %s",
         ONLINE = "Online",
         OFFLINE = "Offline",
@@ -603,6 +611,7 @@ local STRINGS = {
 
                 ON_SUCCESS          = "Inventory was sent to discord.",
                 ON_NOTFOUND         = "Inventory is empty or doesn't exist...",
+                ON_FAILURE          = "Sending the inventory failed..."
             },
 
             INV_FIND = {
@@ -740,6 +749,13 @@ local STRINGS = {
                 ON_SUCCESS = "Account successfully unpaired!",
                 NOT_PAIRED = "Account not paired!",
                 ON_FAILURE = "Failed to unpair your account!",
+            },
+
+            PROFILE = {
+                PRETTYNAME = "Show Player Profile",
+                DESC       = "Shows player's community profile on discord.",
+
+                MISSING_PERMISSION = "You do not have permission to display profiles of other players."
             },
 
             BORROWED = {

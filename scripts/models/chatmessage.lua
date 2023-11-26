@@ -39,7 +39,7 @@ local ChatMessage = Class(function(self, content)
     --- @type string
     self.icon = "default"
 
-    --- @type table<number, number>?
+    --- @type table<string, string>?
     self.colour = DEFAULT_MESSAGE_COLOUR
 
     self.whisper = false
@@ -137,6 +137,12 @@ function ChatMessage:SetReceiver(name)
     self.receiver = name
 end
 
+--- @param name string
+--- @param colour table?
+--- @param userid string?
+--- @param netid string?
+--- @param prefab string?
+--- @param guid string?
 function ChatMessage:SetAuthor(name, colour, userid, netid, prefab, guid)
     self.author = {
         name = name,

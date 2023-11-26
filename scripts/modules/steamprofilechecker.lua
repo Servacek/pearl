@@ -10,8 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
---- @TODO: Check for bans on some public banlists.
-
 -------------------------------------
 -- [[ Contants ]]
 -------------------------------------

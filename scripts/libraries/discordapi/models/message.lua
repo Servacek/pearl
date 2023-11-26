@@ -213,7 +213,7 @@ end
 function Message:AddEmbed(embed)
     if not self:CanAcceptEmbed(embed) then
         PEARL.error("Attempted to add more than", PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT, "embeds to a message.")
-        return
+        return nil -- nil on error
     end
 
     if not self._embeds then

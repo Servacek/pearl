@@ -14,6 +14,7 @@
 ---@diagnostic disable: param-type-mismatch
 
 --- Some magic to prevent the diagnostics from marking custom string methods
+
 --- @class string: stringlib
 local stringlib = string
 string = stringlib
@@ -116,8 +117,8 @@ end
 -- longline -> ltake(3) -> lon
 --
 --- @BYTEAWARE
---- @param count number The number of characters to take from the right side of the string.
---- @param init number? The index of the character from which we should start taking.
+--- @param count integer The number of characters to take from the right side of the string.
+--- @param init string? The index of the character from which we should start taking.
 --- @param postfix string? An additional string added after the last taken character.
 ---
 --- @return string result The modified string.
@@ -130,8 +131,8 @@ end
 -- longline -> rtake(3) -> ine
 --
 --- @BYTEAWARE
---- @param count number The number of characters to take from the right side of the string.
---- @param init number? The index of the character from which we should start taking.
+--- @param count string The number of characters to take from the right side of the string.
+--- @param init string? The index of the character from which we should start taking.
 --- @param prefix string? An additional string added before the first taken character.
 ---
 --- @return string result The modified string.
@@ -149,7 +150,7 @@ end
 function string:count(word)
     local count = 0
 
-    --- @type number?
+    --- @type integer?
     local startPos = 0
     while startPos do
         startPos = self:find(word, startPos + 1, true)

@@ -65,7 +65,7 @@ function EMBEDS.Inventory(pmd, highlighted)
         line = line.." "..PEARL.PrefabToName(iprefab)
 
         -- Keep the highlighted items on top.
-        if type(highlighted) == "table" and table.contains(highlighted, iprefab) and highlighted[iprefab] >= 1 then
+        if type(highlighted) == "table" and type(highlighted[iprefab]) == "number" and highlighted[iprefab] >= 1 then
             description = MARKDOWN.bold(line).."\n"..description
         else
             description = description..line.."\n"
@@ -181,7 +181,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
     end
 
     local local_count = leaderboard:HasEnoughPlayers() and #data.players or 0
-    local total_count = math.max(local_count, data.recordcount or PEARL.DB:GetTotalRecordCount())
+    local total_count = math.max(local_count, tonumber(data.recordcount) or PEARL.DB:GetTotalRecordCount())
     embed:SetFooter(("%s/%s"):format(local_count, total_count))
 
     return embed
@@ -313,10 +313,18 @@ function EMBEDS.ClientProfile(userid, dbr)
     local prefab = dbr.lastprefabfancy or dbr.lastprefab or ""
     local icon = PEARL.ICONS.PLAYER_PREFABS[prefab]
 
-    local loc_icon = ":flag_"..string.lower(dbr.lastlocale)..":"
+    -- The locale may not be allowed as of now.
+    local loc = dbr.allowedlocale or dbr.lastlocale
+    local loc_allowed = PEARL.ServerNetwork:IsLocaleAllowed(loc)
+    local loc_icon = loc and ":flag_"..string.lower(loc)..":"
     local loc_str = STRINGS.PEARL.LOGS.TAG:format(
-        STRINGS.PEARL.UI[dbr.hadallowedlocale and "ALLOWED" or "BLOCKED"]
+        STRINGS.PEARL.UI[loc_allowed and "ALLOWED" or "BLOCKED"]
     )
+
+    local last_seen_time = MARKDOWN.timestamp(dbr.lastseentime)
+    if PEARL.ServerNetwork:IsClientConnected(userid) then
+        last_seen_time = PEARL.ICONS.ONLINE.." "..P_STRINGS.PLAYING
+    end
 
     local embed = Embed()
         :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
@@ -325,8 +333,8 @@ function EMBEDS.ClientProfile(userid, dbr)
         :SetThumbnail(dbr.avatar)
         :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(dbr.totaldays), true)
         :AddField(P_STRINGS.FD_NAMES.REP, MARKDOWN.codeline(dbr.reputation.value), true)
-        :AddField(P_STRINGS.FD_NAMES.SEEN, MARKDOWN.timestamp(dbr.lastseentime), true)
-        :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon.." "..loc_str, true)
+        :AddField(P_STRINGS.FD_NAMES.SEEN, last_seen_time, true)
+        :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon and loc_icon.." "..loc_str or "UNKNOWN", true)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootuserid or "UNKNOWN"))
 
     if dbr[PEARL.DB.BINDING_FIELD[PEARL.DB.BINDING_TYPE.DISCORD]] then

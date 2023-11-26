@@ -48,7 +48,7 @@ local START_SESSION_RETRIES = 3
 --- @singleton
 --- @class DiscordProxy: Library
 local DiscordProxy = {
-    --- @type number
+    --- @type integer
     state = STATE.STOPPED,
 
     --- @type Task?
@@ -62,7 +62,6 @@ local DiscordProxy = {
     --- @type table
     response_cache = {},
 
-    processingcount = 0,
     processingtype = nil,
 }
 
@@ -140,12 +139,8 @@ function DiscordProxy:GetShardAutocompleteData()
     return shards
 end
 
-function DiscordProxy:GetProcessingCount()
-    return self.processingcount
-end
-
 function DiscordProxy:IsProcessing(type)
-    return self.processingtype == type and self.processingcount > 0
+    return self.processingtype == type
 end
 
 --------------------------------
@@ -290,6 +285,10 @@ function DiscordProxy:AddShardEvent(name, ...)
 end
 
 function DiscordProxy:AddCommandResponse(commandid, message_table)
+    if type(commandid) ~= "string" then
+        return PEARL.error("Invalid command id provided!")
+    end
+
     self.response_cache[commandid] = message_table
 end
 
@@ -366,6 +365,7 @@ end
 function DiscordProxy:SendCommandResponse(commandid, message)
     self:AddCommandResponse(commandid, message:ToTable())
 
+    -- If we are not processing any commands and there are some responses send them immediately.
     if not self:IsProcessing(self.PROCESSING_TYPE.COMMANDS) and self:HasAnyCommandResponses() then
         self:SendCachedCommandResponses()
     end

@@ -18,7 +18,7 @@
 
 --- @class PlayerMetadata
 local PlayerMetadata = Class(function(self, userid, netid)
-    --- @type number
+    --- @type string
     self._age = -1
     --- @type string
     self._prefab = ""

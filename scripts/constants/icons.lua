@@ -15,6 +15,22 @@
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 
+--------------------------------
+-- [[ Constants ]]
+--------------------------------
+
+local DISCORD_EMOJI_PATTERN = "^<a?:%S+:%d+>$"
+
+-- First 3 bytes of the emoji are the same always.
+-- The last one is from range 156-255
+-- This is true only for original game emojis.
+local GAME_EMOTE_PATTERN    = "^\243\176\128[\156-\255]$"
+
+--------------------------------
+-- [[ Class Delcaration ]]
+--------------------------------
+
+--- @class ICONS
 local ICONS = {
     X = "<:x_:999294448045408277>",
     CHECK = "<:check:999294412972625940>",
@@ -25,6 +41,9 @@ local ICONS = {
     LIGHTNING = "<:lightning:1166029673076105276>",
     SYNC   = "<:connect:1166026349157302332>",
     UNSYNC = "<:disconnect:1030926979463135313>",
+
+    ONLINE = ":green_circle:",
+    OFFLINE = ":red_circle:",
 
     PLAYER_PREFABS = {
         ["walter"] =             "<:avatar_walter:1152542346253180938>",
@@ -211,7 +230,33 @@ local ICONS = {
     },
 }
 
---- Inventory Icons
+ICONS.TYPE = {
+    UNKNOWN = 0,
+    DISCORD = 1,
+    INGAME  = 2,
+}
+
+--------------------------------
+-- [[ Public ]]
+--------------------------------
+
+--- @param icon string
+--- @return integer ICONS.TYPE
+function ICONS.GetType(icon)
+    if icon:match(DISCORD_EMOJI_PATTERN) then
+        return ICONS.TYPE.DISCORD
+    end
+
+    if icon:match(GAME_EMOTE_PATTERN) or PEARL.EMOTES.MAP_DISCORD[icon] ~= nil then
+        return ICONS.TYPE.INGAME
+    end
+
+    return ICONS.TYPE.UNKNOWN
+end
+
+--------------------------------
+-- [[ Inventory Icons ]]
+--------------------------------
 
 if TheNet:GetIsServer() then
     local rf = io.open(PEARL.MODROOT.."/data/inventory_icons.json", "r")
@@ -223,6 +268,8 @@ end
 
 ICONS.INVENTORY = ICONS.INVENTORY or {}
 
---- Return
+--------------------------------
+-- [[ Return ]]
+--------------------------------
 
 return ICONS

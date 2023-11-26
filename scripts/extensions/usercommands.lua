@@ -65,14 +65,64 @@ local function make_safe_cb(name, cb)
 end
 
 -------------------------------------
+-- Static
+-------------------------------------´
+
+UserCommands.SHARD_ROUTING = {
+    NONE    = 0, -- Command will be executed on the shard they are called on.
+    ALL     = 1, -- Command will be executed on all shards.
+    ACTIVE  = 2, -- Command will be executed on the shard the target player is playing on.
+    AUTO    = 3, -- The routing will be determined according to the parameters passed.
+}
+
+-------------------------------------
 -- Public Functions
 -------------------------------------
 
+--- @param name string
+--- @param context CommandContext
+--- @param shardid string|string?
+--- @return boolean
+function UserCommands.RouteHybridCommand(name, context, shardid)
+    PEARL.debug("Routing command", name, "to shard", shardid)
+
+    -- If we are routing this from a secondary shard.
+    shardid = TheShard:IsMaster() and shardid or SHARDID.MASTER
+    local data = ZipAndEncodeString(context:ToTable())
+    if type(data) == "string" then
+        PEARL.BroadcastRPCToShards(PEARL.RPC.RouteHybridCommand, shardid, name, data)
+
+        return true
+    end
+
+    return false
+end
+
+--- @param command table<string, any>
+--- @param context CommandContext
+--- @param handler function?
+--- @return boolean success
 function UserCommands.RunHybridCommand(command, context, handler)
     if type(command) ~= "table" or type(command.fn) ~= "function" then
         context:Reply(STRINGS.PEARL.COMMAND_RESPONSES.INVALID)
         PEARL.error("Attempted to run an invalid hybrid command.")
         return false
+    end
+
+    -- Route commands from Master to secondary shards in case the player is not here.
+    local target_userid = UserToClientID(context.params and context.params.player) or context.params.player
+    local route = not handler and command.routing ~= UserCommands.SHARD_ROUTING.NONE and target_userid and
+                    not PEARL.ServerNetwork:IsClientConnected(target_userid)
+
+    local shardid = nil -- broadcast to all.
+    if route and target_userid and command.routing == UserCommands.SHARD_ROUTING.ACTIVE then
+        shardid = PEARL.DB:GetField(target_userid, "lastshardid") or nil
+    end
+
+    if route and shardid then
+        if UserCommands.RouteHybridCommand(command.name, context, shardid) then
+            return true
+        end
     end
 
     handler = type(handler) == "function" and handler or command.fn
@@ -87,6 +137,10 @@ end
 --- @param id string? The ID of the discord command that caused this function to be called.
 --- @return string? errmsg
 function UserCommands.RunDiscordCommand(name, params, caller, id)
+    if not TheShard:IsMaster() then
+        return PEARL.error("Attempted to run a discord command from a secondary shard.")
+    end
+
     local command = UserCommands.GetCustomCommand(name)
 
     if type(command) ~= "table" or type(command.fn) ~= "function" then
@@ -94,9 +148,18 @@ function UserCommands.RunDiscordCommand(name, params, caller, id)
         return STRINGS.PEARL.COMMAND_RESPONSES.INVALID
     end
 
-    command.id = id
+    if caller.discordid then
+        caller.userid = PEARL.DB:MapDiscordID(caller.discordid)
+    end
 
+    if caller.userid then
+        caller.netid = PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.STEAM)
+    end
+
+    --- @type CommandContext
     local context = CommandContext(command, CommandContext.TYPE.DISCORD, params, caller)
+    context:SetInteractionID(id)
+
     UserCommands.RunHybridCommand(command, context)
 end
 
@@ -166,6 +229,7 @@ function UserCommands.AddConsoleCommand(name, command)
         local caller = ThePlayer
         local params = ParseParamsArray(command, toarrayornil(...))
 
+        print(DataDumper(params))
         UserCommands.RunHybridCommand(
             command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, caller)
         )
@@ -175,7 +239,7 @@ end
 function UserCommands.AddSlashCommand(name, command)
     command.serverfn = make_safe_cb(name, function(params, caller)
         UserCommands.RunHybridCommand(
-            command, CommandContext(command, CommandContext.TYPE.SLASH, params, caller), command.fn
+            command, CommandContext(command, CommandContext.TYPE.SLASH, params, caller)
         )
     end)
 
@@ -196,6 +260,8 @@ function UserCommands.AddCustomCommand(name, command)
 
     PEARL.info("Registering command", name)
     command.name = name
+
+    command.remote = type(command.fn) == "function"
 
     command.slash = command.slash ~= false and PEARL.CONFIG.SLASH_COMMANDS
     command.console = command.console ~= false and PEARL.CONFIG.CONSOLE_COMMANDS
@@ -222,6 +288,10 @@ function UserCommands.AddCustomCommand(name, command)
         end
     end
 
+    if not command.remote and TheNet:GetIsServer() then
+        return -- Ignore local only commands on the server.
+    end
+
     if command.console ~= false then
         UserCommands.AddConsoleCommand(command.consolename or name, command)
 
@@ -240,6 +310,18 @@ function UserCommands.AddCustomCommand(name, command)
     if command.slash == true or command.usermenu or command.servermenu then
         UserCommands.AddSlashCommand(name, command)
     end
+end
+
+--- @return string userid The client's Klei ID or nil on failure.
+function UserCommands.InputToUserID(input)
+    return UserToClientID(input) or PEARL.DB:MapSteamID(input) or
+        PEARL.DB:MapDiscordID(input) or input
+end
+
+--- @return table? client The client's table or nil on failure.
+function UserCommands.InputToClientTable(input)
+    local userid = UserCommands.InputToUserID(input)
+    return userid and TheNet:GetClientTableForUser(userid)
 end
 
 -------------------------------------
@@ -263,4 +345,31 @@ PEARL.OverrideReturnValue(_G, "UserToClient", function(client, input)
     end
 
     return client
+end)
+
+-------------------------------------
+-- RPCs
+-------------------------------------
+
+PEARL.AddShardRPCHandler("RouteHybridCommand", function(shardid, name, datastr)
+    PEARL.debug("[RPC] RouteHybridCommand", shardid, name)
+
+    if tostring(shardid) ~= SHARDID.MASTER then
+        return PEARL.error("Got hybrid command routing from a secondary shard!")
+    end
+
+    local data = DecodeAndUnzipString(datastr)
+    if type(data) ~= "table" then
+        return PEARL.error("Received invalid command routing data from Master!")
+    end
+
+    local command = UserCommands.GetCustomCommand(name)
+    if type(command) ~= "table" then
+        return PEARL.error("Attempted to route an invalid command", name)
+    end
+
+    local context = CommandContext.FromTable(data)
+    context:SetCommand(command)
+
+    UserCommands.RunHybridCommand(command, context)
 end)

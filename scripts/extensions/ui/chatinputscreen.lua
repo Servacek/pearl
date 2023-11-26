@@ -27,6 +27,8 @@ local Colour = PEARL.loadfile("libraries/colour")
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
 
+local COMMAND_PREDICTION_CHARS = 1 -- Commands do not have usually under 2 characters.
+
 ---------------------------
 -- [[ Local Functions ]]
 ---------------------------
@@ -63,6 +65,8 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     local slash_commands = UserCommands.GetCustomCommandsWithFlag("slash")
     for _, v in pairs(self.chat_edit.prediction_widget.word_predictor.dictionaries) do
         if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
+            v.num_chars = COMMAND_PREDICTION_CHARS
+
             for name, command in pairs(slash_commands) do
                 -- Only autocomplete the commands we have permission to.
                 if command.permission == nil or command.permission == permission then

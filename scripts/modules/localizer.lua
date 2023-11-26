@@ -28,7 +28,9 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid, cfd)
     -- If the player was already loaded we do not care about localization.
     -- This happens for example during migration.
     if (
-        (PEARL.CONFIG.LOCALIZER.CACHE and PEARL.DB:GetField(userid, "hadallowedlocale") == true) or
+        (PEARL.CONFIG.LOCALIZER.CACHE and PEARL.ServerNetwork:IsLocaleAllowed(
+            PEARL.DB:GetField(userid, "allowedlocale")
+        )) or
         PEARL.AllowList:Contains(userid) or
         PEARL.WhiteList:Contains(userid) or
         (PEARL.AdminList:Contains(userid) and not PEARL.CONFIG.DEBUG_MODE)
@@ -46,7 +48,8 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid, cfd)
 
         if PEARL.CONFIG.LOCALIZER.CACHE then
             PEARL.info("Caching localized userid...")
-            PEARL.DB:SetField(userid, "hadallowedlocale", true)
+            -- Save the allowed locale in case our locale policy changes in the future.
+            PEARL.DB:SetField(userid, "allowedlocale", locale)
         end
 
         return true -- Allow the connection

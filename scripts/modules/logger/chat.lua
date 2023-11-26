@@ -48,9 +48,9 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon, receive
                 content, MARKDOWN.PATTERNS.SPOILER, true
             )
 
-            if userid ~= nil and slurs > 0 then
+            if userid ~= nil and slurs and slurs > 0 then
                 local mult = 1
-                if words and words > 0 and slurs > 0 then
+                if words and words > 0 then
                     mult = slurs / words > .5 and 2 or mult
                 end
 
@@ -91,14 +91,15 @@ end
 --------------------------------
 
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
-    if not (userid and cmd and guid) then
+    if not (userid and type(cmd) == "string" and guid) then
         return
     end
 
+    local name = cmd:split(" ")[1]
     -- Skip emote commands
-    local command = UserCommands.GetCommandFromName(cmd)
-    if not command or command.emote then
-        return
+    local command = UserCommands.GetCommandFromName(name) or UserCommands.GetCustomCommand(name)
+    if not command or command.emote or command.remote ~= true then
+        return -- @TODO: Send a report to the server that someone attempted to run an invalid command?
     end
 
     PEARL.DiscordLogger:LogStringRaw(

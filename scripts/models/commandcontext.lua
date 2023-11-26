@@ -11,7 +11,13 @@
 --]==]====================================================]]
 
 
-local Message = require("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
+
+--------------------------------------
+-- [[ Constants ]]
+--------------------------------------
+
+local RESPONSE_ICON_PATTERN = "%s %s"
 
 --------------------------------------
 -- [[ Class Declaration ]]
@@ -34,7 +40,7 @@ local CommandContext = PEARL.Class(function(self, command, type, params, author)
 end)
 
 --------------------------------------
--- [[ Static Variables ]]
+-- [[ Static ]]
 --------------------------------------
 
 CommandContext.TYPE = {
@@ -52,9 +58,17 @@ CommandContext.OHANDLER = {
         PEARL.ServerNetwork:SendCommandResponse(context.author.userid, response)
     end,
     [CommandContext.TYPE.DISCORD] = function(context, response)
-        PEARL.DiscordProxy:SendCommandResponse(context.command.id, Message(response))
+        PEARL.DiscordProxy:SendCommandResponse(context.iid, Message(response))
     end,
 }
+
+--- @return CommandContext
+function CommandContext.FromTable(tbl)
+    local ctx = CommandContext(tbl.type, nil, tbl.params, tbl.author)
+    ctx:SetInteractionID(tbl.iid)
+
+    return ctx
+end
 
 --------------------------------------
 -- [[ Getters ]]
@@ -68,14 +82,60 @@ function CommandContext:WasReplied()
     return self.replied == true
 end
 
+function CommandContext:ToTable()
+    return {
+        type   = self.type,
+        params = self.params,
+        author = self.author,
+        iid    = self.iid,
+    }
+end
+
+--------------------------------------
+-- [[ Setters ]]
+--------------------------------------
+
+function CommandContext:SetInteractionID(id)
+    self.iid = tostring(id)
+end
+
+function CommandContext:SetCommand(command)
+    self.command = command
+end
+
 --------------------------------------
 -- [[ Public Methods ]]
 --------------------------------------
 
 --- @param content string
-function CommandContext:Reply(content)
+--- @param icon string? Optional icon (emoji) to the content. Displayed only on discord.
+function CommandContext:Reply(content, icon)
     local ohandler = self:GetOutputHandler()
     if type(ohandler) == "function" then
+        if type(icon) == "string" then
+            local icon_type = PEARL.ICONS.GetType(icon)
+
+            local icon_str = icon_type == PEARL.ICONS.TYPE.UNKNOWN and icon or nil
+            if icon_type == PEARL.ICONS.TYPE.DISCORD then
+                icon_str = self.type == CommandContext.TYPE.SLASH and PEARL.EMOTES.MAP_GAME[icon] or (
+                    self.type == CommandContext.TYPE.DISCORD and icon or nil
+                )
+            elseif icon_type == PEARL.ICONS.TYPE.INGAME then
+                icon_str = self.type == CommandContext.TYPE.DISCORD and PEARL.EMOTES.MAP_DISCORD[icon] or (
+                    self.type == CommandContext.TYPE.SLASH and icon or nil
+                )
+            end
+
+            -- Console doesnt support much icon types, so display only the unknown ones.
+            if self.type == CommandContext.TYPE.CONSOLE and icon_type ~= PEARL.ICONS.TYPE.UNKNOWN then
+                icon_str = nil
+            end
+
+            if icon_str then
+                content = RESPONSE_ICON_PATTERN:format(icon_str, content)
+            end
+        end
+
         ohandler(self, content)
 
         self.replied = true
@@ -83,32 +143,45 @@ function CommandContext:Reply(content)
 end
 
 --- @param message Message
+--- @return Request? request
 function CommandContext:ReplyDiscordMessage(message)
+    self.replied = true
+
     -- For non-discord commands calling this function
-    if self.command.id == nil then
+    if self.iid == nil then
         if self.command.permission == COMMAND_PERMISSION.USER then
             if PEARL.DiscordLogger:IsDisabled() and not self:WasReplied() then
-                return self:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK)
+                self:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK)
+                return
             end
 
-            PEARL.DiscordLogger:LogMessage(message)
+            return PEARL.DiscordLogger:LogMessage(message)
         else
             if PEARL.DiscordReporter:IsDisabled() and not self:WasReplied() then
-                return self:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK)
+                self:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK)
+                return
             end
 
-            PEARL.DiscordReporter:SendRawReportMessage(message)
+            return PEARL.DiscordReporter:SendRawReportMessage(message)
         end
     else
-        PEARL.DiscordProxy:SendCommandResponse(self.command.id, message)
+        PEARL.DiscordProxy:SendCommandResponse(self.iid, message)
     end
-
-    self.replied = true
 end
 
 --- @param embed Embed
+--- @return Request? request
 function CommandContext:ReplyDiscordEmbed(embed)
-    self:ReplyDiscordMessage(Message():AddEmbed(embed))
+    --- @type Message
+    local message = Message()
+    message:AddEmbed(embed)
+
+    if not embed:IsValid() or not message:IsValid() then
+        PEARL.error("CommandContext:ReplyDiscordEmbed Reply invalid!")
+        return
+    end
+
+    return self:ReplyDiscordMessage(message)
 end
 
 --------------------------------------

@@ -87,7 +87,20 @@ local function OnClientDataRecevied(userid, data)
     return RecordClientConnectionData(userid, data)
 end
 
-local function OnClientBanned(userid)
+local function OnClientBanned(userid, reason, author, seconds)
+    seconds = tonumber(seconds)
+    local timenow = os.time()
+
+    local bans = PEARL.DB:GetField(userid, "bans", {})
+    bans[#bans] = {
+        reason      = reason,
+        author      = author,
+        timestart   = timenow,
+        timestop    = seconds and timenow + seconds or nil
+    }
+    PEARL.DB:SetField("bans", bans)
+
+    -- Reset reputation value in case of an unban.
     PEARL.Reputation:SetFor(userid, PEARL.CONSTS.STARTING_REPUTATION)
 end
 
@@ -131,15 +144,33 @@ local function OnClientConnected(world, player)
     PEARL.DB:SafeSetField(player.userid, "username", client.name)
 end
 
-local function OnClientDisconnected(world, player)
-    -- No loading here! Also the userid can be nil or an empty string.
-    if PEARL.DB:IsRecordLoadedFor(player.userid) then
-        PEARL.DB:SafeSetField(player.userid, "lastseentime", os.time())
-        PEARL.DB:SafeSetField(player.userid, "lastsessionid", TheNet:GetSessionIdentifier())
+local function OnClientAuthenticationComplete(world, data)
+    print("SETTING LASTSHARID TO", PEARL.SHARDID)
+    -- Set this as soon as possible.
+    PEARL.DB:SafeSetField(data.userid, "lastshardid", tostring(PEARL.SHARDID))
+end
 
-        PEARL.DB:SaveRecordFor(player.userid)
-        PEARL.DB:UnloadRecord(player.userid) -- Free the memory
+local function OnClientDisconnected(world, data)
+    -- No loading here! Also the userid can be nil or an empty string.
+    if PEARL.DB:IsRecordLoadedFor(data.userid) then
+        PEARL.DB:SafeSetField(data.userid, "lastseentime", os.time())
+        PEARL.DB:SafeSetField(data.userid, "lastsessionid", TheNet:GetSessionIdentifier())
+
+        PEARL.DB:SaveRecordFor(data.userid)
+        PEARL.DB:UnloadRecord(data.userid) -- Free the memory
     end
+end
+
+local function OnClientMigrating(world, data)
+    if type(data) ~= "table" or not data.player or not data.player.userid then
+        return
+    end
+
+    if data.worldid then
+        PEARL.DB:SetField(data.player.userid, "lastshardid", tostring(data.worldid))
+    end
+
+    OnClientDisconnected(world, {userid = data.player.userid})
 end
 
 local function OnClientProfileData(userid, data)
@@ -172,21 +203,31 @@ local function OnPlayerChanged(world, player)
     end
 end
 
+--- The World might be reloaded because of a regen.
+local function OnWorldLoadedForClient(userid)
+    PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
+end
+
 --------------------------------------
 -- [[ Hooks ]]
 --------------------------------------
 
-PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, count, age, player)
+PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, level, age, player)
     if not (type(player) == "table" and player:IsValid() and player.userid ~= "") then
         return
     end
 
-    count = tonumber(count)
-    if count and count > 0 then
-        local record = PEARL.DB:GetRecordFor(player.userid)
-        if record then
-            record.totaldays = record.totaldays + count
-        end
+    PEARL.debug("NotifyPlayerPresence", age, player)
+
+    -- To keep things simple we will pretend the delta is always 1
+    local delta = 1 -- player.Network and player.Network:GetPlayerAge() - age or nil
+    local userid = player.userid
+    local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
+    PEARL.DB:SetField(player.userid, "totaldays", totaldays + delta)
+
+    if not player:HasTag("playerghost") then
+        local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
+        PEARL.DB:SetField(player.userid, "daysalive", daysalive + delta)
     end
 end)
 
@@ -201,7 +242,14 @@ PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileDat
 PEARL.AddWorldPostInit(function(world)
     world:ListenForModEvent("ms_clientconnected", OnClientConnected)
     world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
+    world:SafeListenForEvent("ms_playerdespawnandmigrate", OnClientMigrating)
+
+    world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
 
     world:SafeListenForEvent("ms_playerdespawn", OnPlayerChanged)
     world:SafeListenForEvent("ms_playerspawn", OnPlayerChanged)
+
+    for _, client in ipairs(PEARL.ServerNetwork:GetConnectedClients()) do
+        OnWorldLoadedForClient(client.userid)
+    end
 end)

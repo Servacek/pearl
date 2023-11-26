@@ -102,18 +102,18 @@ function Colour.RGBAToPercent(r, g, b, a)
     return r / 255, g / 255, b / 255, (a or 255) / 255
 end
 
---- @param r number red (0-255)
---- @param g number green (0-255)
---- @param b number blue (0-255)
+--- @param r integer red (0-255)
+--- @param g integer green (0-255)
+--- @param b integer blue (0-255)
 --- @return integer decimal
 function Colour.RGBToDecimal(r, g, b)
     return math.floor(bit.lshift(r, 16) + bit.lshift(g, 8) + b)
 end
 
---- @param r number red (0-255)
---- @param g number green (0-255)
---- @param b number blue (0-255)
---- @param a number alpha (optional, default 255) (0-255)
+--- @param r integer red (0-255)
+--- @param g integer green (0-255)
+--- @param b integer blue (0-255)
+--- @param a integer alpha (optional, default 255) (0-255)
 --- @return integer decimal
 function Colour.RGBAToDecimal32(r, g, b, a)
     return math.floor(

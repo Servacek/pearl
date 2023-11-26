@@ -89,6 +89,14 @@ local function WarnPlayer(player, level)
     end
 end
 
+local function BanPlayer(userid, player)
+    local delay = player and BAN_DELAY or BAN_DELAY_OFFLINE
+    PEARL.WallScheduler:ExecuteInTime(delay, function()
+        PEARL.info("Banning player", player and player:GetDisplayName() or userid, "for being a griefer.")
+        TheNet:BanForTime(userid, CONFIG.DURATION, STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO)
+    end)
+end
+
 local function OnReputationChanged(userid, old, new)
     print("OnReputationChanged", old, new)
     if old <= new then
@@ -103,15 +111,7 @@ local function OnReputationChanged(userid, old, new)
             PreparePlayerForBan(player)
         end
 
-        local delay = player and BAN_DELAY or BAN_DELAY_OFFLINE
-        PEARL.WallScheduler:ExecuteInTime(delay, function()
-            PEARL.info("Banning player", player and player:GetDisplayName() or userid, "for being a griefer.")
-            TheNet:BanForTime(userid, CONFIG.DURATION)
-
-            PEARL.DB:SafeSetField(userid, "wasautobanned", true)
-            -- Reset reputation value in case of an unban.
-            PEARL.Reputation:SetFor(userid, PEARL.Reputation.STARTING_VALUE)
-        end)
+        BanPlayer(userid, player)
     end
 end
 

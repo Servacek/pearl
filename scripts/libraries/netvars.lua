@@ -46,7 +46,7 @@ local Netvars = {}
 -- [[ Static ]]
 ---------------------------
 
---- @type table<string, fun(GUID: number, name: string, event: string): userdata>
+--- @type table<string, fun(GUID: string, name: string, event: string): userdata>
 Netvars.TYPE = {
     BOOL            = net_bool,             -- maps to a single bit boolean
     TINYBYTE        = net_tinybyte,         -- maps to an unsigned 3-bit integer
@@ -79,7 +79,7 @@ end
 
 --- Registers a netvar for an entity. Note that netvars cannot be unregistered.
 --- @param name string Name of the netvar to be registered.
---- @param nettype fun(GUID: number, name: string, event: string): userdata Type of the netvar to be registered.
+--- @param nettype fun(GUID: string, name: string, event: string): userdata Type of the netvar to be registered.
 --- @param onsetfn fun(new: any)? Function to be called when this netvar is changed.
 --- @param inst EntityScript? The entity to register the netvar for or nil for the default entity.
 --- @return userdata netvar

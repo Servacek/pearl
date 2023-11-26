@@ -28,7 +28,7 @@ local STEAM_QUERY_TIMEOUT = 10
 
 --- @class SteamAPI
 local SteamAPI = {
-    --- @type table<steamid, table<function, table<number, any>|number>>
+    --- @type table<steamid, table<function, table<string, any>|string>>
     _query_sequences = {}
 }
 

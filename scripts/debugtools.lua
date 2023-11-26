@@ -19,6 +19,7 @@
 
 require("debugkeys")
 
+local CommandContext = PEARL.loadfile("models/commandcontext")
 local UserCommands = require("usercommands")
 
 local Embed = PEARL.loadfile('libraries/discordapi/models/embed')
@@ -635,16 +636,15 @@ end
 
 function PEARL.FakeRunSlashCommand(name, params)
     local command = UserCommands.GetCommandFromName(name)
-
-    command.serverfn((params or {
-        player_id = "KU_ZC24p91Q",
-    }), {
+    local context = CommandContext(command, CommandContext.TYPE.SLASH, params, {
         userid = "KU_ZC24p91Q",
         name = "Fi7iP",
         GetDisplayName = function()
             return "Fi7iP"
         end
     })
+
+    command.fn(context)
 end
 
 --------------------------------

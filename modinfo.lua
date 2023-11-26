@@ -678,6 +678,13 @@ configuration_options = {
         public = true,
     },
 
+    {
+        name = "INTRO_MOVIE_FILENAME", -- Name of the file with an optional extension (.ogv)
+        default = nil,
+        type = "string",
+        public = true,
+    },
+
     --------------------
     -- Network
     --------------------

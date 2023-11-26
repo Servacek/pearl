@@ -61,7 +61,7 @@ end
 
 --- Adds the given module to the cache.
 --- @param md_name string Name of the module file stored in the 'modules' folder (without the '.lua' postfix)
---- @param enabled boolean|table|number? Whether it should be loaded by LoadAllModules or not.
+--- @param enabled boolean|table|string? Whether it should be loaded by LoadAllModules or not.
 --- If this is a table then the return value of table.empty is used instead.
 --- If this is a number then everything above 0 is considered true and everything below is false.
 --- If this is a string then it's reversed emptiness is considered.

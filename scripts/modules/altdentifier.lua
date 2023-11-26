@@ -74,7 +74,7 @@ local function RunRootFilterFor(userid, rootid, filtercb)
     if HasAccountInvalidRoot(userid, rootid) then
         PEARL.WallScheduler:ExecuteInTime(3, function()
             PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
-            TheNet:Ban(userid)
+            TheNet:Ban(userid, STRINGS.PEARL.UI.STATIC_BAN_REASONS.ALT)
         end)
 
         return filtercb(false, "ID_DST_BANNED_ROOT")
@@ -104,6 +104,11 @@ end
 
 local function OnQueryCompleted(response, success, code, request, userid, oncomplete)
     local valid = type(response) == "table"
+
+    local rootid = response.ParentAccount
+    if type(rootid) ~= "string" or not PEARL.IsKleiIDValid(rootid) then
+        valid = false
+    end
 
     -- response.Error refers to a boolean
     if not success or not valid or response.Error == true then
@@ -146,9 +151,17 @@ PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, filtercb)
 
     PEARL.debug("Rootid not saved, sending query to retrieve it...")
     SendRootRetriveQuery(userid, function(rootid)
-        -- Root ID should not change since userid is bound to it.
-        -- Save it even if it's invalid so we do not have to send another query in the future.
-        PEARL.DB:SafeSetField(userid, "rootuserid", rootid)
+        if rootid then
+            -- Root ID should not change since userid is bound to it.
+            -- Save it even if it's invalid so we do not have to send another query in the future.
+            PEARL.DB:SafeSetField(userid, "rootuserid", rootid)
+
+            if rootid ~= userid then
+                local alts = PEARL.DB:GetField(rootid, "alts", {})
+                alts[#alts+1] = userid
+                PEARL.DB:SetField(userid, "alts", alts)
+            end
+        end
 
         RunRootFilterFor(userid, rootid, filtercb)
     end)

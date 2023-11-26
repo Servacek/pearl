@@ -42,6 +42,8 @@ local proxy_state
 local function HandleCommand(command)
     PEARL.info("Executing discord command", command.name.."...")
 
+    command.id = tostring(command.id)
+
     local success, response = PEARL.SafeRun(
         UserCommands.RunDiscordCommand, command.name, command.params or {}, command.caller, command.id
     )
@@ -90,6 +92,7 @@ local function HandleChatMessage(data)
     local a_name = (data.admin == true and MESSAGE_NAME_ADMIN or MESSAGE_NAME):format(data.author)
 
     -- Make sure it's actually an decimal we have received and not something else...
+    -- This can also be nil.
     data.author_colour = tonumber(data.author_colour)
     if type(data.author_colour) == "number" then
         a_colour = Colour.FromDecimal(data.author_colour)
@@ -106,7 +109,7 @@ end
 
 local function HandleCommands(commands)
     PEARL.DiscordProxy:CleanupResponseCache()
-    PEARL.DiscordProxy:StartProcessingData(PEARL.DiscordProxy.PROCESSING_TYPE.MESSAGES)
+    PEARL.DiscordProxy:StartProcessingData(PEARL.DiscordProxy.PROCESSING_TYPE.COMMANDS)
 
     for _, command in ipairs(commands) do
         if PEARL.CONFIG.DEBUG_MODE then
@@ -156,11 +159,11 @@ local function OnProxyFetchingDone(data)
         return
     end
 
-    if PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED and type(data.messages) == "table" then
+    if PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED and type(data.messages) == "table" and not table.empty(data.messages) then
         HandleChatMessages(data.messages)
     end
 
-    if PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED and type(data.commands) == "table" then
+    if PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED and type(data.commands) == "table" and not table.empty(data.commands) then
         -- Commands are actually waiting for our response.
         HandleCommands(data.commands)
     end

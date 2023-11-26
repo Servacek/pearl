@@ -102,8 +102,9 @@ function AgreementManager:GetLocalVersion()
     return self:GetLocalRecordField(self.RECORD.VERSION)
 end
 
+--- @return number?
 function AgreementManager:GetLocalLastAgreeTime()
-    return self:GetLocalRecordField(self.RECORD.TIME)
+    return tonumber(self:GetLocalRecordField(self.RECORD.TIME))
 end
 
 --- @return boolean uptodate Whether the file exists and it version matches with the server's (global) version.

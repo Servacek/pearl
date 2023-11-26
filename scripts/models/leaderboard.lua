@@ -42,7 +42,6 @@ local Leaderboard
 
 --- @param self Leaderboard
 Leaderboard = Class(function(self, data)
-    print("LEADERBOARD", data)
     --- @type boolean
     self.loaded = type(data) == "table" and not table.empty(data)
     --- @type boolean

@@ -14,7 +14,8 @@
 
 -- Prefab names of some important entities we care of
 
-return {
+--- @class PREFABS
+local PREFABS = {
 	ACTIVATABLE = {
 		["terrarium"] = true,
 	},
@@ -154,3 +155,5 @@ return {
         ["stalagmite_tall_low"]  = true,
     },
 }
+
+return PREFABS

@@ -372,15 +372,15 @@ end ----------------------------------------------------------------------------
 
 PEARL.info("Loading constants...")
 --- @readonly
---- @type table<table<string, boolean>>
+--- @type PREFABS table<table<string, boolean>>
 PEARL.PREFABS = PEARL.loadfile("constants/prefabs")
 
 -- Load emotes before icons
 --- @readonly
---- @type table<table<string, string>>
+--- @type EMOTES table<table<string, string>>
 PEARL.EMOTES = PEARL.loadfile("constants/emotes")
 --- @readonly
---- @type table<table<string, string>|table<table<string, string>>>
+--- @type ICONS table<table<string, string>|table<table<string, string>>>
 PEARL.ICONS = PEARL.loadfile("constants/icons")
 
 --------------------------------

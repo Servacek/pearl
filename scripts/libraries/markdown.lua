@@ -124,7 +124,7 @@ function MARKDOWN.mention(discordid, tp)
     return MENTION_PATTERN:format(tp, discordid)
 end
 
---- @param timestamp number|string
+--- @param timestamp string|string
 --- @param tp string?
 function MARKDOWN.timestamp(timestamp, tp)
     tp = tp or MARKDOWN.TIMESTAMP_TYPE.DEFAULT

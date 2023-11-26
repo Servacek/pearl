@@ -35,6 +35,9 @@ local DO_NOT_LOAD_TIPS = {
 local TEX_PATTERN = "%s.tex"
 local XML_PATTERN = "images/bg_loading_%s.xml"
 
+local MOVIE_PATH  = PEARL.MODROOT.."movies/"
+local MOVIE_EXT   = ".ogv"
+
 ---------------------------
 -- [[ Public Methods ]]
 ---------------------------
@@ -147,8 +150,39 @@ local function SetupWrappers()
     end
 end
 
-local function OnIntroMovieDone()
-    print("INTO MOVIE DONE!!!")
+local function ShowIntroMovie(self, movie_path)
+    local music_volume = TheMixer:GetLevel("set_music")
+
+    -- Set music to 100% to ensure the audio will work.
+    -- Ignore user's configuration.
+    TheMixer:SetLevel("set_music", 1)
+
+    local function OnIntroMovieDone()
+        PEARL.ClientLoader:RemoveDeferant("intromovie")
+
+        -- Restore users music volume configuration
+        TheMixer:SetLevel("set_music", music_volume)
+    end
+
+    TheFrontEnd:FadeToScreen(self, function()
+        local dialog = MovieDialog(movie_path, OnIntroMovieDone)
+        dialog.OnControl = function(this, control, down)
+            if MovieDialog._base.OnControl(this, control, down) then
+                return true
+            end
+
+            if down and (control == KEY_ENTER or control == KEY_ESCAPE or control == CONTROL_ACCEPT) then
+                this:Cancel()
+                OnIntroMovieDone()
+
+                return true
+            end
+        end
+
+        return dialog
+    end, nil)
+
+    PEARL.ClientLoader:AddDeferant("intromovie")
 end
 
 --- We have some additional functionality here aside from the custom images
@@ -206,21 +240,23 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function()
                 Settings.loading_screen_keys = shallowcopy(CUSTOM_LOADING_IMAGES)
                 custom_images = true
             end
+
+            local movie_filename = PEARL.CONFIG.INTRO_MOVIE_FILENAME
+            if type(movie_filename) == "string" then
+                local movie_path = MOVIE_PATH..movie_filename
+                if not string.endswith(movie_path, MOVIE_EXT) then
+                    movie_path = movie_path..MOVIE_EXT
+                end
+
+                if io.exists(movie_path) then
+                    TheFrontEnd.gameinterface.SoundEmitter:SetMute(false)
+                    ShowIntroMovie(self, movie_path)
+                else
+                    PEARL.error("Got invalid intro movie path from server's configuration.")
+                end
+            end
         end
     end
-
-    -- local dialog = MovieDialog("movies/intro.ogv", OnIntroMovieDone)
-    -- dialog.OnControl = function(this, control, down)
-    --     if MovieDialog._base.OnControl(this, control, down) then
-    --         return true
-    --     end
-
-    --     print("OnControl")
-    --     if down and (control == KEY_ENTER) then
-    --         this:Cancel()
-    --         return true
-    --     end
-    -- end
 end)
 
 if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then

@@ -48,6 +48,14 @@ local function OnClientError(traceback)
         traceback, false, afflicter_modname
     )
 
+    -- In case the error was caused by bad chat history data.
+    if PEARL.CONFIG.DEBUG_MODE then
+        cleartable(ChatHistory.history)
+
+        ChatHistory.request_history_start = 1
+        ChatHistory.history_start = ChatHistory.MAX_CHAT_HISTORY
+    end
+
     -- No disconnecting in debug mode... We have our fancy Realod Save button!
     if PEARL.ClientNetwork and not PEARL.CONFIG.DEBUG_MODE then
         PEARL.info("Disconnecting the user from the server...")

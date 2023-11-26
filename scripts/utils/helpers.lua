@@ -124,9 +124,9 @@ function PEARL.RawRollbackByID(snapshot_id)
 end
 
 --- @DONOTUSE
---- @param days number The number of cycles to go back. (cycle = day - 1)
+--- @param days string The number of cycles to go back. (cycle = day - 1)
 ---- @param handler function<boolean, string>? The handler function for error messages.
---- @param after number?
+--- @param after integer?
 --- @return boolean success, string? reason
 function PEARL.RollbackByDays(days, handler, after)
     if not TheNet:GetIsServer() then
@@ -222,7 +222,7 @@ end
 
 -- Supports name configuration
 function PEARL.GetShardFancyName()
-    return PEARL.CONFIG.SHARD_NAME or PEARL.GetShardFancyNameByID(TheShard:GetShardId())
+    return PEARL.CONFIG.SHARD_NAME or PEARL.GetShardFancyNameByID(PEARL.SHARDID)
 end
 
 function PEARL.GetSeasonFancyName()

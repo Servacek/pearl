@@ -58,7 +58,7 @@ local Reputation = {}
 -- [[ Static ]]
 --------------------------------------
 
---- @type number
+--- @type string
 Reputation.STARTING_VALUE = PEARL.CONSTS.STARTING_REPUTATION
 
 --------------------------------------

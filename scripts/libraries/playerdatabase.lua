@@ -123,7 +123,7 @@ function DB:IsDataCollectionEnabledFor(userid)
 end
 
 --- The total number of records saved in this database.
---- @return number
+--- @return integer
 function DB:GetTotalRecordCount()
     return self._bindings and table.size(self._bindings[BINDING_TYPE.STEAM])
 end
@@ -165,12 +165,12 @@ end
 --- @return any?
 function DB:GetField(userid, name, default)
     local record = self:GetRecordFor(userid)
-    if not record or record[name] == nil then
-        if default == nil then
-            return RECORD_TEMPLATE[name]
+    if record == nil or record[name] == nil then
+        if default ~= nil then
+            return default
         end
 
-        return default
+        return RECORD_TEMPLATE[name]
     end
 
     return record[name]
@@ -189,10 +189,12 @@ function DB:IsRecordLoadedFor(userid)
     return type(self._records[userid]) == "table"
 end
 
+--- @return string? userid
 function DB:MapSteamID(steamid)
     return self._bindings[BINDING_TYPE.STEAM][steamid]
 end
 
+--- @return string? userid
 function DB:MapDiscordID(discordid)
     return self._bindings[BINDING_TYPE.DISCORD][discordid]
 end
@@ -329,6 +331,16 @@ function DB:SetField(userid, name, value)
     local record = PEARL.DB:GetRecordFor(userid)
     if not record then
         return false -- optional
+    end
+
+    if record.lastshardid and record.lastshardid ~= PEARL.SHARDID and PEARL.ServerNetwork:IsClientConnectedAny(userid) and name ~= "lastshardid" then
+        if PEARL.ServerNetwork:IsClientConnected(userid) then
+            record.lastshardid = PEARL.SHARDID
+        else
+            PEARL.error("Attempted to set a field for a read-only record! The record is loaded in r-w mode on shard", record.lastshardid)
+
+            return false
+        end
     end
 
     local prev = record[name]
@@ -529,7 +541,7 @@ end
 --- @param userid string
 --- @param validate boolean?
 function DB:LoadRecordFor(userid, validate)
-    PEARL.info("Loading record for ", userid.."...")
+    PEARL.info("Loading record for ", userid)
 
     local record = self:LoadDatabaseFile(self:GetRecordFilePathFor(userid))
     if type(record) ~= "table" then
@@ -556,6 +568,10 @@ function DB:SaveRecordFor(userid, record)
     --- @TODO: Make the first agreement screen popup up before joining the server.
     if not record then --or (not self:IsDataCollectionEnabledFor(userid) and force ~= true) then
         return PEARL.error("Record not found for", userid)
+    end
+
+    if record.lastshardid and record.lastshardid ~= PEARL.SHARDID then
+        return -- We are a read-only shard for now!
     end
 
     -- local mt = getmetatable(record)
@@ -595,7 +611,7 @@ local function OnSave()
     -- or the server may crash during restarting/rollbacking
     local time_now = os.time()
     for userid, _ in pairs(DB._records) do
-        if PEARL.ServerNetwork:IsUserConnected(userid) then
+        if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
             DB:SafeSetField(userid, "lastseentime", time_now)
         end
 

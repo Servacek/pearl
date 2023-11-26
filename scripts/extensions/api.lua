@@ -73,7 +73,7 @@ local function WrapFunctionPreCall(origin, precb)
 end
 
 --- @param t table The lookup table for the value.
---- @param name table The name of the table field holding the value.
+--- @param name string The name of the table field holding the value.
 --- @param noraw boolean? Whether we should call the table's metamethods when looking up the value or not.
 function PEARL.GetValue(t, name, noraw)
     return noraw and t[name] or rawget(t, name)

@@ -1668,6 +1668,11 @@ msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.THMB_URL"
 msgid "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png"
 msgstr ""
 
+#. STRINGS.PEARL.EMBEDS.PROFILE.PLAYING
+msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.PLAYING"
+msgid "Playing Now!"
+msgstr ""
+
 #. STRINGS.PEARL.EMBEDS.PROFILE.FOOTER
 msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FOOTER"
 msgid "Klei ID: %s Steam ID: %s Root Klei ID: %s"
@@ -1933,9 +1938,19 @@ msgctxt "STRINGS.PEARL.UI.BLOCKED"
 msgid "Blocked"
 msgstr ""
 
-#. STRINGS.PEARL.UI.LOADING_ERROR
-msgctxt "STRINGS.PEARL.UI.LOADING_ERROR"
-msgid "Maybe it didn't work that well at the end..."
+#. STRINGS.PEARL.UI.STATIC_BAN_REASONS.NONE
+msgctxt "STRINGS.PEARL.UI.STATIC_BAN_REASONS.NONE"
+msgid "Reason not specified."
+msgstr ""
+
+#. STRINGS.PEARL.UI.STATIC_BAN_REASONS.ALT
+msgctxt "STRINGS.PEARL.UI.STATIC_BAN_REASONS.ALT"
+msgid "Banned for using an alternative account of a banned user."
+msgstr ""
+
+#. STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO
+msgctxt "STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO"
+msgid "Automatically banned for repeated violation of the rules."
 msgstr ""
 
 #. STRINGS.PEARL.UI.AGREEMENT_BUTTON_HOVER
@@ -1978,6 +1993,11 @@ msgctxt "STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_TITLE"
 msgid "Decline the Server Agreement?"
 msgstr ""
 
+#. STRINGS.PEARL.UI.MODS_BLOCKED_ALL_TITLE
+msgctxt "STRINGS.PEARL.UI.MODS_BLOCKED_ALL_TITLE"
+msgid "All Mods Blocked"
+msgstr ""
+
 #. STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
 msgid "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua."
@@ -1991,11 +2011,6 @@ msgstr ""
 #. STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK"
 msgid "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua."
-msgstr ""
-
-#. STRINGS.PEARL.UI.MODS_BLOCKED_ALL_TITLE
-msgctxt "STRINGS.PEARL.UI.MODS_BLOCKED_ALL_TITLE"
-msgid "All Mods Blocked"
 msgstr ""
 
 #. STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE
@@ -2073,6 +2088,21 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.DESC"
 msgid "Sends a message as the server user."
 msgstr ""
 
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.MISSING_PERMISSION
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.MISSING_PERMISSION"
+msgid "You do not have permission to display profiles of other players."
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.PRETTYNAME"
+msgid "Show Player Profile"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.DESC"
+msgid "Shows player's community profile on discord."
+msgstr ""
+
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.PRETTYNAME"
 msgid "Find Inventory"
@@ -2111,6 +2141,11 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME"
 msgid "Display Inventory"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_FAILURE
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_FAILURE"
+msgid "Sending the inventory failed..."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC
@@ -2366,6 +2401,11 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC"
 msgid "Sets the reputation amount for the specified player to whatever number you want."
+msgstr ""
+
+#. STRINGS.PEARL.UI.LOADING_ERROR
+msgctxt "STRINGS.PEARL.UI.LOADING_ERROR"
+msgid "Maybe it didn't work that well at the end..."
 msgstr ""
 
 #. STRINGS.PEARL.UI.MODS_BLOCKED_ALL_BODY

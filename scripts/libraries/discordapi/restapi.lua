@@ -178,7 +178,7 @@ function RestAPI:DoWebhookMessageAction(wurl, message_id, action, message)
     end
 
     if message and Message.is_instance(message) and message:IsValid() then
-        PEARL.error("Attempted to", action, "an invalid message!")
+        PEARL.error("Attempted to", WEBHOOK_ACTION_METHODS[action], "an invalid message!")
         return
     end
 

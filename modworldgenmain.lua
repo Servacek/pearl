@@ -26,7 +26,7 @@ end
 local SEED_PATH = MODROOT.."data/seed.txt"
 
 local wg_overrides
-local gen_params = GLOBAL.json.decode(GLOBAL.GEN_PARAMETERS)
+local _, gen_params = GLOBAL.pcall(GLOBAL.json.decode, GLOBAL.GEN_PARAMETERS)
 if gen_params then
     wg_overrides = gen_params.level_data and gen_params.level_data.overrides or nil
 end
