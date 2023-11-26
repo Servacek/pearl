@@ -61,6 +61,8 @@ data/*
 .todo
 .todo/*
 
+.movies/*
+
 *.bat
 
 .VSCodeCounter
