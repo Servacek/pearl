@@ -28,10 +28,16 @@ local function OnChatMessageAdded(message)
         fn(message)
     end
 
-    PEARL.EventProcessor:HandleEvent("chat_message",
-        message.sender_guid, message.sender_prefab, message.sender,
-        message.message, message.whisper, message.icondata, message.receiver
-    )
+    if message.type == ChatTypes.Announcement then
+        PEARL.EventProcessor:HandleEvent("chat_announcement", message.message, message.m_colour, message.icondata)
+    elseif message.type == ChatTypes.SystemMessage then
+        PEARL.EventProcessor:HandleEvent("chat_system_message", message.message)
+    else
+        PEARL.EventProcessor:HandleEvent("chat_message",
+            message.sender_guid, message.sender_prefab, message.sender,
+            message.message, message.whisper, message.icondata, message.receiver
+        )
+    end
 end
 
 ---------------------------

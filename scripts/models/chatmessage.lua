@@ -126,8 +126,11 @@ function ChatMessage:SetIsLocalOnly(localonly)
     return self
 end
 
+--- @param colour table<int, int, int, int> Cannot be nil!
 function ChatMessage:SetColour(colour)
-    self.colour = colour
+    if type(self.colour) == "table" then
+        self.colour = colour
+    end
 
     return self
 end
@@ -156,8 +159,11 @@ function ChatMessage:SetAuthor(name, colour, userid, netid, prefab, guid)
     return self
 end
 
+--- @param icon string Cannot be nil!
 function ChatMessage:SetIcon(icon)
-    self.icon = icon
+    if self.icon ~= icon and type(icon) == "string" then
+        self.icon = icon
+    end
 
     return self
 end

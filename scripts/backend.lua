@@ -231,11 +231,35 @@ end
 --------------------------------
 
 if PEARL.CONFIG.COMMON_MOD_CONFIG then
+    PEARL.info("Loading commonconfig...")
+
     local config = PEARL.ModConfig:LoadCommmonConfig()
     if type(config) == "table" then
         PEARL.ModConfig:ApplyCommonConfig(config)
     end
 end
+
+--------------------------------
+-- [[ Permissive Mode ]]
+--------------------------------
+
+do
+    local PARAM = PEARL.GameInstParams:GetModParam(PEARL.INSTANCE_PARAMS.PERMISSIVE_MODE)
+
+    -- Only setting the param to true will override the actual configuration.
+    if PARAM == true then
+        PEARL.CONFIG.PERMISSIVE_MODE = PARAM
+
+        -- Save it for next game instance.
+        PEARL.GameInstParams:SetModParam(PEARL.INSTANCE_PARAMS.PERMISSIVE_MODE, PEARL.CONFIG.PERMISSIVE_MODE)
+    end
+end
+
+PEARL.AddWorldPostInit(function()
+    if PEARL.CONFIG.PERMISSIVE_MODE and (PEARL.CONFIG.AUTOBAN or PEARL.CONFIG.INVENTORY_REPORTER.ENABLED) then
+        TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
+    end
+end)
 
 --------------------------------
 -- [[ Server Token ]]

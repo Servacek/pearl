@@ -13,6 +13,8 @@
 
 local CommandContext = PEARL.loadfile("models/commandcontext")
 
+local Colour = PEARL.loadfile("libraries/colour")
+
 --- @static
 --- @singleton
 --- @class UserCommands
@@ -68,11 +70,17 @@ end
 -- Static
 -------------------------------------´
 
+-- Shard routing policy types
 UserCommands.SHARD_ROUTING = {
     NONE    = 0, -- Command will be executed on the shard they are called on.
     ALL     = 1, -- Command will be executed on all shards.
-    ACTIVE  = 2, -- Command will be executed on the shard the target player is playing on.
-    AUTO    = 3, -- The routing will be determined according to the parameters passed.
+    AUTO    = 3, -- Command will be executed on the shard the target player is playing on.
+}
+
+-- Fallbacks for the ACTIVE and AUTO routing policies when the player is not on the server at all.
+UserCommands.SHARD_ROUTING_FALLBACK = {
+    CURRENT = 0, -- Fallback to the current shard (no routing).
+    ALL     = 1, -- Fallback by broadcasting the command to all shards (complete routing).
 }
 
 -------------------------------------
@@ -87,7 +95,6 @@ function UserCommands.RouteHybridCommand(name, context, shardid)
     PEARL.debug("Routing command", name, "to shard", shardid)
 
     -- If we are routing this from a secondary shard.
-    shardid = TheShard:IsMaster() and shardid or SHARDID.MASTER
     local data = ZipAndEncodeString(context:ToTable())
     if type(data) == "string" then
         PEARL.BroadcastRPCToShards(PEARL.RPC.RouteHybridCommand, shardid, name, data)
@@ -100,43 +107,59 @@ end
 
 --- @param command table<string, any>
 --- @param context CommandContext
---- @param handler function?
 --- @return boolean success
-function UserCommands.RunHybridCommand(command, context, handler)
+function UserCommands.RunHybridCommand(command, context)
     if type(command) ~= "table" or type(command.fn) ~= "function" then
         context:Reply(STRINGS.PEARL.COMMAND_RESPONSES.INVALID)
         PEARL.error("Attempted to run an invalid hybrid command.")
         return false
     end
 
-    -- Route commands from Master to secondary shards in case the player is not here.
-    local target_userid = UserToClientID(context.params and context.params.player) or context.params.player
-    local route = not handler and command.routing ~= UserCommands.SHARD_ROUTING.NONE and target_userid and
-                    not PEARL.ServerNetwork:IsClientConnected(target_userid)
+    local route_shardid
+    local routing_type      = command.routing
+    local routing_fallback  = command.routingfallback
+    local is_routing        = routing_type ~= UserCommands.SHARD_ROUTING.NONE and PEARL.ServerNetwork:IsAnySecondaryShardConnected()
 
-    local shardid = nil -- broadcast to all.
-    if route and target_userid and command.routing == UserCommands.SHARD_ROUTING.ACTIVE then
-        shardid = PEARL.DB:GetField(target_userid, "lastshardid") or nil
-    end
+    if routing_type == UserCommands.SHARD_ROUTING.AUTO then
+        -- Route commands to the target player if the player is provided and connected to our server.
+        local target_userid = UserCommands.InputToUserID(context.params and context.params.player)
+        if PEARL.ServerNetwork:IsClientConnected(target_userid) then
+            is_routing = false
 
-    if route and shardid then
-        if UserCommands.RouteHybridCommand(command.name, context, shardid) then
-            return true
+            -- Use the player's active shard ID as our routing target.
+            local lastshardid = PEARL.DB:GetField(target_userid, "lastshardid")
+            if lastshardid ~= nil and tostring(lastshardid) ~= tostring(TheShard:GetShardId()) then
+                route_shardid = lastshardid
+                is_routing = true
+            end
+        else -- Handle fallback
+            if routing_fallback == UserCommands.SHARD_ROUTING_FALLBACK.CURRENT then
+                is_routing = false -- Looks like no routing this time :,(
+            end
         end
     end
 
-    handler = type(handler) == "function" and handler or command.fn
-    handler(context)
+    if is_routing == true then
+        if UserCommands.RouteHybridCommand(command.name, context, route_shardid) then
+            return true
+        end
+
+        -- Command failed to route for some reason, so continue execution on the current shard.
+        PEARL.error("Routing command", command.name, "failed! Continuing execution on the current shard!")
+        -- Maybe do not execute at all?
+    end
+
+    command.fn(context)
 
     return true
 end
 
 --- @param name string The name of the command.
 --- @param params table<string, any> Parameters provided to the command.
---- @param caller table<string, any> The authors data.
+--- @param author table<string, any> The authors data.
 --- @param id string? The ID of the discord command that caused this function to be called.
 --- @return string? errmsg
-function UserCommands.RunDiscordCommand(name, params, caller, id)
+function UserCommands.RunDiscordCommand(name, params, author, id)
     if not TheShard:IsMaster() then
         return PEARL.error("Attempted to run a discord command from a secondary shard.")
     end
@@ -148,16 +171,25 @@ function UserCommands.RunDiscordCommand(name, params, caller, id)
         return STRINGS.PEARL.COMMAND_RESPONSES.INVALID
     end
 
-    if caller.discordid then
-        caller.userid = PEARL.DB:MapDiscordID(caller.discordid)
+    if author.discordid then
+        -- Just in case it stays as a number.
+        author.userid = PEARL.DB:MapDiscordID(tostring(author.discordid))
     end
 
-    if caller.userid then
-        caller.netid = PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.STEAM)
+    if author.userid then
+        author.netid = PEARL.DB:MapUserIDToType(author.userid, PEARL.DB.BINDING_TYPE.STEAM)
+    end
+
+    -- Colour has to be a table
+    author.colour = tonumber(author.colour)
+    if author.colour then
+        author.colour = {Colour.DecimalToPercent(author.colour)}
+    else
+        author.colour = WHITE
     end
 
     --- @type CommandContext
-    local context = CommandContext(command, CommandContext.TYPE.DISCORD, params, caller)
+    local context = CommandContext(command, CommandContext.TYPE.DISCORD, params, author)
     context:SetInteractionID(id)
 
     UserCommands.RunHybridCommand(command, context)
@@ -226,20 +258,35 @@ end
 function UserCommands.AddConsoleCommand(name, command)
     -- When executed from STDIN, these are always in a protected call so no need for make_safe_cb.
     PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), function(...)
-        local caller = ThePlayer
         local params = ParseParamsArray(command, toarrayornil(...))
 
-        print(DataDumper(params))
         UserCommands.RunHybridCommand(
-            command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, caller)
+            command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, nil)
         )
     end)
 end
 
 function UserCommands.AddSlashCommand(name, command)
     command.serverfn = make_safe_cb(name, function(params, caller)
+        local author = {}
+        if type(caller) == "table" and type(caller.userid) == "string" then
+            local userid = caller.userid
+            local client = TheNet:GetClientTableForUser(userid)
+
+            author.name = caller.name
+            author.userid = userid
+            author.discordid = PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.DISCORD)
+            author.colour = client.colour or WHITE
+            author.netid = (client and client.netid) or (
+                PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.STEAM)
+            )
+            author.permission = (client and client.admin) or (
+                PEARL.AdminList:Contains(userid) and COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
+            )
+        end
+
         UserCommands.RunHybridCommand(
-            command, CommandContext(command, CommandContext.TYPE.SLASH, params, caller)
+            command, CommandContext(command, CommandContext.TYPE.SLASH, params, author)
         )
     end)
 
@@ -262,6 +309,9 @@ function UserCommands.AddCustomCommand(name, command)
     command.name = name
 
     command.remote = type(command.fn) == "function"
+
+    command.routing = command.routing or UserCommands.SHARD_ROUTING.AUTO
+    command.routingfallback = command.routingfallback or UserCommands.SHARD_ROUTING_FALLBACK.CURRENT
 
     command.slash = command.slash ~= false and PEARL.CONFIG.SLASH_COMMANDS
     command.console = command.console ~= false and PEARL.CONFIG.CONSOLE_COMMANDS

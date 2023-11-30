@@ -789,6 +789,16 @@ configuration_options = {
         },
     },
 
+    {
+        name="PERMISSIVE_MODE",
+        default = false,
+        type = "boolean",
+        options = {
+            true,
+            false,
+        },
+    },
+
     --------------------
     -- Performance
     --------------------

@@ -166,6 +166,19 @@ function ServerNetwork:DisplayChatMessage(message)
     return self:DisplayChatMessageFor(nil, message)
 end
 
+--- @param userids table|string? The optional list of userids or userid of the receiver(s)
+--- @param content string
+--- @param announce_type string?
+--- @param colour table<int, int, int, int>?
+function ServerNetwork:AnnounceFor(userids, content, announce_type, colour)
+    local message = ChatMessage(content)
+    message:SetType(ChatTypes.Announcement)
+    message:SetIcon(announce_type)
+    message:SetColour(colour)
+
+    return self:DisplayChatMessageFor(userids, message)
+end
+
 function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason_title)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
@@ -345,9 +358,13 @@ function ServerNetwork:IsAnySecondaryShardConnected()
 end
 
 function ServerNetwork:GetConnectedShardIDs()
+    return table.keys(ShardList)
+end
+
+function ServerNetwork:GetConnectedClientIDs()
     local ids = {}
-    for id, _ in pairs(ShardList) do
-        ids[#ids+1] = id
+    for _, client in pairs(self:GetConnectedClients()) do
+        ids[#ids+1] = client.userid
     end
 
     return ids

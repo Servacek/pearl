@@ -278,6 +278,8 @@ local STRINGS = {
         INV_REPORT_DROPPED      = "Player's inventory was dropped before despawning.",
         INV_RARE_ITEMS_DROPPED  = "Rare items were dropped from player's inventory before despawning.",
 
+        PERMISSIVE_MODE_WARNING = "Permissive mode is turned on! Reputation and penalization systems disabled.",
+
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
         SAY_WHISPER             = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..MARKDOWN.bold("%s")..": "..MARKDOWN.italic("%s"),
@@ -587,6 +589,13 @@ local STRINGS = {
                 DESC       = "Despawns the specified player on spot. Inventory is dropped.",
 
                 ON_SUCCESS = "Player was despawned and is now back in the lobby.",
+            },
+
+            PERMISSIVE = {
+                PRETTYNAME = "Toggle Permissive Mode",
+                DESC       = "Enables/Disables all the penalizations and rewards.",
+
+                ON_TURN_OFF = "Permissive mode disabled! Reputation and autoban works again."
             },
 
             SETREP = {

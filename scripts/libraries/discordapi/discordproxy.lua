@@ -13,6 +13,8 @@
 
 local Library = PEARL.loadfile("models/library")
 
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
@@ -361,9 +363,28 @@ function DiscordProxy:SendCachedCommandResponses()
 end
 
 --- @param commandid string
---- @param message Message
+--- @param message Message|table
 function DiscordProxy:SendCommandResponse(commandid, message)
-    self:AddCommandResponse(commandid, message:ToTable())
+    if type(message) ~= "table" then
+        return PEARL.error("Attempted to respond with an invalid message!", message)
+    end
+
+    -- if TheShard:IsSecondary() then
+    --     local success, jsondata = message:ToJson()
+    --     if success then
+    --         -- Send the message to Master because only the Master can communicate with the server.
+    --         return PEARL.SendRPCToMaster(PEARL.RPC.SendDiscordCommandResponse, jsondata)
+    --     end
+
+    --     return PEARL.error("Failed to encode the message for RPC!")
+    -- end
+
+    local message_table = message
+    if message.ToTable then
+        message_table = message:ToTable()
+    end
+
+    self:AddCommandResponse(commandid, message_table)
 
     -- If we are not processing any commands and there are some responses send them immediately.
     if not self:IsProcessing(self.PROCESSING_TYPE.COMMANDS) and self:HasAnyCommandResponses() then
@@ -395,6 +416,23 @@ function DiscordProxy:RestartFetchTask()
         period, OnFetchInput, nil, nil, PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH, self
     )
 end
+
+--------------------------------
+-- [[ RPCs ]]
+--------------------------------
+
+PEARL.AddShardRPCHandler("SendDiscordCommandResponse", function(shardid, commandid, msgstr)
+    if shardid == SHARDID.MASTER then
+        return PEARL.error("SendDiscordCommandResponse: Received from Master!")
+    end
+
+    local success, message_table = pcall(json.decode, msgstr)
+    if success == true and type(message_table) == "table" then
+        return DiscordProxy:SendCommandResponse(commandid, message_table)
+    end
+
+    PEARL.error("Failed to decode received JSON data!")
+end)
 
 --------------------------------
 -- [[ Return ]]

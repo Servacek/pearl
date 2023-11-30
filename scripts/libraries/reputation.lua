@@ -110,13 +110,20 @@ end
 -- [[ Setters ]]
 --------------------------------------
 
+--- @param userid string
+--- @param field string?
+--- @param value any
 function Reputation:SetFieldFor(userid, field, value)
-    field = field or "value"
+    if PEARL.DB:IsDisabled() or PEARL.CONFIG.PERMISSIVE_MODE then
+        return false
+    end
 
     local record = PEARL.DB:GetRecordFor(userid)
     if not record or type(record["reputation"]) ~= "table" then
         return false
     end
+
+    field = field or "value"
 
     local old = record["reputation"][field]
     record["reputation"][field] = value
@@ -155,7 +162,7 @@ end
 function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
 
-    if PEARL.DB:IsDisabled() then
+    if PEARL.DB:IsDisabled() or PEARL.CONFIG.PERMISSIVE_MODE == true then
         return
     end
 
@@ -215,10 +222,12 @@ function Reputation:SetTo(userid, value)
     return self:SetFieldFor(userid, "value", value)
 end
 
-function Reputation:InitializeFor(userid)
+--- @param userid string
+--- @param value number?
+function Reputation:InitializeFor(userid, value)
     local data = deepcopy(DEFAULT_REP_DATA)
     if PEARL.DB:SetField(userid, FIELD_NAME, data) then
-        PEARL.EventProcessor:HandleEvent("onreputationchanged", userid, 0, data.value)
+        PEARL.EventProcessor:HandleEvent("onreputationchanged", userid, 0, tonumber(value) or data.value)
     end
 end
 

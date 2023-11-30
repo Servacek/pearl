@@ -398,7 +398,7 @@ end
 -------------------------------
 
 local function OnPlayerDespawn(world, player)
-    if type(player) ~= "table" then
+    if type(player) ~= "table" or PEARL.CONFIG.PERMISSIVE_MODE == true then
         return
     end
 

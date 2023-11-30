@@ -88,7 +88,36 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon, receive
     ), icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end
 
---------------------------------
+local function OnAnnouncement(message, colour, announce_type)
+    -- Announcements are broadcasted between all shards
+    if not (message and TheShard:IsMaster()) then
+        return
+    end
+
+    PEARL.DiscordLogger:LogString(
+        message, PEARL.ICONS.ANNOUNCEMENTS[string.lower(announce_type)]
+            or PEARL.ICONS.ANNOUNCEMENTS['default']
+            or MARKDOWN.codeline(STRINGS.PEARL.LOGS.TAG:format(
+                STRINGS.PEARL.LOGS.ANNOUNCEMENT
+            )
+        )
+    )
+end
+
+local function OnSystemMessage(message)
+    -- This is being broadcasted to all shards as well.
+    if not message or TheShard:IsSecondary() then
+        return
+    end
+
+    PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.SAY:format(
+        "[Server]", MARKDOWN.escape(message):emojify()
+    ), PEARL.ICONS.PLAYER_PREFABS["server"])
+end
+
+-----------------------------
+-- [[ Function Pre-Calls ]]
+-----------------------------
 
 PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd)
     if not (userid and type(cmd) == "string" and guid) then
@@ -110,21 +139,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
     )
 end)
 
-PEARL.AddGlobalFunctionPreCall("Networking_Announcement", function(message, colour, announce_type)
-    -- Announcements are broadcasted between all shards
-    if not (message and TheShard:IsMaster()) then
-        return
-    end
-
-    PEARL.DiscordLogger:LogString(
-        message, PEARL.ICONS.ANNOUNCEMENTS[string.lower(announce_type)]
-            or PEARL.ICONS.ANNOUNCEMENTS['default']
-            or MARKDOWN.codeline(STRINGS.PEARL.LOGS.TAG:format(
-                STRINGS.PEARL.LOGS.ANNOUNCEMENT
-            )
-        )
-    )
-end)
+PEARL.AddGlobalFunctionPreCall("Networking_Announcement", OnAnnouncement)
 
 -- Debug with d_test_skins_announce([skin_name])
 PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_name, user_colour, skin_prefab)
@@ -136,7 +151,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
     PEARL.DiscordLogger:LogEmbed(Embed()
         :SetDescription(MARKDOWN.escape(GetSkinDescription(skin_prefab)))
         :SetColor(Colour.PercentToDecimal(
-            unpack(GetColorForItem(skin_prefab))
+            PEARL.unpack(GetColorForItem(skin_prefab))
         ))
         :SetThumbnail(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
             -- Looks like the database uses upper case for naming...
@@ -148,11 +163,6 @@ PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_nam
                 MARKDOWN.escape(user_name), MARKDOWN.escape(GetSkinName(skin_prefab))
             )
         )
-
-        -- The image is too big
-        -- :SetImage(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
-        --     skin_name, "small"
-        -- ))
     )
 end)
 
@@ -160,15 +170,12 @@ PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, p
     OnChatMessage(guid, prefab, name, message, whisper, nil, nil, userid)
 end)
 
-PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", function(message)
-    -- This is being broadcasted to all shards as well.
-    if not message or TheShard:IsSecondary() then
-        return
-    end
+PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", OnSystemMessage)
 
-    PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.SAY:format(
-        "[Server]", MARKDOWN.escape(message):emojify()
-    ), PEARL.ICONS.PLAYER_PREFABS["server"])
-end)
+-----------------------------
+-- [[ Event Listeners ]]
+-----------------------------
 
 PEARL.EventProcessor:AddEventHandler("chat_message", OnChatMessage)
+PEARL.EventProcessor:AddEventHandler("chat_system_message", OnSystemMessage)
+PEARL.EventProcessor:AddEventHandler("chat_announcement", OnAnnouncement)

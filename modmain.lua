@@ -186,6 +186,10 @@ GLOBAL.PEARL = setmetatable({
         EN = "english",
     },
 
+    INSTANCE_PARAMS     = {
+        PERMISSIVE_MODE = "CONFIG.PERMISSIVE_MODE",
+    },
+
     FRONTEND            = TheNet:GetIsClient(),
 
     -- Whether this is the initial launch of the mod or not.

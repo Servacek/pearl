@@ -157,7 +157,7 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
     if doer.Transform and (
         #near >= EXTINGUISHER_ANY or
         table.find(near, burnablestructuresearchfn, EXTINGUISHER_STRUCTURES)
-    ) then
+    ) and PEARL.CONFIG.PERMISSIVE_MODE ~= true then
         PEARL.info("Extinguishing the fires!")
 
         local doername = doer:GetDisplayName()
@@ -389,7 +389,7 @@ RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
 end)
 
 RegisterPlayerItemActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
-    local reserve = math.max(target.components.fueld.maxfuel - target.components.fueled.currentfuel, 0)
+    local reserve = math.max(target.components.fueled.maxfuel - target.components.fueled.currentfuel, 0)
     local added = item.components.fuel.fuelvalue
     local waste = math.min(added - reserve, 0) / added
 

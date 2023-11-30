@@ -77,19 +77,22 @@ AddCommand("fire", {
     slash = true,
     params = {"player"},
     paramsoptional = {true},
+    routing_fallback = UserCommands.SHARD_ROUTING_FALLBACK.ALL,
 
     --- @param ctx CommandContext
     fn = function(ctx)
-        local pt_postfix = ctx.author and "_DOER" or ""
+        local pt_postfix = ctx.author.userid and "_DOER" or ""
 
         if ctx.params.player then
             local player = UserToPlayer(ctx.params.player)
             if player ~= nil then
                 extinguish_near(player:GetPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
 
+                -- Keep it global
                 TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
-                    ctx.author and ctx.author.name or player.name, player.name
-                ), ctx.author and ctx.author.entity)
+                    ctx.author.name or player.name, player.name
+                ), player.entity)
+
                 return
             end
 
@@ -98,9 +101,10 @@ AddCommand("fire", {
 
         extinguish_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
 
-        TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH"..pt_postfix]:format(
-            ctx.author and ctx.author.name or "Shenanigans"
-        ), ctx.author and ctx.author.entity)
+        PEARL.ServerNetwork:AnnounceFor(PEARL.ServerNetwork:GetConnectedClientIDs(),
+         STRINGS.PEARL.LOGS["EXTINGUISH"..pt_postfix]:format(
+            ctx.author.name or "Shenanigans"
+        ), nil, ctx.author.colour)
     end,
 })
 
@@ -128,19 +132,21 @@ AddCommand("repair", {
     slash = true,
     params = {"player"},
     paramsoptional = {true},
+    routing_fallback = UserCommands.SHARD_ROUTING_FALLBACK.ALL,
 
     --- @param ctx CommandContext
     fn = function(ctx)
-        local pt_postfix = ctx.author and "_DOER" or ""
+        local pt_postfix = ctx.author.userid and "_DOER" or ""
 
         if ctx.params.player then
             local player = UserToPlayer(ctx.params.player)
             if player ~= nil then
                 repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
 
+                -- Keep it global.
                 TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_NEAR"..pt_postfix]:format(
-                    ctx.author and ctx.author.name or "Shenanigans"
-                ), ctx.author and ctx.author.entity)
+                    ctx.author.name or "Shenanigans", (player.name or STRINGS.PEARL.LOGS.UNKNOWN)
+                ), player.entity)
 
                 return
             end
@@ -150,9 +156,10 @@ AddCommand("repair", {
 
         repair_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
 
-        TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_ALL"..pt_postfix]:format(
-            ctx.author and ctx.author.name or "Shenanigans"
-        ), ctx.author and ctx.author.entity)
+        PEARL.ServerNetwork:AnnounceFor(PEARL.ServerNetwork:GetConnectedClientIDs(),
+         STRINGS.PEARL.LOGS["REPAIR_ALL"..pt_postfix]:format(
+            ctx.author.name or "Shenanigans"
+        ), nil, ctx.author.colour)
     end,
 })
 
@@ -163,6 +170,7 @@ AddCommand("unban", {
     slash = true,
     params = {"player"},
     paramsoptional = { false },
+    routing = UserCommands.SHARD_ROUTING.NONE, --- @TODO: Maybe to ALL?
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -186,6 +194,7 @@ AddCommand("grant", {
     cantargetadmin = false,
     params = {"player"},
     paramsoptional = { false },
+    routing = UserCommands.SHARD_ROUTING.ALL, -- We want all shards up-to-date
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -214,6 +223,7 @@ AddCommand("revoke", {
     slash = true,
     params = {"player"}, -- Net/Klei ID
     paramsoptional = { false },
+    routing = UserCommands.SHARD_ROUTING.ALL, -- We want all shards up-to-date
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -404,7 +414,6 @@ AddCommand("mods", {
 
     --- @param ctx CommandContext
     fn = function(ctx)
-        local params = ctx.params
         local userid = UserCommands.InputToUserID(ctx.params.player)
         -- First try to get the mods from the CFD since that's faster
         local cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
@@ -487,6 +496,7 @@ AddCommand("giverep", {
     slash = true,
     discord = false, -- No discord support until we have some authentication system.
     console = false, -- This is meant to be a user-only command.
+    cantargetself = false,
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -510,6 +520,7 @@ AddCommand("borrowed", {
     slash = false,
     discord = true,
     console = true,
+    routing = UserCommands.SHARD_ROUTING.NONE, -- No need for routing in this case
 
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
@@ -573,7 +584,7 @@ AddCommand("profile", {
     permission = COMMAND_PERMISSION.ADMIN,
     params = {"player"},
     paramsoptional = {false},
-    slash = false,  -- Doesn't make much sense
+    --slash = false,  -- Doesn't make much sense
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -765,16 +776,13 @@ AddCommand("kill", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
-        userid = userid or (ctx.author and ctx.author.userid) or (ThePlayer and ThePlayer.userid)
+        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.health then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
-        player:PushEvent("death", {cause = ctx.author and ctx.author.name})
-
-        -- Implicit response via the announcement
-        --return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.ON_SUCCESS
+        player:PushEvent("death", {cause = ctx.author.name})
     end,
 })
 
@@ -790,7 +798,7 @@ AddCommand("revive", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
-        userid = userid or (ctx.author and ctx.author.userid) or (ThePlayer and ThePlayer.userid)
+        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -819,6 +827,29 @@ AddCommand("revive", {
 --     end
 -- })
 
+AddCommand("permissive", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    routing = UserCommands.SHARD_ROUTING.ALL, -- All shards need to be effected
+    slash = true,
+    console = true,
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        PEARL.CONFIG.PERMISSIVE_MODE = not PEARL.CONFIG.PERMISSIVE_MODE
+        if PEARL.CONFIG.PERMISSIVE_MODE == true then
+            -- implicit reply via public announcement
+            TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
+
+            -- Save it for next game instance.
+            PEARL.GameInstParams:SetModParam(PEARL.INSTANCE_PARAMS.PERMISSIVE_MODE, PEARL.CONFIG.PERMISSIVE_MODE)
+        else
+            ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PERMISSIVE.ON_TURN_OFF)
+        end
+    end
+})
+
 AddCommand("despawn", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.DESC,
@@ -831,7 +862,7 @@ AddCommand("despawn", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
-        userid = userid or (ctx.author and ctx.author.userid) or (ThePlayer and ThePlayer.userid)
+        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -922,24 +953,22 @@ AddCommand("dm", {
         message:SetColour(WHISPER_COLOR)
         message:SetReceiver(target.name)
 
-        if ctx.author then
-            local icon
-            local name = ctx.author.name
-            if ctx.type == CommandContext.TYPE.DISCORD then
-                icon = PEARL.CONSTS.PROFILE_FLAIRS.DISCORD
-            else
-                local client = ctx.author.userid and TheNet:GetClientTableForUser(ctx.author.userid)
-                icon = client and GetRemotePlayerVanityItem(client.vanity or {}, "profileflair")
-            end
-
-            local colour = (ctx.author.colour and {Colour.DecimalToPercent(ctx.author.colour)}) or ctx.author.playercolour
-            message:SetAuthor(name, colour, ctx.author.userid, ctx.author.netid, ctx.author.prefab, ctx.author.GUID)
-            message:SetIcon(icon)
+        local icon
+        local name = ctx.author.name
+        if ctx.type == CommandContext.TYPE.DISCORD then
+            icon = PEARL.CONSTS.PROFILE_FLAIRS.DISCORD
+        else
+            local client = ctx.author.userid and TheNet:GetClientTableForUser(ctx.author.userid)
+            icon = client and GetRemotePlayerVanityItem(client.vanity or {}, "profileflair")
         end
+
+        local player = LookupPlayerInstByUserID(ctx.author.userid)
+        message:SetAuthor(name, ctx.author.colour, ctx.author.userid, ctx.author.netid, player.prefab, player.GUID)
+        message:SetIcon(icon)
 
         -- Author can send DM to himself.
         local receivers = (
-            (ctx.author and ctx.author.userid ~= target.userid and {target.userid, ctx.author.userid}) or
+            (ctx.author.userid ~= target.userid and {target.userid, ctx.author.userid}) or
             target.userid
         )
 
@@ -977,6 +1006,7 @@ AddCommand("gameowner", {
     servermenu = false,
     params = { "player" },
     paramsoptional = { false },
+    routing = UserCommands.SHARD_ROUTING.NONE, -- No need for routing here
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -1056,7 +1086,6 @@ AddCommand("pair", {
     end,
 })
 
---- @TODO: Add SYNC and UNSYNC icons
 AddCommand("unpair", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.DESC,
@@ -1221,7 +1250,6 @@ AddCommand("setslots", {
 
 UserCommands.CustomizeCommand("rollback", function(command)
     command.fn = function(ctx)
-        local params = ctx.params
         local after = ctx.params.after ~= nil and tonumber(ctx.params.after) or ROLLBACK_DELAY
 
         --- @TODO:
@@ -1297,8 +1325,12 @@ UserCommands.CustomizeCommand("kick", function(command)
 end)
 
 UserCommands.CustomizeCommand("ban", function(command)
+    command.params = {"user", "reason", "time"}
+    command.paramsoptional = {false, true, true}
+
+    command.localfn = nil -- Migrate all the logic to the server.
     command.fn = function(ctx)
-        local userid = UserCommands.InputToUserID(ctx.params.player)
+        local userid = UserCommands.InputToUserID(ctx.params.user)
 
         if PEARL.BlackList:Contains(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ALREADY_BANNED)
