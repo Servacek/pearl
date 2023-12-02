@@ -13,6 +13,8 @@
 
 local TheNet = TheNet
 
+local PopupDialogScreen = require("screens/redux/popupdialog")
+
 local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
 --------------------------
@@ -61,6 +63,20 @@ local CLIENT_RPCS = {
         end
 
         return ChatHistory:AddChatMessage(message)
+    end,
+
+    DisplayPopupMessage = function(title, message)
+        title = title or STRINGS.PEARL.UI.DEFAULT_POPUP_TITLE
+
+        local popup
+        popup = PopupDialogScreen(title, message, {{
+            text = STRINGS.UI.TRADESCREEN.OK,
+            cb = function()
+                TheFrontEnd:PopScreen(popup)
+            end
+        }})
+
+        TheFrontEnd:PushScreen(popup)
     end,
 
     Disconnect = function(reason, ...)

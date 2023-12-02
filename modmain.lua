@@ -295,7 +295,7 @@ PEARL.CONSTS = {
 
     DELIMS = {
         SLASH_COMMAND         = "/",
-        KLEI_ID               = "K",
+        KLEI_ID               = "KU_",
         PLAYER_NAME           = "@",
     },
 

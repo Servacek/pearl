@@ -348,6 +348,7 @@ function PEARL.OverrideGlobalVariable(name, value, optional)
     PEARL.OverrideVariable(name, value, PEARL.ENV, optional)
 end
 
+--- @return any origin, any new
 function PEARL.OverrideUserdataValue(name, value, userdata)
     local mt = type(userdata) == "userdata" and getmetatable(userdata) or nil
     assert(type(mt) == "table" and type(mt.__index) == "table", "invalid userdata provided")

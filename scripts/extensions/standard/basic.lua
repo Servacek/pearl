@@ -22,7 +22,8 @@ local unpack = unpack
 ------------------------------------------
 
 --- Same as the default unpack but supports nil as an argument for cleaner syntax.
---- @param t table<any>?
+--- @param t table<T>?
+--- @return ...<T>
 PEARL.unpack = function(t, ...)
     if t == nil then
         return t

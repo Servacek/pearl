@@ -27,6 +27,8 @@ local CUSTOM_LOADING_IMAGES = {
     "space",
 }
 
+local CUSTOM_LOADING_TIPS = {}
+
 local LT_TYPES = PEARL.CONSTS.LT_TYPES
 local DO_NOT_LOAD_TIPS = {
     [LT_TYPES.WELCOME] = true
@@ -76,17 +78,38 @@ local function GetWelcomeLoadingTips()
     return tips
 end
 
-local function LoadCustomLoadingTips()
-    if PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
-        PEARL.info("Removing default loading tips...")
-        PEARL.RemoveDefaultLoadingTips()
+-- Use our biased loading tip picker in override mode.
+local function OverrideLoadingTipPicker(self)
+    if Profile:GetLoadingTipsOption() == LOADING_SCREEN_TIP_OPTIONS.NONE then
+        return
     end
 
+    local tipids = {}
+    for tipid, _ in pairs(CUSTOM_LOADING_TIPS) do
+        -- The more the tip is shown the less priority it will have.
+        tipids[tipid] = 1 / math.max(self.shownloadingtips[tipid] or 1, 1)
+    end
+
+    local tipid = weighted_random_choice(tipids)
+    local tipcat = CUSTOM_LOADING_TIPS[tipid]
+
+    print("SELECTED TIP:", tipid, "CATEGORY:", tipcat)
+    return tipid ~= nil and tipcat ~= nil and {
+        id      = tipid,
+        atlas   = LOADING_SCREEN_TIP_ICONS[tipcat].atlas,
+        icon    = LOADING_SCREEN_TIP_ICONS[tipcat].icon,
+        text    = PEARL.CONSTS.LT_TYPE_TABLES[tipcat][tipid]
+    } or nil
+end
+
+local function LoadCustomTips()
     PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
     for _, loadingtip in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
         if DO_NOT_LOAD_TIPS[loadingtip.type] ~= true then
             local tbl = PEARL.CONSTS.LT_TYPE_TABLES[loadingtip.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
             AddLoadingTip(tbl, loadingtip.name, loadingtip.text, loadingtip.data)
+
+            CUSTOM_LOADING_TIPS[loadingtip.name] = loadingtip.type
         end
     end
 end
@@ -185,6 +208,13 @@ local function ShowIntroMovie(self, movie_path)
     PEARL.ClientLoader:AddDeferant("intromovie")
 end
 
+PEARL.AddClassPreConstruct("widgets/redux/loadingwidget", nil, function(self, ...)
+    if TheLoadingTips and PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
+        PEARL.info("Overriding the loading tip picker...")
+        PEARL.OverrideValue(TheLoadingTips, "PickLoadingTip", OverrideLoadingTipPicker)
+    end
+end)
+
 --- We have some additional functionality here aside from the custom images
 --- so this should be loaded always.
 PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
@@ -208,10 +238,6 @@ PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
 
     if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
         ShowCustomImage(self)
-    end
-
-    if TheLoadingTips then
-        TheLoadingTips:CleanupShownLoadingTips()
     end
 end)
 
@@ -288,5 +314,5 @@ SetLoadingTipCategoryIcon(
 ]]
 -- Loading screen tips setup
 if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
-    LoadCustomLoadingTips()
+    LoadCustomTips()
 end

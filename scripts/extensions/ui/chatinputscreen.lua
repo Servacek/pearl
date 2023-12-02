@@ -27,7 +27,10 @@ local Colour = PEARL.loadfile("libraries/colour")
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
 
-local COMMAND_PREDICTION_CHARS = 1 -- Commands do not have usually under 2 characters.
+-- Usually, we want the autocompletion to be shown right after the delimeter was typed in.
+local COMMAND_PREDICTION_CHARS = 0 -- Commands do not have usually under 2 characters.
+local NAME_PREDICTION_CHARS = 0
+local USERID_PREDICTION_CHARS = 0
 
 ---------------------------
 -- [[ Local Functions ]]
@@ -50,30 +53,43 @@ end
 -- [[ Overrides ]]
 ---------------------------
 
---- @DEBUG
+local function ExpandWordPredictorWithCustomCommands(predictor, commands)
+    local permission = UserCommands.GetPermissionLevel(
+        TheNet:GetIsServerAdmin() and COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
+    )
+
+    for _, v in pairs(predictor.dictionaries) do
+        if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
+            v.num_chars = COMMAND_PREDICTION_CHARS
+
+            for name, command in pairs(commands) do
+                local commandpermission = UserCommands.GetPermissionLevel(command.permission)
+
+                -- Only autocomplete the commands we have permission to.
+                if permission >= commandpermission then
+                    table.insert(v.words, name)
+                end
+            end
+        end
+    end
+end
+
 AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     if whisper == true and PEARL.CONFIG.WHISPER_WARNING == true then
         AddWhisperWarning(self)
     end
 
-    local permission = COMMAND_PERMISSION.USER
-    if TheNet:GetIsServerAdmin() then
-        permission = COMMAND_PERMISSION.ADMIN
-    end
-
     -- Setup prediction for our custom slash commands
-    local slash_commands = UserCommands.GetCustomCommandsWithFlag("slash")
-    for _, v in pairs(self.chat_edit.prediction_widget.word_predictor.dictionaries) do
-        if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
-            v.num_chars = COMMAND_PREDICTION_CHARS
-
-            for name, command in pairs(slash_commands) do
-                -- Only autocomplete the commands we have permission to.
-                if command.permission == nil or command.permission == permission then
-                    table.insert(v.words, name)
-                end
-            end
+    local prediction_widget = self.chat_edit and self.chat_edit.prediction_widget
+    local predictor = prediction_widget and prediction_widget.word_predictor
+    if prediction_widget and predictor and predictor.dictionaries then
+        local expandfn = prediction_widget.expand_btn and prediction_widget.expand_btn.onclick
+        if prediction_widget.expanded == true and type(expandfn) == "function" then
+            expandfn() -- Minimize the expand widget by default.
         end
+
+        local commands = UserCommands.GetCustomCommandsWithFlag("slash")
+        ExpandWordPredictorWithCustomCommands(predictor, commands)
     end
 
     local userids = {}
@@ -90,11 +106,13 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     self.chat_edit:AddWordPredictionDictionary({
         delim = PEARL.CONSTS.DELIMS.KLEI_ID,
         words = userids,
+        num_chars = USERID_PREDICTION_CHARS,
     })
 
     -- Auto-complete for player names
     self.chat_edit:AddWordPredictionDictionary({
         delim = PEARL.CONSTS.DELIMS.PLAYER_NAME,
         words = names,
+        num_chars = NAME_PREDICTION_CHARS,
     })
 end)

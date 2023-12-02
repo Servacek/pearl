@@ -35,6 +35,9 @@ local TIME_UNTIL_KICK = 10
 local ASYNC_FILTER_TIMEOUT = 5
 local MIN_ASYNC_FILTER_TIMEOUT = 2
 
+-- Give a few ticks to the RPC network for the reason to deliver.
+local DISCONNECT_WITH_REASON_DELAY = 5
+
 ----------------------------------
 -- Netvars
 ----------------------------------
@@ -92,6 +95,17 @@ local ServerNetwork = {
 ----------------------------------
 -- Local Functions
 ----------------------------------
+
+local _Kick, _Ban, _BanForTime
+
+local function _DoBan(userid, seconds)
+    seconds = tonumber(seconds)
+    if seconds then
+        return _BanForTime(TheNet, userid, seconds)
+    end
+
+    return _Ban(TheNet, userid)
+end
 
 local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
     if not ServerNetwork:IsClientConnectedAny(userid) then
@@ -166,6 +180,10 @@ function ServerNetwork:DisplayChatMessage(message)
     return self:DisplayChatMessageFor(nil, message)
 end
 
+function ServerNetwork:DisplayPopupFor(userids, title, message)
+    return PEARL.SendRPCToClient(PEARL.RPC.DisplayPopupMessage, userids, title, message)
+end
+
 --- @param userids table|string? The optional list of userids or userid of the receiver(s)
 --- @param content string
 --- @param announce_type string?
@@ -220,6 +238,43 @@ function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_ti
         PEARL.debug("Kicking player from the server...")
         TheNet:Kick(userid, PEARL.CONSTS.DISCONNECT_KICK_TIME)
     end)
+end
+
+function ServerNetwork:KickUser(userid, seconds, reason, author)
+    PEARL.debug("User", userid, "was kicked by", author or "[HOST]")
+    PEARL.EventProcessor:HandleEvent("clientkicked", userid, reason, author, seconds)
+
+    if type(reason) == "string" then
+        -- Display the reason if any.
+        self:CloseConnectionFor(
+            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_KICKED"]
+        )
+
+        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY, _Kick, nil, TheNet, userid, seconds)
+        return
+    end
+
+    return _Kick(TheNet, userid, seconds)
+end
+
+function ServerNetwork:BanUser(userid, seconds, reason, author)
+    if not self:IsClientBanned(userid) then
+        PEARL.debug("User", userid, "was banned by", author or "[HOST]")
+
+        PEARL.EventProcessor:HandleEvent("clientbanned", userid, reason, author, seconds)
+    end
+
+    if type(reason) == "string" then
+        -- Display the reason if any.
+        self:CloseConnectionFor(
+            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
+        )
+
+        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY, _DoBan, nil, userid, seconds)
+        return
+    end
+
+    return _DoBan(userid, seconds)
 end
 
 function ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
@@ -632,10 +687,10 @@ function ServerNetwork:HandleRawConnectionData(userid, data)
     -- All the data is untrusted in this case.
     local data_tbl = DecodeAndUnzipString(data)
     if type(data_tbl) ~= "table" or IsTableEmpty(data_tbl) then
-        return PEARL.ServerNetwork:OnInvalidRPCFromClient("ConnectionFilterData", userid)
+        return self:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 
-    PEARL.ServerNetwork:OnClientFilterDataReceived(userid, data_tbl)
+    self:OnClientFilterDataReceived(userid, data_tbl)
 end
 
 ----------------------------------
@@ -656,7 +711,7 @@ end
 PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
     PEARL.debug("JoinServerFilter", userid, ...)
 
-    if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
+    if ServerNetwork:IsClientConnectedAny(userid) then
         return -- If the user is already connected then ignore this call.
     end
 
@@ -678,7 +733,7 @@ PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
         end
     end
 
-    PEARL.ServerNetwork:OnClientJoining(userid)
+    ServerNetwork:OnClientJoining(userid)
 
     -- Let the default callback to handle this case.
 end)
@@ -707,26 +762,16 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
     return ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.COMMAND_BLOCKLIST[cmd] ~= true
 end)
 
-PEARL.AddUserDataFunctionPreCall("Kick", function(self, userid, seconds, reason, author)
-    PEARL.debug("User", userid, "was kicked by", author or "[HOST]")
-
-    PEARL.EventProcessor:HandleEvent("clientkicked", userid, reason, author, seconds)
+_Kick = PEARL.OverrideUserdataValue("Kick", function(self, userid, seconds, reason, author)
+    return ServerNetwork:KickUser(userid, seconds, reason, author)
 end, TheNet)
 
-PEARL.AddUserDataFunctionPreCall("Ban", function(self, userid, reason, author)
-    if not ServerNetwork:IsClientBanned(userid) then
-        PEARL.debug("User", userid, "was banned by", author or "[HOST]")
-
-        PEARL.EventProcessor:HandleEvent("clientbanned", userid, reason, author)
-    end
+_Ban = PEARL.OverrideUserdataValue("Ban", function(self, userid, reason, author)
+    return ServerNetwork:BanUser(userid, nil, reason, author)
 end, TheNet)
 
-PEARL.AddUserDataFunctionPreCall("BanForTime", function(self, userid, seconds, reason, author)
-    if not ServerNetwork:IsClientBanned(userid) then
-        PEARL.debug("User", userid, "was banned by", author or "[HOST]", "for", tonumber(seconds))
-
-        PEARL.EventProcessor:HandleEvent("clientbanned", userid, reason, author, seconds)
-    end
+_BanForTime = PEARL.OverrideUserdataValue("BanForTime", function(self, userid, seconds, reason, author)
+    return ServerNetwork:BanUser(userid, seconds, reason, author)
 end, TheNet)
 
 PEARL.AddUserDataFunctionPostCall("SetDefaultMaxPlayers", function(self, value)

@@ -476,6 +476,8 @@ local STRINGS = {
     },
 
     UI = {
+        DEFAULT_POPUP_TITLE = "Notification",
+
         CONSOLE_DISABLED = "Disabled :)",
 
         STATIC_BAN_REASONS = {
@@ -733,6 +735,13 @@ local STRINGS = {
             SYSTEM = {
                 PRETTYNAME = "Send System Message",
                 DESC       = "Sends a message as the server user.",
+            },
+
+            NOTIFY = {
+                PRETTYNAME = "Send Notificaton",
+                DESC       = "Sends a notification to the specified player.",
+
+                ON_SUCCESS = "Notification sent!",
             },
 
             ANNOUNCE = {

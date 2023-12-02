@@ -589,7 +589,9 @@ AddCommand("profile", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player or ctx.author.discordid or ctx.author.userid)
-        if ctx.params.player ~= nil and ctx.params.player ~= ctx.author.userid and ctx.author.permission ~= COMMAND_PERMISSION.ADMIN then
+        local commandpermission = UserCommands.GetPermissionLevel(ctx.command.permission)
+        local authorpermission = UserCommands.GetPermissionLevel(ctx.author.permission)
+        if ctx.params.player ~= nil and ctx.params.player ~= ctx.author.userid and authorpermission < commandpermission then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.MISSING_PERMISSION)
         end
 
@@ -821,9 +823,12 @@ AddCommand("revive", {
 --     usermenu = false,
 --     servermenu = false,
 
+--     --- @TODO:
 --     --- @param ctx CommandContext
 --    fn = function(ctx)
---         SetServerPaused()
+--      -- Looks like you cannot pause an empty server.
+--     -- TheNet:IsServerPaused()
+--         SetServerPaused() -- Implicit Response!
 --     end
 -- })
 
@@ -994,6 +999,31 @@ AddCommand("system", {
     --- @param ctx CommandContext
     fn = function(ctx)
         TheNet:SystemMessage(ctx.params.message)
+    end
+})
+
+AddCommand("notify", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    console = true,
+    discord = true,
+    slash = true,
+    usermenu = false,
+    servermenu = false,
+    params = { "player", "message", "title" },
+    paramsoptional = { false, false, true },
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        local userid = UserCommands.InputToUserID(ctx.params.player)
+        if not PEARL.ServerNetwork:IsClientConnected(userid) then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        PEARL.ServerNetwork:DisplayPopupFor(userid, ctx.params.title, ctx.params.message)
+
+        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.ON_SUCCESS)
     end
 })
 
@@ -1249,8 +1279,25 @@ AddCommand("setslots", {
 -------------------------------------------
 
 UserCommands.CustomizeCommand("rollback", function(command)
+    command.routing = UserCommands.SHARD_ROUTING.NONE
+
+    if not command.params then
+        command.params = {"numsaves"}
+    end
+
+    if not command.paramsoptional then
+        command.paramsoptional = {true}
+    end
+
+    -- table.insert(command.params, "days")
+    -- table.insert(command.paramsoptional, true)
+
+    table.insert(command.params, "after")
+    table.insert(command.paramsoptional, true)
+
+    command.serverfn = nil -- Ensure that we are using our custom handler
     command.fn = function(ctx)
-        local after = ctx.params.after ~= nil and tonumber(ctx.params.after) or ROLLBACK_DELAY
+        local after = tonumber(ctx.params.after) or ROLLBACK_DELAY
 
         --- @TODO:
         -- local days = ctx.params.days ~= nil and tonumber(ctx.params.days)
@@ -1258,7 +1305,7 @@ UserCommands.CustomizeCommand("rollback", function(command)
         --     return PEARL.RollbackByDays(days, nil, after)
         -- end
 
-        local snapshots = ctx.params.snapshots ~= nil and tonumber(ctx.params.snapshots) or 1
+        local snapshots = tonumber(ctx.params.numsaves) or 1
         TheNet:Announce(STRINGS.PEARL.LOGS.ROLLBACK_AFTER:format(snapshots, after))
         PEARL.WallScheduler:ExecuteInTime(after, function()
             -- Starting from zero
@@ -1268,12 +1315,29 @@ UserCommands.CustomizeCommand("rollback", function(command)
 end)
 
 UserCommands.CustomizeCommand("regenerate", function(command)
+    command.routing = UserCommands.SHARD_ROUTING.NONE
+
+    if not command.params then
+        command.params = {}
+    end
+
+    if not command.paramsoptional then
+        command.paramsoptional = {}
+    end
+
+    table.insert(command.params, "shard")
+    table.insert(command.paramsoptional, true)
+
+    table.insert(command.params, "seed")
+    table.insert(command.paramsoptional, true)
+
     if not command.aliases then
         command.aliases = {}
     end
 
     table.insert(command.aliases, "regen")
 
+    command.serverfn = nil -- Ensure that we are using our custom handler
     command.fn = function(ctx)
         local seed = tonumber(ctx.params.seed)
         if seed then
@@ -1298,62 +1362,72 @@ UserCommands.CustomizeCommand("regenerate", function(command)
 end)
 
 UserCommands.CustomizeCommand("kick", function(command)
+    command.routing = UserCommands.SHARD_ROUTING.NONE
+
+    if not command.params then
+        command.params = {"user", "seconds"}
+    end
+
+    if not command.paramsoptional then
+        command.paramsoptional = {false, true}
+    end
+
+    table.insert(command.params, "reason")
+    table.insert(command.paramsoptional, true)
+
+    command.remote = true
+
+    command.localfn = nil -- Migrate all the logic to the server.
     command.fn = function(ctx)
-        local params = ctx.params
-        local userid = UserCommands.InputToUserID(ctx.params.player)
+        local userid = UserCommands.InputToUserID(ctx.params.user)
         if not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
+        local seconds = tonumber(ctx.params.seconds)
         local reason = ctx.params.reason
-        local has_reason = type(reason) == "string"
-        if has_reason then
-            -- Display the reason if any.
-            PEARL.ServerNetwork:CloseConnectionFor(
-                userid, reason, false, STRINGS.UI.NETWORKDISCONNECT["ID_DST_USER_KICKED"].TITLE
-            )
+        -- In case we have passed only the reason parameter.
+        if type(ctx.params.seconds) == "string" and reason == nil and seconds == nil then
+            reason = ctx.params.seconds
         end
 
-        -- Give the reason popup some time to display so it's not overriden
-        local delay = has_reason and 5 or 0
-        PEARL.WallScheduler:ExecuteInTime(delay, function()
-            TheNet:Kick(userid, ctx.params.time)
-        end)
+        PEARL.ServerNetwork:KickUser(userid, reason, seconds, ctx.author.userid)
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS)
     end
 end)
 
 UserCommands.CustomizeCommand("ban", function(command)
-    command.params = {"user", "reason", "time"}
-    command.paramsoptional = {false, true, true}
+    command.routing = UserCommands.SHARD_ROUTING.NONE
+
+    if not command.params then
+        command.params = {"user", "seconds"}
+    end
+
+    if not command.paramsoptional then
+        command.paramsoptional = {false, true}
+    end
+
+    table.insert(command.params, "reason")
+    table.insert(command.paramsoptional, true)
+
+    command.remote = true
 
     command.localfn = nil -- Migrate all the logic to the server.
     command.fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.user)
-
-        if PEARL.BlackList:Contains(userid) then
+        if PEARL.BlackList:Contains(userid) and not PEARL.ServerNetwork:IsClientConnected(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ALREADY_BANNED)
         end
 
+        local seconds = tonumber(ctx.params.seconds)
         local reason = ctx.params.reason
-        local has_reason = type(reason) == "string"
-        if has_reason then
-            -- Display the reason if any.
-            PEARL.ServerNetwork:CloseConnectionFor(
-                userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
-            )
+        -- In case we have passed only the reason parameter.
+        if type(ctx.params.seconds) == "string" and reason == nil and seconds == nil then
+            reason = ctx.params.seconds
         end
 
-        -- Give the reason popup some time to display so it's not overriden
-        local delay = has_reason and 5 or 0
-        PEARL.WallScheduler:ExecuteInTime(delay, function()
-            if ctx.params.time then
-                return TheNet:BanForTime(userid, ctx.params.time, reason)
-            end
-
-            TheNet:Ban(userid)
-        end)
+        PEARL.ServerNetwork:BanUser(userid, seconds, reason, ctx.author.userid)
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ON_SUCCESS)
     end

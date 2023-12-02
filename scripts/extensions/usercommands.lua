@@ -83,6 +83,14 @@ UserCommands.SHARD_ROUTING_FALLBACK = {
     ALL     = 1, -- Fallback by broadcasting the command to all shards (complete routing).
 }
 
+-- Why it could not be an integer from the beginning Klei?
+-- Why such unnecessary complexity?
+UserCommands.PERMISSION_LEVEL = {
+    [COMMAND_PERMISSION.USER] = 0,
+    [COMMAND_PERMISSION.MODERATOR] = 1,
+    [COMMAND_PERMISSION.ADMIN] = 2,
+}
+
 -------------------------------------
 -- Public Functions
 -------------------------------------
@@ -106,13 +114,26 @@ function UserCommands.RouteHybridCommand(name, context, shardid)
 end
 
 --- @param command table<string, any>
---- @param context CommandContext
+--- @param ctx CommandContext
 --- @return boolean success
-function UserCommands.RunHybridCommand(command, context)
+function UserCommands.RunHybridCommand(command, ctx)
     if type(command) ~= "table" or type(command.fn) ~= "function" then
-        context:Reply(STRINGS.PEARL.COMMAND_RESPONSES.INVALID)
+        ctx:Reply(STRINGS.PEARL.COMMAND_RESPONSES.INVALID)
         PEARL.error("Attempted to run an invalid hybrid command.")
         return false
+    end
+
+    local target = UserCommands.InputToClientTable(ctx.params and ctx.params.player or ctx.params.user)
+    local target_userid = target and target.userid
+    local target_permission = UserCommands.GetPermissionLevel(
+        target_userid and UserCommands.CalculatePermissionFor(target_userid)
+    )
+    if (command.cantargetself == false and target_userid == ctx.author.userid) or
+        (command.cantargetadmin == false and target_permission == COMMAND_PERMISSION.ADMIN)
+    then
+        ctx:Reply(STRINGS.UI.USERCOMMANDS.BADTARGETFMT:format(
+            command.prettyname or command.name, target and target.name or "[UNKNOWN]"
+        ))
     end
 
     local route_shardid
@@ -122,7 +143,7 @@ function UserCommands.RunHybridCommand(command, context)
 
     if routing_type == UserCommands.SHARD_ROUTING.AUTO then
         -- Route commands to the target player if the player is provided and connected to our server.
-        local target_userid = UserCommands.InputToUserID(context.params and context.params.player)
+        local target_userid = UserCommands.InputToUserID(ctx.params and ctx.params.player)
         if PEARL.ServerNetwork:IsClientConnected(target_userid) then
             is_routing = false
 
@@ -140,7 +161,7 @@ function UserCommands.RunHybridCommand(command, context)
     end
 
     if is_routing == true then
-        if UserCommands.RouteHybridCommand(command.name, context, route_shardid) then
+        if UserCommands.RouteHybridCommand(command.name, ctx, route_shardid) then
             return true
         end
 
@@ -149,7 +170,7 @@ function UserCommands.RunHybridCommand(command, context)
         -- Maybe do not execute at all?
     end
 
-    command.fn(context)
+    command.fn(ctx)
 
     return true
 end
@@ -193,6 +214,16 @@ function UserCommands.RunDiscordCommand(name, params, author, id)
     context:SetInteractionID(id)
 
     UserCommands.RunHybridCommand(command, context)
+end
+
+function UserCommands.GetPermissionLevel(permission)
+    return UserCommands.PERMISSION_LEVEL[permission] or 0
+end
+
+function UserCommands.CalculatePermissionFor(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    return (client and client.admin) or (PEARL.AdminList:Contains(userid)) and
+        COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
 end
 
 function UserCommands.GetCustomCommand(name)
@@ -267,6 +298,8 @@ function UserCommands.AddConsoleCommand(name, command)
 end
 
 function UserCommands.AddSlashCommand(name, command)
+    PEARL.debug("UserCommands.AddSlashCommand", name)
+
     command.serverfn = make_safe_cb(name, function(params, caller)
         local author = {}
         if type(caller) == "table" and type(caller.userid) == "string" then
@@ -280,9 +313,7 @@ function UserCommands.AddSlashCommand(name, command)
             author.netid = (client and client.netid) or (
                 PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.STEAM)
             )
-            author.permission = (client and client.admin) or (
-                PEARL.AdminList:Contains(userid) and COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
-            )
+            author.permission = UserCommands.CalculatePermissionFor(userid)
         end
 
         UserCommands.RunHybridCommand(
