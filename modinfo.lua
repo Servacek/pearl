@@ -219,10 +219,10 @@ configuration_options = {
 
     {
         name = "LANGUAGE",
-        default = "en",
+        default = "english",
         options = {
-            "en",
-            "sk",
+            "english",
+            "slovak",
         },
         type = "string",
         general = true,
@@ -441,7 +441,8 @@ configuration_options = {
 
     {
         name="COMMON_MOD_CONFIG",
-        default=true,
+        default = true,
+        general = true,
         type = "boolean",
     },
 

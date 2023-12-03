@@ -237,6 +237,7 @@ local STRINGS = {
         MODS = {
             TITLE = "%s's Enabled Mods",
             FOOTER = "%s/%s",
+            ALLOWLIST = "Allowlist is enabled.",
         },
 
         PROFILE = {

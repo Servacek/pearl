@@ -120,14 +120,15 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
         TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
     end
 
-    local hasrecord
+    local initial = false
     if PEARL.DB:IsEnabled() then
-        hasrecord = PEARL.DB:FirstTimeJoined(userid)
+        -- Whether this is our first join according to the DB.
+        initial = PEARL.DB:FirstTimeJoined(userid)
     end
 
     -- If all the filters have successfully passed, then the connection should be allowed.
-    PEARL.debug("Allowing connection for", userid, hasrecord)
-    return ServerNetwork:SendUserConnectionAllowedFor(userid, hasrecord)
+    PEARL.debug("Allowing connection for", userid, initial)
+    return ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
 end
 
 ----------------------------------
@@ -277,9 +278,11 @@ function ServerNetwork:BanUser(userid, seconds, reason, author)
     return _DoBan(userid, seconds)
 end
 
+--- @param userid string
+--- @param initial boolean? Whether this is the first connection according to the DB.
 function ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
-    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, initial)
-    return PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, initial)
+    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, "INIT:", initial)
+    PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, initial)
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)

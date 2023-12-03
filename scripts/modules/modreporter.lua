@@ -47,7 +47,7 @@ if PEARL.CONFIG.MOD_BLOCKER.STRICT then
             ReportModsToDiscord(userid, data.enabled_mods)
 
             -- This mod is counted as well!
-            if data.enabled_mods.prohibited_count == (data.enabled_mods.count - 1) then
+            if data.enabled_mods.prohibited_count == data.enabled_mods.count then
                 return false, "ID_DST_ALL_MODS_PROHIBITED"
             end
 

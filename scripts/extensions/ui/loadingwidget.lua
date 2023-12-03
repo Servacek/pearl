@@ -93,7 +93,6 @@ local function OverrideLoadingTipPicker(self)
     local tipid = weighted_random_choice(tipids)
     local tipcat = CUSTOM_LOADING_TIPS[tipid]
 
-    print("SELECTED TIP:", tipid, "CATEGORY:", tipcat)
     return tipid ~= nil and tipcat ~= nil and {
         id      = tipid,
         atlas   = LOADING_SCREEN_TIP_ICONS[tipcat].atlas,
@@ -143,6 +142,7 @@ PEARL.AddClassFunctionPostCall("SetEnabled", function(self, enabled)
         return
     end
 
+    PEARL.debug("LoadingWidget:SetEnabled", enabled)
     if PEARL.ClientNetwork:HasServerCrashed() then
         self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_ERROR, LT_TYPES.CONTROLS)
     end
@@ -162,6 +162,7 @@ local function SetupWrappers()
 
     if PEARL.CONFIG.CUSTOM_LOADING_IMAGES then
         PEARL.AddUserDataFunctionPostCall("UnregisterAllPrefabs", function()
+            PEARL.debug("TheSim:UnregisterAllPrefabs")
             PEARL.ENV.ReloadPreloadAssets()
 
             -- It looks like we have to register the assets manually after they are unregistered
@@ -220,8 +221,8 @@ end)
 PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
     -- Make sure we are visible right from the start.
 
-    if TheFrontEnd then
-        TheFrontEnd:SetFadeLevel(1)
+    if PEARL.ClientNetwork:IsDisconnected() then
+        return
     end
 
     self:SetEnabled(true)

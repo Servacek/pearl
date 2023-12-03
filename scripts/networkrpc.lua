@@ -83,8 +83,8 @@ local CLIENT_RPCS = {
         return PEARL.ClientNetwork:Disconnect(reason, true, ...)
     end,
 
-    ConnectionAllowed = function(hasrecord)
-        return PEARL.ClientNetwork:OnConnectionAllowed(hasrecord)
+    ConnectionAllowed = function(initial)
+        return PEARL.ClientNetwork:OnConnectionAllowed(initial)
     end,
 }
 

@@ -16,9 +16,6 @@
     Blocks some hacky mods from loading on the client.
 --]]
 
--- Maybe a better approach would be to send all the mods to the server and let it decide.
--- But in that case we would loose the option to disable the prohibited mods.
-
 -- Use the redux version instead of the default on since this is newer
 local PopupDialogScreen = require("screens/redux/popupdialog")
 
@@ -41,29 +38,61 @@ local function SaveModIndex()
     end
 end
 
+local function BlockMod(modname, nosaving, temp)
+    PEARL.debug("Blocking mod "..modname)
+    if type(ModManager.enabledmods) == "table" then
+        -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
+        table.removearrayvalue(ModManager.enabledmods, modname)
+    end
+
+    if temp == nil then
+        -- We do not want to permanently block mods that are just not whitelisted.
+        temp = not KnownModIndex:ShouldDisableMod(modname)
+    end
+
+    KnownModIndex:Block(modname, temp)
+
+    if nosaving ~= true then
+        SaveModIndex()
+    end
+end
+
+local function VerifyAllLoadedMods()
+    local bypassed = false
+    for modname, _ in pairs(KnownModIndex.savedata.known_mods) do
+        if KnownModIndex:IsModEnabledAny(modname) or table.contains(ModManager.enabledmods, modname) then
+            -- If a prohibited mod managed to bypass the loading check.
+            if KnownModIndex:IsModProhibited(modname) and not KnownModIndex:IsModBlocked(modname) then
+                -- Even though we are being disconnected,
+                -- disable the mods in case of re-join.
+                BlockMod(modname, true)
+
+                bypassed = true
+            end
+        end
+    end
+
+    -- Save the changes made to the mod configurations
+    SaveModIndex()
+
+    return bypassed
+end
+
 --------------------------------------
 -- [[ Custom Mod Load Handlers ]]
 --------------------------------------
 
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
-    -- If we are in the strict mode leave the blocked mod's for the post mods load handler,
-    -- so clients with blocked mods enabled will be disconnected from the server.
-    if PEARL.CONFIG.MOD_BLOCKER.STRICT == true or KnownModIndex:IsModAllowed(modname) then
-        return
+    -- Block prohibited mods while loading.
+    -- Each mod calls this function exactly two times (modmain and modworldgenmain)
+    if KnownModIndex:IsModProhibited(modname) then
+        if not KnownModIndex:IsModBlocked(modname) then
+            BlockMod(modname)
+        end
+
+        -- Stop further loading of the mod.
+        return false
     end
-
-    if KnownModIndex:IsModEnabled(modname) then
-        PEARL.debug("Blocking mod "..modname)
-        -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
-        table.removearrayvalue(self.enabledmods, modname)
-
-        -- Disable permanently so the popup does not show each time during shard migration or reset
-        KnownModIndex:Block(modname)
-        SaveModIndex()
-    end
-
-    -- Stop further execution
-    return false
 end, ModManager)
 
 --------------------------------------
@@ -115,37 +144,22 @@ end)
 --
 -- So far the best place where to drop this check I guess
 -- Load this before frontend since on FE post init we send the CFD data.
+--
+-- At this point we can also show some popups if needed.
 PEARL.AddFrontEndPreInit(function()
-    -- Do not disable mods in STRICT mode
-    if PEARL.CONFIG.MOD_BLOCKER.STRICT then
-        return
-    end
-
     PEARL.info("Checking the mods... again...")
 
-    local count = 0
-    local prohibited_count = 0
-    for modname, _ in pairs(KnownModIndex.savedata.known_mods) do
-        if KnownModIndex:IsModEnabledAny(modname) or table.contains(ModManager.enabledmods, modname)then
-            count = count + 1
-            if not KnownModIndex:IsModAllowed(modname) then
-                prohibited_count = prohibited_count + 1
+    -- Determines wheters at least one mod was blocked
+    -- during regular loading.
+    local bypassed = VerifyAllLoadedMods()
 
-                -- Even though we are being disconnected,
-                -- disable the mods in case of re-join.
-                KnownModIndex:Block(modname)
-            end
-        end
-    end
-
-    if prohibited_count > 0 then
-        -- Save the changes made to the mod configurations
-        SaveModIndex()
-
+    --- @NODE: STRICT mode is handled by the server!
+    --- is allowed and at least one mod was blocked.
+    if bypassed then
         -- Prohibited mods were loaded even though our efforts to stop them.
         -- The only thing left is to disconnect the user...
         PEARL.ClientNetwork:Disconnect(
-           (count - 1) == prohibited_count and "ID_DST_ALL_MODS_PROHIBITED" or "ID_DST_MODS_PROHIBITED"
+           KnownModIndex:AreAllModsBlocked() and "ID_DST_ALL_MODS_PROHIBITED" or "ID_DST_MODS_PROHIBITED"
         )
     end
 end)

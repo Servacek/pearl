@@ -292,7 +292,10 @@ function UserCommands.AddConsoleCommand(name, command)
         local params = ParseParamsArray(command, toarrayornil(...))
 
         UserCommands.RunHybridCommand(
-            command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, nil)
+            command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, {
+                name = "[Host]",
+                permission = COMMAND_PERMISSION.ADMIN,
+            })
         )
     end)
 end

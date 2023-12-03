@@ -280,15 +280,15 @@ function ModConfig:ApplyCommonConfig(common, loaded, override, _recr)
 
         if type(value) == "table" and #value == 0 and not table.empty(value) then
             -- Ensure the override for this option is a table as well.
-            if common[name] ~= nil and loaded[name] == nil then
-                loaded[name] = {}
+            if type(loaded[name]) ~= "table" then
+                loaded[name] = type(PEARL.DEFAULT_CONFIG[name]) == "table" and deepcopy(PEARL.DEFAULT_CONFIG[name]) or {}
             end
 
-            self:ApplyCommonConfig(common[name], loaded[name], override and override[name], true)
+            self:ApplyCommonConfig(value, loaded[name], override and override[name], true)
         else
             -- If no override exists for this configuration
             if not override or override[name] == nil then
-                loaded[name] = common[name]
+                loaded[name] = value
             end
         end
     end

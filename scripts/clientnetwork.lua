@@ -276,14 +276,14 @@ function ClientNetwork:OnTimeout()
 end
 
 -- Note that it's common for servers to send multiple responses.
-function ClientNetwork:OnConnectionAllowed(hasrecord)
-    PEARL.info("ClientNetwork:OnConnectionAllowed", hasrecord)
+function ClientNetwork:OnConnectionAllowed(initial)
+    PEARL.info("ClientNetwork:OnConnectionAllowed", initial)
     self:CancelTimeout()
 
     -- This is for backwards compatibility when the database
     -- doesn't have a record yet but we have already agreed to the agreement.
-    _hasrecord = hasrecord == true
-    if not _hasrecord and PEARL.AgreementManager:HasRecord() then
+    _hasrecord = initial == false
+    if initial == true and PEARL.AgreementManager:HasRecord() then
         local version = PEARL.AgreementManager:GetLocalVersion()
         local agreedintime = PEARL.AgreementManager:GetLocalLastAgreeTime()
         self:SendAgreementData(true, true, agreedintime, version)
@@ -294,7 +294,7 @@ function ClientNetwork:OnConnectionAllowed(hasrecord)
     end
 
     self:SetIsConnectionAllowed(true)
-    PEARL.EventProcessor:HandleEvent("connection_allowed", hasrecord)
+    PEARL.EventProcessor:HandleEvent("connection_allowed", initial)
 
     -- If the connection is allowed, remove the deferant
     -- potentially loading the client as well if we are the last one.

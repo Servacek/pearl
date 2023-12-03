@@ -224,6 +224,23 @@ PEARL.loadfile("extensions/ui/chatinputscreen")
 PEARL.loadfile("extensions/ui/loadingwidget")
 
 ----------------------------------
+-- Mod Fixes
+----------------------------------
+
+-- Loaded after frontend so all mods should be initialized and loaded at this point.
+PEARL.AddFrontEndPostInit(function()
+    local modnames = ModManager:GetEnabledModNames()
+    if modnames and #modnames > 1 then
+        PEARL.debug("Loading mod fixes...")
+
+        local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
+
+        -- Auto-Unequip mod fix
+        ExtensionManager:FixMods("autounequip", {"1581892848"})
+    end
+end)
+
+----------------------------------
 -- Other Modules
 ----------------------------------
 

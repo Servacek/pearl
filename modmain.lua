@@ -279,6 +279,22 @@ end
 load_config_overrides()
 
 --------------------------------
+-- [[ Configuration Overrides ]]
+--------------------------------
+
+PEARL.DEFAULT_CONFIG = {}
+
+local function load_default_config()
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.name ~= nil and option.default ~= nil then
+            PEARL.DEFAULT_CONFIG[option.name] = option.default
+        end
+    end
+end
+
+load_default_config()
+
+--------------------------------
 -- [[ General Mod Constants]]
 --------------------------------
 
@@ -317,6 +333,8 @@ PEARL.CONSTS = {
         --- Custom
         WELCOME     = "WELCOME",
     },
+
+    COMMON_CONFIG_PATH = "../../commonconfig.lua",
 }
 
 --------------------------------
@@ -337,8 +355,9 @@ for name, loader in pairs(loaders) do
 end
 
 --- Adding it manually here instead of the loop for autocomplete to be smarter.
-PEARL.loadfile = loaders.loadfile
-PEARL.loadlib  = loaders.loadlib
+PEARL.loadfilefn    = loaders.loadfilefn
+PEARL.loadfile      = loaders.loadfile
+PEARL.loadlib       = loaders.loadlib
 
 --------------------------------
 -- [[ Standard Libs ]]
@@ -365,6 +384,29 @@ PEARL.loadfile("extensions/logging")
 --------------------------------
 
 PEARL.loadfile("extensions/eventprocessor")
+
+--------------------------------
+-- [[ Cluster Persistance Lib ]]
+--------------------------------
+
+--- This has to load this soon because some of the following files use it.
+--- @class ClusterPersistance
+PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance")
+
+--------------------------------
+-- [[ Common Config ]]
+--------------------------------
+
+-- This has to be loaded before we start to use the configurations.
+-- Also it requires ClusterPersistance
+if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
+    PEARL.info("Loading commonconfig...")
+
+    local config = PEARL.ModConfig:LoadCommmonConfig()
+    if type(config) == "table" then
+        PEARL.ModConfig:ApplyCommonConfig(config)
+    end
+end
 
 ----------------------------------
 -- [[ Static Scheduler ]]
@@ -415,14 +457,6 @@ PEARL.loadfile("networkrpc")
 -- Requires the RPCs for correct functionality
 PEARL.info("Loading mod error handler...")
 PEARL.loadfile("error")
-
---------------------------------
--- [[ Cluster Persistance Lib ]]
---------------------------------
-
---- This has to load this soon because some of the following files use it.
---- @class ClusterPersistance
-PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance")
 
 --------------------------------
 -- [[ Strings & Translations ]]

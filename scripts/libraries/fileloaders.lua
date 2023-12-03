@@ -31,6 +31,44 @@ local _cache = {}
 -- [[ Functions ]]
 --------------------------------
 
+local function _normalize_path(path)
+    local afp = tostring(path)
+
+    -- Make sure the path is "absulute" for the game (starts from the "data" directory)
+    if afp:utf8sub(-PEARL.SRCDIR:len()) ~= PEARL.SRCDIR then
+        afp = PEARL.SRCDIR..afp
+    end
+
+    -- Remove the extensions if provided since kleiloadlua seems to add it implicitly.
+    if afp:utf8sub(-FILE_EXTENSION:len()) ~= FILE_EXTENSION then
+        afp = afp..FILE_EXTENSION
+    end
+
+    return afp
+end
+
+--- @param path string Path to the target file starting from the mod's scripts dir (do not add '.lua' postfix)
+--- @param errcb function? The error handler this file.
+--- @param normalized boolean? Whether the path provided was normalized or not (defaults to false).
+--- @return function? Function The function of the files global scope.
+local function loadfilefn(path, errcb, normalized)
+    local afp = normalized and path or _normalize_path(path)
+
+    -- fn is nil when the file was not found
+    local fn = kleiloadlua(afp)
+    if type(fn) ~= "function" then
+        -- fn should be in this case the error message
+        if type(errcb) == "function" then
+            errcb(path, fn)
+            return
+        else
+            return error("Failed to load file "..afp.." - "..tostring(fn or "File not found!"))
+        end
+    end
+
+    return fn
+end
+
 --- Loads the mod file on the given path a returns the result.
 --- Use this for loading all mod specific files to prevent any name conflicts.
 --- @param rfp string Path to the target file starting from the mod's scripts dir (do not add '.lua' postfix)
@@ -39,26 +77,16 @@ local _cache = {}
 --- @param errcb function? The error handler this file.
 --- @return any results Any results the target file returns after loading.
 local function loadfile(rfp, env, reload, errcb)
-    local afp = PEARL.SRCDIR..tostring(rfp)
-
-    -- Remove the extensions if provided since kleiloadlua seems to add it implicitly.
-    if afp:utf8sub(-FILE_EXTENSION:len()) ~= FILE_EXTENSION then
-        afp = afp..FILE_EXTENSION
-    end
+    local afp = _normalize_path(rfp)
 
     if type(_cache[afp]) == "table" and not reload then
         return unpack(_cache[afp])
     end
 
     -- fn is nil when the file was not found
-    local fn = kleiloadlua(afp)
-    if type(fn) ~= "function" then
-        -- fn should be in this case the error message
-        if type(errcb) == "function" then
-            return errcb(rfp, fn)
-        else
-            return error("Failed to load file "..afp.." - "..tostring(fn or "File not found!"))
-        end
+    local fn = loadfilefn(afp, errcb, true)
+    if not fn then
+        return
     end
 
     -- The logging library doesn't have to be loaded yet.
@@ -102,6 +130,7 @@ end
 --------------------------------
 
 return {
-    loadfile = loadfile,
-    loadlib  = loadlib,
+    loadfilefn  = loadfilefn,
+    loadfile    = loadfile,
+    loadlib     = loadlib,
 }

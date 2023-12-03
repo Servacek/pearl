@@ -21,7 +21,8 @@ local KnownModIndex = KnownModIndex
 -- [[ Attributes ]]
 ---------------------------
 
-KnownModIndex._blocked_mods_count = 0
+--- @table<string>
+KnownModIndex.blocked_mods = {}
 
 ---------------------------
 -- [[ Constants ]]
@@ -73,7 +74,23 @@ end
 
 function KnownModIndex:IsModPrivate(modname)
     --- @TODO: Disabling this for now because it seems to be very unreliable.
-    return not IsWorkshopMod(modname) --or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
+    --- @Note: December 2023: Testing this again...
+    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
+end
+
+function KnownModIndex:ShouldDisableMod(modname)
+    -- ALWAYS block private mods since all the other checks can be bypassed
+    if self:IsModPrivate(modname) then
+        PEARL.debug("Private mod!", modname)
+        return true
+    end
+
+    if self:IsModBlocklisted(modname) then
+        PEARL.debug("Blocklisted mod!", modname)
+        return true
+    end
+
+    return false
 end
 
 function KnownModIndex:IsModAllowed(modname)
@@ -81,54 +98,55 @@ function KnownModIndex:IsModAllowed(modname)
         return true -- All mods are allowed for admins
     end
 
-    -- ALWAYS block private mods since all the other checks can be bypassed
-    if self:IsModPrivate(modname) then
+    if self:ShouldDisableMod(modname) then
         return false
     end
 
-    if self:IsModBlocklisted(modname) then
-        PEARL.info("Blocklisted mod!")
+    if ALLOWLISTING == true and not self:IsModAllowlisted(modname) then
+        PEARL.debug("Not allowlisted!", modname)
         return false
     end
 
-    if not self:IsClientOnlyMod(modname) then
-        return false
-    end
-
-    return not self:IsModBlocklisted(modname) and (not ALLOWLISTING or self:IsModAllowlisted(modname))
+    return true -- All checks passed!
 end
 
-function KnownModIndex:Block(modname)
-    self:Disable(modname)
+function KnownModIndex:IsModProhibited(modname)
+    return not self:IsModAllowed(modname)
+end
 
-    if not self.savedata.known_mods[modname] then
-        self.savedata.known_mods[modname] = {}
-    end
-
-    if not self:IsModBlocked(modname) then
-        self._blocked_mods_count = self._blocked_mods_count + 1
+function KnownModIndex:Block(modname, temp)
+    if temp then
+        self:TempDisable(modname)
+    else
+        self:Disable(modname)
     end
 
     -- This is just a temporary flag that will be removed after the game restarts
     -- The thing that will stay is the disabled flag.
-    self.savedata.known_mods[modname].blocked = true
+    if not self:IsModBlocked(modname) then
+        self.blocked_mods[modname] = true
+    end
 end
 
 function KnownModIndex:IsModBlocked(modname)
-	local known_mod = self.savedata.known_mods[modname]
-	return known_mod and known_mod.blocked == true
+	return self.blocked_mods[modname]
 end
 
 function KnownModIndex:IsModDisablingDisabled()
     return self.modsettings.disablemods == false
 end
 
+function KnownModIndex:GetBlockedCount()
+    return table.size(self.blocked_mods) or 0
+end
+
 function KnownModIndex:AreAnyModsBlocked()
-    return self._blocked_mods_count > 0
+    return self:GetBlockedCount() > 0
 end
 
 function KnownModIndex:AreAllModsBlocked()
-    return self._blocked_mods_count >= (self:GetAllEnabledModsCount() - 1)
+    -- Except this mod of course
+    return self:GetBlockedCount() >= (self:GetAllEnabledModsCount() - 1)
 end
 
 -- Counts also blocked mods since they we originally enabled as well.

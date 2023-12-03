@@ -161,8 +161,6 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     SERVER_TOKEN_PATH           = "../../cluster_token.txt",
 
-    COMMON_CONFIG_PATH          = "../../commonconfig.lua",
-
     ------------------------------------
 
     KLEI_ID_PATTERN     = "KU_"..string.rep("[%d%a%p]", 8),
@@ -221,21 +219,8 @@ PEARL.info("Loading Configuration...")
 
 --- Load backend specific configuration options.
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-    if not option.general then
+    if not option.general and PEARL.CONFIG[option.name] == nil then
         PEARL.ModConfig:LoadConfigOption(option)
-    end
-end
-
---------------------------------
--- [[ Common Config ]]
---------------------------------
-
-if PEARL.CONFIG.COMMON_MOD_CONFIG then
-    PEARL.info("Loading commonconfig...")
-
-    local config = PEARL.ModConfig:LoadCommmonConfig()
-    if type(config) == "table" then
-        PEARL.ModConfig:ApplyCommonConfig(config)
     end
 end
 

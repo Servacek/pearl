@@ -26,8 +26,15 @@ local Prefabs = PEARL.GetValue(_G, "Prefabs")
 --------------------------------
 
 local PREFAB_EXTENSION_PATH = "extensions/prefabs/%s"
+
 local COMPONENT_EXTENSION_PATH = "extensions/components/%s"
 local COMPONENT_PATH = "components/%s"
+
+local FIX_PATH = "fixes/%s"
+local MOD_FIX_PATH = FIX_PATH:format("mods/%s")
+
+local MODNAME_PREFIX = "workshop-"
+
 local MT = getmetatable(PEARL.ENV)
 
 --------------------------------
@@ -68,11 +75,20 @@ local function ComponentFn(component)
     return cmp._ctor
 end
 
-local function GetEnv(name, fnloader, dynamic)
+local function ModFixFn(fixname)
+    local fixfn = PEARL.loadfilefn(MOD_FIX_PATH:format(fixname))
+    if type(fixfn) ~= "function" then
+        return error("Fix "..tostring(fixname).." could not be loaded.")
+    end
+
+    return fixfn
+end
+
+local function GetEnvWithUpvalues(name, fnloader, dynamic)
     local fn = not dynamic and fnloader(name) or nil
 
     -- Load the upvalues dynamically, use this as a cache
-    local upvalues = {}--UpvalueHacker:GetSourceFileUpvalues(fn)
+    local upvalues = {}
     local metatable = {
         __index = function(self, index)
             if upvalues[index] ~= nil then
@@ -99,19 +115,7 @@ local function GetEnv(name, fnloader, dynamic)
     }
 
     return setmetatable({
-        UPVALUES = setmetatable({
-            -- Cache = function(self, index)
-            --     if upvalues[index] then
-            --         return PEARL.warn("Index", index, "already cached!")
-            --     end
-
-            --     return metatable.__index(self, index)
-            -- end,
-
-            -- SetSource = function(self, source)
-
-            -- end
-        }, metatable),
+        UPVALUES = setmetatable({}, metatable),
     }, MT)
 end
 --------------------------------
@@ -122,15 +126,38 @@ function ExtensionManager:ExtendPrefab(prefab)
     PEARL.info("Extending prefab", prefab)
     return PEARL.loadfile(
         -- Use dynamic fn loading here because prefabs are not initialized yet.
-        PREFAB_EXTENSION_PATH:format(prefab), GetEnv(prefab, PrefabFn,true), false, errcb
+        PREFAB_EXTENSION_PATH:format(prefab), GetEnvWithUpvalues(prefab, PrefabFn,true), false, errcb
     )
 end
 
 function ExtensionManager:ExtendComponent(component)
     PEARL.info("Extending component", component)
     return PEARL.loadfile(
-        COMPONENT_EXTENSION_PATH:format(component), GetEnv(component, ComponentFn), false, errcb
+        COMPONENT_EXTENSION_PATH:format(component), GetEnvWithUpvalues(component, ComponentFn), false, errcb
     )
+end
+
+function ExtensionManager:FixMods(fixname, mods)
+    local fixfn = ModFixFn(fixname)
+    if not fixfn then
+        return
+    end
+
+    for _, modname in ipairs(mods) do
+        modname = MODNAME_PREFIX..tostring(modname)
+        print("MODNAME!!!", modname)
+        if KnownModIndex:IsModEnabledAny(modname) and not KnownModIndex:IsModBlocked(modname) then
+            PEARL.info("Applying fix", fixname, "for mod", modname)
+            local mod = ModManager:GetMod(modname)
+            local env = setmetatable({
+                CUSTOM_ENV = {
+                    TARGET_MOD = mod,
+                }
+            }, MT)
+
+            RunInEnvironment(fixfn, env)
+        end
+    end
 end
 
 --------------------------------

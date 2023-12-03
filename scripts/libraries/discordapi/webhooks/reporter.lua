@@ -46,8 +46,8 @@ local Reporter = Class(function(self)
     self._last_report_time = 0
 
     -- Config
-    self._cooldown_time = PEARL.CONFIG.DISCORD.RHOOK.COOLDOWN
-    self._max_reports   = PEARL.CONFIG.DISCORD.RHOOK.MAX_REPORTS
+    self._cooldown_time = PEARL.CONFIG.DISCORD.RHOOK.COOLDOWN or 0
+    self._max_reports   = PEARL.CONFIG.DISCORD.RHOOK.MAX_REPORTS or 5
 end)
 
 -------------------------------------

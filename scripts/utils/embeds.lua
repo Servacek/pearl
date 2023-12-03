@@ -296,6 +296,10 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
         description = description.."\n"
     end
 
+    if description ~= "" and PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST == true then
+        description = description.."\n"..PEARL.ICONS.ANNOUNCEMENTS["default"].." "..STRINGS.PEARL.EMBEDS.MODS.ALLOWLIST
+    end
+
     local shown_count = table.size(modlist)
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
