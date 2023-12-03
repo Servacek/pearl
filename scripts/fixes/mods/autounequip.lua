@@ -15,6 +15,7 @@
 local TARGET_MOD = CUSTOM_ENV.TARGET_MOD
 local TARGET_PREFAB  = "inventoryitem_classified"
 
+--- @TODO: Crashing mods are not being disabled!
 print("TARGET", TARGET_MOD)
 -- Fix for items with durability which wont disapeare after reaching 0%.
 
