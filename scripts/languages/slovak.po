@@ -3,10 +3,10 @@ msgstr ""
 "Application: Don't Starve Together\n"
 "POT Version: 2.0\n"
 
-#. STRINGS.UI.CHATINPUTSCREEN.SAY
-msgctxt "STRINGS.UI.CHATINPUTSCREEN.SAY"
-msgid "say:"
-msgstr "správa:"
+#. STRINGS.PEARL.EMBEDS.STARTUP.TITLE
+msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.TITLE"
+msgid "Server Launched"
+msgstr "Server Spustený"
 
 #. STRINGS.PEARL.SEASON_PREFIX_LATE.spring
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_LATE.spring"
@@ -128,10 +128,10 @@ msgctxt "STRINGS.PEARL.PRECIPITATION_NAMES.none"
 msgid "no precipitation"
 msgstr "žiadne zrážky"
 
-#. STRINGS.PEARL.SEASONS.AUTUMN
-msgctxt "STRINGS.PEARL.SEASONS.AUTUMN"
-msgid "Autumn"
-msgstr "Jeseň"
+#. STRINGS.PEARL.ACTIONS.EXTINGUISH.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.EXTINGUISH.GENERIC"
+msgid "{doer} extinguished {target}."
+msgstr "{doer} uhasil/a {target}."
 
 #. STRINGS.UI.PLAYERSTATUSSCREEN.AGE_DAYS
 msgctxt "STRINGS.UI.PLAYERSTATUSSCREEN.AGE_DAYS"
@@ -298,10 +298,10 @@ msgctxt "STRINGS.PEARL.LOGS.RESET_COUNTDOWN_START"
 msgid "World reset countdown has started! The server will be regenerated in %s seconds."
 msgstr "Odpočet regenerácie sveta bol zahájený! Svet bude regenerovaný o %s sekúnd."
 
-#. STRINGS.PEARL.ACTIONS.FEED.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.FEED.GENERIC"
-msgid "{doer} feed {target}."
-msgstr "{doer} nakŕmil/a {target}."
+#. STRINGS.PEARL.ACTIONS.READ.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.READ.GENERIC"
+msgid "{doer} read {target}."
+msgstr "{doer} prečítal/a {target}!"
 
 #. STRINGS.UI.NOTIFICATION.LOADING
 msgctxt "STRINGS.UI.NOTIFICATION.LOADING"
@@ -763,10 +763,10 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS"
 msgid "Player was successfully added to the whitelist."
 msgstr "Hráč bol pridaný na zoznam povolených hráčov."
 
-#. STRINGS.PEARL.LOGS.UNKNOWN
-msgctxt "STRINGS.PEARL.LOGS.UNKNOWN"
-msgid "Unknown"
-msgstr "Neznámy"
+#. STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
+msgctxt "STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE"
+msgid "{doer} wasted {target} to {source}!"
+msgstr "{doer} vyplýtval/a {source} pridávaním do {target}!"
 
 #. STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
@@ -853,10 +853,10 @@ msgctxt "STRINGS.PEARL.LOGS.EXTINGUISH_NEAR_DOER"
 msgid "%s extinguished fires near %s!"
 msgstr "%s uhasil/a ohne pri %s!"
 
-#. STRINGS.PEARL.ACTIONS.DIG.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.DIG.GENERIC"
-msgid "{doer} dug up {target}."
-msgstr "{doer} vykopal/a {target}."
+#. STRINGS.PEARL.LOGS.EXC_SELF_CLIENT
+msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_CLIENT"
+msgid "Caused uncatched exception on client (%s) %s:\n%s"
+msgstr "Neočakávaná výnimka modifikácie klienta (%s) %s:\n%s"
 
 #. STRINGS.PEARL.UI.AGREEMENT_NO_MODIFICATION_LABEL
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_NO_MODIFICATION_LABEL"
@@ -1028,20 +1028,20 @@ msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND"
 msgid "The specified shard is not connected to Master!"
 msgstr "Shard nebol nájdený!"
 
-#. STRINGS.PEARL.LOGS.AND
-msgctxt "STRINGS.PEARL.LOGS.AND"
-msgid "%s and %s"
-msgstr "%s a %s"
+#. STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTEPASSEDFMT
+msgctxt "STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTEPASSEDFMT"
+msgid "Rolling server back in 5 seconds..."
+msgstr "Server bude vrátený späť o 5 sekúnd..."
 
 #. STRINGS.PEARL.MONTHS.3
 msgctxt "STRINGS.PEARL.MONTHS.3"
 msgid "March"
 msgstr "Marec"
 
-#. STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL
-msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL"
-msgid "Name"
-msgstr "Hráč"
+#. STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.LOCALE
+msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.LOCALE"
+msgid "Locale"
+msgstr "Národnosť"
 
 #. STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT
 msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT"
@@ -1073,30 +1073,30 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND"
 msgid "Player was not found on the allowlist."
 msgstr "Hráč nebol nájdený na tomto zozname."
 
-#. STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTEPASSEDFMT
-msgctxt "STRINGS.UI.BUILTINCOMMANDS.ROLLBACK.VOTEPASSEDFMT"
-msgid "Rolling server back in 5 seconds..."
-msgstr "Server bude vrátený späť o 5 sekúnd..."
+#. STRINGS.PEARL.LOGS.AND
+msgctxt "STRINGS.PEARL.LOGS.AND"
+msgid "%s and %s"
+msgstr "%s a %s"
 
 #. STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR
 msgctxt "STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR"
 msgid "Internal proxy server error."
 msgstr "Interná chyba proxy servera."
 
-#. STRINGS.PEARL.ACTIONS.READ.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.READ.GENERIC"
-msgid "{doer} read {target}."
-msgstr "{doer} prečítal/a {target}!"
+#. STRINGS.PEARL.ACTIONS.FEED.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.FEED.GENERIC"
+msgid "{doer} feed {target}."
+msgstr "{doer} nakŕmil/a {target}."
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.ITEM_NOT_FOUND
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.ITEM_NOT_FOUND"
 msgid "Item not found!"
 msgstr "Item nebol nájdený!"
 
-#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE
-msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE"
-msgid ". He became a spooky ghost!"
-msgstr ". Teraz je z neho desivý duch!"
+#. STRINGS.PEARL.LOGS.SERVER_UNPAUSE
+msgctxt "STRINGS.PEARL.LOGS.SERVER_UNPAUSE"
+msgid "Server was unpaused."
+msgstr "Pozastavenie servera bolo zrušené."
 
 #. STRINGS.PEARL.LOGS.STOP_VOTE
 msgctxt "STRINGS.PEARL.LOGS.STOP_VOTE"
@@ -1123,20 +1123,20 @@ msgctxt "STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR"
 msgid "**Search results for `%s` (`%d`):**"
 msgstr "**Výsledky vyhľadávania pre `%s` (`%d`):**"
 
-#. STRINGS.PEARL.LOGS.SERVER_UNPAUSE
-msgctxt "STRINGS.PEARL.LOGS.SERVER_UNPAUSE"
-msgid "Server was unpaused."
-msgstr "Pozastavenie servera bolo zrušené."
+#. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE
+msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_MALE"
+msgid ". He became a spooky ghost!"
+msgstr ". Teraz je z neho desivý duch!"
 
-#. STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
-msgctxt "STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE"
-msgid "{doer} wasted {target} to {source}!"
-msgstr "{doer} vyplýtval/a {source} pridávaním do {target}!"
+#. STRINGS.PEARL.LOGS.UNKNOWN
+msgctxt "STRINGS.PEARL.LOGS.UNKNOWN"
+msgid "Unknown"
+msgstr "Neznámy"
 
-#. STRINGS.PEARL.ACTIONS.KILL.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.KILL.GENERIC"
-msgid "{doer} killed {target}!"
-msgstr "{doer} zabil/a {target}!"
+#. STRINGS.PEARL.LOGS.HIGH_PING
+msgctxt "STRINGS.PEARL.LOGS.HIGH_PING"
+msgid "**High latency (`%d ms`) was reported from client `%s`. Region: `%s`**"
+msgstr "**Bola nahlásená vysoká latencia (`%d ms`) servera od uživateľa `%s`. Región: `%s`**"
 
 #. STRINGS.UI.PLAYERSTATUSSCREEN.MODSLISTPRE
 msgctxt "STRINGS.UI.PLAYERSTATUSSCREEN.MODSLISTPRE"
@@ -1228,10 +1228,10 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE"
 msgid "Failed to set the specified field!"
 msgstr "Zadaný atribút nebolo možné zmeniť!"
 
-#. STRINGS.PEARL.ACTIONS.KILL.BOSS
-msgctxt "STRINGS.PEARL.ACTIONS.KILL.BOSS"
-msgid "{target} defeated {doer}!"
-msgstr "{doer} porazil/a {target}!"
+#. STRINGS.PEARL.UI.AGREEMENT_DC_CHECKBOX_TEXT
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_DC_CHECKBOX_TEXT"
+msgid "*I consent to the collection of my gaming data by the us - the Czechoslovak Community for improving our servers and services."
+msgstr "*Súhlasím so zhromažďovaním mojích herných údajov nami - Československou komunitou hry, za učelom moderovania a skvalitnenia naších serverov a služieb."
 
 #. STRINGS.PEARL.MONTHS.8
 msgctxt "STRINGS.PEARL.MONTHS.8"
@@ -1258,10 +1258,10 @@ msgctxt "STRINGS.PEARL.ACTIONS.KILL.FOLLOWER"
 msgid "{doer} killed {target}! Owner: {owner}"
 msgstr "{doer} zabil/a {target}! Majiteľ: {owner}"
 
-#. STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
-msgctxt "STRINGS.PEARL.ACTIONS.FERTILIZE.WITH"
-msgid "{doer} fertilized {target} with {item}."
-msgstr "{doer} pohnojil/a {target} s {item}."
+#. STRINGS.PEARL.SEASONS.SUMMER
+msgctxt "STRINGS.PEARL.SEASONS.SUMMER"
+msgid "Summer"
+msgstr "Leto"
 
 #. STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST_DIS
 msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST_DIS"
@@ -1273,15 +1273,15 @@ msgctxt "STRINGS.PEARL.LOGS.EXC_ENABLED_MODS"
 msgid "Enabled Mods (%s):\n%s"
 msgstr "Aktívne Mody (%s):\n%s"
 
-#. STRINGS.PEARL.EMBEDS.STARTUP.TITLE
-msgctxt "STRINGS.PEARL.EMBEDS.STARTUP.TITLE"
-msgid "Server Launched"
-msgstr "Server Spustený"
+#. STRINGS.UI.CHATINPUTSCREEN.SAY
+msgctxt "STRINGS.UI.CHATINPUTSCREEN.SAY"
+msgid "say:"
+msgstr "správa:"
 
-#. STRINGS.PEARL.UI.AGREEMENT_DC_CHECKBOX_TEXT
-msgctxt "STRINGS.PEARL.UI.AGREEMENT_DC_CHECKBOX_TEXT"
-msgid "*I consent to the collection of my gaming data by the us - the Czechoslovak Community for improving our servers and services."
-msgstr "*Súhlasím so zhromažďovaním mojích herných údajov nami - Československou komunitou hry, za učelom moderovania a skvalitnenia naších serverov a služieb."
+#. STRINGS.PEARL.ACTIONS.KILL.BOSS
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.BOSS"
+msgid "{target} defeated {doer}!"
+msgstr "{doer} porazil/a {target}!"
 
 #. STRINGS.PEARL.ACTIONS.KILL.LAST
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.LAST"
@@ -1293,15 +1293,15 @@ msgctxt "STRINGS.PEARL.ACTIONS.IGNITE.NEAR"
 msgid "{doer} lit {target} near {near}!"
 msgstr "{doer} zapálil/a {target} pri {near}!"
 
-#. STRINGS.PEARL.ACTIONS.CAST.ON
-msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON"
-msgid "{doer} used {item} on {target}!"
-msgstr "{doer} použil/a {item} na {target}!"
-
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF"
 msgid "You cannot give reputation to yourself!"
 msgstr "Nemôžete pridávať reputácia vlastnému profilu."
+
+#. STRINGS.PEARL.ACTIONS.CAST.ON
+msgctxt "STRINGS.PEARL.ACTIONS.CAST.ON"
+msgid "{doer} used {item} on {target}!"
+msgstr "{doer} použil/a {item} na {target}!"
 
 #. STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL"
@@ -1378,10 +1378,10 @@ msgctxt "STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_2_FEMALE"
 msgid ". She became a spooky ghost!"
 msgstr ". Teraz je z nej desivý duch!"
 
-#. STRINGS.PEARL.SEASONS.SUMMER
-msgctxt "STRINGS.PEARL.SEASONS.SUMMER"
-msgid "Summer"
-msgstr "Leto"
+#. STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
+msgctxt "STRINGS.PEARL.ACTIONS.FERTILIZE.WITH"
+msgid "{doer} fertilized {target} with {item}."
+msgstr "{doer} pohnojil/a {target} s {item}."
 
 #. STRINGS.PEARL.UI.WHISPER_WARN_TEXT
 msgctxt "STRINGS.PEARL.UI.WHISPER_WARN_TEXT"
@@ -1393,10 +1393,10 @@ msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_FINISH"
 msgid "Finish"
 msgstr "Dokončiť"
 
-#. STRINGS.PEARL.ACTIONS.EXTINGUISH.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.EXTINGUISH.GENERIC"
-msgid "{doer} extinguished {target}."
-msgstr "{doer} uhasil/a {target}."
+#. STRINGS.PEARL.SEASONS.AUTUMN
+msgctxt "STRINGS.PEARL.SEASONS.AUTUMN"
+msgid "Autumn"
+msgstr "Jeseň"
 
 #. STRINGS.PEARL.MONTHS.4
 msgctxt "STRINGS.PEARL.MONTHS.4"
@@ -1433,10 +1433,10 @@ msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.summer"
 msgid "Early"
 msgstr "Skoré"
 
-#. STRINGS.PEARL.LOGS.HIGH_PING
-msgctxt "STRINGS.PEARL.LOGS.HIGH_PING"
-msgid "**High latency (`%d ms`) was reported from client `%s`. Region: `%s`**"
-msgstr "**Bola nahlásená vysoká latencia (`%d ms`) servera od uživateľa `%s`. Región: `%s`**"
+#. STRINGS.PEARL.ACTIONS.KILL.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.KILL.GENERIC"
+msgid "{doer} killed {target}!"
+msgstr "{doer} zabil/a {target}!"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP_ALL
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP_ALL"
@@ -1453,25 +1453,25 @@ msgctxt "STRINGS.PEARL.LOGS.ROLLBACK"
 msgid "Rolling server %s snapshot(s) back!"
 msgstr "Server bude vrátený o %s záznam/y/ov späť."
 
-#. STRINGS.PEARL.LOGS.EXC_SELF_CLIENT
-msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_CLIENT"
-msgid "Caused uncatched exception on client (%s) %s:\n%s"
-msgstr "Neočakávaná výnimka modifikácie klienta (%s) %s:\n%s"
+#. STRINGS.PEARL.ACTIONS.DIG.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.DIG.GENERIC"
+msgid "{doer} dug up {target}."
+msgstr "{doer} vykopal/a {target}."
 
 #. STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED
 msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED"
 msgid "New World Seed"
 msgstr "Nový Seed Sveta"
 
-#. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_ACCEPT
-msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_ACCEPT"
-msgid "Accept"
-msgstr "Potvrdiť"
+#. STRINGS.PEARL.ACTIONS.HAMMER.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.GENERIC"
+msgid "{doer} hammered down {target}!"
+msgstr "{doer} rozbil/a {target}!"
 
-#. STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.LOCALE
-msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.LOCALE"
-msgid "Locale"
-msgstr "Národnosť"
+#. STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL
+msgctxt "STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.NAME_COL"
+msgid "Name"
+msgstr "Hráč"
 
 #. STRINGS.PEARL.LOGS.REPAIR
 msgctxt "STRINGS.PEARL.LOGS.REPAIR"
@@ -1488,10 +1488,10 @@ msgctxt "STRINGS.PEARL.SEASON_UNKNOWN"
 msgid "Unknown Season"
 msgstr "Neznáma Sezóna"
 
-#. STRINGS.PEARL.ACTIONS.HAMMER.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.GENERIC"
-msgid "{doer} hammered down {target}!"
-msgstr "{doer} rozbil/a {target}!"
+#. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_ACCEPT
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_ACCEPT"
+msgid "Accept"
+msgstr "Potvrdiť"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS"

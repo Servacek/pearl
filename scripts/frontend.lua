@@ -73,7 +73,7 @@ PEARL.SafeModTableExtend("ASSETS", {
 ----------------------------------
 
 local function UnzipConfigData(option)
-    local success, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, PEARL.CONFIG[option.name])
+    local success, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, PEARL.GetConfigData(option.name))
 
     if not success or type(data) ~= "string" then
         return PEARL.error("Decoding configuration option", option.name "failed!")
@@ -91,15 +91,17 @@ local function UnzipConfigData(option)
     return data
 end
 
+--- @TODO: Most of this is redundant
 PEARL.info("Loading Configuration...")
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-    if option.public and PEARL.CONFIG[option.name] == nil then
-        PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name) or option.default
-
-        -- In case the data were for whatever reason not ZIPped even if they should be.
+    -- Apply server changes to our public options.
+    if option.public == true then
+        -- No ZIPing in debug mode.
         if option.zip and type(PEARL.CONFIG[option.name]) == "string" and not PEARL.CONFIG.DEBUG_MODE then
-            -- This will be set to nil if unzipping fails
             PEARL.CONFIG[option.name] = UnzipConfigData(option)
+        else
+            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+            print(option.name, PEARL.CONFIG[option.name])
         end
     end
 end

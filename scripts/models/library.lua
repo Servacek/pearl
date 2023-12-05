@@ -42,12 +42,12 @@ end)
 
 --- @return boolean
 function Library:IsEnabled()
-    return self.enabled
+    return self.enabled == true
 end
 
 --- @return boolean
 function Library:IsDisabled()
-    return not self.enabled
+    return not self:IsEnabled()
 end
 
 -------------------------------------

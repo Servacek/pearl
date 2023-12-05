@@ -249,7 +249,7 @@ local function DepositItem(inventory, item)
         SortDepos()
     end
 
-    for _, depo in ipairs(GetDepoForItem(item)) do
+    for _, depo in GetDepoForItem(item) do
         if item == nil then
             return -- We have managed to add the whole item to the container.
         end

@@ -175,7 +175,7 @@ AddCommand("unban", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
-        if PEARL.BlackList:RemovePlayerByID(userid) then
+        if PEARL.BlackList:Remove(userid) then
             PEARL.info("Successfully removed", userid, "from the blocklist!")
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS)
         end

@@ -54,7 +54,7 @@ end
 
 --- @param userid string Supports both Klei and Steam IDs.
 --- @return boolean success Whether we were able to remove the given userid or not
-function BlackList:RemovePlayerByID(userid)
+function BlackList:Remove(userid)
     local blacklist = self:Get()
     for i, record in ipairs(blacklist) do
         if not record.empty and (record.userid == userid or record.netid == userid) then
@@ -70,8 +70,8 @@ function BlackList:RemovePlayerByID(userid)
     return false
 end
 
-function BlackList:AddPlayerByID(id)
-    return TheNet:Ban(id)
+function BlackList:Add(userid)
+    return TheNet:Ban(userid)
 end
 
 --------------------------------

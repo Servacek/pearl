@@ -38,6 +38,7 @@ local function OnClientError(traceback)
         if KnownModIndex:IsModEnabledAny(afflicter_modname) then
             PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
 
+            --- @TODO: Debug
             ModManager:RemoveBadMod(afflicter_modname, traceback)
             -- Make sure we call this only when all afflicter mods exist.
             ModManager:DisplayBadMods()

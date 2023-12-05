@@ -92,12 +92,14 @@ local function OverrideLoadingTipPicker(self)
 
     local tipid = weighted_random_choice(tipids)
     local tipcat = CUSTOM_LOADING_TIPS[tipid]
+    local assets = LOADING_SCREEN_TIP_ICONS[tipcat] or LOADING_SCREEN_TIP_ICONS.SURVIVAL
+    local lt_table = PEARL.CONSTS.LT_TYPE_TABLES[tipcat]
 
     return tipid ~= nil and tipcat ~= nil and {
         id      = tipid,
-        atlas   = LOADING_SCREEN_TIP_ICONS[tipcat].atlas,
-        icon    = LOADING_SCREEN_TIP_ICONS[tipcat].icon,
-        text    = PEARL.CONSTS.LT_TYPE_TABLES[tipcat][tipid]
+        atlas   = assets.atlas,
+        icon    = assets.icon,
+        text    = lt_table[tipid]
     } or nil
 end
 
@@ -105,10 +107,11 @@ local function LoadCustomTips()
     PEARL.info("Loading custom loading tips ("..tostring(#PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA)..")...")
     for _, loadingtip in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
         if DO_NOT_LOAD_TIPS[loadingtip.type] ~= true then
+            local validtype = PEARL.CONSTS.LT_TYPE_TABLES[loadingtip.type] ~= nil
             local tbl = PEARL.CONSTS.LT_TYPE_TABLES[loadingtip.type] or PEARL.CONSTS.LT_TYPE_TABLES[LT_TYPES.OTHER]
             AddLoadingTip(tbl, loadingtip.name, loadingtip.text, loadingtip.data)
 
-            CUSTOM_LOADING_TIPS[loadingtip.name] = loadingtip.type
+            CUSTOM_LOADING_TIPS[loadingtip.name] = validtype and loadingtip.type or LT_TYPES.OTHER
         end
     end
 end

@@ -500,10 +500,13 @@ function ServerNetwork:IsClientLoading(userid)
     return self:HasUserFlag(userid, USERFLAGS.IS_LOADING)
 end
 
---- True when in the lobby!
---- @Note: If better precision is required in the future, use RPCs and the enteredlobby event!
+-- Migration doesn't count here.
+-- True only from the JoinServerFilter/clientauthenticationcomplete -> ms_playerjoined
 function ServerNetwork:IsClientJoining(userid)
-    return joining_clients[userid] == true
+    local client = TheNet:GetClientTableForUser(userid)
+    return joining_clients[userid] == true and self:IsClientLoading(userid) and
+        -- Ensures this is true only on initial join.
+        client and client.prefab == "" and client.lobbycharacter == ""
 end
 
 function ServerNetwork:IsAdmin(userid)
@@ -636,24 +639,30 @@ function ServerNetwork:OnClientJoined(userid)
 end
 
 function ServerNetwork:OnClientJoining(userid)
-    if (PEARL.AdminList:Contains(userid) and not PEARL.CONFIG.DEBUG_MODE) then
-        return
-    end
-
     joining_clients[userid] = true
 end
 
 function ServerNetwork:OnClientAuthenticationComplete(userid)
     -- Keep the newest data cached.
-    self:CacheClientTableFor(userid)
+    local client = self:CacheClientTableFor(userid)
 
     -- From this point we can send RPCs to the client until the disconnect event.
     connected_clients[userid] = true
+
+    -- This event occurrs also only when joining the shard.
+    -- Ensure this is true in case it isn't
+    if joining_clients[userid] ~= true then
+        self:OnClientJoining(userid)
+    end
+
+    if self:IsClientJoining(userid) then
+        print("----------- JOINING !!! -------------------")
+    end
 end
 
 function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     PEARL.debug("ServerNetwork:OnClientFilterDataReceived")
-    PEARL.debug(DataDumper(cfd))
+    --PEARL.debug(DataDumper(cfd))
 
     -- Always keep just the newest record
     -- This is here just to make sure the data are being cached in case the RCP fails.
@@ -665,8 +674,12 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
 
     -- Make sure the client is still connected at this point
     -- because those filter checks can be quite expensive.
-    if not ServerNetwork:IsClientConnectedAny(userid) then
+    if not self:IsClientConnectedAny(userid) then
         return PEARL.debug("Already disconnected... Deffering filter execution...")
+    end
+
+    if not self:IsClientJoining(userid) then
+        return PEARL.debug("Not joining..")
     end
 
     -- Skip already trusted clients
@@ -711,6 +724,8 @@ end
 -- The "Slots Reserved" popup will be displayed.
 -- Start the timeout here since we are sure that this is being only called when joining.
 -- After this is called, the OnClientDisconnected event will ALWAYS follow.
+--
+-- Always called only on the Master shard.
 PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
     PEARL.debug("JoinServerFilter", userid, ...)
 

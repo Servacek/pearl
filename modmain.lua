@@ -145,6 +145,7 @@ GLOBAL.PEARL = setmetatable({
             return data
         end
 
+        -- Make sure the newly returned option will inherit everything from the defaults.
         local function supplement(default, actual)
             for name, value in pairs(default) do
                 if actual[name] == nil and actual[name] ~= value then
@@ -248,37 +249,6 @@ if bf then
 end
 
 --------------------------------
--- [[ General Configurations ]]
---------------------------------
-
-local function load_general_config()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        -- For frontend we preload the data, but they will be overriden afterwards.
-        if option.general == true then
-            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
-        end
-    end
-end
-
-load_general_config()
-
---------------------------------
--- [[ Configuration Overrides ]]
---------------------------------
-
-PEARL.CONFIG_OVERRIDES = {}
-
-local function load_config_overrides()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        if option.name ~= nil and option.saved ~= nil then
-            PEARL.CONFIG_OVERRIDES[option.name] = option.saved
-        end
-    end
-end
-
-load_config_overrides()
-
---------------------------------
 -- [[ Configuration Overrides ]]
 --------------------------------
 
@@ -288,11 +258,37 @@ local function load_default_config()
     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
         if option.name ~= nil and option.default ~= nil then
             PEARL.DEFAULT_CONFIG[option.name] = option.default
+
+            -- Make sure we always have at least the defaults.
+            PEARL.CONFIG[option.name] = type(option.default) and deepcopy(option.default) or option.default
         end
     end
 end
 
 load_default_config()
+
+--------------------------------
+-- [[ Configuration Overrides ]]
+--------------------------------
+
+PEARL.CONFIG_OVERRIDES = {}
+
+local function load_config_overrides()
+    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        if option.name ~= nil then
+            if option.saved ~= nil then
+                PEARL.CONFIG_OVERRIDES[option.name] = option.saved
+            end
+
+            -- For frontend we preload the data, but they will be overriden afterwards.
+            if option.general == true or (option.public == true and TheNet:GetIsClient()) then
+                PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+            end
+        end
+    end
+end
+
+load_config_overrides()
 
 --------------------------------
 -- [[ General Mod Constants]]
@@ -402,9 +398,9 @@ PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance")
 if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
     PEARL.info("Loading commonconfig...")
 
-    local config = PEARL.ModConfig:LoadCommmonConfig()
-    if type(config) == "table" then
-        PEARL.ModConfig:ApplyCommonConfig(config)
+    local configs = PEARL.ModConfig:LoadCommmonConfig()
+    if type(configs) == "table" then
+        PEARL.ModConfig:ApplyConfigs(configs)
     end
 end
 
@@ -466,11 +462,7 @@ PEARL.info("Loading strings...")
 -- Store this in the Global string table so we can apply translations more easily.
 STRINGS.PEARL = PEARL.loadfile("constants/strings")
 
--- With this implementation we are not limited to a hard coded set of languages
--- but we are able to add our own languages without changing the code instead.
--- Load translations only after strings.lua else they will be overriden.
-local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
-if PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE and io.exists(path) then
+local function LoadTranslations(path)
     local ORIGINAL_STRINGS = STRINGS
     PEARL.info("Loading translations...")
     LoadPOFile(path, PEARL.CONFIG.LANGUAGE)
@@ -479,7 +471,15 @@ if PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE and io.exists(path) then
         local TRANSLATED_STRINGS = LanguageTranslator.languages[PEARL.CONFIG.LANGUAGE]
         PEARL.loadfile("languages/createstringspo")(path, ORIGINAL_STRINGS, TRANSLATED_STRINGS)
     end
-else
+end
+
+-- With this implementation we are not limited to a hard coded set of languages
+-- but we are able to add our own languages without changing the code instead.
+-- Load translations only after strings.lua else they will be overriden.
+local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
+if io.exists(path) then
+    LoadTranslations(path)
+elseif PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE then
     PEARL.error("Language", PEARL.CONFIG.LANGUAGE, "not supported!")
 end
 

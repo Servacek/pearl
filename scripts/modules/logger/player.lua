@@ -199,7 +199,7 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
-    local rarity = PEARL.PREFABS.RARE_ITEMS[item.prefab]
+    local rarity = PEARL.GetRarityForPrefab(item.prefab)
     local silent = rarity <= 0
     local type = PEARL.CONSTS.ANN_TYPE[silent and "EAT" or "SWALLOW"]
 
@@ -315,7 +315,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
     end
 
     local prohibited = false
-    local rarity = item and PEARL.PREFABS.RARE_ITEMS[item.prefab] or 0
+    local rarity = PEARL.GetRarityForPrefab(item and item.prefab)
     if rarity > 0 then
         prohibited = true
 
@@ -337,7 +337,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
         for _, prefab in ipairs(stewer.ingredient_prefabs) do
             action:AddTarget(PEARL.PrefabToName(prefab), 1)
 
-            rarity = PEARL.PREFABS.RARE_ITEMS[prefab] or 0
+            rarity = PEARL.GetRarityForPrefab(prefab)
             if rarity > 0 then
                 PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.COOKED_RARE_INGRED * rarity)
 
@@ -463,7 +463,7 @@ end)
 RegisterPlayerItemActionHandler(ACTIONS.GIVEALLTOPLAYER,
 RegisterPlayerItemActionHandler(ACTIONS.GIVETOPLAYER,
 RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
-    local prohibited = PEARL.PREFABS.RARE_ITEMS[item.prefab]
+    local prohibited = PEARL.GetRarityForPrefab(item.prefab) >= 1
 
     return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.GIVE)

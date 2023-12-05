@@ -41,8 +41,6 @@ PEARL.SafeModTableExtend("CONSTS", {
     DISCORD = {
         API_VERSION                 = 10, -- Currently the newest
 
-        ADMIN_ROLE_ID               = "662346185411133451",
-
         --> Note: TheSim:QueryServer does only support HTTPS for POST requests
         --> .../api/<api version>/webhooks/<id>/<token>
         WEBHOOK_URL_TEMPLATE        = "https://discord.com/api/v%d/webhooks/%s/%s",
@@ -165,19 +163,6 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     KLEI_ID_PATTERN     = "KU_"..string.rep("[%d%a%p]", 8),
     STEAM_ID_PATTERN    = string.rep("%d", 17),
-
-    --- @deprecated
-    -- MARKDOWN_PATTERN            = "%~%*%_%>%|%~%`%:%[]",
-    -- FORMAT_CHARS = {
-    --     "*",
-    --     "_",
-    --     ">",
-    --     "|",
-    --     "~",
-    --     "`",
-    --     ":", -- escape discord emojis as well, ex. :wave: (this also escapes links)
-    --     "[", -- hyperlinks ([text](url))
-    -- },
 })
 PEARL.CONSTS.ENT_ONEOF_TAGS = ArrayUnion(
     PEARL.CONSTS.BASE_STRUCTURE_TAGS, PEARL.CONSTS.RESOURCE_PLANT_TAGS
@@ -189,38 +174,11 @@ PEARL.CONSTS.ENT_ONEOF_TAGS = ArrayUnion(
 
 PEARL.info("Loading Configuration...")
 
--- local CHECKS = {
---     ["string"] = function(v) return type(v) == "string" and #v > 0 end,
---     ["table"]  = function(v) return type(v) == "table" and next(v) ~= nil end,
--- }
-
---- @TODO: rethink this a bit more.
--- We expect option.checks to be a valid table here.
--- local function RunOptionChecksRecursively(option, level, failed)
---     -- By default all checks have failed.
---     failed = failed or table.getkeys(option.checks)
---     level = level or PEARL.CONFIG[option.name] or option.default
---     if type(level) ~= "table" then
---         return
---     end
-
---     for k, v in pairs(level) do
---         print(k, v)
---         if level.ENABLED == true and type(CHECKS[option.checks[k]]) == "function" and CHECKS[option.checks[k]](v) == false then
---             failed[#failed+1] = k
---             level.ENABLED = false
---         elseif type(v) == "table" then
---             RunOptionChecksRecursively(option, v, failed)
---         end
---     end
-
---     return failed
--- end
-
 --- Load backend specific configuration options.
+--- This has to be loaded here in order to run all the important checks.
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     if not option.general and PEARL.CONFIG[option.name] == nil then
-        PEARL.ModConfig:LoadConfigOption(option)
+        PEARL.ModConfig:LoadBackendOverride(option)
     end
 end
 
@@ -328,6 +286,7 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
         lt.type = lt.type and string.upper(lt.type)
         if not PEARL.CONSTS.LT_TYPES[lt.type] then
             PEARL.error("Invalid type provided for loading tip!", lt.type)
+            lt.type = PEARL.CONSTS.LT_TYPES.OTHER
         end
 
         lt.name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
@@ -532,9 +491,10 @@ PEARL.info("Loading whitelist...")
 
 --- @type Whitelist
 PEARL.WhiteList = PEARL.loadfile("libraries/wrappers/whitelist")
---- @deprecated Use AllowList instead.
+PEARL.WhiteList:Load()
+
 if PEARL.CONFIG.STRICT_WHITELIST then
-    PEARL.WhiteList:SetMode(PEARL.WhiteList.MODE.ALLOWLIST)
+    PEARL.WhiteList:SetMode(PEARL.WhiteList.MODE.STRICT)
     PEARL.WhiteList:SyncReservedWithSlots()
 end
 

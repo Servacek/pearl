@@ -144,12 +144,11 @@ end
 --- @return table<string, any>? record The record of the provided player.
 function DB:GetRecordFor(userid)
     if self:IsDisabled() then
-        return
+        return PEARL.debug("Database disabled!")
     end
 
     userid = self:MapSteamID(userid) or userid
-
-    if self._records[userid] then
+    if self._records[userid] ~= nil then
         return self._records[userid]
     end
 

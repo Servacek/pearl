@@ -162,8 +162,8 @@ end
 function ModConfig:VerifyConfig(optname, options)
     options = options or PEARL.MOD_INFO.configuration_options
     local option = GetConfigOptionByName(options, optname)
-    if type(option) ~= "table" or option.implicit == true then
-        return error("Attempted to override an invalid option ("..optname..") in modoverrides.lua.")
+    if type(option) ~= "table" or (option.implicit == true and TheNet:IsDedicated()) then
+        return error("Attempted to override an invalid or implicit option ("..optname..") in modoverrides.lua.")
     end
 end
 
@@ -191,21 +191,14 @@ function ModConfig:GetEnabledServerModsConfigDataString(client_only)
 end
 
 --- Push mod config warnings only for the server owner to see.
-function ModConfig:LoadConfigOption(option)
-    if PEARL.CONFIG[option.name] then
-        return PEARL.warn("Config option", option.name, "already loaded!")
-    end
-
-    local failed = false
+function ModConfig:LoadBackendOverride(option)
     if option.saved ~= nil then
         if option.master_only and TheShard:IsSecondary() then
             PEARL.warn("Option", option.name, "is only available for the master shard!")
-            failed = true
         end
 
         if option.caves_only and TheShard:IsMaster() then
             PEARL.warn("Option", option.name, "is only available for the secondary shard!")
-            failed = true
         end
 
         if type(option.type) == "string" and option.type:match(type(option.saved)) == nil then
@@ -215,8 +208,6 @@ function ModConfig:LoadConfigOption(option)
             else
                 PEARL.warn(log)
             end
-
-            failed = true
         end
     end
 
@@ -234,17 +225,7 @@ function ModConfig:LoadConfigOption(option)
 
     -- Set this even for implicit configurations
     -- since they will override it later.
-    PEARL.CONFIG[option.name] = failed and option.default or PEARL.GetConfigData(option.name)
-
-    -- if type(option.checks) == "table" and not IsTableEmpty(option.checks) then
-    --     local failed = RunOptionChecksRecursively(option)
-    --     if not IsTableEmpty(failed) then
-    --         PEARL.warn(
-    --             "Module", option.name, "is enabled. However, these parameters are required by it but not provided:", table.concat(failed, ", ")
-    --         )
-    --         PEARL.warn("In order for the module to function correctly, please add them to modoverrides.lua")
-    --     end
-    -- end
+    self:ApplyConfig(option.name, option.saved)
 end
 
 function ModConfig:LoadCommmonConfig()
@@ -266,31 +247,32 @@ function ModConfig:LoadCommmonConfig()
     return config
 end
 
-function ModConfig:ApplyCommonConfig(common, loaded, override, _recr)
-    --- Should be always a table since we are ensuring that.
-    loaded = _recr ~= true and (loaded or PEARL.CONFIG) or loaded
-    --- @type table?
-    override = _recr ~= true and (override or PEARL.CONFIG_OVERRIDES) or override
+--- @param name string|number
+--- @param value string|number|table
+function ModConfig:ApplyConfig(name, value, _loaded)
+    if value == nil then
+        return -- We are just extending the configuration, so no erasing.
+    end
 
-    for name, value in pairs(common) do
-        -- Only verify config options on the first level.
-        if loaded == PEARL.CONFIG then
-            PEARL.ModConfig:VerifyConfig(name)
+    _loaded = _loaded or PEARL.CONFIG
+
+    -- Currently we are only supporting verification on the first layer.
+    if _loaded == PEARL.CONFIG then
+        PEARL.ModConfig:VerifyConfig(name)
+    end
+
+    if type(value) == "table" then
+        for sub_name, sub_value in pairs(value) do
+            self:ApplyConfig(sub_name, sub_value, _loaded[name])
         end
+    else
+        _loaded[name] = value
+    end
+end
 
-        if type(value) == "table" and #value == 0 and not table.empty(value) then
-            -- Ensure the override for this option is a table as well.
-            if type(loaded[name]) ~= "table" then
-                loaded[name] = type(PEARL.DEFAULT_CONFIG[name]) == "table" and deepcopy(PEARL.DEFAULT_CONFIG[name]) or {}
-            end
-
-            self:ApplyCommonConfig(value, loaded[name], override and override[name], true)
-        else
-            -- If no override exists for this configuration
-            if not override or override[name] == nil then
-                loaded[name] = value
-            end
-        end
+function ModConfig:ApplyConfigs(configs)
+    for name, value in pairs(configs) do
+        self:ApplyConfig(name, value)
     end
 end
 

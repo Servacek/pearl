@@ -58,7 +58,7 @@ local Reputation = {}
 -- [[ Static ]]
 --------------------------------------
 
---- @type string
+--- @type number
 Reputation.STARTING_VALUE = PEARL.CONSTS.STARTING_REPUTATION
 
 --------------------------------------
@@ -71,8 +71,9 @@ function Reputation:GetFieldOf(userid, field)
     return PEARL.DB:GetSubField(userid, "reputation", field)
 end
 
+--- @return number
 function Reputation:GetOf(userid)
-    return self:GetFieldOf(userid)
+    return userid and tonumber(self:GetFieldOf(userid, "value")) or Reputation.STARTING_VALUE
 end
 
 function Reputation:GetPeakOf(userid)

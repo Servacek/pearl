@@ -620,17 +620,6 @@ configuration_options = {
     -- Access Lists
     --------------------
 
-    {   -- Will add all admins to the whitelist, so they will get
-        -- an
-        name = "GARANT_ADMIN_SLOTS",
-        default = true,
-        options = {
-            true,
-            false,
-        },
-        type = "boolean",
-    },
-
     {
         name = "ALLOWLIST",
         default = false,

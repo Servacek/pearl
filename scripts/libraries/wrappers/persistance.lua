@@ -107,7 +107,8 @@ end
 
 --- Always does implicit ensuring of the file similiar to the "w" read mode in "io".
 function ClusterPersistance:SetFileLines(fp, lines, encode)
-    return self:SetFileContent(fp, table.concat(lines, "\n"), encode)
+    -- Start we a new line to make the file a bit more readable because of the prefix.
+    return self:SetFileContent(fp, "\n"..table.concat(lines, "\n"), encode)
 end
 
 --------------------------------

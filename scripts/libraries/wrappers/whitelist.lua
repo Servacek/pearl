@@ -27,11 +27,12 @@ local WHITELIST_PATH = "../../whitelist.txt"
 
 --- @class Whitelist
 local WhiteList = {
+    _userids = {},
+
     MODE = {
         DISABLED = 0,
         DEFAULT = 1,
-        -- Keep total player slots count in sync with the total reserved slot's count
-        ALLOWLIST = 2,
+        STRICT = 2, -- Only players on the list will be able to join
     }
 }
 
@@ -39,45 +40,43 @@ local WhiteList = {
 -- [[ Private Variables ]]
 --------------------------------------
 
+local _AddToWhiteList, _RemoveFromWhiteList, _IsWhiteListed
+
 local _mode = WhiteList.MODE.DEFAULT
-
---------------------------------------
--- [[ Private Functions ]]
---------------------------------------
-
-local function GetSavedMaxReservedSlots()
-    -- This can be nil when not configured.
-    local whitelist_slots = TheSim:GetSetting("NETWORK", "whitelist_slots")
-    return whitelist_slots and tonumber(whitelist_slots) or 0
-end
-
-
-local function GetSavedMaxPlayers()
-    local max_players = TheSim:GetSetting("GAMEPLAY", "max_players")
-    return max_players and tonumber(max_players) or TUNING.MAX_SERVER_SIZE
-end
-
-local function ResetMaxPlayers()
-    TheNet:SetDefaultMaxPlayers(GetSavedMaxPlayers())
-end
 
 --------------------------------------
 -- [[ Setters ]]
 --------------------------------------
 
-function WhiteList:Add(userid)
-    TheNet:AddToWhiteList(userid)
+function WhiteList:Add(userid, broadcasted)
+    if userid ~= nil and self._userids[userid] ~= true then
+        PEARL.debug("WhiteList:Add", userid, broadcasted)
 
-    if _mode == WhiteList.MODE.ALLOWLIST then
-        self:SyncReservedWithSlots()
+        self._userids[userid] = true
+        if TheShard:IsMaster() then
+            -- Update the engines table
+            _AddToWhiteList(TheNet, userid)
+        end
+
+        if not broadcasted then
+            PEARL.BroadcastRPCToAllShards(PEARL.RPC.AddToWhiteList, userid)
+        end
     end
 end
 
-function WhiteList:Remove(userid)
-    TheNet:RemoveFromWhiteList(userid)
+function WhiteList:Remove(userid, broadcasted)
+    if self._userids[userid] ~= nil then
+        PEARL.debug("WhiteList:Remove", userid, broadcasted)
 
-    if _mode == WhiteList.MODE.ALLOWLIST then
-        self:SyncReservedWithSlots()
+        self._userids[userid] = nil
+        if TheShard:IsMaster() then
+            -- Update the engines table
+            _RemoveFromWhiteList(TheNet, userid)
+        end
+
+        if not broadcasted then
+            PEARL.BroadcastRPCToAllShards(PEARL.RPC.RemoveFromWhiteList, userid)
+        end
     end
 end
 
@@ -85,66 +84,74 @@ function WhiteList:SetMode(mode)
     _mode = mode
 end
 
-function WhiteList:SyncReservedWithSlots()
-    return TheSim:GetPersistentString(WHITELIST_PATH, function(success, content)
-        if not success then
-            return PEARL.error("Failed to load the whitelist!")
-        end
-
-        local reserved_slots = 0
-        for _, line in ipairs(content:split("\n")) do
-            -- If the ID on the line is vaid.
-            if #line:lstrip() > 3 then
-                reserved_slots = reserved_slots + 1
-            end
-        end
-
-        if reserved_slots <= 0 then
-            return ResetMaxPlayers()
-        end
-
-        local max_reserved_slots = GetSavedMaxReservedSlots()
-        local max_slots = GetSavedMaxPlayers()
-
-        if max_reserved_slots ~= nil and max_reserved_slots > 0 then
-            return TheNet:SetDefaultMaxPlayers(
-                math.min(math.min(max_reserved_slots, max_slots), reserved_slots)
-            )
-        end
-
-        return TheNet:SetDefaultMaxPlayers(
-            math.min(max_slots, reserved_slots)
-        )
-    end)
+function WhiteList:GetMode()
+    return _mode
 end
 
 --------------------------------------
 -- [[ Getters ]]
 --------------------------------------
 
--- TODO: Read the whitelist by ourselves
--- because this doesn't work for the Caves shard.
 function WhiteList:Contains(userid)
-    return TheNet:IsWhiteListed(userid)
+    return self._userids[userid] == true
 end
 
 --------------------------------------
--- [[ Event Handlers ]]
+-- [[ Public Functions ]]
 --------------------------------------
 
-local function OnAdminListLoaded(userids)
-    --- @TODO:
+function WhiteList:Load()
+    local lines = PEARL.ClusterPersistance:GetAllFileLines(WHITELIST_PATH, false, true)
+    for _, userid in ipairs(lines) do
+        self._userids[userid] = true
+    end
+
+    if _mode == WhiteList.MODE.STRICT then
+        self:SyncReservedWithSlots()
+    end
 end
 
 --------------------------------------
--- [[ Event Listeners ]]
+-- [[ RPCs ]]
 --------------------------------------
 
--- We are running here only when the adminlist loads, since
--- that's the only way to
-if PEARL.CONFIG.GARANT_ADMIN_SLOTS then
-    PEARL.EventProcessor:AddEventHandler("adminlist_loaded", OnAdminListLoaded)
-end
+PEARL.AddShardRPCHandler("AddToWhiteList", function(shardid, userid)
+    WhiteList:Add(userid, true)
+end)
+
+PEARL.AddShardRPCHandler("RemoveFromWhiteList", function(shardid, userid)
+    WhiteList:Remove(userid, true)
+end)
+
+--------------------------------------
+-- [[ Overrides ]]
+--------------------------------------
+-- The original version is very poorely implemented so we are using our own.
+-- They do not work for secondary shards and also do not propagate the changes.
+--
+-- Note: These functions expect saving!
+
+_IsWhiteListed = PEARL.OverrideUserdataValue("IsWhiteListed", function(self, userid)
+    return WhiteList:Contains(userid)
+end, TheNet)
+
+_AddToWhiteList = PEARL.OverrideUserdataValue("AddToWhiteList", function(self, userid)
+    return WhiteList:Add(userid)
+end, TheNet)
+
+_RemoveFromWhiteList = PEARL.OverrideUserdataValue("RemoveFromWhiteList", function(self, userid)
+    return WhiteList:Remove(userid)
+end, TheNet)
+
+--------------------------------------
+-- [[ Filters  ]]
+--------------------------------------
+
+PEARL.ServerNetwork:AddJoinServerFilter(function(userid)
+    if WhiteList:GetMode() == WhiteList.MODE.STRICT then
+        return WhiteList:Contains(userid)
+    end
+end)
 
 --------------------------------------
 -- [[ Return ]]

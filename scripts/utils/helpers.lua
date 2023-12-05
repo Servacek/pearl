@@ -327,6 +327,10 @@ function PEARL.TimestampToFancyDateString(timestamp)
     )
 end
 
+function PEARL.GetRarityForPrefab(prefab)
+    return (prefab and tonumber(PEARL.PREFABS.RARE_ITEMS[prefab])) or 0
+end
+
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
@@ -381,68 +385,6 @@ function PEARL.GetStandardizedNameFor(entity)
 
     return entity and (STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName())
 end
-
---- @deprecated
--- function PEARL.FormatSortedPrefabs(prefabs)
---     local result = ""
---     local sep = ""
---     local first = true
---     for name, count in pairs(prefabs) do
---         -- if we are on the last prefab
---         if not first and next(prefabs, name) == nil then
---             result = result.." "..STRINGS.PEARL.LOGS.AND.." "
---             sep = ""
---         end
-
---         name = STRINGS.NAMES[string.upper(name)] or name
---         if count and count > 1 then
---             result = result..count.."x "..name..sep
---         else
---             result = result..name..sep
---         end
-
---         if first then
---             first = false
---             sep = ", "
---         end
---     end
-
---     return result
--- end
-
--- function PEARL.SortPrefabs(list, center)
---     local prefabs = {}
---     local length = 0
---     for _, ent in pairs(list) do
---         if ent ~= center then -- shouldn't be needed
---             -- Try to use the basic names here since it's not possible
---             -- to find name for all avaible prefabs in STRINGS.NAMES.
---             -- Example is flower_cave_double - Light Flower
---             if not prefabs[ent:GetBasicDisplayName()] then
---                 prefabs[ent:GetBasicDisplayName()] = 1
---                 length = length + 1
---             else
---                 prefabs[ent:GetBasicDisplayName()] = prefabs[ent:GetBasicDisplayName()] + 1
---             end
---         end
---     end
-
---     return PEARL.FormatSortedPrefabs(prefabs)
--- end
-
-
--- local function format_grouped(grouped)
---     local fancy_names = {}
---     for name, count in pairs(grouped) do
---         if count > 1 then
---             fancy_names[#fancy_names + 1] = STRINGS.PEARL.LOGS.ITEM:format(count, name)
---         else
---             fancy_names[#fancy_names + 1] = name
---         end
---     end
-
---     return table.fconcat(fancy_names)
--- end
 
 function PEARL.GroupEntitiesByPrefab(entities)
     local grouped = {}
@@ -507,55 +449,6 @@ function PEARL.SafeRun(func, ...)
     return unpack(result)
 end
 
--- The input can be either individual numbers or a percent table.
--- function PEARL.PercentToRGB(rp, gp, bp)
---     if type(rp) == "table" then
---         bp = rp.b or rp[3]
---         gp = rp.g or rp[2]
---         rp = rp.r or rp[1]
---     end
-
---     return math.floor(rp * 255), math.floor(gp * 255), math.floor(bp * 255)
--- end
-
--- The input can be either individual numbers or a RGB table.
--- since RGB function returns RGB table as percenteges, let's do that as well.
--- function PEARL.RGBAToDecimal(r, g, b, a)
---     if type(r) == "table" then
---         a = r.a or r[4]
---         b = r.b or r[3]
---         g = r.g or r[2]
---         r = r.r or r[1]
---     end
-
---     return bit.lshift((r or 0), 24) + bit.lshift((g or 0), 16) + bit.lshift((b or 0), 16) + (a or 0)
--- end
-
--- function PEARL.PercentToDecimal(r, g, b)
---     if type(r) == "table" then
---         b = r.b or r[3] or 0
---         g = r.g or r[2] or 0
---         r = r.r or r[1] or 0
---     end
-
---     r, g, b = PEARL.PercentToRGB(r, g, b)
-
---     return bit.lshift(r, 16) + bit.lshift(g, 8) + b
--- end
-
--- -- Does return r, g, b separately, use GetColorFromDecimal for a color table.
--- function PEARL.DecimalToRGBA(decimal)
---     if type(decimal) ~= "number" then
---         return 0, 0, 0, 0
---     end
-
---     return bit.band(bit.rshift(decimal, 24), 0xFF), bit.band(bit.rshift(decimal, 16), 0xFF), bit.band(bit.rshift(decimal, 8), 0xFF), bit.band(decimal, 0xFF)
--- end
-
--- function PEARL.DecimalToPercent(decimal)
---     return RGBToPercentColor(PEARL.DecimalToRGBA(decimal))
--- end
-
 function PEARL.ToISO8601UTC(timestamp)
     -- This is used when sending timestamps to external services (like discord)
     -- which require this format. Such services want the time in UTC so they can
@@ -583,26 +476,4 @@ function PEARL.ExtinguishFires(x, y, z, radius)
     end
 
     return count
-end
-
-function PEARL.ExtinguishAllFires()
-    -- Extinguish fires all around the world.
-    PEARL.ExtinguishFires(0, 0, 0, WORLD_TILES_OCEAN_SIZE)
-
-    PEARL.info("All world fires were extinguished!")
-end
-
-function PEARL.ExtinguishFiresNearAll()
-    if #AllPlayers > 0 then
-        return PEARL.info("Server is empty")
-    end
-
-    for _, v in ipairs(AllPlayers) do
-        if v.Transform then
-            local x, y, z = v.Transform:GetWorldPosition()
-            PEARL.ExtinguishFires(x, y, z, PEARL.CONSTS.EXTINGUISH_RADIUS)
-        end
-    end
-
-    PEARL.info("Fires near all", AllPlayers and #AllPlayers or 0, "players were extinguished!")
 end
