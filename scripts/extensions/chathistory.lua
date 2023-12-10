@@ -46,6 +46,10 @@ end
 
 --- @param message table<string, any>
 function ChatHistory:AddChatMessage(message)
+    if type(message.message) ~= "string" then
+        return PEARL.error("Attempted to add an invalid chat message!", message.message)
+    end
+
     PEARL.info(string.format("[Say] %s > %s: %s", tostring(message.sender or "UNKNOWN"), message.receiver or "ALL", message.message))
 
     if not TheNet:IsDedicated() then

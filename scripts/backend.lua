@@ -458,7 +458,6 @@ local function LoadExtensions()
     end
 
     PEARL.info("Loading game script extensions...")
-    PEARL.loadfile("extensions/scripts/entity")
     PEARL.loadfile("extensions/scripts/entityscript")
     PEARL.loadfile("extensions/scripts/playercommon")
 
@@ -583,7 +582,7 @@ ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 --ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)
 ModuleManager:AddModule("modreporter", PEARL.CONFIG.MOD_BLOCKER.REPORT_MODS)
 ModuleManager:AddModule("inventoryreporter", PEARL.CONFIG.INVENTORY_REPORTER.ENABLED)
-ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.SHOW_PLAYER_ICONS)
+ModuleManager:AddModule("globalplayericons", PEARL.CONFIG.PLAYER_MAP_ICONS.ENABLED)
 ModuleManager:AddModule("selfstacker", PEARL.CONFIG.SELF_STACKER.ENABLED)
 ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)

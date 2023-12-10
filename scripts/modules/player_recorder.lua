@@ -16,6 +16,8 @@
 
 local QUERIES = PEARL.SteamAPI.QUERIES
 
+local DAY_PERCENT_SEGMENT = .1
+
 --------------------------------------
 -- [[ Local Functions ]]
 --------------------------------------
@@ -148,6 +150,7 @@ local function OnClientAuthenticationComplete(world, data)
     print("SETTING LASTSHARID TO", PEARL.SHARDID)
     -- Set this as soon as possible.
     PEARL.DB:SafeSetField(data.userid, "lastshardid", tostring(PEARL.SHARDID))
+    PEARL.DB:SaveRecordFor(data.userid)
 end
 
 local function OnClientDisconnected(world, data)
@@ -208,28 +211,50 @@ local function OnWorldLoadedForClient(userid)
     PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
 end
 
---------------------------------------
--- [[ Hooks ]]
---------------------------------------
+local function OnNewDaySurvived(userid)
+    PEARL.debug("OnNewDaySurvived", userid)
+    -- Add reputation for surviving days.
+end
 
-PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(game_mode, level, age, player)
-    if not (type(player) == "table" and player:IsValid() and player.userid ~= "") then
+local function OnNewDayPercentSegment()
+    for _, player in ipairs(AllPlayers) do
+        local userid = player.userid
+
+        -- Do only increase the days alive for alive active players.
+        if not PEARL.ServerNetwork:IsClientGhost(userid) and not PEARL.ServerNetwork:IsClientInactive(userid) then
+            local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
+            local newdaysalive = daysalive + DAY_PERCENT_SEGMENT
+            PEARL.DB:SetField(userid, "daysalive", newdaysalive)
+
+            if math.floor(daysalive) < math.floor(newdaysalive) then
+                OnNewDaySurvived(userid)
+            end
+        end
+
+        local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
+        PEARL.DB:SetField(userid, "totaldays", totaldays + DAY_PERCENT_SEGMENT)
+    end
+end
+
+local __dp = nil
+local function OnWorldClockTick(world, data)
+    local cp = data.time
+    if __dp == nil then
+        __dp = cp
         return
     end
 
-    PEARL.debug("NotifyPlayerPresence", age, player)
+    local delta = cp - __dp
+    if delta >= .1 or delta <= -.1 then
+        __dp = cp
 
-    -- To keep things simple we will pretend the delta is always 1
-    local delta = 1 -- player.Network and player.Network:GetPlayerAge() - age or nil
-    local userid = player.userid
-    local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
-    PEARL.DB:SetField(player.userid, "totaldays", totaldays + delta)
-
-    if not player:HasTag("playerghost") then
-        local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
-        PEARL.DB:SetField(player.userid, "daysalive", daysalive + delta)
+        OnNewDayPercentSegment()
     end
-end)
+end
+
+--------------------------------------
+-- [[ Hooks ]]
+--------------------------------------
 
 PEARL.EventProcessor:AddSafeEventHandler("clientagreementdatareceived", OnClientAgreementDataReceived)
 
@@ -240,6 +265,9 @@ PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
 
 PEARL.AddWorldPostInit(function(world)
+    -- Using this instead of NotifyPlayerPresence because that is really inaccurate.
+    world:SafeListenForEvent("clocktick", OnWorldClockTick)
+
     world:ListenForModEvent("ms_clientconnected", OnClientConnected)
     world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
     world:SafeListenForEvent("ms_playerdespawnandmigrate", OnClientMigrating)

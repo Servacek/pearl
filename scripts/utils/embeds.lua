@@ -41,9 +41,9 @@ local EMBEDS = {}
 --- @return Embed
 function EMBEDS.Inventory(pmd, highlighted)
     local userid    = pmd:GetUserID()
-    local name      = pmd:GetName() or ""
+    local name      = pmd:GetName() or PEARL.DB:GetField(userid, "name") or ""
     local inventory = pmd:GetInventory()
-    local prefab    = pmd:GetPrefab()
+    local prefab    = PEARL.DB:GetField(userid, "fancyprefab", pmd:GetPrefab())
     local age       = pmd:GetAge()
     local netid     = pmd:GetNetID()
     local url       = netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
@@ -102,7 +102,8 @@ function EMBEDS.SuspiciousInventory(pwd, suspiciousness)
     if type(suspiciousness) == "number" then
         embed:AddField(
             STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SUSPICIOUSNESS,
-            MARKDOWN.codeline(tostring(math.floor(suspiciousness * 100)).."%")
+            MARKDOWN.codeline(tostring(math.floor(suspiciousness * 100)).."%"),
+            true
         )
     end
 
@@ -262,7 +263,7 @@ function EMBEDS.WorldRegen(world, session_id)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
-        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.WALRUS_CAMPS, tostring(c_countprefabs("walrus_camp") or 0), true)
+        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
 end
 
 --- @return Embed

@@ -59,19 +59,19 @@ local Colour = {}
 --- @param g integer? green (0-255)
 --- @param b integer? blue (0-255)
 --- @param a integer? optional alpha (0-255)
---- @return table<p_red, p_green, p_blue, p_alpha>
+--- @return table<number, number, number, number>
 function Colour.FromRGBA(r, g, b, a)
     return {Colour.RGBAToPercent(r or 0, g or 0, b or 0, a or 255)}
 end
 
 --- @param decimal integer The color's RGB 24 bit decimal value.
---- @return table<p_red, p_green, p_blue, p_alpha>
+--- @return table<number, number, number, number>
 function Colour.FromDecimal(decimal)
     return {Colour.DecimalToPercent(decimal)}
 end
 
 --- @param decimal integer The color's RGBA 32 bit decimal value.
---- @return table<p_red, p_green, p_blue, p_alpha>
+--- @return table<number, number, number, number>
 function Colour.FromDecimal32(decimal)
     return {Colour.Decimal32ToPercent(decimal)}
 end

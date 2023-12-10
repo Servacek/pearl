@@ -25,19 +25,6 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 
 local show_popup = true
 
-local function SaveModIndex()
-    --- @NOTE: This only works if DEVELOPER MODE is OFF!
-    KnownModIndex:Save()
-
-    if PEARL.CONFIG.DEBUG_MODE then
-        local _BRANCH = _G.BRANCH
-
-        PEARL.OverrideVariable("BRANCH", "release")
-        KnownModIndex:Save()
-        PEARL.OverrideVariable("BRANCH", _BRANCH)
-    end
-end
-
 local function BlockMod(modname, nosaving, temp)
     PEARL.debug("Blocking mod "..modname)
     if type(ModManager.enabledmods) == "table" then
@@ -53,7 +40,7 @@ local function BlockMod(modname, nosaving, temp)
     KnownModIndex:Block(modname, temp)
 
     if nosaving ~= true then
-        SaveModIndex()
+        KnownModIndex:Save()
     end
 end
 
@@ -73,7 +60,7 @@ local function VerifyAllLoadedMods()
     end
 
     -- Save the changes made to the mod configurations
-    SaveModIndex()
+    KnownModIndex:Save()
 
     return bypassed
 end

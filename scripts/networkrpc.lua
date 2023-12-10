@@ -17,6 +17,9 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 
 local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
+--- @ERRORS:
+--- RPC string failed to decode -> You are calling an RPC from an RPC! Add ExecuteInTime(0, ...)
+
 --------------------------
 -- Initialization
 --------------------------
@@ -32,7 +35,6 @@ local function HandleRPCError(err, sender, traceback)
     PEARL.DiscordReporter:ReportInvalidClientRPC(userid, reason)
 end
 
---- @DEBUG
 local ServerRPCHandler = function(fn)
     return type(fn) == "function" and function(sender, ...)
         local success, err = pcall(fn, sender, ...)
@@ -58,7 +60,7 @@ local CLIENT_RPCS = {
         end
 
         local success, message = pcall(json.decode, data)
-        if success and type(message) ~= "table" then
+        if success == false or type(message) ~= "table" then
             return PEARL.error("Failed to decode the message JSON data!")
         end
 
@@ -109,6 +111,8 @@ local SHARD_RPCS = {
     end,
 
     BroadcastRPCToShards = function(shardid, client_rpc_id, sender_list, ...)
+        PEARL.debug("[RPC] BroadcastRPCToShards", client_rpc_id, sender_list, ...)
+
         -- Handle sender list being an encoded list of userids.
         local success, data = pcall(json.decode, sender_list)
         if success and type(data) == "table" then
@@ -117,22 +121,23 @@ local SHARD_RPCS = {
 
         -- It seems like you cannot execute RPC in an RPC...
         PEARL.WallScheduler:ExecuteInTime(
-            0, PEARL.BroadcastRPCToShards, nil, client_rpc_id, sender_list, ...
+            0, PEARL.BroadcastRPCToShardsGlobal, nil, client_rpc_id, sender_list, ...
         )
     end,
 
-    BroadcastClientRPC = function(shardid, client_rpc_id, sender_list, ...)
-        PEARL.debug("BroadcastClientRPC", client_rpc_id, sender_list, ...)
+    SendRPCToClient = function(shardid, rpc_id, sender_list, ...)
+        PEARL.debug("[RPC] SendRPCToClient", rpc_id, sender_list, ...)
 
         -- Handle sender list being an encoded list of userids.
+        -- Sender list is always either nil or a string
         local _, data = pcall(json.decode, sender_list)
         if type(data) == "table" then
             sender_list = data
         end
 
-        -- It seems like you cannot execute RPC in an RPC...
+        -- It seems like you cannot execute RPC in a RPC...
         PEARL.WallScheduler:ExecuteInTime(
-            0, PEARL.SendRPCToClient, nil, client_rpc_id, sender_list, ...
+            0, PEARL.SendRPCToClient, nil, rpc_id, sender_list, ...
         )
     end,
 }
@@ -145,29 +150,12 @@ local SERVER_USERID_RPCS = {
             return PEARL.ServerNetwork:OnInvalidRPCFromClient("AFKStateChanged", userid)
         end
 
-        local player = LookupPlayerInstByUserID(userid)
-        local client = userid and TheNet:GetClientTableForUser(userid)
-        if not (player or client) then
-            return
-        end
-
-        local name = player and player:GetDisplayName() or client.name
-        local entity = player and player.entity or nil
         if kicked then
-            -- Make sure we close the connection
-            PEARL.ServerNetwork:CloseConnectionFor(userid, "ID_DST_USER_INACTIVE")
-
+            TheNet:Kick(userid, 0) -- Make sure the user can immediately re-join
             PEARL.EventProcessor:HandleEvent("afk_kicked", userid)
-            return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
-                name
-            ), PEARL.CONSTS.ANN_TYPE.KICKED_FROM_GAME, entity)
+        else
+            PEARL.EventProcessor:HandleEvent("afk_statechanged", userid, is_afk)
         end
-
-        PEARL.EventProcessor:HandleEvent("afk_statechanged", is_afk)
-
-        local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
-        local type = PEARL.CONSTS.ANN_TYPE[is_afk and "AFK_START" or "AFK_STOP"]
-        return PEARL.AnnounceWithType(message:format(name), type, entity)
     end,
 
     --- @TODO: Maybe move this somewhere else?
@@ -268,14 +256,20 @@ end
 
 -- Getters
 
+--- @param name string|number
+--- @return table?
 function PEARL.GetClientRPC(name)
     return GetClientModRPC(PEARL.RPC_NAME, name)
 end
 
+--- @param name string|number
+--- @return table?
 function PEARL.GetShardRPC(name)
     return GetShardModRPC(PEARL.RPC_NAME, name)
 end
 
+--- @param name string|number
+--- @return table?
 function PEARL.GetServerRPC(name)
     return GetModRPC(PEARL.RPC_NAME, name)
 end
@@ -297,24 +291,28 @@ end
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.SendRPCToMaster(rpc_id, ...)
+    PEARL.debug("PEARL.SendRPCToMaster", rpc_id, ...)
+
     return PEARL.SendRPCToShard(rpc_id, SHARDID.MASTER, ...)
 end
 
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
---- @param sender_list? table|string|string
+--- @param sender_list? table|number|string
 --- @param ... any Any additional data provided to the rpc handler.
 --- if sender_list is nil, all connected shards(including the one this is called on) will have this RPC executed.
 --- if sender_list is a table, it will be iterated upon and send it to every shard that's ID is in the table.
 --- if sender_list is either a string or a number, it will send that RPC to the specific shard with that ID.
 function PEARL.SendRPCToShard(rpc_id, sender_list, ...)
+    PEARL.debug("SendRPCToShard", rpc_id, sender_list, ...)
+
     return SendModRPCToShard(PEARL.GetShardRPC(rpc_id), sender_list, ...)
 end
 
---- Broadcasts the given client RPC to the specfied shards.
+--- Broadcasts the given client RPC to the specified shards accross the server.
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param shards? table|string
 --- @param ... any Any additional data provided to the rpc handler.
-function PEARL.BroadcastRPCToShards(rpc_id, shards, ...)
+function PEARL.BroadcastRPCToShardsGlobal(rpc_id, shards, ...)
     PEARL.debug("BroadcastRPCToShards", rpc_id, shards, ...)
     if TheShard:IsMaster() then
         -- On master we can send the RPC directly since all shards are accessible.
@@ -341,23 +339,27 @@ end
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.BroadcastRPCToAllShards(rpc_id, ...)
     PEARL.debug("BroadcastRPCToAllShards", rpc_id, ...)
-    return PEARL.BroadcastRPCToShards(rpc_id, nil, ...)
+
+    return PEARL.BroadcastRPCToShardsGlobal(rpc_id, nil, ...)
 end
 
 --- Sends the given RPC to all connected shards except the current one.
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.BroadcastRPCToConnectedShards(rpc_id, ...)
+     PEARL.debug("BroadcastRPCToConnectedShards", rpc_id, ...)
+
     local connected_shards = PEARL.ServerNetwork:GetConnectedShardIDs()
     if table.empty(connected_shards) then
         return PEARL.debug("RPC.BroadcastRPCToConnectedShards: No shards connected!")
     end
 
-    return PEARL.BroadcastRPCToShards(rpc_id, connected_shards, ...)
+    return PEARL.SendRPCToShard(rpc_id, connected_shards, ...)
 end
 
 --- Client Broadcasting (Shard -> Client) ---
 
+--- Sends the given RPC to the specified client within the current shard.
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param sender_list? table|string
 --- @param ... any Any additional data provided to the rpc handler.
@@ -365,6 +367,21 @@ end
 --- if sender_list is a table, it will be iterated upon and send it to every client that is connected to the current shard thats UserID is in the table.
 --- if sender_list is a string, it will send the RPC to the specific client with that UserID, as long as they are connected to that shard.
 function PEARL.SendRPCToClient(rpc_id, sender_list, ...)
+    PEARL.debug("SendRPCToClient", rpc_id, ...)
+
+    return SendModRPCToClient(PEARL.GetClientRPC(rpc_id), sender_list, ...)
+end
+
+--- Sends the given RPC to the specified client within the whole server.
+--- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
+--- @param sender_list? table|string
+--- @param ... any Any additional data provided to the rpc handler.
+--- if sender_list is nil, all clients connected to the current shard will execute the RPC.
+--- if sender_list is a table, it will be iterated upon and send it to every client that is connected to the current shard thats UserID is in the table.
+--- if sender_list is a string, it will send the RPC to the specific client with that UserID, as long as they are connected to that shard.
+function PEARL.SendRPCToClientGlobal(rpc_id, sender_list, ...)
+    PEARL.debug("SendRPCToClientGlobal", rpc_id, sender_list, ...)
+
     if sender_list ~= nil and type(sender_list) ~= "table" then
         sender_list = {sender_list}
     end
@@ -389,12 +406,11 @@ function PEARL.SendRPCToClient(rpc_id, sender_list, ...)
     end
 
     if l_receivers or sender_list == nil then
-        PEARL.debug("SendRPCToClient to local clients...")
-        SendModRPCToClient(PEARL.GetClientRPC(rpc_id), l_receivers, ...)
+        PEARL.SendRPCToClient(rpc_id, l_receivers, ...)
     end
 
     if r_receivers or sender_list == nil then
-        PEARL.BroadcastRPCToConnectedShards(PEARL.RPC.BroadcastClientRPC, rpc_id, r_receivers, ...)
+        PEARL.BroadcastRPCToConnectedShards(PEARL.RPC.SendRPCToClient, rpc_id, r_receivers, ...)
     end
 end
 
@@ -417,14 +433,14 @@ function PEARL.BroadcastRPCToAllClients(rpc_id, ...)
         return PEARL.error("Can only be called from a server.")
     end
 
-    PEARL.BroadcastRPCToClients(rpc_id, nil, ...)
+    PEARL.BroadcastRPCToClientsGlobal(rpc_id, nil, ...)
 end
 
 --- Sends the RPC to the selected clients accross the server.
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param sender_list? table|string
 --- @param ... any Any additional data provided to the rpc handler.
-function PEARL.BroadcastRPCToClients(rpc_id, sender_list, ...)
+function PEARL.BroadcastRPCToClientsGlobal(rpc_id, sender_list, ...)
     if not TheNet:GetIsServer() then
         return PEARL.error("Can only be called from a server.")
     end
@@ -438,7 +454,7 @@ function PEARL.BroadcastRPCToClients(rpc_id, sender_list, ...)
         end
     end
 
-    PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastClientRPC, rpc_id, sender_list, ...)
+    PEARL.BroadcastRPCToAllShards(PEARL.RPC.SendRPCToClient, rpc_id, sender_list, ...)
 end
 
 ------------------------------------

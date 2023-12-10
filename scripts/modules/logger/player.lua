@@ -32,7 +32,7 @@ local removearrayvalue = table.removearrayvalue
 -- [[ Constants ]]
 ------------------------
 
---local MAX_COMMAND_LENGTH = 500
+local MAX_COMMAND_LENGTH = 256
 
 local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
@@ -683,7 +683,7 @@ local function onentitydeath(world, data)
     local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
         --- This works for the current shard only, but is just enough for our use cases currently.
-        local remaining = c_countprefabs(target.prefab, false) - 1 or -1
+        local remaining = PEARL.CountPrefabs(target.prefab) - 1
         if remaining < 0 or remaining > pop_threshold then
             return
         end
@@ -958,26 +958,26 @@ end
 
 -- Note: This causes quite a lot of spam when using some mods
 -- like Too Many Items etc...
--- local function oncommandexecuted(doer, fnstr)
---     -- It's totally normal when the command is just an empty string.
---     -- This happens for example when you just open and then close the console.
---     if not doer or not (type(fnstr) == "string" and #fnstr > 0) then
---         return
---     end
+local function oncommandexecuted(doer, fnstr)
+    -- It's totally normal when the command is just an empty string.
+    -- This happens for example when you just open and then close the console.
+    if not doer or not (type(fnstr) == "string" and #fnstr > 0) then
+        return
+    end
 
---     -- Ignore commands from the server owner.
---     if TheNet:GetUserID() == doer.userid then
---         return
---     end
+    -- Ignore commands from the server owner.
+    if TheNet:GetUserID() == doer.userid then
+        return
+    end
 
---     if #fnstr > MAX_COMMAND_LENGTH then
---         fnstr = fnstr:ltake(MAX_COMMAND_LENGTH, nil, "...")
---     end
+    if #fnstr > MAX_COMMAND_LENGTH then
+        fnstr = fnstr:ltake(MAX_COMMAND_LENGTH, nil, "...")
+    end
 
---     PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
---         doer:GetDisplayName(), fnstr
---     ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
--- end
+    PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.CONSOLE_CMD:format(
+        doer:GetDisplayName(), fnstr
+    ), PEARL.ICONS.PLAYER_STATE.CMD_SEND)
+end
 
 local function ontookrareitem(doer, item)
     if not (doer and item) then
@@ -1043,9 +1043,9 @@ PEARL.AddPlayerPostInit(function(player)
         player:SafeListenForEvent("buildstructure", onbuildstructure)
     end
 
-    -- if PEARL.CONFIG.DISCORD.LHOOK.ENABLED then
-    --     player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
-    -- end
+    if PEARL.DiscordLogger:IsEnabled() then
+        player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
+    end
 end)
 
 PEARL.AddComponentPostInit("combat", function(self)

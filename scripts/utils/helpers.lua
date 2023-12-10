@@ -383,7 +383,14 @@ function PEARL.GetStandardizedNameFor(entity)
         return entity:GetDisplayName()
     end
 
-    return entity and (STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName())
+    local name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
+    for tagname, prefix in pairs(STRINGS.PEARL.TAG_PREFIXES) do
+        if entity:HasTag(tagname) then
+            name = prefix.." "..name
+        end
+    end
+
+    return name
 end
 
 function PEARL.GroupEntitiesByPrefab(entities)
@@ -447,6 +454,11 @@ function PEARL.SafeRun(func, ...)
     )}
 
     return unpack(result)
+end
+
+--- @return integer
+function PEARL.CountPrefabs(prefab)
+    return c_countprefabs(prefab, true) or 0
 end
 
 function PEARL.ToISO8601UTC(timestamp)

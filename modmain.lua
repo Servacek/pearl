@@ -309,6 +309,8 @@ PEARL.CONSTS = {
         SLASH_COMMAND         = "/",
         KLEI_ID               = "KU_",
         PLAYER_NAME           = "@",
+        CONSOLE_COMMAND       = "c_",
+        DEBUG_COMMAND         = "d_",
     },
 
     -- The name should match with the file name in the profile flair .xml file.

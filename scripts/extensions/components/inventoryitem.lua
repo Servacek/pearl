@@ -25,7 +25,7 @@ local InventoryItem = require("components/inventoryitem")
 local TOTAL_RARITY          = 1
 local MAX_RARITY_PER_ITEM   = TOTAL_RARITY / 4
 
-local DEFAULT_RARITY        = 1 / 300
+local DEFAULT_RARITY        = 1 / 1000
 
 local ITEM_RARITY       = {
     PER_RARITY_PERCENT  = TOTAL_RARITY,
@@ -40,7 +40,6 @@ local ITEM_RARITY       = {
     GEM                 = TOTAL_RARITY / 5,
     PER_FUEL_POINT      = TOTAL_RARITY / 500,    -- Per fuel point
     SKIN_MULT           = 1.15,
-    DEFAULT             = TOTAL_RARITY / 300,  -- max stacks of a non-renewable material
 }
 
 --------------------------------
@@ -67,25 +66,40 @@ function InventoryItem:GetTotalPredictedWeight(weights)
     local stacksize = self:GetStackSize()
     local prefab = self.inst.prefab
     local weight = weights[prefab] or DEFAULT_RARITY
-    local rarity = stacksize * weight
+    print(self.inst.prefab, weight)
+    local rarity = 0
+    if weight >= 1 then
+        rarity = rarity + math.max(ITEM_RARITY.VERY_RARE, weight) * stacksize
+    else
+        rarity = stacksize * weight
+    end
 
+    -- For crafted items consider their ingredients
     local recipe = AllRecipes[self.inst.prefab]
     if recipe ~= nil then
         for _, ingredient in ipairs(recipe.ingredients) do
-            if PEARL.PREFABS.RARE_ITEMS[ingredient.type] and PEARL.PREFABS.RARE_ITEMS[ingredient.type] > 0 then
-                rarity = rarity + (weights[ingredient.type] or DEFAULT_RARITY) * ingredient.amount
+            local ing_weight = weights[ingredient.type] or DEFAULT_RARITY
+            if ing_weight >= 1 then
+                rarity = rarity + math.max(ITEM_RARITY.VERY_RARE, weight) * stacksize
+            else
+
+            end
+            if weights[ingredient.type] and weights[ingredient.type] > 0 then
+                rarity = rarity + ing_weight * ingredient.amount
             end
         end
     end
 
-    if not self.inst.components.stackable then
+    if self.inst.components.finiteuses then
         -- If this item does not have durability (e. g. Walking Cane) we count it as
         -- if it had 100%.
-        local finituse_percent = self.inst.components.finiteuses and self.inst.components.finiteuses:GetPercent() or 1
-
-        local mult = self.skinname ~= nil and ITEM_RARITY.SKIN_MULT or 1
-        rarity =  rarity * mult * finituse_percent
+        local finituse_percent = self.inst.components.finiteuses:GetPercent() or 1
+        rarity = rarity * finituse_percent
     end
+
+    -- Bonus for skinned items.
+    local mult = self.skinname ~= nil and ITEM_RARITY.SKIN_MULT or 1
+    rarity =  rarity * mult
 
     -- Player Food
     if self.inst.components.edible and self.inst.components.edible:FulfillsDiet(FOODGROUP.OMNI) then
@@ -96,6 +110,8 @@ function InventoryItem:GetTotalPredictedWeight(weights)
             rarity = rarity + (food_val * mult)
         end
     end
+
+    print(self.inst.prefab, rarity)
 
     return rarity
 end

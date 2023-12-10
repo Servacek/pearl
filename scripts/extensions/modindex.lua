@@ -18,11 +18,11 @@ KnownModIndex = KnownModIndex
 local KnownModIndex = KnownModIndex
 
 ---------------------------
--- [[ Attributes ]]
+-- [[ Locals ]]
 ---------------------------
 
 --- @table<string>
-KnownModIndex.blocked_mods = {}
+local blocked_mods = {}
 
 ---------------------------
 -- [[ Constants ]]
@@ -124,12 +124,12 @@ function KnownModIndex:Block(modname, temp)
     -- This is just a temporary flag that will be removed after the game restarts
     -- The thing that will stay is the disabled flag.
     if not self:IsModBlocked(modname) then
-        self.blocked_mods[modname] = true
+        blocked_mods[modname] = true
     end
 end
 
 function KnownModIndex:IsModBlocked(modname)
-	return self.blocked_mods[modname]
+	return blocked_mods[modname]
 end
 
 function KnownModIndex:IsModDisablingDisabled()
@@ -137,7 +137,7 @@ function KnownModIndex:IsModDisablingDisabled()
 end
 
 function KnownModIndex:GetBlockedCount()
-    return table.size(self.blocked_mods) or 0
+    return table.size(blocked_mods) or 0
 end
 
 function KnownModIndex:AreAnyModsBlocked()
@@ -202,4 +202,19 @@ function KnownModIndex:GetModsReport()
     end
 
     return report
+end
+
+---------------------------
+-- [[ Overrides ]]
+---------------------------
+
+if PEARL.CONFIG.DEBUG_MODE then
+    -- When debugging, the variable BRANCH is set to "dev" so the dev version of
+    -- the modindex file is being used insted. This can cause confusion since
+    -- mods disabled in-game are saved to the development modindex while
+    -- the modstab uses the default modindex file with none of these changes.
+    -- So it may look like a bug.
+    PEARL.OverrideMethodReturnValue(KnownModIndex, "GetModIndexName", function(old, self)
+        return "modindex" -- Always use the default modindex file in debug mode.
+    end)
 end

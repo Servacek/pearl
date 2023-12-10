@@ -121,6 +121,10 @@ end
 -- [[ Public Functions ]]
 -------------------------------------
 
+function Logger:ProccessBuffer()
+    return self._buffer and self._buffer:Timeout()
+end
+
 --- @param embed Embed The embed to be logged.
 --- @param force boolean? If the buffering proccess should be skipped.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.
@@ -136,7 +140,7 @@ function Logger:LogEmbed(embed, force)
     -- Returns nil if adding the embed has failed.
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
     if not self._buffered:AddEmbed(embed) then
-        self._buffered:Timeout()
+        self:ProccessBuffer()
 
         -- Retry with a cleared buffered message
         if not self._buffered:AddEmbed(embed) then
@@ -162,7 +166,7 @@ function Logger:LogLine(logline, force)
 
     local success, rest = self._buffered:AddLogLine(logline)
     if rest then
-        self._buffered:Timeout()
+        self:ProccessBuffer()
 
         PEARL.info("Sending the rest of the message...")
         return self:LogLine(rest:SetIsRaw(true), force)
@@ -171,8 +175,7 @@ function Logger:LogLine(logline, force)
     -- Returns nil if adding the logline has failed.
     -- Try to not use recursion here, it can introduce a nasty vulnerability.
     if not success then
-        -- Send and clear the current buffer.
-        self._buffered:Timeout()
+        self:ProccessBuffer()
 
         -- Retry with a cleared buffered message
         if not self._buffered:AddLogLine(logline) then
@@ -192,9 +195,8 @@ function Logger:LogMessage(message)
         return PEARL.error("Attempted to send an invalid message or the webhook is disabled!")
     end
 
-    -- Send and clear the current buffer.
     -- This is here in order to keep some order of the messages.
-    self._buffered:Timeout()
+    self:ProccessBuffer()
 
     self._webhook:PostMessage(message)
 end
@@ -206,8 +208,6 @@ function Logger:LogStringRaw(str, icon, ...)
     if self:IsDisabled() then
         return
     end
-
-    PEARL.debug("Logger:LogString", str)
 
     local logline = LogLine(str)
     if icon then

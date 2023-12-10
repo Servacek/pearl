@@ -30,31 +30,28 @@ local function GiveItemTo(inst, prefab, count)
             end
 
             --PEARL.debug("giving x"..tostring(count), item)
-            inst.components.inventory:GiveItem(item)
+            if not inst.components.inventory:GiveItem(item) then
+                print("Failed to add item", item, inst.components.inventory:IsFull())
+            end
         end
     end
+
+    print(inst.components.inventory:GetDebugString())
 end
 
-local function GetSuspicioness(inventory)
-    --PEARL.info(string.rep("-", 30))
-
+local function CreateThief(inventory)
     -- spawn our thief first
     local thief = c_spawn("wilson")
 
+    rawset(thief.components.inventory, "maxslots", 200)
+
     for _, item in ipairs(inventory) do
         for prefab, count in pairs(item) do
-            GiveItemTo(thief, prefab, count)
+            GiveItemTo(thief, prefab, tonumber(count))
         end
     end
 
-
-    -- if thief.components.inventory:IsSuspicious() then
-    --     PEARL.info(string.rep("-", 30))
-    --     PEARL.debug("["..tostring(index)..".]", DataDumper(inventory, nil, false, 0))
-    --     --PEARL.debug(thief.components.inventory:GetDebugString())
-    -- end
-
-    return nil, thief
+    return thief
 end
 
 function SusInv()
@@ -78,11 +75,9 @@ function SusInv()
             end
 
             local inventory = json.decode(inv_str)
-            local suspicioness, thief = GetSuspicioness(inventory)
-            wfile:write("\nINVENTORY: ", i, " ITEM_COUNT: ", #inventory)
-            --wfile:write("\nSUSPICIONESS: ", math.round((suspicioness * 100), 2), "%")
-            wfile:write("\nCONTENT: ", DataDumper(inventory, nil, false, 0))
-            wfile:write("\n\n", string.rep("-", 50))
+            local thief = CreateThief(inventory)
+            assert(type(thief) == "table", "Failed to spawn the thief!")
+            print("INVENTORY:", DataDumper(inventory))
 
             thief.userid = "KU_ZC24p91Q"
             thief.name = "Fi7iP"

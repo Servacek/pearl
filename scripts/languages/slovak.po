@@ -165,7 +165,7 @@ msgstr "{doer} uvaril/a {target}!"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_FAILURE
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_FAILURE"
-msgid "Failed to set reputation."
+msgid "Failed to set the reputation."
 msgstr "Reputáciu nebolo možné upraviť."
 
 #. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.2
@@ -252,11 +252,6 @@ msgstr "Mod bol pridaný do zoznamu blokovaných. Neprivilegovaný hráči ho po
 msgctxt "STRINGS.PEARL.ACTIONS.COOK.ON"
 msgid "{doer} cooked {target} on {tool}!"
 msgstr "{doer} uvaril/a {target} na {tool}."
-
-#. STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY
-msgctxt "STRINGS.PEARL.LOGS.SUSPICIOUS_INVENTORY"
-msgid "**Suspicious Inventory Detected:**"
-msgstr "%s **%s (`%s`)**\n> Počet prežitých dní: `%s`\n> Podozrenie: `%d%%`"
 
 #. STRINGS.PEARL.ACTIONS.BUILD.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.BUILD.GENERIC"
@@ -556,7 +551,7 @@ msgstr "%s bol/a odpojený/á od shardu %s ako %s"
 #. STRINGS.PEARL.LOGS.INV_RARE_ITEMS_DROPPED
 msgctxt "STRINGS.PEARL.LOGS.INV_RARE_ITEMS_DROPPED"
 msgid "Rare items were dropped from player's inventory before despawning."
-msgstr "Všetky vácne itemy boli vyhodené na zem pred odpojením hráča."
+msgstr "Všetky vzácne itemy boli vyhodené na zem pred odpojením hráča."
 
 #. STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED
 msgctxt "STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED"
@@ -670,7 +665,7 @@ msgstr "Verzia Hry"
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_SERVER"
-msgid "Catched exception on server %s:\n%s"
+msgid "Catched exception:\n%s"
 msgstr "Zachytená výnimka:\n%s"
 
 #. STRINGS.PEARL.LOGS.DAYSBACK_AFTER
@@ -771,7 +766,7 @@ msgstr "{doer} vyplýtval/a {source} pridávaním do {target}!"
 #. STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT_UNEXPECTED"
 msgid "%s was unexpectedly disconnected from shard %s as %s. %s"
-msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s"
+msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s. %s"
 
 #. STRINGS.PEARL.LOGS.USER_ACTIVE
 msgctxt "STRINGS.PEARL.LOGS.USER_ACTIVE"
@@ -1115,8 +1110,8 @@ msgstr "{doer} zabil/a {target} pri {near}!"
 
 #. STRINGS.PEARL.LOGS.SPAWN_AT
 msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT"
-msgid "Spawning %s in shard %s at: X: %d Y: %2.2f Z: %2.2f"
-msgstr "Spawnovanie hráča %s na pozícií: X: %2.2f Y: %2.2f Z: %2.2f"
+msgid "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
+msgstr "Spawnovanie hráča %s na sharde %s a pozícií: X: %2.2f Y: %2.2f Z: %2.2f"
 
 #. STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR
 msgctxt "STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR"
@@ -1598,6 +1593,61 @@ msgctxt "STRINGS.PEARL.REPORTS.INVALID_RPC"
 msgid "Received invalid RPC on shard `%s` from client `%s`:```lua\n%s```"
 msgstr ""
 
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.2
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.2"
+msgid "Does Charlie saw that?!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.3
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.3"
+msgid "Wait, isn't this griefing?"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.1
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.1"
+msgid "Oops?!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.4
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.4"
+msgid "Maybe I should calm down a bit..."
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.5
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.5"
+msgid "My compatriots would be mad at me!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.2
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.2"
+msgid "I've made enough of a mess!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.3
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.3"
+msgid "What have I done?!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.1
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.1"
+msgid "This could end badly..."
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.4
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.4"
+msgid "I'm starting to hear some strange voices."
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.5
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.5"
+msgid "Looks like someone is getting really mad at me!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.BAN
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.BAN"
+msgid "There we go again..."
+msgstr ""
+
 #. STRINGS.PEARL.EMBEDS.MODS.FOOTER
 msgctxt "STRINGS.PEARL.EMBEDS.MODS.FOOTER"
 msgid "%s/%s"
@@ -1703,64 +1753,14 @@ msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.SEEN"
 msgid "Last Time Seen"
 msgstr ""
 
-#. STRINGS.PEARL.GRIEFER_WARNINGS.1.2
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.2"
-msgid "Does Charlie saw that?!"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.1.3
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.3"
-msgid "Wait, isn't this griefing?"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.1.1
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.1"
-msgid "Oops?!"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.1.4
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.4"
-msgid "Maybe I should calm down a bit..."
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.1.5
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.5"
-msgid "My compatriots would be mad at me!"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.2.2
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.2"
-msgid "I've made enough of a mess!"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.2.3
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.3"
-msgid "What have I done?!"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.2.1
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.1"
-msgid "This could end badly..."
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.2.4
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.4"
-msgid "I'm starting to hear some strange voices."
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.2.5
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.5"
-msgid "Looks like someone is getting really mad at me!"
-msgstr ""
-
-#. STRINGS.PEARL.GRIEFER_WARNINGS.BAN
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.BAN"
-msgid "There we go again..."
-msgstr ""
-
 #. STRINGS.PEARL.SEASONS.SPRING
 msgctxt "STRINGS.PEARL.SEASONS.SPRING"
 msgid "Spring"
+msgstr ""
+
+#. STRINGS.PEARL.TAG_PREFIXES.burnt
+msgctxt "STRINGS.PEARL.TAG_PREFIXES.burnt"
+msgid "burnt"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.SAY_DM
@@ -1771,6 +1771,11 @@ msgstr ""
 #. STRINGS.PEARL.LOGS.ANNOUNCEMENT
 msgctxt "STRINGS.PEARL.LOGS.ANNOUNCEMENT"
 msgid "Announcement"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.EXC_SELF_SERVER
+msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SERVER"
+msgid "Caused uncatched exception:\n%s"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.PLAYER_DESPAWN
@@ -1818,11 +1823,6 @@ msgctxt "STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING"
 msgid "Permissive mode is turned on! Reputation and penalization systems disabled."
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
-msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
-msgid "`%dx`	%s				`%s`"
-msgstr ""
-
 #. STRINGS.PEARL.LOGS.ROLLBACK_AFTER
 msgctxt "STRINGS.PEARL.LOGS.ROLLBACK_AFTER"
 msgid "Rolling server %s snapshot(s) back in %s second(s)!"
@@ -1833,19 +1833,9 @@ msgctxt "STRINGS.PEARL.LOGS.PLAYER_REPORT"
 msgid "%s [@here] `%s` **%s**: %s"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.EXC_SELF_SERVER
-msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SERVER"
-msgid "Caused uncatched exception:\n%s"
-msgstr ""
-
 #. STRINGS.PEARL.LOGS.EXC_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_CLIENT"
 msgid "Uncatched exception on client (%s) %s:\n%s"
-msgstr ""
-
-#. STRINGS.PEARL.LOGS.PHASE
-msgctxt "STRINGS.PEARL.LOGS.PHASE"
-msgid "%s"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.SERVER_AUTOPAUSE
@@ -1853,14 +1843,24 @@ msgctxt "STRINGS.PEARL.LOGS.SERVER_AUTOPAUSE"
 msgid "Server was autopaused."
 msgstr ""
 
+#. STRINGS.PEARL.LOGS.PHASE
+msgctxt "STRINGS.PEARL.LOGS.PHASE"
+msgid "%s"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
+msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
+msgid "`%dx`	%s				`%s`"
+msgstr ""
+
 #. STRINGS.PEARL.LOGS.SIM_UNPAUSED
 msgctxt "STRINGS.PEARL.LOGS.SIM_UNPAUSED"
 msgid "Simulation was unpaused."
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.GAME_LOADED
-msgctxt "STRINGS.PEARL.LOGS.GAME_LOADED"
-msgid "Shard %s was loaded."
+#. STRINGS.PEARL.LOGS.SPAWN
+msgctxt "STRINGS.PEARL.LOGS.SPAWN"
+msgid "Spawning %s in shard %s"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.TAG
@@ -1871,6 +1871,11 @@ msgstr ""
 #. STRINGS.PEARL.LOGS.DAYSBACK
 msgctxt "STRINGS.PEARL.LOGS.DAYSBACK"
 msgid "Rolling server back to day %s!"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.GAME_LOADED
+msgctxt "STRINGS.PEARL.LOGS.GAME_LOADED"
+msgid "Shard %s was loaded."
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.AUTO_UPDATE_SECOND
@@ -2251,6 +2256,21 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ANNOUNCE.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ANNOUNCE.DESC"
 msgid "Displays an announcement in chat!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.ON_SUCCESS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.ON_SUCCESS"
+msgid "There are %sx %s on shard %s."
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.PRETTYNAME"
+msgid "Count Prefab"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.DESC"
+msgid "Counts the number of occurrences of the specified prefab."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.PAUSE.PRETTYNAME

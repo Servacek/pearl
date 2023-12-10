@@ -78,7 +78,7 @@ UserCommands.SHARD_ROUTING = {
 }
 
 -- Fallbacks for the ACTIVE and AUTO routing policies when the player is not on the server at all.
-UserCommands.SHARD_ROUTING_FALLBACK = {
+UserCommands.SHARD_ROUTINGFALLBACK = {
     CURRENT = 0, -- Fallback to the current shard (no routing).
     ALL     = 1, -- Fallback by broadcasting the command to all shards (complete routing).
 }
@@ -100,12 +100,12 @@ UserCommands.PERMISSION_LEVEL = {
 --- @param shardid string|string?
 --- @return boolean
 function UserCommands.RouteHybridCommand(name, context, shardid)
-    PEARL.debug("Routing command", name, "to shard", shardid)
+    PEARL.debug("Routing command", name, "to shard", tostring(shardid))
 
     -- If we are routing this from a secondary shard.
-    local data = ZipAndEncodeString(context:ToTable())
+    local data = DataDumper(context:ToTable(), nil, true)
     if type(data) == "string" then
-        PEARL.BroadcastRPCToShards(PEARL.RPC.RouteHybridCommand, shardid, name, data)
+        PEARL.BroadcastRPCToShardsGlobal(PEARL.RPC.RouteHybridCommand, shardid, name, data)
 
         return true
     end
@@ -115,8 +115,16 @@ end
 
 --- @param command table<string, any>
 --- @param ctx CommandContext
+--- @param norouting boolean?
 --- @return boolean success
-function UserCommands.RunHybridCommand(command, ctx)
+function UserCommands.RunHybridCommand(command, ctx, norouting)
+    PEARL.debug("UserCommands.RunHybridCommand")
+
+    if not TheNet:GetIsServer() then
+        PEARL.debug("Ignoring client side call of a command.")
+        return false
+    end
+
     if type(command) ~= "table" or type(command.fn) ~= "function" then
         ctx:Reply(STRINGS.PEARL.COMMAND_RESPONSES.INVALID)
         PEARL.error("Attempted to run an invalid hybrid command.")
@@ -137,14 +145,13 @@ function UserCommands.RunHybridCommand(command, ctx)
     end
 
     local route_shardid
-    local routing_type      = command.routing
+    local routing_type      = norouting and UserCommands.SHARD_ROUTING.NONE or command.routing
     local routing_fallback  = command.routingfallback
     local is_routing        = routing_type ~= UserCommands.SHARD_ROUTING.NONE and PEARL.ServerNetwork:IsAnySecondaryShardConnected()
 
     if routing_type == UserCommands.SHARD_ROUTING.AUTO then
         -- Route commands to the target player if the player is provided and connected to our server.
-        local target_userid = UserCommands.InputToUserID(ctx.params and ctx.params.player)
-        if PEARL.ServerNetwork:IsClientConnected(target_userid) then
+        if target_userid and PEARL.ServerNetwork:IsClientConnectedAny(target_userid) then
             is_routing = false
 
             -- Use the player's active shard ID as our routing target.
@@ -154,7 +161,7 @@ function UserCommands.RunHybridCommand(command, ctx)
                 is_routing = true
             end
         else -- Handle fallback
-            if routing_fallback == UserCommands.SHARD_ROUTING_FALLBACK.CURRENT then
+            if routing_fallback == UserCommands.SHARD_ROUTINGFALLBACK.CURRENT then
                 is_routing = false -- Looks like no routing this time :,(
             end
         end
@@ -170,6 +177,7 @@ function UserCommands.RunHybridCommand(command, ctx)
         -- Maybe do not execute at all?
     end
 
+    print("RUNNING THE COMMAND!")
     command.fn(ctx)
 
     return true
@@ -230,6 +238,8 @@ function UserCommands.GetCustomCommand(name)
     return custom_commands[name]
 end
 
+--- @param flagname string The name of the flag used to choose the commands.
+--- @return table flagged The table of chosen commands.
 function UserCommands.GetCustomCommandsWithFlag(flagname)
     local flagged = {}
     for name, command in pairs(custom_commands) do
@@ -328,7 +338,7 @@ function UserCommands.AddSlashCommand(name, command)
 end
 
 function UserCommands.AddCustomCommand(name, command)
-    if command.slash ~= true and not TheNet:GetIsServer() then
+    if (command.slash ~= true and command.console ~= true) and not TheNet:GetIsServer() then
         return -- Ignore backend-only commands
     end
 
@@ -345,7 +355,7 @@ function UserCommands.AddCustomCommand(name, command)
     command.remote = type(command.fn) == "function"
 
     command.routing = command.routing or UserCommands.SHARD_ROUTING.AUTO
-    command.routingfallback = command.routingfallback or UserCommands.SHARD_ROUTING_FALLBACK.CURRENT
+    command.routingfallback = command.routingfallback or UserCommands.SHARD_ROUTINGFALLBACK.CURRENT
 
     command.slash = command.slash ~= false and PEARL.CONFIG.SLASH_COMMANDS
     command.console = command.console ~= false and PEARL.CONFIG.CONSOLE_COMMANDS
@@ -358,11 +368,6 @@ function UserCommands.AddCustomCommand(name, command)
 
     if command.canstartfn then
         command.canstartfn = make_safe_cb(name, command.canstartfn)
-    end
-
-    -- Console commands are server-only.
-    if not TheNet:GetIsServer() then
-        command.console = false
     end
 
     UserCommands.RegisterCustomCommand(name, command)
@@ -398,8 +403,7 @@ end
 
 --- @return string userid The client's Klei ID or nil on failure.
 function UserCommands.InputToUserID(input)
-    return UserToClientID(input) or PEARL.DB:MapSteamID(input) or
-        PEARL.DB:MapDiscordID(input) or input
+    return UserToClientID(input) or PEARL.DB:MapToKleiID(input) or input
 end
 
 --- @return table? client The client's table or nil on failure.
@@ -442,8 +446,8 @@ PEARL.AddShardRPCHandler("RouteHybridCommand", function(shardid, name, datastr)
         return PEARL.error("Got hybrid command routing from a secondary shard!")
     end
 
-    local data = DecodeAndUnzipString(datastr)
-    if type(data) ~= "table" then
+    local success, data = RunInSandbox(datastr)
+    if not success or type(data) ~= "table" then
         return PEARL.error("Received invalid command routing data from Master!")
     end
 
@@ -455,5 +459,7 @@ PEARL.AddShardRPCHandler("RouteHybridCommand", function(shardid, name, datastr)
     local context = CommandContext.FromTable(data)
     context:SetCommand(command)
 
-    UserCommands.RunHybridCommand(command, context)
+    PEARL.WallScheduler:ExecuteInTime(0, function()
+        UserCommands.RunHybridCommand(command, context, true)
+    end)
 end)

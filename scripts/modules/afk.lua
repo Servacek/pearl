@@ -131,7 +131,7 @@ local function CleanUp()
 end
 
 local function IsPaused()
-    return TheNet:IsServerPaused() or #AllPlayers <= 1
+    return TheNet:IsServerPaused() or #AllPlayers < 1
 end
 
 local function OnUpdate()

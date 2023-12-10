@@ -79,6 +79,7 @@ local joining_clients = {}
 --- <AUTHENTICATION, DISCONNECT>
 --- @type table<string, boolean>
 local connected_clients = {}
+--- @NOTE: Potential bug when restarting the server with players in caves.
 for _, client in ipairs(TheNet:GetClientTable()) do
     connected_clients[client.userid] = true
 end
@@ -168,7 +169,7 @@ function ServerNetwork:DisplayChatMessageFor(userids, message)
         return PEARL.error("Failed to encode message data to JSON format!")
     end
 
-    PEARL.BroadcastRPCToClients(PEARL.RPC.DisplayChatMessage, userids, jsonstr)
+    PEARL.BroadcastRPCToClientsGlobal(PEARL.RPC.DisplayChatMessage, userids, jsonstr)
 
     -- Make sure the message is archived on the server as well.
     -- Direct messages are not being archived on the server just locally by the client.
@@ -182,7 +183,7 @@ function ServerNetwork:DisplayChatMessage(message)
 end
 
 function ServerNetwork:DisplayPopupFor(userids, title, message)
-    return PEARL.SendRPCToClient(PEARL.RPC.DisplayPopupMessage, userids, title, message)
+    return PEARL.SendRPCToClientGlobal(PEARL.RPC.DisplayPopupMessage, userids, title, message)
 end
 
 --- @param userids table|string? The optional list of userids or userid of the receiver(s)
@@ -205,7 +206,7 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason
         return PEARL.error("Attempted to disconnect a not connected client!")
     end
 
-    PEARL.SendRPCToClient(PEARL.RPC.Disconnect, userid, reason, immediately, reason_title)
+    PEARL.SendRPCToClientGlobal(PEARL.RPC.Disconnect, userid, reason, immediately, reason_title)
 
     -- Since we are shutting down, the disconnect event
     -- wont be pushed anymore so do it now.
@@ -500,6 +501,12 @@ function ServerNetwork:IsClientLoading(userid)
     return self:HasUserFlag(userid, USERFLAGS.IS_LOADING)
 end
 
+function ServerNetwork:IsClientInLobby(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    return client and self:IsClientLoading(userid) == false and
+        client.prefab == "" and not self:HasClientInGameInstance(userid)
+end
+
 -- Migration doesn't count here.
 -- True only from the JoinServerFilter/clientauthenticationcomplete -> ms_playerjoined
 function ServerNetwork:IsClientJoining(userid)
@@ -516,6 +523,10 @@ end
 
 function ServerNetwork:IsClientPriviliged(userid)
     return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid) or TheNet:GetUserID() == userid
+end
+
+function ServerNetwork:HasClientInGameInstance(userid)
+    return LookupPlayerInstByUserID(userid) ~= nil
 end
 
 --- Debugging puposes.
@@ -555,7 +566,7 @@ local function AddFilter(tbl, filter, priority, timeout, name)
 end
 
 --- @param filter function<userid, data>
---- @param priority string? Whether this filter should be called sooner or later.
+--- @param priority number? Whether this filter should be called sooner or later.
 --- @param name string? Whether this filter should be called sooner or later.
 function ServerNetwork:AddConnectionFilter(filter, priority, name)
     PEARL.debug("ServerNetwork:AddConnectionFilter", filter, priority)
@@ -566,7 +577,7 @@ end
 
 --- NOTE: Async filters ALWAYS require a response by calling the filter function!
 --- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
---- @param priority string? Whether this filter should be called sooner or later.
+--- @param priority number? Whether this filter should be called sooner or later.
 --- @param timeout integer? Whether this filter should be called sooner or later.
 --- @param name string? Whether this filter should be called sooner or later.
 function ServerNetwork:AddAsyncConnectionFilter(filter, priority, timeout, name)

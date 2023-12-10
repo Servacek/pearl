@@ -13,10 +13,17 @@
 
 
 --[[
-    Makes player icons globaly visible for all players.
+    Makes player map icons globaly visible for all players or only
+    the trusted ones, if configured so.
 --]]
 
 local PEARL = PEARL
+
+--------------------------------
+-- [[ Constants ]]
+--------------------------------
+
+local ONLY_FOR_TRUSTED = PEARL.CONFIG.PLAYER_MAP_ICONS.ONLY_FOR_TRUSTED == true
 
 --------------------------------
 -- [[ Implementation ]]
@@ -29,14 +36,20 @@ PEARL.AddPlayerPostInit(function(inst)
 
     -- Cleaning up is handled by the component itself
     inst.components.maprevealable:AddRevealSource(inst, "compatriot")
-end)
 
-PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(name, value, player)
-    if name ~= "days" or not player or player:HasTag("compatriot") or not player.components.age then
-        return
-    end
-
-    if player.components.age and player.components.age:IsTrustworthy() then
-        player:AddTag("compatriot")
+    if not ONLY_FOR_TRUSTED then
+        inst:AddTag("compatriot")
     end
 end)
+
+if ONLY_FOR_TRUSTED then
+    PEARL.AddGlobalFunctionPreCall("NotifyPlayerPresence", function(name, value, player)
+        if name ~= "days" or not player or player:HasTag("compatriot") or not player.components.age then
+            return
+        end
+
+        if player.components.age:IsTrustworthy() then
+            player:AddTag("compatriot")
+        end
+    end)
+end

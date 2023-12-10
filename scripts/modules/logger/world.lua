@@ -147,12 +147,22 @@ end
 -- [[ Client State Handlers ]]
 -------------------------------
 
+local function OnClientConnectedToShard(client)
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTED_TO_SHARD:format(
+        client.name, PEARL.GetShardFancyName(), client.userid
+    ))
+end
+
 local function OnClientAuthenticationComplete(world, data)
     -- TheNet:GetClientTableForUser crashes for nil values
-    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid) or {}
-    -- This is quite spammy without the joining check tbh.
-    if not client or not PEARL.ServerNetwork:IsClientJoining(client.userid) then
+    local client = data and data.userid and TheNet:GetClientTableForUser(data.userid)
+    if not client then
         return
+    end
+
+    -- If we are not joining, then we are most likely just migrating.
+    if not PEARL.ServerNetwork:IsClientJoining(client.userid) then
+        return OnClientConnectedToShard(client)
     end
 
     local logline = LogLine(MARKDOWN.hlink(
@@ -173,7 +183,7 @@ local function OnClientAuthenticationComplete(world, data)
 end
 
 local function OnClientConnectionClosed(userid, reason)
-    if not userid then
+    if not userid or not PEARL.ServerNetwork:IsClientConnected(userid) then
         return
     end
 
@@ -234,24 +244,6 @@ local function OnPlayerDespawnAndDelete(self, player)
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PLAYER_DESPAWN:format(
         player:GetDisplayName(), STRINGS.CHARACTER_NAMES[player.prefab] or STRINGS.CHARACTER_NAMES.UNKNOWN
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
-end
-
-local function OnPlayerSpawnedInCaves(self, player)
-    if not player then
-        return
-    end
-
-    -- Give a tick to the player's instance so it can load all the needed data.
-    PEARL.WallScheduler:ExecuteInTime(0, function()
-        local client = player.userid and TheNet:GetClientTableForUser(player.userid)
-        if not client then
-            return
-        end
-
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTED_TO_SHARD:format(
-            client.name, PEARL.GetShardFancyName(), client.userid
-        ))
-    end)
 end
 
 -------------------------------
@@ -346,16 +338,21 @@ local function OnResetCountDownStop(self)
     end
 end
 
-local function OnPlayerSpawned(self, player)
-    print("OnPlayerSpawned")
-    if not player.userid or player.userid == "" then
+local function OnPlayerSpawned(player, x, y, z)
+    if not (player and player.userid ~= "") then
         return
     end
 
-    local x, y, z = player.Transform:GetWorldPosition()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN_AT:format(
-        player:GetDisplayName(), PEARL.GetShardFancyName(), x, y, z
-    ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+    x, y, z = tonumber(x), tonumber(y), tonumber(z)
+    if x and y and z then
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN_AT:format(
+            player:GetDisplayName(), PEARL.GetShardFancyName(), x, y, z
+        ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+    else
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN:format(
+            player:GetDisplayName(), PEARL.GetShardFancyName()
+        ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+    end
 end
 
 local function OnReset(self)
@@ -433,7 +430,6 @@ PEARL.AddWorldPostInit(function(world)
 
     if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
         if world.ismastershard then
-
             -- We care about these event's only on the master shard
             world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
             world:SafeListenForEvent("phasechanged", OnPhaseChanged)
@@ -446,15 +442,14 @@ PEARL.AddWorldPostInit(function(world)
 
             world:SafeListenForEvent("ms_startvote", OnStartVote)
             world:SafeListenForEvent("ms_stopvote", OnStopVote)
-        else
-            world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawnedInCaves)
         end
 
         world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_playerdespawnanddelete", OnPlayerDespawnAndDelete)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
-        --world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
+        -- There as some weird "purely virtual function" crashes here, even after a delay.
+        -- world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
         world:SafeListenForEvent("ms_save", OnSaved)
 
         --> Mod Events
@@ -464,14 +459,14 @@ PEARL.AddWorldPostInit(function(world)
         world:ListenForModEvent("world_reset", OnReset)
         world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
 
-        -- if world.components.playerspawner then
-        --     --- Use precall because some data may be cleared during the original function execution.
-        --     PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
-        --         if player and x and y and z then
-        --             OnPlayerSpawnedAt(player, x, y, z)
-        --         end
-        --     end, world.components.playerspawner)
-        -- end
+        if world.components.playerspawner then
+            --- Use precall because some data may be cleared during the original function execution.
+            PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
+                if player and x and y and z then
+                    OnPlayerSpawned(player, x, y, z)
+                end
+            end, world.components.playerspawner)
+        end
     end
 end)
 
@@ -482,8 +477,8 @@ local function RegisterNetworkListeners(network)
     end
 end
 
-AddPrefabPostInit("cave_network", RegisterNetworkListeners)
-AddPrefabPostInit("forest_network", RegisterNetworkListeners)
+PEARL.AddPrefabPostInit("cave_network", RegisterNetworkListeners)
+PEARL.AddPrefabPostInit("forest_network", RegisterNetworkListeners)
 
 --> Mod Internal Events
 PEARL.EventProcessor:AddSafeEventHandler("clientconnectionclosed", OnClientConnectionClosed)

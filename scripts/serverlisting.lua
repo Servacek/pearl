@@ -10,6 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+-- Credits to Kova for giving me the endpoints and data formats.
 
 --------------------------------
 -- [[ Constants ]]

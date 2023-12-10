@@ -77,7 +77,7 @@ AddCommand("fire", {
     slash = true,
     params = {"player"},
     paramsoptional = {true},
-    routing_fallback = UserCommands.SHARD_ROUTING_FALLBACK.ALL,
+    routingfallback = UserCommands.SHARD_ROUTINGFALLBACK.ALL,
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -132,7 +132,7 @@ AddCommand("repair", {
     slash = true,
     params = {"player"},
     paramsoptional = {true},
-    routing_fallback = UserCommands.SHARD_ROUTING_FALLBACK.ALL,
+    routingfallback = UserCommands.SHARD_ROUTINGFALLBACK.ALL,
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -190,8 +190,6 @@ AddCommand("grant", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     slash = true,
-    cantargetself = false,
-    cantargetadmin = false,
     params = {"player"},
     paramsoptional = { false },
     routing = UserCommands.SHARD_ROUTING.ALL, -- We want all shards up-to-date
@@ -478,9 +476,11 @@ AddCommand("setrep", {
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
         if PEARL.Reputation:SetTo(userid, tonumber(ctx.params.value)) then
-            PEARL.DB:SaveRecordFor(userid)
+            if PEARL.DB:SaveRecordFor(userid) then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS)
+            end
 
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_FAILURE)
         end
 
         return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -522,6 +522,7 @@ AddCommand("borrowed", {
     console = true,
     routing = UserCommands.SHARD_ROUTING.NONE, -- No need for routing in this case
 
+    --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
         local request = PEARL.KleiAccounts:QueryGameOwner(userid, PEARL.KleiAccounts.GAME.DST, function(rootid)
@@ -551,6 +552,27 @@ AddCommand("reload", {
     console = true,
 
     fn = c_reset,
+})
+
+AddCommand("count", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"prefab"},
+    paramsoptional = {false},
+    routing = UserCommands.SHARD_ROUTING.ALL, -- Count on all connected shards.
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        local prefab = ctx.params.prefab
+        local count = PEARL.CountPrefabs(prefab)
+
+        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.ON_SUCCESS:format(
+            count, prefab, PEARL.GetShardFancyName()
+        ))
+    end,
 })
 
 AddCommand("boost", {
@@ -1216,12 +1238,13 @@ AddCommand("setdbfield", {
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
-        if not PEARL.DB:SetField(userid, ctx.params.field, ctx.params.value) then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE)
+        if PEARL.DB:SetField(
+            userid, ctx.params.field, ctx.params.value
+        ) and PEARL.DB:SaveRecordFor(userid) then
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_SUCCESS)
         end
 
-        PEARL.DB:SaveRecordFor(userid)
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_SUCCESS)
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE)
     end
 })
 

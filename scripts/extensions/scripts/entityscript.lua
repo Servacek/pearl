@@ -83,6 +83,7 @@ function EntityScript:CalcValueOfNearbyBurnables(mustoneoftags, ...)
     return value
 end
 
+--- @TODO:
 function EntityScript:GetValue()
     local recipe = AllRecipes[self.prefab]
     if recipe then

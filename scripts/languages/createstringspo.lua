@@ -20,6 +20,8 @@
 	ONLY USE WHEN YOU KNOW WHAT ARE YOU DOING!
 --]]
 
+local STRING_MATCH_CHAR = "%%s"
+
 --- @param s string|stringlib
 local function normalize(s)
 	return (type(s) == "string" and s or ""):gsub("\n", "\\n")
@@ -71,35 +73,31 @@ local function WriteUntranslatedModStrings(base, original, translated, file)
 			msgid = string.gsub(msgid, "\r", "\\r")
 			msgid = string.gsub(msgid, "\"", "\\\"")
 
-			file:write("#. "..path)
-			file:write("\n")
-			file:write("msgctxt \""..path.."\"")
-			file:write("\n")
-			file:write("msgid \""..msgid.."\"")
-			file:write("\n")
-			file:write("msgstr \"\"")
-			file:write("\n\n")
+			write_text(file, path, msgid, "")
 		end
 	end
 end
 
 local function WriteTranslatedStrings(base, original, translated, file)
+    local unmatched = {}
     -- Here we traverse the translated strings.
     -- Some of these may not base in STRINGS.PEARL
 	for path, msgstr in pairs(translated) do
         msgstr = normalize(msgstr)
+        local msgid = normalize(getvbypath(original, path:sub(#base + 2)) or "")
 
-		local msgid = normalize(getvbypath(original, path:sub(#base + 2)) or "")
+        local tmatchers = #msgstr:findall(STRING_MATCH_CHAR)
+        local omatchers = #msgid:findall(STRING_MATCH_CHAR)
+        if tmatchers ~= omatchers then
+            table.insert(unmatched, msgstr)
+        end
 
-		file:write("#. "..path)
-		file:write("\n")
-		file:write("msgctxt \""..path.."\"")
-		file:write("\n")
-		file:write("msgid \""..msgid.."\"")
-		file:write("\n")
-		file:write("msgstr \""..msgstr.."\"")
-		file:write("\n\n")
+        write_text(file, path, msgid, msgstr)
 	end
+
+    if #unmatched > 0 then
+        PEARL.error("The following translation have unmatched magic characters:\n"..table.concat(unmatched, "\n"))
+    end
 end
 
 return function(filename, original, translated)

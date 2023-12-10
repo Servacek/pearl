@@ -18,6 +18,7 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 -------------------------------
 -- [[ Locals ]]
@@ -121,11 +122,14 @@ local function OnShardLoaded(master)
 end
 
 local function OnModBackendPostInit()
-    if not PEARL.IsShuttingDown() then
-        PEARL.DiscordLogger:LogStringHighlighted(
-            STRINGS.PEARL.LOGS.SERVER_INITIALIZED, nil, true
-        )
+    if PEARL.IsShuttingDown() then
+        return
     end
+
+    --- @type LogLine
+    local logline = LogLine(MARKDOWN.bold(STRINGS.PEARL.LOGS.SERVER_INITIALIZED))
+    logline:SetSize(LogLine.SIZES.SMALL)
+    PEARL.DiscordLogger:LogLine(logline, true)
 end
 
 local function OnInvalidClientRPC(rpc_name, userid)

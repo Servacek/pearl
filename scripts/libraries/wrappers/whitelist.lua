@@ -101,6 +101,10 @@ end
 --------------------------------------
 
 function WhiteList:Load()
+    if not PEARL.ClusterPersistance:FileExists(WHITELIST_PATH) then
+        return PEARL.info("whitelist.txt not found -> skipping loading proccess...")
+    end
+
     local lines = PEARL.ClusterPersistance:GetAllFileLines(WHITELIST_PATH, false, true)
     for _, userid in ipairs(lines) do
         self._userids[userid] = true

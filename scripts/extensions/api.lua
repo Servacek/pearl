@@ -102,6 +102,8 @@ function PEARL.OverrideValue(t, name, value, noraw)
 end
 
 --- Use ALWAYS noraw for Class Methods!!!!
+--- @param func fun(old_ret: any, ...: any): any
+--- @return any origin
 function PEARL.OverrideReturnValue(t, funcname, func, noraw, optional)
     local origin
     origin = PEARL.OverrideValue(t, funcname, function(...)
@@ -110,6 +112,8 @@ function PEARL.OverrideReturnValue(t, funcname, func, noraw, optional)
     end, noraw)
 end
 
+--- @param overridefn fun(old_ret: any, ...: any): any
+--- @return function? origin
 function PEARL.OverrideMethodReturnValue(class, methodname, overridefn, optional)
     return PEARL.OverrideReturnValue(class, methodname, overridefn, true)
 end
@@ -399,6 +403,16 @@ function PEARL.AddNetworkDisconnectPopupStrings(id, title, body)
 
     PEARL.POPUPS[id] = id
 end
+
+----------------------------------
+-- Safety
+----------------------------------
+
+PEARL.AddPrefabPostInit = function(...) PEARL.SafeRun(PEARL.ENV.AddPrefabPostInit, ...) end
+PEARL.AddComponentPostInit = function(...) PEARL.SafeRun(PEARL.ENV.AddComponentPostInit, ...) end
+PEARL.AddClassPostConstruct = function(...) PEARL.SafeRun(PEARL.ENV.AddClassPostConstruct, ...) end
+PEARL.AddGamePostInit = function(...) PEARL.SafeRun(PEARL.ENV.AddGamePostInit, ...) end
+PEARL.AddSimPostInit = function(...) PEARL.SafeRun(PEARL.ENV.AddSimPostInit, ...) end
 
 ----------------------------------
 -- API Handlers

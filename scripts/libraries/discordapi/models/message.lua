@@ -73,6 +73,9 @@ local Message = PEARL.Class(function(self, content)
     --- @type integer?
     self._flags = nil
 
+    --- @type boolean
+    self._silent = false
+
     -- Setting parse to an empty array disables all mentions in the message.
     -- That's what we want by default.
     --- @type table<string, table>
@@ -115,6 +118,10 @@ Message.FLAGS                   = {
     EPHEMERAL	            = bit.lshift(1, 6),	-- this message is only visible to the user who invoked the Interaction
     LOADING	                = bit.lshift(1, 7),	-- this message is an Interaction Response and the bot is "thinking"
 }
+
+Message.SILENT_PREFIX  = "@silent"
+Message.SILENT_PATTERN = Message.SILENT_PREFIX.." %s"
+Message.SEPARATOR      = "__\n__\n"
 
 ------------------------------------------
 -- [[ Getters ]]
@@ -182,7 +189,12 @@ function Message:GetFreeCharCount()
 end
 
 function Message:GetContent()
-    return self._content
+    local content = self._content
+    if self:IsSilent() then
+        content = Message.SILENT_PATTERN:format(content)
+    end
+
+    return content
 end
 
 -- A Message is valid if it has at least one of the main attributes:
@@ -193,6 +205,10 @@ function Message:IsValid()
     return self:HasContent() or self:HasEmbed()
 end
 
+function Message:IsSilent()
+    return self._silent == true
+end
+
 function Message:GetEmbed(index)
     return self._embeds and self._embeds[index]
 end
@@ -201,6 +217,19 @@ end
 -- [[ Setters ]]
 ------------------------------------------
 
+-- Setting a message to silent will prevent it from notifying users with message notifications.
+-- Also it can be used to separate messages.
+--- @NOTE: Looks like this doesn't work for webhooks! We do only keep the separation mechanism.
+--- @param silent boolean Whether this message should be marked as silent or not.
+--- @return Message self
+function Message:SetIsSilent(silent)
+    self._silent = silent
+
+    return self
+end
+
+--- @param content string The new content of the message
+--- @return Message self
 function Message:SetContent(content)
     self._content = content
 

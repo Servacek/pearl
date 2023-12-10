@@ -391,13 +391,12 @@ configuration_options = {
     --------------------
 
     {
-        name="SHOW_PLAYER_ICONS",
-        default=true,
-        options = {
-            true,
-            false,
+        name="PLAYER_MAP_ICONS",
+        default={
+            ENABLED = true,
+            ONLY_FOR_TRUSTED = false, -- Whether to show the icons only for trusted players
         },
-        type = "boolean",
+        type = "table",
     },
 
     {
@@ -538,7 +537,7 @@ configuration_options = {
         public = true,
     },
 
-    { -- Console commands are server only.
+    {
         name="CONSOLE_COMMANDS",
         default=true,
         options = {
@@ -546,9 +545,10 @@ configuration_options = {
             false,
         },
         type = "boolean",
+        public = true,
     },
 
-    {
+    { -- Discord commands are server only.
         name="DISCORD_COMMANDS",
         default=false,
         options = {

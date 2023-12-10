@@ -64,7 +64,7 @@ CommandContext.OHANDLER = {
 
 --- @return CommandContext
 function CommandContext.FromTable(tbl)
-    local ctx = CommandContext(tbl.type, nil, tbl.params, tbl.author)
+    local ctx = CommandContext(nil, tbl.type, tbl.params, tbl.author)
     ctx:SetInteractionID(tbl.iid)
 
     return ctx
@@ -111,35 +111,37 @@ end
 --- @param icon string? Optional icon (emoji) to the content. Displayed only on discord.
 function CommandContext:Reply(content, icon)
     local ohandler = self:GetOutputHandler()
-    if type(ohandler) == "function" then
-        if type(icon) == "string" then
-            local icon_type = PEARL.ICONS.GetType(icon)
+    if type(ohandler) ~= "function" then
+        return PEARL.error("No handler for command", self.command.name, self.type)
+    end
 
-            local icon_str = icon_type == PEARL.ICONS.TYPE.UNKNOWN and icon or nil
-            if icon_type == PEARL.ICONS.TYPE.DISCORD then
-                icon_str = self.type == CommandContext.TYPE.SLASH and PEARL.EMOTES.MAP_GAME[icon] or (
-                    self.type == CommandContext.TYPE.DISCORD and icon or nil
-                )
-            elseif icon_type == PEARL.ICONS.TYPE.INGAME then
-                icon_str = self.type == CommandContext.TYPE.DISCORD and PEARL.EMOTES.MAP_DISCORD[icon] or (
-                    self.type == CommandContext.TYPE.SLASH and icon or nil
-                )
-            end
+    if type(icon) == "string" then
+        local icon_type = PEARL.ICONS.GetType(icon)
 
-            -- Console doesnt support much icon types, so display only the unknown ones.
-            if self.type == CommandContext.TYPE.CONSOLE and icon_type ~= PEARL.ICONS.TYPE.UNKNOWN then
-                icon_str = nil
-            end
-
-            if icon_str then
-                content = RESPONSE_ICON_PATTERN:format(icon_str, content)
-            end
+        local icon_str = icon_type == PEARL.ICONS.TYPE.UNKNOWN and icon or nil
+        if icon_type == PEARL.ICONS.TYPE.DISCORD then
+            icon_str = self.type == CommandContext.TYPE.SLASH and PEARL.EMOTES.MAP_GAME[icon] or (
+                self.type == CommandContext.TYPE.DISCORD and icon or nil
+            )
+        elseif icon_type == PEARL.ICONS.TYPE.INGAME then
+            icon_str = self.type == CommandContext.TYPE.DISCORD and PEARL.EMOTES.MAP_DISCORD[icon] or (
+                self.type == CommandContext.TYPE.SLASH and icon or nil
+            )
         end
 
-        ohandler(self, content)
+        -- Console doesnt support much icon types, so display only the unknown ones.
+        if self.type == CommandContext.TYPE.CONSOLE and icon_type ~= PEARL.ICONS.TYPE.UNKNOWN then
+            icon_str = nil
+        end
 
-        self.replied = true
+        if icon_str then
+            content = RESPONSE_ICON_PATTERN:format(icon_str, content)
+        end
     end
+
+    ohandler(self, content)
+
+    self.replied = true
 end
 
 --- @param message Message

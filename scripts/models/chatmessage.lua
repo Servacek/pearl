@@ -126,7 +126,7 @@ function ChatMessage:SetIsLocalOnly(localonly)
     return self
 end
 
---- @param colour table<int, int, int, int> Cannot be nil!
+--- @param colour table<number, number, number, number?> Cannot be nil!
 function ChatMessage:SetColour(colour)
     if type(self.colour) == "table" then
         self.colour = colour

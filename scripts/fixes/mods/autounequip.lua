@@ -15,19 +15,24 @@
 local TARGET_MOD = CUSTOM_ENV.TARGET_MOD
 local TARGET_PREFAB  = "inventoryitem_classified"
 
---- @TODO: Crashing mods are not being disabled!
-print("TARGET", TARGET_MOD)
 -- Fix for items with durability which wont disapeare after reaching 0%.
 
-local modpostinitfns = TARGET_MOD and TARGET_MOD.postinitfns and TARGET_MOD.postinitfns[TARGET_PREFAB]
-if modpostinitfns then
-    for i = 1, #modpostinitfns do
-        print("OVERRIDING POST INITS")
-        PEARL.AddFunctionPreCall(i, function(inst)
-            print("POST INIT", inst)
-            if inst:HasTag("show_broken_ui") then
-                return false
+local postinits = TARGET_MOD and TARGET_MOD.postinitfns
+local targetpostinits = postinits and postinits.PrefabPostInit and postinits.PrefabPostInit[TARGET_PREFAB]
+if targetpostinits then
+    for i = 1, #targetpostinits do
+
+        local _PrefabPostInit
+        local PrefabPrePostInit = function(item)
+            local inst = item.entity and item.entity:GetParent()
+            if not inst:HasTag("show_broken_ui") then
+                _PrefabPostInit(item)
             end
+        end
+
+        _PrefabPostInit = PEARL.OverrideValue(targetpostinits, i, function(inst)
+            -- Wait a tick for the prefab to fully load.
+            inst:DoStaticTaskInTime(0, PrefabPrePostInit)
         end)
     end
 end

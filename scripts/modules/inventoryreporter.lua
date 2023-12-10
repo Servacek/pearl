@@ -58,14 +58,18 @@ local DROP_TYPE = {
 }
 
 local PREDICTION = {
-    LEGAL = 1,
-    ILLEGAL = 0,
+    ILLEGAL = 1,
+    LEGAL   = 0,
 }
 
 local FEEDBACK_WEIGHT = 0.1
-local LEGALITY_THRESHOLD = .8
+local ILLEGALITY_THRESHOLD = .5
 local RARITY_THRESHOLD = 0.5
 local WEIGHT_FACTOR = 0.5
+local LEARNING_RATE = 0.1
+
+-- Determines the maximal bias for players with age 1.
+local AGE_BIAS      = 0.2
 
 local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
 
@@ -106,7 +110,12 @@ local function SaveItemWeights()
         return PEARL.error("Failed to load the weights file!")
     end
 
-    wf:write(json.encode(_weights))
+    local success, jsonstr = json.encode(_weights)
+    if success == false or type(jsonstr) ~= "string" then
+        return PEARL.error("Failed to encode the weights table!")
+    end
+
+    wf:write(jsonstr)
     wf:close()
 end
 
@@ -138,24 +147,19 @@ local function GetContributions(weights, normalized_value)
         contributions[prefab] = normalized_weight / normalized_value
     end
 
-    --assert(table.sum(contributions) == 1)
+    table.dump(contributions)
+    print("MAX CONTRIBUTOR:", table.max(contributions))
 
     return contributions
 end
 
--- TODO: Apply feedback according to condfidence?
--- Confidence calculations are to inacurate for that...
 local function ApplyFeedbackWeight(pd, positive)
     local mult = positive and 1 or -1
+    -- Use the actual weights used by the prediction
     local contributions = GetContributions(pd.weights, pd.normalized_value)
     for prefab, contribution in pairs(contributions) do
-        -- The weight should be always between 0 and 1.
-        -- _weights[prefab] = math.min(
-        --     (_weights[prefab] or 0) + (FEEDBACK_WEIGHT * contribution * mult), 1
-        -- )
-
-        -- Lets try to keep the weight growing as it needs to
-        _weights[prefab] = (_weights[prefab] or 0) + (FEEDBACK_WEIGHT * contribution * mult)
+        -- Items that contributed the most will be affected the most as well.
+        _weights[prefab] = (_weights[prefab] or 0) + (LEARNING_RATE * contribution * mult)
     end
 end
 
@@ -170,13 +174,14 @@ local function RemovePrediction(id)
 end
 
 local function SendProxyFeedbackMessage(channel_id, message)
-    message.components = {
+    local messagedata = message:ToTable()
+    messagedata.components = {
         BUTTONS_DATA[BUTTONS.FEEDBACK_POSTIVE],
         BUTTONS_DATA[BUTTONS.FEEDBACK_NEGATIVE],
     }
 
     local data = {
-        message = message,
+        message = messagedata,
         channel = channel_id,
     }
 
@@ -186,6 +191,8 @@ local function SendProxyFeedbackMessage(channel_id, message)
 end
 
 local function ReportInventoryWithFeedback(message, pd)
+    PEARL.debug("ReportInventoryWithFeedback")
+
     local channel_id = PEARL.DiscordReporter._webhook.channel_id or PEARL.CONFIG.INVENTORY_REPORTER.REPORT_CHANNEL
     if channel_id ~= nil then
         local request = SendProxyFeedbackMessage(channel_id, message)
@@ -292,7 +299,7 @@ local function DepositRareItems(inventory, rarity_threshold)
     end)
 end
 
-local function DoLegalityPrediction(inventory)
+local function DoLegalityPrediction(inventory, age)
     local pd = {
         weights = {},
         prediction = PREDICTION.LEGAL, -- Either 1 if flagged or 0 if not.
@@ -309,23 +316,35 @@ local function DoLegalityPrediction(inventory)
         local stacksize = item.components.inventoryitem:GetStackSize()
         local stackweight = item.components.inventoryitem:GetTotalPredictedWeight(_weights)
         local itemweight = stackweight / stacksize
+        print("ITEMWEIGHT", itemweight, item.prefab)
 
         -- Store highest normalized weight for this item.
         pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), itemweight)
         pd.normalized_value = pd.normalized_value + itemweight
         pd.value = pd.value + stackweight
+        print(pd.value)
         pd.items = pd.items + stacksize
     end
 
-    if pd.value >= LEGALITY_THRESHOLD then
-        pd.prediction = PREDICTION.LEGAL
-    end
+    -- Apply age bias
+    --local age_bias = (1 / math.max(age, 1)) * AGE_BIAS
+    --pd.value = pd.value + age_bias
+    --print(pd.value, age_bias)
 
-    local x = pd.prediction == PREDICTION.ILLEGAL and 1 / pd.value or pd.value
-    pd.confidence = math.sigmoid(x * WEIGHT_FACTOR)
+    -- Move the sigmoids center to 0
+    pd.value      = math.sigmoid(pd.value * 100) - math.sigmoid(0)
+    pd.prediction = pd.value > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
+
+    local t_dist  = math.abs(ILLEGALITY_THRESHOLD - pd.value)
+    local dist_mx = math.abs(pd.prediction - ILLEGALITY_THRESHOLD)
+    print(t_dist, dist_mx, pd.value)
+    pd.confidence = t_dist > 0 and t_dist / dist_mx or 0
 
     print("CONFIDENCE:", pd.confidence * 100)
     print("VALUE:", pd.value)
+    print("PREDICTION:", pd.prediction)
+
+    GetContributions(pd.weights, pd.normalized_value)
 
     return pd
 end
@@ -337,8 +356,11 @@ local function CheckPlayersInventory(world, player)
         return
     end
 
-    local pd = DoLegalityPrediction(inventory)
-    if pd.prediction ~= PREDICTION.LEGAL then
+    local age = player.components.age and player.components.age:GetAgeInDays() or 1
+    local pd = DoLegalityPrediction(inventory, age)
+    table.dump(pd)
+    if pd.prediction == PREDICTION.LEGAL then
+        print("INVENTORY IS LEGAL")
         return -- This inventory is not flagged.
     end
 
@@ -372,11 +394,8 @@ local function CheckPlayersInventory(world, player)
             ))
         end
 
-        local message = Message()
-            :AddEmbed(embed)
-            :ToTable()
-
-        if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI then
+        local message = Message():AddEmbed(embed)
+        if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI and PEARL.CONFIG.PROXY.ENABLED and PEARL.DiscordProxy:IsRunning() then
             ReportInventoryWithFeedback(message, pd)
         else
             PEARL.DiscordReporter:SendRawReportMessage(message)

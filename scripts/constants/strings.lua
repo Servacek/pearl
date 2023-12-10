@@ -308,7 +308,8 @@ local STRINGS = {
         DAY                     = "Day %d - %s (%s °C)",
         PHASE                   = "%s",
 
-        SPAWN_AT                = "Spawning %s in shard %s at: X: %d Y: %2.2f Z: %2.2f",
+        SPAWN                   = "Spawning %s in shard %s",
+        SPAWN_AT                = "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f",
 
         PRECIPITATION_START     = "It started %s!",
         PRECIPITATION_STOP      = "It stopped %s.",
@@ -361,7 +362,7 @@ local STRINGS = {
         SIM_UNPAUSED            = "Simulation was unpaused.",
 
         -- We assume that catched exceptions are always caused by us.
-        EXC_CATCHED_SERVER      = "Catched exception on server %s:\n%s",
+        EXC_CATCHED_SERVER      = "Catched exception:\n%s",
         EXC_CATCHED_SHARD       = "Catched exception on shard %s:\n%s",
         EXC_CATCHED_CLIENT      = "Catched exception on client (%s) %s:\n%s",
 
@@ -414,7 +415,6 @@ local STRINGS = {
         USER_INACTIVE_KICKED    = "%s was kicked for inactivity.",
 
         SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
-        SUSPICIOUS_INVENTORY = "**Suspicious Inventory Detected:**",
 
         PLAYER_REPORT         = "%s [@here] `%s` **%s**: %s",
         PLAYER_REPORT_EMPTY   = "%s [@here] `%s` **%s**",
@@ -449,6 +449,10 @@ local STRINGS = {
 
     DATE_FORMAT = "%s. of %s %s",
     FULL_MONTH_NAME = "%s %s", -- First is fancy month name and then the year number
+
+    TAG_PREFIXES = {
+        ["burnt"] = "burnt",
+    },
 
     MONTHS = {
         "January",
@@ -606,7 +610,7 @@ local STRINGS = {
                 DESC       = "Sets the reputation amount for the specified player to whatever number you want.",
 
                 ON_SUCCESS = "Reputation successfully set!",
-                ON_FAILURE = "Failed to set reputation.",
+                ON_FAILURE = "Failed to set the reputation.",
             },
 
             GIVEREP = {
@@ -684,7 +688,14 @@ local STRINGS = {
 
             RELOAD = {
                 PRETTYNAME = "Reload the Server",
-                DESC       = "Internally restarts the server without disconnecting any players."
+                DESC       = "Internally restarts the server without disconnecting any players.",
+            },
+
+            COUNT = {
+                PRETTYNAME = "Count Prefab",
+                DESC       = "Counts the number of occurrences of the specified prefab.",
+
+                ON_SUCCESS = "There are %sx %s on shard %s.",
             },
 
             BLOCK_MOD = {

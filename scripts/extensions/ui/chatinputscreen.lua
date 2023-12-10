@@ -66,10 +66,12 @@ local function ExpandWordPredictorWithCustomCommands(predictor, commands)
                 local commandpermission = UserCommands.GetPermissionLevel(command.permission)
 
                 -- Only autocomplete the commands we have permission to.
-                if permission >= commandpermission then
+                if permission >= commandpermission and not table.contains(v.words, name) then
                     table.insert(v.words, name)
                 end
             end
+
+            break -- Extend only once
         end
     end
 end

@@ -139,6 +139,23 @@ function DB:HasRecordFile(userid)
     return userid and io.exists(DATABASE_FILE_PATH:format(userid))
 end
 
+--- Checks whether the given player's record is writeable.
+--- @param userid string The Klei ID of the user you want the record from.
+--- @return boolean
+function DB:IsRecordActive(userid)
+    return PEARL.ServerNetwork:IsClientConnected(userid)
+    --tostring(record.lastshardid) == tostring(TheShard:GetShardId())
+end
+
+--- Checks whether the given player's record is writeable.
+--- @param record table<string, any>
+--- @return boolean
+function DB:IsRecordWriteable(record)
+    return record.lastshardid == nil or record.lastshardid == PEARL.SHARDID or
+        not PEARL.ServerNetwork:IsClientConnectedAny(record.userid) or
+        self:IsRecordActive(record.userid)
+end
+
 --- Supports Steam ID as well as Klei ID.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return table<string, any>? record The record of the provided player.
@@ -147,15 +164,27 @@ function DB:GetRecordFor(userid)
         return PEARL.debug("Database disabled!")
     end
 
-    userid = self:MapSteamID(userid) or userid
     if self._records[userid] ~= nil then
         return self._records[userid]
     end
 
     local record = self:LoadRecordFor(userid, true)
     if record then
-        return self:CacheRecord(userid, record)
+        -- Only cache when we are the active shard.
+        self:CacheRecord(userid, record)
+
+        -- If the record is not active on this shard but somewhere else.
+        if not self:IsRecordActive(userid) and not self:IsRecordWriteable(record) then
+            -- If not on active shard, unload the record the next tick
+            -- to ensure the data stays up-to-date.
+            PEARL.WallScheduler:ExecuteInTime(0, function()
+                print("UNLOAD")
+                self:UnloadRecord(userid)
+            end)
+        end
     end
+
+    return record
 end
 
 --- @param userid string
@@ -196,6 +225,16 @@ end
 --- @return string? userid
 function DB:MapDiscordID(discordid)
     return self._bindings[BINDING_TYPE.DISCORD][discordid]
+end
+
+--- Receives an ID and attempts to convert it to a Klei ID using all the bindings available.
+--- @return string? userid
+function DB:MapToKleiID(id)
+    for _, bindings in pairs(self._bindings) do
+        if type(bindings[id]) == "string" then
+            return bindings[id]
+        end
+    end
 end
 
 --- @param userid string
@@ -327,24 +366,19 @@ end
 --- @param value any|nil
 --- @return boolean success, any? previous
 function DB:SetField(userid, name, value)
-    local record = PEARL.DB:GetRecordFor(userid)
+    local record = self:GetRecordFor(userid)
     if not record then
         return false -- optional
     end
 
-    if record.lastshardid and record.lastshardid ~= PEARL.SHARDID and PEARL.ServerNetwork:IsClientConnectedAny(userid) and name ~= "lastshardid" then
-        if PEARL.ServerNetwork:IsClientConnected(userid) then
-            record.lastshardid = PEARL.SHARDID
-        else
-            PEARL.error("Attempted to set a field for a read-only record! The record is loaded in r-w mode on shard", record.lastshardid)
-
-            return false
-        end
+    if not self:IsRecordWriteable(record) then
+        PEARL.error("Attempted to set a field for a read-only record! The record is loaded in r-w mode on shard", record.lastshardid)
+        return false
     end
 
     local prev = record[name]
     if prev == value then
-        return true
+        return true, prev -- No changes
     end
 
     if prev ~= nil and value ~= nil and type(prev) ~= type(value) then
@@ -558,6 +592,7 @@ end
 --- Save the database record data for the given player.
 --- @param userid string
 --- @param record table<string, any>?
+--- @return boolean success
 function DB:SaveRecordFor(userid, record)
     PEARL.debug("SaveRecordFor", userid, record)
 
@@ -566,11 +601,13 @@ function DB:SaveRecordFor(userid, record)
     --- @TODO: Re-think the data collection complication.
     --- @TODO: Make the first agreement screen popup up before joining the server.
     if not record then --or (not self:IsDataCollectionEnabledFor(userid) and force ~= true) then
-        return PEARL.error("Record not found for", userid)
+        PEARL.error("Record not found for", userid)
+        return false
     end
 
-    if record.lastshardid and record.lastshardid ~= PEARL.SHARDID then
-        return -- We are a read-only shard for now!
+    if not self:IsRecordWriteable(record) then
+        PEARL.debug("Ignoring DB:SaveRecordFor call because the record", userid, "is read-only!")
+        return false
     end
 
     -- local mt = getmetatable(record)
@@ -578,13 +615,15 @@ function DB:SaveRecordFor(userid, record)
     --     return PEARL.debug("Not saving the record file because no changes were done!")
     -- end
 
-    if not self:SaveToDatabaseFile(
+    if self:SaveToDatabaseFile(
         self:GetRecordFilePathFor(userid), record, true
     ) then
-        PEARL.error("Failed to save record for", userid)
+        --setmetatable(record, CreateRecordMT(record))
+        return true
     end
 
-    --setmetatable(record, CreateRecordMT(record))
+    PEARL.error("Failed to save record for", userid)
+    return false
 end
 
 ------------------------------------------
@@ -609,12 +648,15 @@ local function OnSave()
     -- Save lastseentime, lastdays here as well, because we may be shutting down,
     -- or the server may crash during restarting/rollbacking
     local time_now = os.time()
-    for userid, _ in pairs(DB._records) do
+    for userid, record in pairs(DB._records) do
         if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
             DB:SafeSetField(userid, "lastseentime", time_now)
+        else
+            -- Free up the memory since the client is no longer activelly writing to the record.
+            DB:UnloadRecord(userid)
         end
 
-        DB:SaveRecordFor(userid)
+        DB:SaveRecordFor(userid, record)
     end
 
     -- Save all loaded bindings in case the binding file got removed during our runtime.
