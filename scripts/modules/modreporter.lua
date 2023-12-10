@@ -26,11 +26,8 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 --------------------------------------
 
 local function ReportModsToDiscord(userid, enabled_mods)
-    local client = userid and TheNet:GetClientTableForUser(userid)
-    local name = client and client.name or userid
-
     local message = Message()
-    message:AddEmbed(EMBEDS.ClientMods(enabled_mods, name))
+    message:AddEmbed(EMBEDS.ClientMods(enabled_mods, userid))
 
     PEARL.DiscordReporter:SendRawReportMessage(message)
 end

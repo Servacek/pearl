@@ -34,6 +34,8 @@
 -- [[ Contants ]]
 --------------------------------
 
+PEARL.info("Loading BE constants...")
+
 PEARL.SafeModTableExtend("CONSTS", {
     DST_WEB_GAME_ID = "DontStarveTogether",
 
@@ -172,7 +174,7 @@ PEARL.CONSTS.ENT_ONEOF_TAGS = ArrayUnion(
 -- [[ Config ]]
 --------------------------------
 
-PEARL.info("Loading Configuration...")
+PEARL.info("Loading BE configurations...")
 
 --- Load backend specific configuration options.
 --- This has to be loaded here in order to run all the important checks.
@@ -208,9 +210,9 @@ end)
 -- [[ Server Token ]]
 --------------------------------
 
-PEARL.info("Loading server token...")
-
 do
+    PEARL.info("Loading server token...")
+
     local success, token = PEARL.ClusterPersistance:GetFileContent(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
     if not success or type(token) ~= "string" then
         return error("Could not load the server token!")
@@ -224,6 +226,8 @@ end
 ----------------------------------------------------------------
 
 if PEARL.CONFIG.INTRO_SCREEN then
+    PEARL.info("Loading agreement and welcome files...")
+
     -- These are arrays of sections.
     -- Each section has two fields, a description and a title.
     -- A welcome popup has only 1 section but the agreement screen can have many.¨
@@ -269,6 +273,8 @@ end
 ----------------------------------------------------------------
 
 if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
+    PEARL.info("Loading custom loading tips file...")
+
     local fp = "../../loadingtips.lua"
     if not PEARL.ClusterPersistance:FileExists(fp) then
         PEARL.ClusterPersistance:SetFileContent(fp, "return { }")
@@ -316,6 +322,8 @@ end
 --------------------------------
 
 if PEARL.CONFIG.SEND_KLEI_METRICS == false then
+    PEARL.info("Disabling Klei metrics...")
+
     PEARL.OverrideValue(_G, "METRICS_ENABLED", false)
     PEARL.OverrideValue(_G, "STATS_ENABLE", false)
     PEARL.OverrideUserdataValue("SendProfileStats", function() end, TheNet)
@@ -590,6 +598,7 @@ ModuleManager:AddModule("characterblocker", PEARL.CONFIG.CHARACTER_BLOCKLIST)
 ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
 ModuleManager:AddModule("globalbanlist", PEARL.CONFIG.GLOBAL_BANLIST.ENABLED and PEARL.CONFIG.GLOBAL_BANLIST.URL)
+--- @DEBUG
 ModuleManager:AddModule("autoban", PEARL.CONFIG.AUTOBAN.ENABLED)
 
 --- Filters
@@ -624,15 +633,12 @@ ModuleManager:LoadAllModules()
 -- [[ Custom Prefabs ]]
 --------------------------------
 
--- Here are stored all the prefabs this mod adds to the game.
--- This is being loaded after the builtin prefabs so we can override them.
-PrefabFiles = {}
+if type(PEARL.CONFIG.CUSTOM_PREFABS) == "table" and not table.empty(PEARL.CONFIG.CUSTOM_PREFABS) then
+    PEARL.info("Loading custom prefabs...")
 
-if type(PEARL.CONFIG.CUSTOM_PREFABS) == "table" then
     -- Here are stored all the prefabs this mod adds to the game.
     -- This is being loaded after the builtin prefabs so we can override them.
     PrefabFiles = {}
-
     for prefab, enabled in pairs(PEARL.CONFIG.CUSTOM_PREFABS) do
         if enabled then
             PrefabFiles[#PrefabFiles + 1] = prefab

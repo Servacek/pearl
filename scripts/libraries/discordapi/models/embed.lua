@@ -48,6 +48,8 @@ Embed.MAX_FIELD_VALUE_LENGTH    = 1024
 Embed.MAX_FOOTER_LENGTH         = 2048
 Embed.MAX_AUTHOR_LENGTH         = 256
 
+Embed.FOOTER_SEPARATOR          = "•"
+
 Embed.COLORS = {
     DEFAULT	       = 0,
     AQUA	       = 1752220,

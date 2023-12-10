@@ -473,6 +473,12 @@ configuration_options = {
     },
 
     {
+        name="INVENTORY_ICONS",
+        default = false,
+        type = "boolean",
+    },
+
+    {
         name="BAN_ALT_ACCOUNTS",
         default=true,
         options = {

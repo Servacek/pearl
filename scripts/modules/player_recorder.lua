@@ -81,6 +81,11 @@ function PEARL.RecordProfileData(userid, cb)
     )
 end
 
+local function SaveSessionInfoFor(userid)
+    PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
+    PEARL.DB:SafeSetField(userid, "lastsnapshot", TheNet:GetCurrentSnapshot())
+end
+
 --------------------------------------
 -- [[ Event Handlers ]]
 --------------------------------------
@@ -136,6 +141,7 @@ end
 -- Called after all connection filters succeeded!
 local function OnClientConnected(world, player)
     PEARL.DB:SafeSetField(player.userid, "lastjoinedtime", os.time())
+    SaveSessionInfoFor(player.userid)
 
     local client = TheNet:GetClientTableForUser(player.userid)
     if not client or not client.name then
@@ -157,7 +163,6 @@ local function OnClientDisconnected(world, data)
     -- No loading here! Also the userid can be nil or an empty string.
     if PEARL.DB:IsRecordLoadedFor(data.userid) then
         PEARL.DB:SafeSetField(data.userid, "lastseentime", os.time())
-        PEARL.DB:SafeSetField(data.userid, "lastsessionid", TheNet:GetSessionIdentifier())
 
         PEARL.DB:SaveRecordFor(data.userid)
         PEARL.DB:UnloadRecord(data.userid) -- Free the memory
@@ -208,7 +213,7 @@ end
 
 --- The World might be reloaded because of a regen.
 local function OnWorldLoadedForClient(userid)
-    PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
+    SaveSessionInfoFor(userid)
 end
 
 local function OnNewDaySurvived(userid)

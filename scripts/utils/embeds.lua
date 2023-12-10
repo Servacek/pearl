@@ -41,25 +41,30 @@ local EMBEDS = {}
 --- @return Embed
 function EMBEDS.Inventory(pmd, highlighted)
     local userid    = pmd:GetUserID()
-    local name      = pmd:GetName() or PEARL.DB:GetField(userid, "name") or ""
+    local name      = PEARL.DB:GetField(userid, "username", pmd:GetName()) or ""
     local inventory = pmd:GetInventory()
     local prefab    = PEARL.DB:GetField(userid, "fancyprefab", pmd:GetPrefab())
     local age       = pmd:GetAge()
-    local netid     = pmd:GetNetID()
+    local netid     = PEARL.DB:GetField(userid, "netid", pmd:GetNetID())
     local url       = netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
 
     local description = ""
-    local max_prefab_size = PEARL.GetMaxStringSize(inventory, true)
-    local max_count_size = PEARL.GetMaxStringSize(inventory)
+    local max_count_size, max_prefab_size
 
     for iprefab, icount in pairs(inventory) do
         icount = tostring(icount)
-        local line = MARKDOWN.codeline(string.rep(" ", max_count_size - #icount)..icount.."x").." "..
-        MARKDOWN.codeline(iprefab..string.rep(" ", max_prefab_size - #iprefab))
+        max_count_size = max_count_size or PEARL.GetMaxStringSize(inventory)
+        local line = MARKDOWN.codeline(string.rep(" ", max_count_size - #icount)..icount.."x").." "
 
-        local icon = PEARL.ICONS.INVENTORY[iprefab]
-        if icon then
-            line = line.." "..icon
+        if PEARL.CONFIG.INVENTORY_ICONS then
+            local icon = PEARL.ICONS.INVENTORY[iprefab]
+            if icon then
+                line = line..icon
+            end
+        else
+            max_prefab_size = max_prefab_size or PEARL.GetMaxStringSize(inventory, true)
+            -- Show at least the prefab...
+            line = line..MARKDOWN.codeline(iprefab..string.rep(" ", max_prefab_size - #iprefab))
         end
 
         line = line.." "..PEARL.PrefabToName(iprefab)
@@ -83,10 +88,11 @@ function EMBEDS.Inventory(pmd, highlighted)
     --- @type Embed
     local embed = Embed()
     embed:SetTitle(STRINGS.PEARL.EMBEDS.INV.TITLE:format(
-        icon, name, userid
+        icon, name
     ), url)
     embed:SetDescription(description)
     embed:SetTimestamp(os.time())
+    embed:SetFooter(userid)
 
     -- The age field seems to be a bit weird here...
     embed:AddField(STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SURVIVED, STRINGS.PEARL.EMBEDS.INV.SURVIVED:format(
@@ -267,14 +273,17 @@ function EMBEDS.WorldRegen(world, session_id)
 end
 
 --- @return Embed
-function EMBEDS.ClientMods(enabled_mods, owner_name)
+function EMBEDS.ClientMods(enabled_mods, userid)
+    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
+    local owner_name = client and client.name or PEARL.DB:GetField(userid, "username", userid)
     local modlist = type(enabled_mods.list) == "table" and enabled_mods.list or {}
     local description = ""
     local max_id_size = PEARL.GetMaxStringSize(modlist, false, "id")
 
+    local loc_mods, pub_mods
+
     -- Data processed here are untrusted.
     for _, mod in pairs(modlist) do
-        local type_icon = mod.private and PEARL.ICONS.LOCAL or PEARL.ICONS.STEAM
         local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
         local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN, nil, "...") or "???")
 
@@ -286,15 +295,29 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
             modid = (MARKDOWN.hlink(
                 modid, PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):ltake(MAX_MODID_LEN, nil, "..."))
             ).." ")
-        else
-            modid = MARKDOWN.codeline(string.rep(" ", max_id_size)).." "
         end
 
-        description = description..type_icon.." "..state_icon.." "..modid..(
+        local line = "> "..state_icon.." "..modid..(
             mod.allowed and fancyname or MARKDOWN.strikethrough(fancyname)
-        )
+        ).."\n"
 
-        description = description.."\n"
+        if mod.private then
+            loc_mods = (loc_mods or "")..line
+        else
+            pub_mods = (pub_mods or "")..line
+        end
+    end
+
+    if loc_mods then
+        description = description.."\n"..PEARL.ICONS.LOCAL.." "
+            ..MARKDOWN.bold(STRINGS.PEARL.EMBEDS.MODS.LOC_MODS).."\n"
+            ..loc_mods
+    end
+
+    if pub_mods then
+        description = description.."\n"..PEARL.ICONS.STEAM.." "
+            ..MARKDOWN.bold(STRINGS.PEARL.EMBEDS.MODS.PUB_MODS).."\n"
+            ..pub_mods
     end
 
     if description ~= "" and PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST == true then
@@ -302,12 +325,18 @@ function EMBEDS.ClientMods(enabled_mods, owner_name)
     end
 
     local shown_count = table.size(modlist)
+    local footer = STRINGS.PEARL.EMBEDS.MODS.FOOTER:format(shown_count, enabled_mods.count or shown_count)
+    if owner_name ~= userid then
+        -- Make sure we also provide the userid if not in the title.
+        footer = footer.." "..Embed.FOOTER_SEPARATOR.." "..userid
+    end
+
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
         :SetColor(Embed.COLORS.RED)
         :SetTimestamp(os.time())
         :SetDescription(description)
-        :SetFooter(STRINGS.PEARL.EMBEDS.MODS.FOOTER:format(shown_count, enabled_mods.count or shown_count))
+        :SetFooter(footer)
 end
 
 --- @TODO: Add more info

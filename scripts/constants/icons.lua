@@ -258,7 +258,7 @@ end
 -- [[ Inventory Icons ]]
 --------------------------------
 
-if TheNet:GetIsServer() then
+if TheNet:GetIsServer() and PEARL.CONFIG.INVENTORY_ICONS then
     local rf = io.open(PEARL.MODROOT.."/data/inventory_icons.json", "r")
     if rf then
         ICONS.INVENTORY = json.load(rf)

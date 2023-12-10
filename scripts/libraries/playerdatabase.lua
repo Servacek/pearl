@@ -648,9 +648,11 @@ local function OnSave()
     -- Save lastseentime, lastdays here as well, because we may be shutting down,
     -- or the server may crash during restarting/rollbacking
     local time_now = os.time()
+    local snapshot = TheNet:GetCurrentSnapshot()
     for userid, record in pairs(DB._records) do
         if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
             DB:SafeSetField(userid, "lastseentime", time_now)
+            DB:SafeSetField(userid, "lastsnapshot", snapshot)
         else
             -- Free up the memory since the client is no longer activelly writing to the record.
             DB:UnloadRecord(userid)

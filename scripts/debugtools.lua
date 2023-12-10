@@ -746,7 +746,7 @@ function PEARL.TESTS.TestEmbeds()
     PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
     PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen())
 
-    PEARL.DiscordLogger:LogEmbed(EMBEDS.ClientMods({[1] = {private = true,id = "",allowed = false,fancyname = "Chat Machine Translation",},[2] = { private = false,id = "343",allowed = true,fancyname = "Status Announcements",},[3] = {private = false, id = "842702425",allowed = true,fancyname = "Minimap HUD Customizable",}}, "Fi8iP"))
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.ClientMods({[1] = {private = true,id = "",allowed = false,fancyname = "Chat Machine Translation",},[2] = { private = false,id = "343",allowed = true,fancyname = "Status Announcements",},[3] = {private = false, id = "842702425",allowed = true,fancyname = "Minimap HUD Customizable",}}, "KU_ZC24p91Q"))
 end
 
 --------------------------------

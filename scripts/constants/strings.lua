@@ -224,7 +224,7 @@ local STRINGS = {
         },
 
         INV = {
-            TITLE = "%s %s `%s`",
+            TITLE = "%s %s",
             INVENTORY = MARKDOWN.bold("Inventory"),
             INVENTORY_EMPTY = MARKDOWN.italic("*Inventory Empty*"),
             SURVIVED = "`%s/%s`",
@@ -235,6 +235,8 @@ local STRINGS = {
         },
 
         MODS = {
+            LOC_MODS = "Local Mods",
+            PUB_MODS = "Steam Workshop Mods",
             TITLE = "%s's Enabled Mods",
             FOOTER = "%s/%s",
             ALLOWLIST = "Allowlist is enabled.",

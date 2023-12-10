@@ -426,7 +426,7 @@ AddCommand("mods", {
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS)
         end
 
-        ctx:ReplyEmbed(MESSAGES.ModsReport(userid, mods))
+        ctx:ReplyDiscordMessage(MESSAGES.ModsReport(userid, mods))
     end,
 })
 

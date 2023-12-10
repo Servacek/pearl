@@ -26,6 +26,7 @@
 --- @type utf8
 local utf8 = PEARL.loadfile("libraries/utf8")
 
+local Embed   = PEARL.loadfile("libraries/discordapi/models/embed")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 -------------------------------------
@@ -240,6 +241,11 @@ end
 --- @param embed Embed The logline to be added.
 --- @return Message? self Return self on success, nil on error.
 function Message:AddEmbed(embed)
+    if not Embed.is_instance(embed) then
+        PEARL.error("Attempted to add an invalid embed!")
+        return nil
+    end
+
     if not self:CanAcceptEmbed(embed) then
         PEARL.error("Attempted to add more than", PEARL.CONSTS.DISCORD.MAX_EMBED_COUNT, "embeds to a message.")
         return nil -- nil on error

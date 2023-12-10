@@ -32,12 +32,7 @@ function MESSAGES.InvReport(userid, pref)
 end
 
 function MESSAGES.ModsReport(userid, mods)
-    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    local owner_name = client and client.name or userid
-    local embed = EMBEDS.ClientMods(mods, owner_name)
-
-    return Message()
-        :AddEmbed(embed)
+    return Message():AddEmbed(EMBEDS.ClientMods(mods, userid))
 end
 
 ----------------------------------
