@@ -61,7 +61,11 @@ end
 -- Returns nil if the provided table is not actually a table...
 --- @return boolean? empty
 function table:empty()
-    return type(self) == "table" and next(self) == nil or nil
+    if type(self) ~= "table" then
+        return
+    end
+
+    return next(self) == nil
 end
 
 function table.create(size, narr)

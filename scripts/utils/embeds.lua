@@ -102,16 +102,16 @@ function EMBEDS.Inventory(pmd, highlighted)
     return embed
 end
 
-function EMBEDS.SuspiciousInventory(pwd, suspiciousness)
+function EMBEDS.SuspiciousInventory(pwd)
     -- Highlight rare items
     local embed = EMBEDS.Inventory(pwd, PEARL.PREFABS.RARE_ITEMS)
-    if type(suspiciousness) == "number" then
-        embed:AddField(
-            STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SUSPICIOUSNESS,
-            MARKDOWN.codeline(tostring(math.floor(suspiciousness * 100)).."%"),
-            true
-        )
-    end
+    -- if type(suspiciousness) == "number" then
+    --     embed:AddField(
+    --         STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SUSPICIOUSNESS,
+    --         MARKDOWN.codeline(tostring(math.floor(suspiciousness * 100)).."%"),
+    --         true
+    --     )
+    -- end
 
     return embed
 end

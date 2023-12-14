@@ -703,15 +703,6 @@ local function onentitydeath(world, data)
             :SetDynamicField(QueuedLogAction.DYNAMIC_FIELDS.REMAINING, remaining)
     end
 
-
-    -- COMPANION
-    if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
-        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
-            :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
-            :SetColorEntity(doer and doer.entity)
-            :AddTarget(target)
-    end
-
     -- FOLLOWER
     local leader = target.components.follower and target.components.follower:GetLeader() or nil
     if leader and leader:HasTag("player") and leader ~= doer then
@@ -721,6 +712,11 @@ local function onentitydeath(world, data)
             :SetColorEntity(doer and doer.entity)
             :AddTarget(target)
     end
+
+    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+        :SetColorEntity(doer and doer.entity)
+        :AddTarget(target)
 end
 
 AddPrefabPostInit("world", function(world)

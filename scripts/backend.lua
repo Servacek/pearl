@@ -126,6 +126,17 @@ PEARL.SafeModTableExtend("CONSTS", {
         IGNITING_AT_BASE    = -8,
     },
 
+    ITEM_WEIGHT_BIAS       = {
+        RENEWABLE           = -.001,
+        PER_FOOD_POINT      = .0033,
+        PER_FOOD_POINT_RAW  = .0024,
+
+        MAX                 = 1,
+        MIN                 = 0,
+    },
+
+    DEFAULT_ITEM_WEIGHT     = 0.001,
+
     SHARD_ID = {
         MASTER = 1,
     },

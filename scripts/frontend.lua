@@ -115,7 +115,6 @@ PEARL.loadfile("extensions/modindex")
 PEARL.loadfile("extensions/chathistory")
 PEARL.loadfile("extensions/input")
 
-PEARL.loadfile("extensions/scripts/entity")
 PEARL.loadfile("extensions/scripts/entityscript")
 
 PEARL.loadfile("extensions/usercommands")

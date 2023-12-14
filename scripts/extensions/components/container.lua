@@ -21,6 +21,24 @@ local Container = require("components/container")
 -- [[ Getters ]]
 --------------------------------
 
+function Container:GetNextEmptySlot()
+    for slot = 1, self.numslots do
+        if self.slots[slot] == nil then
+            return slot
+        end
+    end
+end
+
+function Container:GetSlotForItem(prefab)
+    for slot, item in pairs(self.slots) do
+        if item.prefab == prefab and item.components.stackable and not item.components.stackable:IsFull() then
+            return slot
+        end
+    end
+
+    return self:GetNextEmptySlot()
+end
+
 function Container:GetRareItems()
     local items = {}
 

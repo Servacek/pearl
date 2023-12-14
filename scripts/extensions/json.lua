@@ -14,6 +14,10 @@
 
 local utf8 = PEARL.loadfile("libraries/utf8")
 
+--- @type JSON
+json = json
+
+--- @class JSON
 local json = json
 
 
@@ -22,21 +26,44 @@ function json.encode_sanitized(data)
     return success, success and utf8.decode_string(result) or result
 end
 
+--- Dumps the provided table to the file at the provided path as JSON encoded string.
+--- Use load in order to load this file back into a Lua table.
 --- @param t table
---- @param file file*
+--- @param filepath string
 --- @return file*? file, string? data
-function json.dump(t, file)
-    local success, str = pcall(json.encode, t)
-    if success == true then
-        return file:write(str)
+function json.dump(t, filepath)
+    local wf, errmsg = io.open(filepath, "w")
+    if not wf then
+        PEARL.error("Failed to open JSON file at", filepath, errmsg)
+        return
     end
 
-    return file, str
+    local success, str = pcall(json.encode, t)
+    if success ~= true or type(str) ~= "string" then
+        PEARL.error("Failed to encode the provided JSON data.", str)
+    else
+        wf:write(str)
+    end
+
+    wf:close()
 end
 
---- @param file file*
---- @return table? result
-function json.load(file)
-    local _, result = pcall(json.decode, file:read("*a"))
-    return result
+--- Inverse operation to json.dump. Attempts to load the JSON data from the specified file
+--- and decode them back into a Lua table.
+--- @param filepath string
+--- @return table? result, string? errmsg
+function json.load(filepath)
+    local rf, errmsg = io.open(filepath, "r")
+    if not rf then
+        PEARL.error("Failed to open JSON file at", filepath, errmsg)
+        return
+    end
+
+    local str = rf:read("*a")
+    local success, t = pcall(json.decode, str)
+    if success ~= true or type(t) ~= "table" then
+        return nil, t
+    end
+
+    return t
 end

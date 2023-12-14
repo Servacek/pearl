@@ -63,15 +63,19 @@ local PREDICTION = {
 }
 
 local FEEDBACK_WEIGHT = 0.1
-local ILLEGALITY_THRESHOLD = .5
+local ILLEGALITY_THRESHOLD = 1
+local MAX_ILLEGALITY = 2 * ILLEGALITY_THRESHOLD
 local RARITY_THRESHOLD = 0.5
 local WEIGHT_FACTOR = 0.5
 local LEARNING_RATE = 0.1
+
+local ITEM_WEIGHT_BIAS = PEARL.CONSTS.ITEM_WEIGHT_BIAS
 
 -- Determines the maximal bias for players with age 1.
 local AGE_BIAS      = 0.2
 
 local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
+local BIASES_FILE_PATH  = PEARL.MODROOT.."data/item_weight_biases.json"
 
 --- @TODO: FOR DEBUGGING
 local MESSAGE_QUERY_URL = "http://localhost:10997/dst/proxy/message"
@@ -88,6 +92,7 @@ local OnPredictionMessageReceived
 
 local _depos = {}
 local _weights = {}
+local _biases  = {}
 local _predictions = {}
 
 local _sorted = false
@@ -104,39 +109,31 @@ end
 -- [[ Helper Functions ]]
 -------------------------------
 
-local function SaveItemWeights()
-    local wf = io.open(WEIGHTS_FILE_PATH, "w")
-    if not wf then
-        return PEARL.error("Failed to load the weights file!")
-    end
-
-    local success, jsonstr = json.encode(_weights)
-    if success == false or type(jsonstr) ~= "string" then
-        return PEARL.error("Failed to encode the weights table!")
-    end
-
-    wf:write(jsonstr)
-    wf:close()
+local function SavePredictionData()
+    json.dump(_weights, WEIGHTS_FILE_PATH)
+    json.dump(_biases, BIASES_FILE_PATH)
 end
 
-local function LoadItemWeights()
-    if not io.exists(WEIGHTS_FILE_PATH) then
+local function LoadSavedPredictionData()
+    local requires_saving = false
+    local weights = json.load(WEIGHTS_FILE_PATH)
+    if type(weights) == "table" then
+        _weights = weights
+    else
         _weights = shallowcopy(PEARL.PREFABS.RARE_ITEMS)
-        SaveItemWeights()
-        return
+        requires_saving = true
     end
 
-    local rf = io.open(WEIGHTS_FILE_PATH, "r")
-    if not rf then
-        return PEARL.error("Failed to load the weights file!")
+    local biases = json.load(BIASES_FILE_PATH)
+    if type(biases) == "table" then
+        _biases = biases
+    else
+        _biases = shallowcopy(PEARL.CONSTS.ITEM_WEIGHT_BIAS)
+        requires_saving = true
     end
 
-    local content = rf:read("*a")
-    rf:close()
-
-    local success, data = pcall(json.decode, content)
-    if not success or type(data) ~= "table" then
-        return PEARL.error("Failed to decode the item weights json!")
+    if requires_saving then
+        SavePredictionData()
     end
 end
 
@@ -214,37 +211,26 @@ local function SortDepos()
 end
 
 local function GetDepoForItem(item)
-    local max_amount = -1
-    local cache = {}
+    -- Keep the index as a pointer for the current depo searched for the item.
+    local depo_index = 1
 
     return function()
-        PEARL.debug("MAX_AMOUNT", max_amount)
-        table.dump(cache)
-        for _, depo in ipairs(_depos) do
-            local amount = tonumber(cache[depo.GUID]) or nil
-            if cache[depo.GUID] == nil then
-                -- If not cached, calculate the amount and cache it.
-                amount = depo.components.container and depo.components.container:CountItem(item.prefab)
-                cache[depo.GUID] = amount
-            end
+        -- Optimal amount is calculated for each iteration starting from the previous depo.
+        local optimal_amount = -1
 
-            -- For non-container depos
-            if amount == nil then
-                cache[depo.GUID] = false
-
-                return depo
-            end
-
-            if cache[depo.GUID] ~= false and amount and amount >= max_amount then
-                max_amount = amount
-
-                -- Mark the depo as "visited" in the cache.
-                cache[depo.GUID] = false
-                return depo
+        -- Depos are sorted, so the containers are being iterated first.
+        for i = depo_index, #_depos do
+            local depo = _depos[i]
+            local amount = depo.components.container and depo.components.container:CountItem(item.prefab) or 0
+            if amount > optimal_amount then
+                depo_index = i
+                optimal_amount = amount
             end
         end
 
-        -- End the iteration.
+        depo_index = depo_index + 1
+
+        return _depos[depo_index]
     end
 end
 
@@ -256,32 +242,39 @@ local function DepositItem(inventory, item)
         SortDepos()
     end
 
-    for _, depo in GetDepoForItem(item) do
+    for depo in GetDepoForItem(item) do
         if item == nil then
+            print("ITEM SUCCESSFULLY DEPLOYED!")
             return -- We have managed to add the whole item to the container.
         end
 
         print("CHECKING DEPO:", depo)
         local container = depo.components and depo.components.container
-        if container and container:CanTakeItemInSlot(item) then
-            local slot = depo.components.container:GetSpecificSlotForItem(item)
+        if container and container:CanTakeItemInSlot(item) and container:AcceptsStacks() then
+            local slot = container:GetSlotForItem(item.prefab)
             print("GOT SLOT:", slot)
-            local dest = depo.components.container:GetItemInSlot(slot)
+            local dest = container:GetItemInSlot(slot)
             if dest and dest.components.stackable then
                 print("Adding item to stack...")
                 item = dest.components.stackable:Put(item)
+            else
+                print("Putting the item in the container...")
+                if container:GiveItem(item) then
+                    print("SUCCESS")
+                    item = nil
+                end
             end
         elseif depo.Transform then
-            print("Dropping the item at depo position")
-            inventory:DropItem(item, true, true, depo.Transform:GetWorldPosition())
-            item = nil
-            return
+            print("Dropping the item at depo position", item)
+            if inventory:DropItem(item, true, true, depo:GetPosition()) then
+                item = nil
+            end
         end
     end
 
     print("Dropping on the ground...")
     -- If no depo existed for this item.
-    inventory:DropItem(item)
+    inventory:DropItem(item, true, true)
 end
 
 local function DepositAllItems(inventory)
@@ -299,49 +292,125 @@ local function DepositRareItems(inventory, rarity_threshold)
     end)
 end
 
+-- Returns the total predicted weight for the item with all the biases applied.
+local function CalculateBiasFor(item, stacksize)
+    local bias = 0
+
+    -- Negative bias for renewable items.
+    if item:HasTag("renewable") then
+        bias = bias + _biases.RENEWABLE * stacksize
+    end
+
+    -- Bias for higher nutrition food
+    if item.components.edible and item.components.edible:FulfillsDiet(FOODGROUP.OMNI) then
+        local food_val = item.components.edible:GetFoodValue()
+        if food_val > 0 then
+            local mult = item:HasTag("preparedfood") and ITEM_WEIGHT_BIAS.PER_FOOD_POINT or ITEM_WEIGHT_BIAS.PER_FOOD_POINT_RAW
+
+            bias = bias + (food_val * mult) * stacksize
+        end
+    end
+
+    -- Bias for less worn items.
+    if item.components.finiteuses then
+        -- If this item does not have durability (e. g. Walking Cane) we count it as
+        -- if it had 100%.
+        local finituse_percent = item.components.finiteuses:GetPercent() or 1
+        bias = bias * finituse_percent
+    end
+
+    print(item.prefab, bias)
+
+    return bias
+end
+
+local function GetWeightFor(prefab)
+    return _weights[prefab] or PEARL.CONSTS.DEFAULT_ITEM_WEIGHT
+end
+
+-- local function GetWeightForRecipe(recipe, stacksize)
+--     local weight, normalized_weight = 0, 0
+
+--     -- For crafted items consider their ingredients
+--     for _, ingredient in ipairs(recipe.ingredients) do
+--         local ing_weight = GetWeightFor(ingredient.type)
+--         if _weights[ingredient.type] and _weights[ingredient.type] > 0 then
+--             weight = weight + (ing_weight * ingredient.amount) * (stacksize / recipe.numtogive)
+--             normalized_weight = normalized_weight + ing_weight
+--         end
+--     end
+
+--     return weight, normalized_weight
+-- end
+
 local function DoLegalityPrediction(inventory, age)
     local pd = {
         weights = {},
         prediction = PREDICTION.LEGAL, -- Either 1 if flagged or 0 if not.
         confidence = 0,
-        items = 0,
-        value = 0,
+        weight = 0,
         normalized_value = 0,
+        prefabs = {},
     }
     if inventory:IsEmpty() then
         return pd
     end
 
     for _, item in ipairs(inventory:ReferenceAllItems()) do
-        local stacksize = item.components.inventoryitem:GetStackSize()
-        local stackweight = item.components.inventoryitem:GetTotalPredictedWeight(_weights)
-        local itemweight = stackweight / stacksize
-        print("ITEMWEIGHT", itemweight, item.prefab)
+        local prefab = item.prefab
+        local stacksize = PEARL.GetStackSize(item)
+        local bias = CalculateBiasFor(item, stacksize)
+        local weight = GetWeightFor(prefab)
 
-        -- Store highest normalized weight for this item.
-        pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), itemweight)
-        pd.normalized_value = pd.normalized_value + itemweight
-        pd.value = pd.value + stackweight
-        print(pd.value)
-        pd.items = pd.items + stacksize
+        --- @TODO: Check the recipes only for items we have guranteed were built.
+        --- Also some items may have multiple recipes so store the one used.
+        --- And check the crafter as well.
+        -- local recipe_weight, nrecipe_weight = 0, 0
+        -- local recipe = AllRecipes[prefab]
+        -- if recipe then
+        --     recipe_weight, nrecipe_weight = GetWeightForRecipe(recipe, stacksize)
+        -- end
+
+        -- if recipe_weight > weight then
+        --     weight = nrecipe_weight
+        --     pd.weight = recipe_weight
+
+        --     for _, ingredient in ipairs(recipe.ingredients) do
+        --         pd.weights[ingredient.type] = math.max((pd.weights[ingredient.type] or 0), weight)
+        --     end
+        -- else
+            -- Store highest normalized weight for this item.
+            pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), weight)
+            pd.weight = pd.weight + (weight * stacksize) + bias
+        -- end
+
+        pd.normalized_value = pd.normalized_value + weight
+        print("BIAS", bias, "WEIGHT", weight, "STACKSIZE", stacksize)
+        print("FINAL WEIGHT:", pd.weight)
     end
 
+    -- print(string.raw(table.max(_weights)))
+    -- local prefab, max_weight = table.max(pd.weights)
+    -- local itemcoutn = inventory:GetItemCount(prefab)
+    -- local occupied_slots = inventory:NumItems()
+    -- local worst_scenario = (occupied_slots - 1) * max_weight * 2
+    -- print(worst_scenario)
+
     -- Apply age bias
-    --local age_bias = (1 / math.max(age, 1)) * AGE_BIAS
-    --pd.value = pd.value + age_bias
-    --print(pd.value, age_bias)
+    local age_bias = (1 / math.max(age, 1)) * AGE_BIAS
+    pd.weight = pd.weight + age_bias
+    print(pd.weight, age_bias)
 
-    -- Move the sigmoids center to 0
-    pd.value      = math.sigmoid(pd.value * 100) - math.sigmoid(0)
-    pd.prediction = pd.value > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
+    -- local wpercent = pd.weight / worst_scenario
+    pd.prediction = pd.weight > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
 
-    local t_dist  = math.abs(ILLEGALITY_THRESHOLD - pd.value)
-    local dist_mx = math.abs(pd.prediction - ILLEGALITY_THRESHOLD)
-    print(t_dist, dist_mx, pd.value)
-    pd.confidence = t_dist > 0 and t_dist / dist_mx or 0
+    -- local t_dist  = math.abs(ILLEGALITY_THRESHOLD - wpercent)
+    -- local dist_mx = math.abs(pd.prediction - ILLEGALITY_THRESHOLD)
+    -- print(t_dist, dist_mx, wpercent)
+    -- pd.confidence = t_dist > 0 and t_dist / dist_mx or 0
 
-    print("CONFIDENCE:", pd.confidence * 100)
-    print("VALUE:", pd.value)
+    -- print("CONFIDENCE:", pd.confidence * 100)
+    print("VALUE:", pd.weight)
     print("PREDICTION:", pd.prediction)
 
     GetContributions(pd.weights, pd.normalized_value)
@@ -366,12 +435,17 @@ local function CheckPlayersInventory(world, player)
 
     print("SENDING REPORT TO THE SERVER:")
 
+    -- Initialize the meta data here so it uses the old untouched inventory for reference.
+    local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
+
     local drop_type = DROP_TYPE.NONE
     if world.state.cycles > PEARL.CONFIG.INVENTORY_REPORTER.DROP_AFTER_CYCLE or PEARL.CONFIG.DEBUG_MODE then
         local reputation = PEARL.Reputation:GetOf(player.userid)
         print("REP", reputation)
         if reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
             DepositAllItems(inventory)
+            print("IS EMPTY AFTER DEPOSIT?", inventory:IsEmpty())
+            print(inventory:GetDebugString())
 
             drop_type = DROP_TYPE.ALL
         elseif reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_REP then
@@ -382,10 +456,8 @@ local function CheckPlayersInventory(world, player)
     end
 
     if PEARL.CONFIG.INVENTORY_REPORTER.SEND_REPORT and PEARL.DiscordReporter:IsEnabled() then
-        local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
-        player_meta:SetInventory(inventory)
-
-        local embed = EMBEDS.SuspiciousInventory(player_meta, pd.confidence)
+        print("SENDING THE REPORT TO DISCORD")
+        local embed = EMBEDS.SuspiciousInventory(player_meta)
         if drop_type ~= DROP_TYPE.NONE then
             embed:SetDescription(embed.description..(
                 "\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..(
@@ -458,7 +530,7 @@ local function OnPredictionFeedback(id, positive)
 
     ApplyFeedbackWeight(prediction, positive)
     RemovePrediction(id)
-    SaveItemWeights()
+    SavePredictionData()
 end
 
 local function OnInputProxyEvent(event)
@@ -479,12 +551,12 @@ end
 
 local function OnItemRaritySet(prefab, value)
     if not _weights or table.empty(_weights) then
-        LoadItemWeights()
+        LoadSavedPredictionData()
     end
 
     _weights[prefab] = value
 
-    SaveItemWeights()
+    SavePredictionData()
 end
 
 -------------------------------
@@ -498,9 +570,17 @@ end)
 
 for depo_prefab, _ in pairs(DROP_DEPOS) do
     PEARL.AddPrefabPostInit(depo_prefab, function(inst)
-        OnDepoInit(inst)
+        print("OnPrefabPostInit", inst)
+        PEARL.WallScheduler:ExecuteInTime(0, function()
+            if inst.components.workable and not inst.components.workable:HasBuilder() then
+                print("IGNORING NEW DEPO!")
+                return -- Special case for naturaly generated chests for example.
+            end
 
-        inst:SafeListenForEvent("onremove", OnDepoRemove)
+            OnDepoInit(inst)
+
+            inst:SafeListenForEvent("onremove", OnDepoRemove)
+        end)
     end)
 end
 
@@ -516,5 +596,5 @@ end
 -------------------------------
 
 if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI then
-    LoadItemWeights()
+    LoadSavedPredictionData()
 end -- Else use the default ones

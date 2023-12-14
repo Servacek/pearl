@@ -20,6 +20,15 @@ local Inventory = require("components/inventory")
 -- [[ Extension Functions ]]
 -----------------------------------
 
+function Inventory:GetNumberOfItems()
+    local num = 0
+    for _, item in pairs(self.itemslots) do
+        num = num + PEARL.GetStackSize(item)
+    end
+
+    return num
+end
+
 function Inventory:GetSorted()
     local length = 0
     local result = {}
@@ -66,5 +75,5 @@ function Inventory:GetItemCount(prefab)
 end
 
 function Inventory:IsEmpty()
-    return table.empty(self.itemslots)
+    return table.empty(self.itemslots) == true
 end

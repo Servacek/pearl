@@ -211,6 +211,12 @@ local function OnPlayerChanged(world, player)
     end
 end
 
+local function OnPlayerDied(player)
+    local userid = player.userid
+    local deathscount = PEARL.DB:GetField(userid, "deathscount", 0)
+    PEARL.DB:SetField(userid, "deathscount", deathscount + 1)
+end
+
 --- The World might be reloaded because of a regen.
 local function OnWorldLoadedForClient(userid)
     SaveSessionInfoFor(userid)
@@ -285,4 +291,8 @@ PEARL.AddWorldPostInit(function(world)
     for _, client in ipairs(PEARL.ServerNetwork:GetConnectedClients()) do
         OnWorldLoadedForClient(client.userid)
     end
+end)
+
+PEARL.AddPlayerPostInit(function(player)
+    player:SafeListenForEvent("death", OnPlayerDied)
 end)
