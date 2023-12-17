@@ -590,3 +590,24 @@ function PEARL.Reboot()
     PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
     TheSim:Crash(true)
 end
+
+-- Restarts only the shard this is called on.
+function PEARL.ReloadShard()
+    StartNextInstance({
+        reset_action = RESET_ACTION.LOAD_SLOT,
+        save_slot = ShardGameIndex:GetSlot()
+    })
+end
+
+function PEARL.RegenerateShard()
+    if TheWorld == nil then
+        return
+    end
+
+    if TheWorld.ismastersim then
+        WorldResetFromSim()
+    else
+        -- In case this is being called from a client.
+        c_remote("c_regenerateshard()")
+    end
+end

@@ -742,7 +742,7 @@ end
 function PEARL.TESTS.TestEmbeds()
     local player_meta = PEARL.GetPlayerMetadataFor("KU_ZC24p91Q")
     PEARL.DiscordLogger:LogEmbed(EMBEDS.Inventory(player_meta))
-    PEARL.DiscordLogger:LogEmbed(EMBEDS.SuspiciousInventory(player_meta, .9))
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.SuspiciousInventory(player_meta))
     PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
     PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen())
 

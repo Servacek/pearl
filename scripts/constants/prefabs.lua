@@ -29,7 +29,7 @@ local PREFABS = {
 
 	MOBS = {
 		COMPANIONS = {
-			["glommer"] = true,
+			--["glommer"] = true, -- Exclude glommer for now, cuz of Krampus farms...
 			["hutch"] = true,
 			["chester"] = true,
 			["friendlyfruitfly"] = true,

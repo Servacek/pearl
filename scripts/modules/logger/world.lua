@@ -108,7 +108,7 @@ end
 
 local quakeing = false
 local function OnQuakeStarted()
-    if quakeing then
+    if quakeing or PEARL.ServerNetwork:IsShardEmpty() then
         return
     end
 
@@ -117,7 +117,7 @@ local function OnQuakeStarted()
 end
 
 local function OnQuakeEnded()
-    if not quakeing then
+    if not quakeing or PEARL.ServerNetwork:IsShardEmpty() then
         return
     end
 

@@ -61,6 +61,8 @@ HTTPClient.METHODS = {
     GET     = "GET",
 }
 
+HTTPClient.DEFAULT_REQUEST_TIMEOUT = 10
+
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
@@ -75,7 +77,7 @@ end
 
 --- @param request Request
 function HTTPClient:SendRequest(request)
-    --PEARL.debug("HTTPClient:SendRequest", request, request.url, request.method)
+    PEARL.debug("HTTPClient:SendRequest", request, request.url, request.method)
 
     if type(request) ~= "table" then
         return PEARL.error("Attempted to send an invalid request!")
@@ -144,7 +146,7 @@ end
 function HTTPClient:GET(url, onsuccess, timeout, ...)
     return self:Request(url, HTTPClient.METHODS.GET)
         :SetOnSuccess(onsuccess, ...)
-        :SetTimeout(timeout)
+        :SetTimeout(timeout or HTTPClient.DEFAULT_REQUEST_TIMEOUT)
 end
 
 --- @nodiscard
@@ -160,7 +162,7 @@ function HTTPClient:POST(url, onsuccess, data, timeout, ...)
 
     return self:Request(url, HTTPClient.METHODS.POST)
         :SetOnSuccess(onsuccess, ...)
-        :SetTimeout(timeout)
+        :SetTimeout(timeout or HTTPClient.DEFAULT_REQUEST_TIMEOUT)
         :SetData(data)
 end
 

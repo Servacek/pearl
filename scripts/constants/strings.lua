@@ -525,6 +525,7 @@ local STRINGS = {
             SERVER_ONLY = "This command does only work on a server!",
             PLAYER_NOT_FOUND = "Player not found!",
             ITEM_PREFAB_INVALID = "Invalid item prefab provided!",
+            PREFAB_INVALID = "Invalid prefab provided!",
             ITEM_NOT_FOUND = "Item not found!",
             MOD_ALREADY_BLOCKED = "The specified mod is already blocked on the server.",
             SHARD_NOT_FOUND = "The specified shard is not connected to Master!",
@@ -693,11 +694,16 @@ local STRINGS = {
                 DESC       = "Internally restarts the server without disconnecting any players.",
             },
 
+            RESCUE = {
+                ON_DEATH   = "You can rescue at the portal!",
+                NO_REVIVE  = "This command won't revive you! Try to find an other way. There are many.",
+            },
+
             COUNT = {
                 PRETTYNAME = "Count Prefab",
                 DESC       = "Counts the number of occurrences of the specified prefab.",
 
-                ON_SUCCESS = "There are %sx %s on shard %s.",
+                ON_SUCCESS = "There are %s %s's on shard %s.",
             },
 
             BLOCK_MOD = {

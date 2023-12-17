@@ -145,6 +145,8 @@ PEARL.SafeModTableExtend("CONSTS", {
         INPUTPROXY_FETCH = 3,
     },
 
+    LARGE_PROPAGATOR_RADIUS = 8,
+
     ------------------------------------
     SKINS_PREVIEW_URL           = "https://items.kleientertainment.com/images/DST/%s/%s", -- .../DST/<skin prefab>/<size>
     --- @deprecated: use steam's API instead

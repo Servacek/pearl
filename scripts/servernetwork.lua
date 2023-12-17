@@ -489,6 +489,11 @@ function ServerNetwork:IsShardConnected(shardid)
     return false
 end
 
+function ServerNetwork:IsShardEmpty()
+    -- Just to be extra safe.
+    return type(AllPlayers) ~= "table" or table.size(AllPlayers) <= 0
+end
+
 function ServerNetwork:IsClientInactive(userid)
     return self:HasUserFlag(userid, USERFLAGS.IS_AFK)
 end

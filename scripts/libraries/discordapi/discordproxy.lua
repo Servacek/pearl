@@ -39,7 +39,7 @@ local URL = {
 }
 
 local FETCH_REQUEST_TIMEOUT = 5
-local RETRY_TIMEOUT         = 30
+local RETRY_TIMEOUT         = 10
 
 local START_SESSION_RETRIES = 3
 
@@ -230,7 +230,7 @@ local function OnFetchInput()
     -- Do it explicitly. Since implicit method changes are prohibited.
     local request
     if type(DiscordProxy.events) == "table" and table.empty(DiscordProxy.events) then
-        request = PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT, OnInputFetchingDone, nil, FETCH_REQUEST_TIMEOUT)
+        request = PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT, OnInputFetchingDone, FETCH_REQUEST_TIMEOUT)
     else
         request = PEARL.HTTPClient:POST(DiscordProxy.URL.INPUT, OnInputFetchingDone, DiscordProxy.events, FETCH_REQUEST_TIMEOUT)
     end

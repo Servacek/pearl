@@ -259,14 +259,10 @@ end
 --------------------------------
 
 if TheNet:GetIsServer() and PEARL.CONFIG.INVENTORY_ICONS then
-    local rf = io.open(PEARL.MODROOT.."/data/inventory_icons.json", "r")
-    if rf then
-        ICONS.INVENTORY = json.load(rf)
-        rf:close()
-    end
+    ICONS.INVENTORY = json.load(PEARL.MODROOT.."/data/inventory_icons.json")
 end
 
-ICONS.INVENTORY = ICONS.INVENTORY or {}
+ICONS.INVENTORY = type(ICONS.INVENTORY) == "table" and ICONS.INVENTORY or {}
 
 --------------------------------
 -- [[ Return ]]

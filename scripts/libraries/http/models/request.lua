@@ -184,6 +184,10 @@ end
 --- @param timeout integer?
 --- @return Request
 function Request:SetTimeout(timeout)
+    if timeout == nil then
+        PEARL.warn("Setting timeout to nil is not recommended! It may hang the program.")
+    end
+
     return self:_SetField("timeout", timeout, "number", true, true)
 end
 
@@ -406,6 +410,8 @@ end
 --- @param success boolean?
 --- @param code integer?
 function Request:OnCompleted(datastr, success, code)
+    --PEARL.debug("Request:OnCompleted", success, code)
+
     if self:WasCompleted() then
         PEARL.error("Request already completed!", datastr)
     end
@@ -466,19 +472,9 @@ function Request:OnCompleted(datastr, success, code)
         self.errfn(response, code, self, PEARL.unpack(self.errfn_args))
     end
 
-    local reason
-    if retryable_code then
-        if code == 0 then
-            reason = "Operation timed out!"
-        end
-
-        if self:IsRetryable() then
-            PEARL.HTTPClient:RetryRequestAfter(
-                self, math.min(math.max(self.retry_timeout * (self.retries + 1), self.retry_timeout), MAX_TIMEOUT_RETRY_SECONDS)
-            )
-        end
-    else
-        reason = (#datastr > 1 and datastr) or "Reason unknown."
+    local reason = (#datastr > 1 and datastr) or "Reason unknown."
+    if code == 0 then
+        reason = "Operation timed out!"
     end
 
     -- Log only failed requests to reduce log spam
@@ -487,6 +483,14 @@ function Request:OnCompleted(datastr, success, code)
             self.host or "unknown", code, reason
         ), tonumber(code or 0) > 0 and self.data
     )
+
+    if self:IsRetryable() and retryable_code then
+        PEARL.HTTPClient:RetryRequestAfter(
+            self, math.min(math.max(self.retry_timeout * (self.retries + 1), self.retry_timeout), MAX_TIMEOUT_RETRY_SECONDS)
+        )
+    elseif self:WasRetried() then
+        PEARL.error("No retrying for this request anymore...")
+    end
 end
 
 ----------------------------------

@@ -608,6 +608,7 @@ local function OnCastAreaDestruction(doer, item, target, pos, radius)
     return OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.HAMMER)
 end
 
+--- @DEBUG + Add Reputation
 RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
     -- Green Staff
     if PEARL.PREFABS.DESTRUCTION_ITEMS[item.prefab] then
@@ -626,6 +627,7 @@ RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, 
     end
 end)
 
+--- @DEBUG + Add Reputation
 RegisterPlayerItemActionHandler(ACTIONS.ATTACK, function(doer, target, item, pos)
     -- Fire Staff - Using it counts as attacking not casting.
     local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
@@ -650,7 +652,7 @@ local function onentitydeath(world, data)
     end
 
     -- Bosses (announce their deaths even if they were not killed by a player)
-    -- Handle special transition case for Klaus.
+    --- @DEBUG Handle special transition case for Klaus.
     if target:HasTag("epic") and not (target.sg and target.sg:HasStateTag("transition")) then
         local pt = STRINGS.PEARL.ACTIONS.KILL.BOSS
         pt = pt:nformat("target", target:GetBasicDisplayName())
@@ -675,10 +677,21 @@ local function onentitydeath(world, data)
         return AL:LogAction(doer.entity, PEARL.CONSTS.ANN_TYPE.DEFEAT, pt)
     end
 
-    if not (doer and doer:HasTag("player")) then
-        return
+    --- @DEBUG
+    -- MOB SPREADING FIRE AFTER DEATH
+    if PEARL.PREFABS.MOBS.FIRE_SPREADERS[target.prefab] then
+        local near = target:GetPropagableBurnableEntities(
+            nil, nil, PEARL.CONSTS.LARGE_PROPAGATOR_RADIUS
+        )
+
+        local prohibited = #near >= 4 or table.find(near, structuresearchfn)
+
+        return AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.FIRE, subfmt(STRINGS.PEARL.ACTIONS.KILL.NEAR, {
+            doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)
+        }), not prohibited)
     end
 
+    --- @DEBUG
     -- NOT RESPAWNABLE MOB
     local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
@@ -703,14 +716,20 @@ local function onentitydeath(world, data)
             :SetDynamicField(QueuedLogAction.DYNAMIC_FIELDS.REMAINING, remaining)
     end
 
-    -- FOLLOWER
     local leader = target.components.follower and target.components.follower:GetLeader() or nil
-    if leader and leader:HasTag("player") and leader ~= doer then
+    if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
+
+    -- FOLLOWER
+    elseif leader and leader:HasTag("player") then
         return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
             QueuedLogAction.STATIC_FIELDS.OWNER, leader)
             :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
             :SetColorEntity(doer and doer.entity)
             :AddTarget(target)
+    end
+
+    if not (doer and doer:HasTag("player")) then
+        return
     end
 
     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
@@ -944,10 +963,6 @@ local function onafkstatechanged(userid, is_afk)
     return PEARL.AnnounceWithType(message:format(name), type, entity)
 end
 
-local function onplayerkicked()
-
-end
-
 -------------------
 -- THIEFS --
 -------------------
@@ -1009,7 +1024,7 @@ local function onfinishedlooting(doer, data)
     -- Do not queue this action
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
     AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
-        doer = doer:GetDisplayName(), items = loot_string, target = data.container:GetFancyName()
+        doer = doer:GetDisplayName(), target = loot_string, source = data.container:GetFancyName()
     }), not data.items.rare)
 end
 

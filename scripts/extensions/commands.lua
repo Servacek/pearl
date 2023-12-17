@@ -214,6 +214,7 @@ AddCommand("grant", {
     end,
 })
 
+--- @TODO: Rethink this logic here.
 AddCommand("revoke", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
@@ -231,7 +232,9 @@ AddCommand("revoke", {
         end
 
         PEARL.AllowList:Remove(userid)
-        TheNet:Kick(userid)
+        if PEARL.AllowList:IsEnabled() then
+            TheNet:Kick(userid, 0)
+        end
 
         if PEARL.AllowList:Save() then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS:format(userid))
@@ -274,17 +277,14 @@ AddCommand("inv", {
     end,
 })
 
-AddCommand("inv-find", {
-    aliases = {"item-find", "invf"},
-    consolename = "invf",
+AddCommand("invf", {
+    aliases = {"inv-find"},
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    slash = true,
-    discord = false,
-    console = false,
     params = {"prefab"},
-    paramsoptional = { false },
+    paramsoptional = {false},
+    routing = UserCommands.SHARD_ROUTING.ALL,
 
     --- @param ctx CommandContext
     fn = function(ctx)
@@ -327,9 +327,12 @@ AddCommand("inv-find", {
         end
 
         ctx:ReplyDiscordMessage(message)
-        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
-            #item_owners
-        ))
+
+        if ctx.type ~= CommandContext.TYPE.DISCORD then
+            ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
+                #item_owners
+            ))
+        end
     end,
 })
 
@@ -501,7 +504,7 @@ AddCommand("giverep", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.player)
-        if ctx.author.userid == userid and not PEARL.CONFIG.DEBUG_MODE then
+        if ctx.author.userid == userid then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF)
         end
 
@@ -551,7 +554,21 @@ AddCommand("reload", {
     slash = true,
     console = true,
 
-    fn = c_reset,
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        local shardid = ctx.params.shard
+        if shardid == nil then
+            return c_reset()
+        end
+
+        -- It looks like restarting Master shard always
+        -- forces the connected shards to restart.
+        if tostring(shardid) == PEARL.SHARDID then
+            return PEARL.ReloadShard()
+        end
+
+        PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, "PEARL.ReloadShard()")
+    end,
 })
 
 AddCommand("count", {
@@ -567,10 +584,13 @@ AddCommand("count", {
     --- @param ctx CommandContext
     fn = function(ctx)
         local prefab = ctx.params.prefab
-        local count = PEARL.CountPrefabs(prefab)
+        if not PEARL.PrefabExists(prefab) then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
+        end
 
+        local count = PEARL.CountPrefabs(prefab)
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.ON_SUCCESS:format(
-            count, prefab, PEARL.GetShardFancyName()
+            count, PEARL.PrefabToName(prefab), PEARL.GetShardFancyName()
         ))
     end,
 })
@@ -651,12 +671,7 @@ AddCommand("give", {
         local count_left = math.max(type(ctx.params.count) == "number" and ctx.params.count or 1, 1)
         local count = count_left
         while count_left > 0 do
-            item = SpawnPrefab(prefab)
-            if not item or not item.components.inventoryitem then
-                if item then
-                    item:Remove()
-                end
-
+            if not PEARL.PrefabExists(prefab) then
                 return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID)
             end
 
@@ -788,6 +803,63 @@ AddCommand("drop", {
     end,
 })
 
+AddCommand("spawn", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"player", "prefab", "count"},
+    paramsoptional = {false, false, true},
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        local prefab = ctx.params.prefab
+        if not PEARL.PrefabExists(prefab) then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
+        end
+
+        local userid = UserCommands.InputToUserID(ctx.params.player)
+        local player = userid and LookupPlayerInstByUserID(userid)
+        local position = player and player:GetPosition()
+        if not player or not position then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        local spawned = 0
+        local count = math.max(tonumber(ctx.params.count) or 1, 1)
+        for i = 1, count do
+            if SpawnPrefab(prefab) then
+                spawned = spawned + 1
+            end
+        end
+
+        player:PushEvent("death", {cause = ctx.author.name})
+    end,
+})
+
+AddCommand("removeall", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = true,
+    console = true,
+    params = {"prefab", "max"},
+    paramsoptional = {true},
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        local userid = UserCommands.InputToUserID(ctx.params.player)
+        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.health then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        player:PushEvent("death", {cause = ctx.author.name})
+    end,
+})
+
 AddCommand("kill", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.DESC,
@@ -906,24 +978,6 @@ AddCommand("despawn", {
     end,
 })
 
--- This is here mainly for debugging purposes, so we do not have to wait
--- for the Master shard to be restarted.
-AddCommand("reloadshard", {
-    permission = COMMAND_PERMISSION.ADMIN,
-    console = true,
-    discord = false,
-    slash = false,
-    usermenu = false,
-    servermenu = false,
-
-    fn = function()
-        StartNextInstance({
-            reset_action = RESET_ACTION.LOAD_SLOT,
-            save_slot = ShardGameIndex:GetSlot()
-        })
-    end
-})
-
 -- This is here mainly for debugging purposes
 AddCommand("skip", {
     permission = COMMAND_PERMISSION.ADMIN,
@@ -1025,8 +1079,8 @@ AddCommand("system", {
 })
 
 AddCommand("notify", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.DESC,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     console = true,
     discord = true,
@@ -1301,16 +1355,53 @@ AddCommand("setslots", {
 -- Command Post Inits
 -------------------------------------------
 
+--- @DEBUG in game
+UserCommands.CustomizeCommand("stopvote", function(command)
+    command.routing = UserCommands.SHARD_ROUTING.NONE
+    command.remote  = true -- Redirect these to master.
+
+    local localfn  = command.localfn
+    command.localfn = nil
+    command.fn = function(ctx)
+        localfn(ctx.params, ctx.author) -- Run the original handler
+        -- Implicit response via logger.
+    end
+end)
+
+UserCommands.CustomizeCommand("rescue", function(command)
+    command.routing = UserCommands.SHARD_ROUTING.NONE
+    command.params = command.params or {}
+    command.paramsoptional = command.paramsoptional or {}
+
+    table.insert(command.params, "player")
+    table.insert(command.paramsoptional, true)
+
+    local serverfn  = command.serverfn
+    command.fn = function(ctx)
+        local targetid = (ctx.params.player or ctx.author).userid
+        local target = LookupPlayerInstByUserID(targetid)
+        if not target then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        serverfn(ctx.params, target) -- Run the original handler
+
+        if target and target:HasTag("playerghost") and targetid == ctx.author.userid then
+            -- People often confuse this command as a revive command.
+            if GetPortalRez() then
+                ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.ON_DEATH)
+            else
+                ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.NO_REVIVE)
+            end
+        end
+    end
+end)
+
 UserCommands.CustomizeCommand("rollback", function(command)
     command.routing = UserCommands.SHARD_ROUTING.NONE
 
-    if not command.params then
-        command.params = {"numsaves"}
-    end
-
-    if not command.paramsoptional then
-        command.paramsoptional = {true}
-    end
+    command.params = command.params or {"numsaves"}
+    command.paramsoptional = command.paramsoptional or {true}
 
     -- table.insert(command.params, "days")
     -- table.insert(command.paramsoptional, true)
@@ -1339,24 +1430,15 @@ end)
 
 UserCommands.CustomizeCommand("regenerate", function(command)
     command.routing = UserCommands.SHARD_ROUTING.NONE
-
-    if not command.params then
-        command.params = {}
-    end
-
-    if not command.paramsoptional then
-        command.paramsoptional = {}
-    end
+    command.params = command.params or {}
+    command.paramsoptional = command.paramsoptional or {}
+    command.aliases = command.aliases or {}
 
     table.insert(command.params, "shard")
     table.insert(command.paramsoptional, true)
 
     table.insert(command.params, "seed")
     table.insert(command.paramsoptional, true)
-
-    if not command.aliases then
-        command.aliases = {}
-    end
 
     table.insert(command.aliases, "regen")
 
@@ -1376,31 +1458,25 @@ UserCommands.CustomizeCommand("regenerate", function(command)
         end
 
         local shardid = tostring(ctx.params.shard)
-        if shardid == SHARDID.MASTER then
-            return c_regenerateshard()
+        if shardid == PEARL.SHARDID then
+            return PEARL.RegenerateShard()
         end
 
-        PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, "c_regenerateshard()")
+        PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, "PEARL.RegenerateShard()")
     end
 end)
 
 UserCommands.CustomizeCommand("kick", function(command)
+    -- Migrate all the logic to the server.
+    command.remote = true
+    command.localfn = nil
     command.routing = UserCommands.SHARD_ROUTING.NONE
-
-    if not command.params then
-        command.params = {"user", "seconds"}
-    end
-
-    if not command.paramsoptional then
-        command.paramsoptional = {false, true}
-    end
+    command.params = command.params or {"user", "seconds"}
+    command.paramsoptional = command.paramsoptional or {false, true}
 
     table.insert(command.params, "reason")
     table.insert(command.paramsoptional, true)
 
-    command.remote = true
-
-    command.localfn = nil -- Migrate all the logic to the server.
     command.fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.user)
         if not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
@@ -1421,22 +1497,16 @@ UserCommands.CustomizeCommand("kick", function(command)
 end)
 
 UserCommands.CustomizeCommand("ban", function(command)
+    -- Migrate all the logic to the server.
+    command.remote = true
+    command.localfn = nil
     command.routing = UserCommands.SHARD_ROUTING.NONE
-
-    if not command.params then
-        command.params = {"user", "seconds"}
-    end
-
-    if not command.paramsoptional then
-        command.paramsoptional = {false, true}
-    end
+    command.params = command.params or {"user", "seconds"}
+    command.paramsoptional = command.paramsoptional or {false, true}
 
     table.insert(command.params, "reason")
     table.insert(command.paramsoptional, true)
 
-    command.remote = true
-
-    command.localfn = nil -- Migrate all the logic to the server.
     command.fn = function(ctx)
         local userid = UserCommands.InputToUserID(ctx.params.user)
         if PEARL.BlackList:Contains(userid) and not PEARL.ServerNetwork:IsClientConnected(userid) then

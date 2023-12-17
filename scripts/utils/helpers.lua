@@ -331,6 +331,10 @@ function PEARL.GetRarityForPrefab(prefab)
     return (prefab and tonumber(PEARL.PREFABS.RARE_ITEMS[prefab])) or 0
 end
 
+function PEARL.PrefabExists(prefab)
+    return PrefabExists(prefab) == true
+end
+
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end

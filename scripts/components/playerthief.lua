@@ -187,6 +187,14 @@ return Class(function(self, inst)
     -- [[ Handlers ]]
     --------------------------------
 
+    local function OnPostInit()
+        inst.components.inventory:ForEachItem(function(item)
+            if item.component.inventoryitem then
+                item.components.inventoryitem:SetLastPicker(inst)
+            end
+        end)
+    end
+
     function self:OnRemoveFromEntity()
         if _inst then
             _inst:RemoveModEventCallback("closedcontainer", onclosecontainer)
@@ -201,6 +209,8 @@ return Class(function(self, inst)
     --------------------------------
     -- [[ Setup ]]
     --------------------------------
+
+    inst:ExecuteInTime(0, OnPostInit)
 
     RegisterListeners()
 

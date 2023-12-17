@@ -199,7 +199,8 @@ GLOBAL.PEARL = setmetatable({
     INIT_FULL           = TheSim:GetNumLaunches() == 2,
     LAUNCHES            = TheSim:GetNumLaunches(),
 
-    SHARDID             = TheNet:IsDedicated() and TheShard:GetShardId() or nil,
+    --- @type string?
+    SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
 
     -- Used for sending internal mod events.
     EventProcessor   = EventProcessor(),

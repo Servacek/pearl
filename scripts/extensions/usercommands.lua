@@ -403,7 +403,7 @@ end
 
 --- @return string userid The client's Klei ID or nil on failure.
 function UserCommands.InputToUserID(input)
-    return UserToClientID(input) or PEARL.DB:MapToKleiID(input) or input
+    return input and (UserToClientID(input) or PEARL.DB:MapToKleiID(input)) or input
 end
 
 --- @return table? client The client's table or nil on failure.

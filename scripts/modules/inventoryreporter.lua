@@ -211,26 +211,28 @@ local function SortDepos()
 end
 
 local function GetDepoForItem(item)
-    -- Keep the index as a pointer for the current depo searched for the item.
-    local depo_index = 1
-
+    -- Map for marking depos as used.
+    local used = {}
     return function()
+        local optimal_depo
         -- Optimal amount is calculated for each iteration starting from the previous depo.
         local optimal_amount = -1
 
         -- Depos are sorted, so the containers are being iterated first.
-        for i = depo_index, #_depos do
-            local depo = _depos[i]
-            local amount = depo.components.container and depo.components.container:CountItem(item.prefab) or 0
-            if amount > optimal_amount then
-                depo_index = i
-                optimal_amount = amount
+        for _, depo in ipairs(_depos) do
+            if not used[depo] then
+                used[depo] = true
+
+                local container = depo.components.container
+                local amount = container and container:CountItem(item.prefab) or 0
+                if amount > optimal_amount then
+                    optimal_amount = amount
+                    optimal_depo = depo
+                end
             end
         end
 
-        depo_index = depo_index + 1
-
-        return _depos[depo_index]
+        return optimal_depo
     end
 end
 

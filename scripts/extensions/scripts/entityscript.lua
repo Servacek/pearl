@@ -20,7 +20,9 @@ local table, tostring = table, tostring
 -- [[ Class Declaration ]]
 -----------------------------------
 
---require("entityscript")
+-- Make sure the global is declared.
+require("entityscript")
+
 --- @class EntityScript
 local EntityScript = EntityScript
 

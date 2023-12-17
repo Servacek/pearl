@@ -129,7 +129,7 @@ function DB:GetTotalRecordCount()
 end
 
 function DB:GetRecordFilePathFor(userid)
-    return DATABASE_FILE_PATH:format(userid)
+    return DATABASE_FILE_PATH:format(tostring(userid))
 end
 
 --- Checks whether the provided userid has a record file created.
