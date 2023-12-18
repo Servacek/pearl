@@ -64,6 +64,7 @@ function WhiteList:Add(userid, broadcasted)
     end
 end
 
+-- If string mode is enabled then the user is being kicked after calling this.
 function WhiteList:Remove(userid, broadcasted)
     if self._userids[userid] ~= nil then
         PEARL.debug("WhiteList:Remove", userid, broadcasted)
@@ -76,6 +77,10 @@ function WhiteList:Remove(userid, broadcasted)
 
         if not broadcasted then
             PEARL.BroadcastRPCToAllShards(PEARL.RPC.RemoveFromWhiteList, userid)
+
+            if WhiteList:GetMode() == WhiteList.MODE.STRICT then
+                TheNet:Kick(userid, 0)
+            end
         end
     end
 end

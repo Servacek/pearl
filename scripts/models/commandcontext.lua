@@ -31,6 +31,9 @@ local CommandContext = PEARL.Class(function(self, command, type, params, author)
     --- @type table
     self.params = params or {}
 
+    --- @type table?
+    self.validated_args = nil
+
     self.command = command or {}
     --- @type integer
     self.type = type
@@ -66,6 +69,7 @@ CommandContext.OHANDLER = {
 function CommandContext.FromTable(tbl)
     local ctx = CommandContext(nil, tbl.type, tbl.params, tbl.author)
     ctx:SetInteractionID(tbl.iid)
+    ctx:SetValidatedArguments(tbl.args)
 
     return ctx
 end
@@ -82,10 +86,15 @@ function CommandContext:WasReplied()
     return self.replied == true
 end
 
+function CommandContext:GetValidatedArguments()
+    return self.validated_args
+end
+
 function CommandContext:ToTable()
     return {
         type   = self.type,
         params = self.params,
+        args   = self.validated_args,
         author = self.author,
         iid    = self.iid,
     }
@@ -101,6 +110,10 @@ end
 
 function CommandContext:SetCommand(command)
     self.command = command
+end
+
+function CommandContext:SetValidatedArguments(args)
+    self.validated_args = args
 end
 
 --------------------------------------

@@ -50,6 +50,12 @@ PEARL.RPC = {
     _size = 0
 }
 
+function PEARL.IsRPCSenderListValid(sender_list)
+    return type(sender_list) == "string" or (
+        type(sender_list) == "table" and not table.empty(sender_list)
+    )
+end
+
 --- RPCs from the server are trusted if the server is trusted (which it should).
 local CLIENT_RPCS = {
     DisplayChatMessage = function(data)

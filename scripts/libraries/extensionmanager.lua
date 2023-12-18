@@ -145,7 +145,6 @@ function ExtensionManager:FixMods(fixname, mods)
 
     for _, modname in ipairs(mods) do
         modname = MODNAME_PREFIX..tostring(modname)
-        print("MODNAME!!!", modname)
         if KnownModIndex:IsModEnabledAny(modname) and not KnownModIndex:IsModBlocked(modname) then
             PEARL.info("Applying fix", fixname, "for mod", modname)
             local mod = ModManager:GetMod(modname)

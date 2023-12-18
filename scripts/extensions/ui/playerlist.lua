@@ -97,7 +97,7 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
 
     -- Free up the space for the buttons
     if #root.site_buttons > 0 and self.title then
-        self.title:Kill()
+        self.title:Hide() -- Use hide here instead of Kill to prevent stale reference
     end
 
     ---------------------
@@ -113,7 +113,7 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
         root.site_buttons[#root.site_buttons+1] = button
 
         if self.players_number then
-            self.players_number:Kill()
+            self.players_number:Hide() -- Use hide here instead of Kill to prevent stale reference
         end
 
         -- Override the default callback

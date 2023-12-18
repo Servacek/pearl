@@ -757,14 +757,20 @@ onburntup = function(target)
     -- We will not need this callback anymore.
     target:RemoveEventCallback("burntup", onburntup)
 
+    local pattern = STRINGS.PEARL.ACTIONS.BURNTUP.GENERIC
     local workable = target.components and target.components.workable or nil
-    -- Only announce when a player creation burns up.
-    if workable and workable:HasBuilder() then
-        AL:QueueAct(STRINGS.PEARL.ACTIONS.BURNTUP.OWNED,
-            QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName())
-            :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
-            :AddTarget(target)
+    local wasbuilt = workable and workable:HasBuilder()
+    if wasbuilt and workable then
+        pattern = STRINGS.PEARL.ACTIONS.BURNTUP.OWNED:nformat(
+            QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName()
+        )
     end
+
+    AL:QueueAct(pattern)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
+        -- Only announce when a player creation burns up.
+        :SetIsSilent(not wasbuilt)
+        :AddTarget(target, nil, true)
 end
 
 --- @param inst EntityScript

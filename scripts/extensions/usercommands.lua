@@ -25,16 +25,21 @@ local UserCommands = require("usercommands")
 -------------------------------------
 
 local MENTION_DELIMETER = PEARL.CONSTS.DELIMS.PLAYER_NAME
+local DEFAULT_COMMAND_PERMISSION = COMMAND_PERMISSION.ADMIN -- For safety
 
 local REQUIRED_FIELDS = {
     params = {},
+    permission = DEFAULT_COMMAND_PERMISSION
 }
 
 -------------------------------------
 -- Locals
 -------------------------------------
 
-local custom_commands = {}
+local custom_commands       = {}
+
+--- @type table<string, fun(ctx: CommandContext, value: any): any, boolean?>
+local standardized_params   = {}
 
 --------------------------------------
 -- Local Functions
@@ -113,6 +118,82 @@ function UserCommands.RouteHybridCommand(name, context, shardid)
     return false
 end
 
+--- Returns an array of parameter values for the given context
+--- or nil if there was an error.
+--- @param ctx CommandContext
+--- @return table? args, integer? count
+local function ValidateParams(ctx, params)
+    local optional = ctx.command.paramsoptional
+    local types    = ctx.command.paramtypes
+    local raw      = ctx.command.paramsraw
+
+    local args
+    local n = 0
+    for i, paramname in ipairs(ctx.command.params) do
+        local value = params[paramname]
+
+        -- Parameters are optional by default
+        if optional and optional[i] == false then
+            if value == nil then
+                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER:format(paramname))
+                return
+            end
+        end
+
+        -- Check if the value type is correct, if not try to convert it.
+        local tp = types and types[paramname]
+        if tp and value ~= nil and value ~= tp then
+            local converted = PEARL.TryConvertToType(value, tp)
+            if type(converted) ~= tp then
+                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE:format(paramname))
+                return
+            end
+
+            value = converted
+        end
+
+        local standardizer = standardized_params[paramname]
+        if (not raw or raw[i] ~= true) and type(standardizer) == "function" then
+            local standardized, success = standardizer(ctx, value)
+
+            if success == false then
+                if not ctx:WasReplied() then
+                    ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED:format(paramname))
+                    return
+                end
+
+                return
+            end
+
+            value = standardized
+        end
+
+        if type(args) ~= "table" then
+            args = {}
+        end
+
+        n = n + 1
+        args[n] = value
+    end
+
+    for paramname, _ in pairs(params) do
+        if not table.contains(ctx.command.params, paramname) then
+            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM:format(paramname))
+            return
+        end
+    end
+
+    return args, n
+end
+
+--- @param paramname string
+--- @param fn fun(ctx: CommandContext, param: any): any, boolean
+function UserCommands.AddStandardizedParam(paramname, fn)
+    standardized_params[paramname] = fn
+
+    return fn -- So we allow chaining
+end
+
 --- @param command table<string, any>
 --- @param ctx CommandContext
 --- @param norouting boolean?
@@ -131,17 +212,41 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         return false
     end
 
+    local validated_args = ctx:GetValidatedArguments()
+    local n = validated_args and table.size(validated_args) or 0
+    if not validated_args then
+        local count
+        validated_args, count = ValidateParams(ctx, ctx.params)
+        if not count then
+            return false
+        end
+
+        ctx:SetValidatedArguments(validated_args)
+        n = count
+    end
+
     local target = UserCommands.InputToClientTable(ctx.params and ctx.params.player or ctx.params.user)
     local target_userid = target and target.userid
     local target_permission = UserCommands.GetPermissionLevel(
         target_userid and UserCommands.CalculatePermissionFor(target_userid)
     )
+    local author_permission = UserCommands.GetPermissionLevel(
+        ctx.author.permission or UserCommands.CalculatePermissionFor(ctx.author.userid)
+    )
+    local command_permission = UserCommands.GetPermissionLevel(command.permission or DEFAULT_COMMAND_PERMISSION)
+    if author_permission < command_permission then
+        ctx:Reply(STRINGS.UI.USERCOMMANDS.NOTALLOWEDFMT:format(command.prettyname or command.name))
+        return false
+    end
+
     if (command.cantargetself == false and target_userid == ctx.author.userid) or
-        (command.cantargetadmin == false and target_permission == COMMAND_PERMISSION.ADMIN)
+        (command.cantargetadmin == false and target_permission > author_permission)
     then
         ctx:Reply(STRINGS.UI.USERCOMMANDS.BADTARGETFMT:format(
             command.prettyname or command.name, target and target.name or "[UNKNOWN]"
         ))
+
+        return false
     end
 
     local route_shardid
@@ -177,8 +282,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         -- Maybe do not execute at all?
     end
 
-    print("RUNNING THE COMMAND!")
-    command.fn(ctx)
+    command.fn(ctx, PEARL.unpack(validated_args, 1, n))
 
     return true
 end
@@ -194,8 +298,7 @@ function UserCommands.RunDiscordCommand(name, params, author, id)
     end
 
     local command = UserCommands.GetCustomCommand(name)
-
-    if type(command) ~= "table" or type(command.fn) ~= "function" then
+    if type(command) ~= "table" or type(command.fn) ~= "function" or command.discord ~= true then
         PEARL.error("Attempted to run an invalid hybrid command.")
         return STRINGS.PEARL.COMMAND_RESPONSES.INVALID
     end
@@ -230,7 +333,7 @@ end
 
 function UserCommands.CalculatePermissionFor(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
-    return (client and client.admin) or (PEARL.AdminList:Contains(userid)) and
+    return ((client and client.admin) or (PEARL.AdminList:Contains(userid))) and
         COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
 end
 
@@ -252,6 +355,11 @@ function UserCommands.GetCustomCommandsWithFlag(flagname)
 end
 
 local function ParseParamsArray(command, params_array)
+    if params_array and #command.params < #params_array then
+        PEARL.error("Too many arguments supplied!")
+        return nil, false
+    end
+
     local params = {}
     for i, paramname in ipairs(command.params) do
         if params_array and params_array[i] ~= nil then
@@ -262,11 +370,11 @@ local function ParseParamsArray(command, params_array)
             end
 
             PEARL.error("Didn't supply enough arguments to command!")
-            return
+            return nil, false
         end
     end
 
-    return params
+    return params, true
 end
 
 local function EnsureRequiredFields(command)
@@ -299,7 +407,10 @@ end
 function UserCommands.AddConsoleCommand(name, command)
     -- When executed from STDIN, these are always in a protected call so no need for make_safe_cb.
     PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), function(...)
-        local params = ParseParamsArray(command, toarrayornil(...))
+        local params, success = ParseParamsArray(command, toarrayornil(...))
+        if success == false then
+            return PEARL.error("Executing console command failed!")
+        end
 
         UserCommands.RunHybridCommand(
             command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, {
@@ -338,7 +449,7 @@ function UserCommands.AddSlashCommand(name, command)
 end
 
 function UserCommands.AddCustomCommand(name, command)
-    if (command.slash ~= true and command.console ~= true) and not TheNet:GetIsServer() then
+    if (command.slash == false and command.console == false) and not TheNet:GetIsServer() then
         return -- Ignore backend-only commands
     end
 
@@ -357,9 +468,14 @@ function UserCommands.AddCustomCommand(name, command)
     command.routing = command.routing or UserCommands.SHARD_ROUTING.AUTO
     command.routingfallback = command.routingfallback or UserCommands.SHARD_ROUTINGFALLBACK.CURRENT
 
+    -- Everything is enabled by default
     command.slash = command.slash ~= false and PEARL.CONFIG.SLASH_COMMANDS
     command.console = command.console ~= false and PEARL.CONFIG.CONSOLE_COMMANDS
     command.discord = command.discord ~= false and PEARL.CONFIG.DISCORD_COMMANDS
+
+    -- Disabled by default
+    command.usermenu = command.usermenu or false
+    command.servermenu = command.servermenu or false
 
     -- Make all the functions safe
     if command.localfn then
@@ -462,4 +578,47 @@ PEARL.AddShardRPCHandler("RouteHybridCommand", function(shardid, name, datastr)
     PEARL.WallScheduler:ExecuteInTime(0, function()
         UserCommands.RunHybridCommand(command, context, true)
     end)
+end)
+
+-------------------------------------
+-- Param Standardizers
+-------------------------------------
+
+UserCommands.AddStandardizedParam("userid",
+UserCommands.AddStandardizedParam("player", function(ctx, param)
+    if param == nil then
+        return nil, true
+    end
+
+    local userid = UserCommands.InputToUserID(tostring(param))
+    if not userid or not PEARL.ServerNetwork:IsKleiIDKnown(userid) then
+        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER)
+        return nil, false
+    end
+
+    return userid, true
+end))
+
+UserCommands.AddStandardizedParam("shard", function(ctx, param)
+    if param == nil then
+        return nil, true
+    end
+
+    local shardid = tostring(param)
+    if shardid ~= SHARDID.MASTER and not PEARL.ServerNetwork:IsShardConnected(shardid) then
+        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND)
+        return nil, false
+    end
+
+    return shardid, true
+end)
+
+UserCommands.AddStandardizedParam("prefab", function(ctx, param)
+    local prefab = tostring(param):lower():gsub("-", "_")
+    if not PEARL.PrefabExists(param) then
+        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
+        return nil, false
+    end
+
+    return prefab, true
 end)

@@ -2028,19 +2028,9 @@ msgctxt "STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE"
 msgid "Server Agreement Update"
 msgstr ""
 
-#. STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID"
-msgid "Invalid prefab provided!"
-msgstr ""
-
 #. STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
 msgid "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua."
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE"
-msgid "There was an error contacting Klei servers."
 msgstr ""
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK
@@ -2048,9 +2038,59 @@ msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK"
 msgid "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua."
 msgstr ""
 
+#. STRINGS.PEARL.UI.CMD_ERRORS.VALIDATION_FAILED
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.VALIDATION_FAILED"
+msgid "Failed to validate command \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER"
+msgid "Unknown player!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM"
+msgid "Invalid parameter \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE"
+msgid "Invalid value provided for parameter \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER"
+msgid "Missing required parameter \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE"
+msgid "There was an error contacting Klei servers."
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID"
+msgid "Invalid prefab provided!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED"
+msgid "Standardization failed for command \"%s\"!"
+msgstr ""
+
 #. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE"
 msgid "Close"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SAVE.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SAVE.PRETTYNAME"
+msgid "Save the Game"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SAVE.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SAVE.DESC"
+msgid "Saves the current world!"
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.PERMISSIVE.ON_TURN_OFF
@@ -2178,6 +2218,21 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DESC"
 msgid "Drops an player's item or the whole inventory if no item was specified."
 msgstr ""
 
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.ON_SUCCESS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.ON_SUCCESS"
+msgid "Removed %dx %s from shard %s."
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.PRETTYNAME"
+msgid "Remove All"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.DESC"
+msgid "Removes all entities with the specified prefab from the world."
+msgstr ""
+
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME"
 msgid "Display Inventory"
@@ -2243,14 +2298,29 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.ON_FAILURE"
 msgid "Couldn't retrive the game owner for the specified account."
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME"
-msgid "Remove from allowlist"
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.PRETTYNAME"
+msgid "Fetch Game Owner"
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC"
-msgid "Attempts to remove the given player id from the allowlist."
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.DESC"
+msgid "Checks whether the user is also the actual owner of the game."
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.ON_SUCCESS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.ON_SUCCESS"
+msgid "Spawned %dx %s"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.PRETTYNAME"
+msgid "Spawn Entity"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.DESC"
+msgid "Spawns any entity by their prefab."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOW_MOD.PRETTYNAME
@@ -2261,6 +2331,31 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOW_MOD.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOW_MOD.DESC"
 msgid "Make sure this modification is allowed for players to use."
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME"
+msgid "Set Server Slots Count"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT"
+msgid "Invalid number of slots provided!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS"
+msgid "The number of server slots has been updated!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW"
+msgid "The Specified number of slots is less than the total number of players!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC"
+msgid "Sets the number of player slots for the server."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ANNOUNCE.PRETTYNAME
@@ -2298,39 +2393,14 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.PAUSE.DESC"
 msgid "Toggle pause the server."
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME"
-msgid "Set Server Slots Count"
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME"
+msgid "Remove from allowlist"
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT"
-msgid "Invalid number of slots provided!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS"
-msgid "The number of server slots has been updated!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW"
-msgid "The Specified number of slots is less than the total number of players!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC"
-msgid "Sets the number of player slots for the server."
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME"
-msgid "Extinguish Fires"
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC"
-msgid "When a nasty griefer appears, this can safe your base from fire!"
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC"
+msgid "Attempts to remove the given player id from the allowlist."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ALREADY_PAIRED
@@ -2368,6 +2438,26 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.DESC"
 msgid "Links up your Klei and discord account in our database. The accounts need to be already paired."
 msgstr ""
 
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME"
+msgid "Extinguish Fires"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC"
+msgid "When a nasty griefer appears, this can safe your base from fire!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.PRETTYNAME"
+msgid "Set Player's Reputation"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC"
+msgid "Sets the reputation amount for the specified player to whatever number you want."
+msgstr ""
+
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.PRETTYNAME"
 msgid "Give Reputation"
@@ -2398,14 +2488,14 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC"
 msgid "Removes the given player from the blacklist. Accepts both, Klei ID and Steam ID."
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.PRETTYNAME
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.PRETTYNAME"
-msgid "Set Player's Reputation"
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME"
+msgid "Block Mod"
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.DESC"
-msgid "Sets the reputation amount for the specified player to whatever number you want."
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC"
+msgid "Prohibit a modification for other players."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME
@@ -2418,14 +2508,14 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.DESC"
 msgid "Despawns the specified player on spot. Inventory is dropped."
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME"
-msgid "Block Mod"
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.NO_REVIVE
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.NO_REVIVE"
+msgid "This command won't revive you! Try to find an other way. There are many."
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC"
-msgid "Prohibit a modification for other players."
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.ON_DEATH
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.ON_DEATH"
+msgid "You can rescue at the portal!"
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.PRETTYNAME
@@ -2436,16 +2526,6 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC"
 msgid "Brings back structures that were engulfed in fire."
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.NO_REVIVE
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.NO_REVIVE"
-msgid "This command won't revive you! Try to find an other way. There are many."
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.ON_DEATH
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.ON_DEATH"
-msgid "You can rescue at the portal!"
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.PRETTYNAME
@@ -2466,6 +2546,16 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.DESC"
 msgid "If you find yourself in a hopeless situation... call the admins!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SKIP.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SKIP.PRETTYNAME"
+msgid "Skip Phase"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SKIP.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SKIP.DESC"
+msgid "Skips the current phase of the day."
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.ON_SUCCESS

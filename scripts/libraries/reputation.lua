@@ -219,8 +219,16 @@ function Reputation:GiveTo(userid, amount)
     return self:DoDeltaTo(userid, amount, VERY_BAD_REP_THRESHOLD)
 end
 
+--- @param value number
+--- @return boolean success
 function Reputation:SetTo(userid, value)
-    return self:SetFieldFor(userid, "value", value)
+    if type(value) == "number" then
+        return self:SetFieldFor(userid, "value", value)
+    else
+        PEARL.error("Attempted to set an invalid reputation value: ", type(value), value)
+    end
+
+    return false
 end
 
 --- @param userid string

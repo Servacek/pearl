@@ -189,7 +189,7 @@ return Class(function(self, inst)
 
     local function OnPostInit()
         inst.components.inventory:ForEachItem(function(item)
-            if item.component.inventoryitem then
+            if item.components.inventoryitem then
                 item.components.inventoryitem:SetLastPicker(inst)
             end
         end)
@@ -210,7 +210,7 @@ return Class(function(self, inst)
     -- [[ Setup ]]
     --------------------------------
 
-    inst:ExecuteInTime(0, OnPostInit)
+    inst:DoTaskInTime(0, OnPostInit)
 
     RegisterListeners()
 

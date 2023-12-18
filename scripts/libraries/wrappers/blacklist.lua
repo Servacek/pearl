@@ -24,6 +24,8 @@
         - TheNet:GetBlacklist() always creates a new table.
 --]]
 
+--- @TODO: We probably want this to be synced between shards.
+
 local PEARL = PEARL
 local table = table
 local TheNet = TheNet
@@ -55,6 +57,7 @@ end
 --- @param userid string Supports both Klei and Steam IDs.
 --- @return boolean success Whether we were able to remove the given userid or not
 function BlackList:Remove(userid)
+    local success = false
     local blacklist = self:Get()
     for i, record in ipairs(blacklist) do
         if not record.empty and (record.userid == userid or record.netid == userid) then
@@ -63,11 +66,11 @@ function BlackList:Remove(userid)
 
             PEARL.EventProcessor:HandleEvent("clientunbanned", userid)
 
-            return true
+            success = true -- Remove all occurrences
         end
     end
 
-    return false
+    return success
 end
 
 function BlackList:Add(userid)

@@ -42,7 +42,7 @@ local QueuedLogAction = Class(function(self, pattern)
     --- @type string
     self.pattern = pattern
 
-    --- @type string
+    --- @type integer
     self.timestart = os.time()
 
     --- @type table<name, count>?
@@ -60,9 +60,9 @@ local QueuedLogAction = Class(function(self, pattern)
     self.queuefn = nil
     self.queuefninst = nil
 
-    --- @type string
+    --- @type integer
     self.queuetime = QUEUE_TIME
-    --- @type string
+    --- @type integer
     self.queuetimemult = QUEUE_REPEAT_MULT
 
     self.queued = false
@@ -94,8 +94,8 @@ QueuedLogAction.DYNAMIC_FIELDS = {
 --- @param target string|EntityScript
 --- @param stacksize integer? Optional stacksize override for case where the target's stacksize cannot be used.
 --- @return QueuedLogAction
-function QueuedLogAction:AddTarget(target, stacksize)
-    return self:AddToDynamicField(self.DYNAMIC_FIELDS.TARGET, target, stacksize)
+function QueuedLogAction:AddTarget(target, stacksize, ...)
+    return self:AddToDynamicField(self.DYNAMIC_FIELDS.TARGET, target, stacksize, ...)
 end
 
 --- @return QueuedLogAction
@@ -176,7 +176,7 @@ function QueuedLogAction:SetStaticField(name, value)
 end
 
 --- @return QueuedLogAction
-function QueuedLogAction:AddToDynamicField(field, key, stacksize)
+function QueuedLogAction:AddToDynamicField(field, key, stacksize, noprefix)
     -- Ensure that the field exists
     if not self:HasDynamicField(field) then
         self:SetDynamicField(field, {})
@@ -185,7 +185,7 @@ function QueuedLogAction:AddToDynamicField(field, key, stacksize)
     local name = key
     --- Handle name being the entity.
     if EntityScript.is_instance(name) then
-        name = PEARL.GetStandardizedNameFor(name)
+        name = PEARL.GetStandardizedNameFor(name, noprefix)
     end
 
     if type(name) ~= "string" then

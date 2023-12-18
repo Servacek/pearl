@@ -339,6 +339,35 @@ function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
 
+local TYPE_CONVERTERS = {
+    ["string"] = tostring,
+    ["number"] = tonumber,
+    ["function"] = {
+        ["string"] = loadstring,
+    },
+    ["table"] = {
+        ["userdata"] = instrument_userdata,
+    },
+}
+--- @return any
+function PEARL.TryConvertToType(value, tp)
+    local origin_type = type(value)
+    if origin_type == tp then
+        return value
+    end
+
+    local converterfn = TYPE_CONVERTERS[tp]
+    if type(converterfn) == "table" then
+        converterfn = converterfn[origin_type]
+    end
+
+    if type(converterfn) ~= "function" then
+        return value
+    end
+
+    return converterfn(value) or value
+end
+
 function PEARL.NameToPrefab(name)
     name = string.lower(name)
     for prefab, pname in pairs(STRINGS.NAMES) do
@@ -377,7 +406,7 @@ end
 
 --- @param entity string|EntityScript
 --- @return string
-function PEARL.GetStandardizedNameFor(entity)
+function PEARL.GetStandardizedNameFor(entity, noprefix)
     if type(entity) ~= "table" then
         return tostring(entity)
     end
@@ -388,9 +417,11 @@ function PEARL.GetStandardizedNameFor(entity)
     end
 
     local name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
-    for tagname, prefix in pairs(STRINGS.PEARL.TAG_PREFIXES) do
-        if entity:HasTag(tagname) then
-            name = prefix.." "..name
+    if noprefix ~= true then
+        for tagname, prefix in pairs(STRINGS.PEARL.TAG_PREFIXES) do
+            if entity:HasTag(tagname) then
+                name = prefix.." "..name
+            end
         end
     end
 

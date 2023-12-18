@@ -523,6 +523,7 @@ local STRINGS = {
             NO_SNAPSHOT_FOUND = "Couldn't find any snaphots for day %d.",
             FAILED_SNAPHOTS_LOAD = "Failed to load the snapshots for this session.",
             SERVER_ONLY = "This command does only work on a server!",
+            UNKNOWN_PLAYER = "Unknown player!",
             PLAYER_NOT_FOUND = "Player not found!",
             ITEM_PREFAB_INVALID = "Invalid item prefab provided!",
             PREFAB_INVALID = "Invalid prefab provided!",
@@ -530,7 +531,12 @@ local STRINGS = {
             MOD_ALREADY_BLOCKED = "The specified mod is already blocked on the server.",
             SHARD_NOT_FOUND = "The specified shard is not connected to Master!",
             DB_DISABLED = "The database is not enabled!",
-            KLEI_SERVERS_UNREACHABLE = "There was an error contacting Klei servers."
+            KLEI_SERVERS_UNREACHABLE = "There was an error contacting Klei servers.",
+            MISSING_PARAMETER = "Missing required parameter \"%s\"!",
+            INVALID_PARAM_VALUE = "Invalid value provided for parameter \"%s\"!",
+            INVALID_PARAM = "Invalid parameter \"%s\"!",
+            STANDARDIZATION_FAILED = "Standardization failed for command \"%s\"!",
+            VALIDATION_FAILED = "Failed to validate command \"%s\"!",
         },
 
         -- Add more translations
@@ -589,9 +595,28 @@ local STRINGS = {
                 ON_SUCCESS = "Player was revived!",
             },
 
+            SPAWN = {
+                PRETTYNAME = "Spawn Entity",
+                DESC       = "Spawns any entity by their prefab.",
+
+                ON_SUCCESS = "Spawned %dx %s",
+            },
+
+            REMOVEALL = {
+                PRETTYNAME = "Remove All",
+                DESC       = "Removes all entities with the specified prefab from the world.",
+
+                ON_SUCCESS = "Removed %dx %s from shard %s.",
+            },
+
             PAUSE = {
                 PRETTYNAME = "Pause/Resume",
                 DESC       = "Toggle pause the server.",
+            },
+
+            SAVE = {
+                PRETTYNAME = "Save the Game",
+                DESC       = "Saves the current world!",
             },
 
             DESPAWN = {
@@ -796,7 +821,15 @@ local STRINGS = {
                 MISSING_PERMISSION = "You do not have permission to display profiles of other players."
             },
 
+            SKIP = {
+                PRETTYNAME = "Skip Phase",
+                DESC       = "Skips the current phase of the day.",
+            },
+
             BORROWED = {
+                PRETTYNAME = "Fetch Game Owner",
+                DESC       = "Checks whether the user is also the actual owner of the game.",
+
                 ON_SUCCESS = "Owner of the game is %s",
                 ON_FAILURE = "Couldn't retrive the game owner for the specified account."
             },

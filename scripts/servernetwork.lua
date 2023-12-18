@@ -169,7 +169,11 @@ function ServerNetwork:DisplayChatMessageFor(userids, message)
         return PEARL.error("Failed to encode message data to JSON format!")
     end
 
-    PEARL.BroadcastRPCToClientsGlobal(PEARL.RPC.DisplayChatMessage, userids, jsonstr)
+    if PEARL.IsRPCSenderListValid(userids) then
+        PEARL.BroadcastRPCToClientsGlobal(
+            PEARL.RPC.DisplayChatMessage, userids, jsonstr
+        )
+    end
 
     -- Make sure the message is archived on the server as well.
     -- Direct messages are not being archived on the server just locally by the client.
@@ -474,6 +478,16 @@ function ServerNetwork:IsClientConnectedAny(userid)
     return userid and TheNet:GetClientTableForUser(userid) ~= nil
 end
 
+--- @param id string Klei ID of the account.
+--- @return boolean known Whether the Klei ID was seen on the server before.
+--- We are using all the available information for determining that. For greater precision
+--- of this function turn on the DB!
+function ServerNetwork:IsKleiIDKnown(id)
+    return PEARL.ServerNetwork:IsClientConnectedAny(id) or
+        PEARL.ServerNetwork:UserSessionExists(id) or
+        PEARL.DB:HasRecordFile(id)
+end
+
 --- Whether the client is connected to the current shard.
 function ServerNetwork:IsClientConnected(userid)
     return userid and connected_clients[userid] == true
@@ -491,7 +505,7 @@ end
 
 function ServerNetwork:IsShardEmpty()
     -- Just to be extra safe.
-    return type(AllPlayers) ~= "table" or table.size(AllPlayers) <= 0
+    return type(AllPlayers) ~= "table" or table.empty(AllPlayers) == true
 end
 
 function ServerNetwork:IsClientInactive(userid)
