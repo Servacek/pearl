@@ -71,7 +71,7 @@ function ServerListing:SetDataField(name, value)
     }
 
     PEARL.HTTPClient:POST(LOBBY_BASE_URL..LOBBY_ENDPOINTS.UPDATE, function(data)
-        print(data)
+        PEARL.info(data)
     end, data)
         :SetIsRaw(true)
         :Send()
@@ -85,7 +85,7 @@ end
 
 function ServerListing:DisplayData()
     self:GetData(function(data)
-        print(data)
+        PEARL.info(data)
     end, true)
 end
 

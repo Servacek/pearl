@@ -173,9 +173,15 @@ local STRINGS = {
     },
 
     EMBEDS = {
-        STARTUP = {
+        PLAYERS = {
+            TITLE = "Player List",
+            THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1187075388187357294/player.png",
+        },
+
+        SERVER = {
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
-            TITLE = "Server Launched",
+            BOOT = "Server Launched",
+            TITLE = "Server Properties",
             FD_NAMES = {
                 PLATFORM    = "Plaform",
                 GAME_V      = "Game Version",
@@ -187,12 +193,13 @@ local STRINGS = {
         },
 
         REGEN = {
-            TITLE = "Shard `%s` Regenerated",
+            TITLE = "%s World Properties",
+            REGENERATED = "Shard `%s` Regenerated",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066443002630918236/world.png",
             DESC_TITLE = "**World Setting Overrides**",
             OTHER = "+%d other change(s)",
             FD_NAMES = {
-                SEED            = "New World Seed",
+                SEED            = "World Seed",
                 SESSION_ID      = "World ID",
                 SAVE_VERSION    = "Save Version",
                 REED_TRAP       = "Reed Trap",
@@ -247,13 +254,17 @@ local STRINGS = {
             TITLE = "%s %s",
             FOOTER = "Klei ID: %s Steam ID: %s Root Klei ID: %s",
             PLAYING = "Playing Now!",
+            PRIVATE = "Profile is set as private, therefore some data may be inaccurate or not provided at all.",
             FD_NAMES = {
-                PLAYED  = "Total Days Played",
-                REP     = "Reputation",
-                JOINED  = "Joined At",
-                LOCALE  = "Locale",
-                SEEN    = "Last Time Seen",
-                DISCORD = "Discord",
+                PLAYED          = "Total Days Played/Survived",
+                REP             = "Reputation",
+                JOINED          = "Joined At",
+                LOCALE          = "Locale",
+                SEEN            = "Last Time Seen",
+                DISCORD         = "Discord",
+                GAMEPLAYTIME    = "Game Play Time",
+                DEATHS          = "Deaths Count",
+                STEAMCREATED    = "Steam Member Since",
             },
         },
     },
@@ -450,7 +461,9 @@ local STRINGS = {
     },
 
     DATE_FORMAT = "%s. of %s %s",
+    HM_TIME_FORMAT = "%dh %dm",
     FULL_MONTH_NAME = "%s %s", -- First is fancy month name and then the year number
+    PROPORTION = "%s/%s",
 
     TAG_PREFIXES = {
         ["burnt"] = "burnt",

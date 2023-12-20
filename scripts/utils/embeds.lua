@@ -195,26 +195,38 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
 end
 
 --- @return Embed
-function EMBEDS.ServerBoot()
+function EMBEDS.ServerInfo(boot)
     local seed = TheWorld and TheWorld.meta and TheWorld.meta.seed or "???"
     local active_event = GetFirstActiveSpecialEvent() or "none"
+    local title = boot == true and STRINGS.PEARL.EMBEDS.SERVER.BOOT or STRINGS.PEARL.EMBEDS.SERVER.TITLE
+    local colour = boot == true and Embed.COLORS.GREEN or Embed.COLORS.DARK_GREY
 
     return Embed()
-        :SetTitle(STRINGS.PEARL.EMBEDS.STARTUP.TITLE)
-        :SetColor(Embed.COLORS.GREEN)
-        :SetThumbnail(STRINGS.PEARL.EMBEDS.STARTUP.THMB_URL)
+        :SetTitle(title)
+        :SetColor(colour)
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.SERVER.THMB_URL)
         :SetTimestamp(os.time())
 
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLATFORM, MARKDOWN.codeline(PLATFORM), true)
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.MOD_V, MARKDOWN.codeline(PEARL.MOD_INFO.version), true)
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
-        :AddField(STRINGS.PEARL.EMBEDS.STARTUP.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLATFORM, MARKDOWN.codeline(PLATFORM), true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.MOD_V, MARKDOWN.codeline(PEARL.MOD_INFO.version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
+end
+
+
+--- @return Embed
+function EMBEDS.PlayerInfo()
+    return Embed()
+        :SetTitle(STRINGS.PEARL.EMBEDS.PLAYERS.TITLE)
+        :SetColor(Embed.COLORS.YELLOW)
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.PLAYERS.THMB_URL)
+        :SetTimestamp(os.time())
 end
 
 --- @return Embed
-function EMBEDS.WorldRegen(world, session_id)
+function EMBEDS.WorldInfo(world, session_id, regen)
     world = world or TheWorld
     session_id = session_id or TheNet:GetSessionIdentifier() or "???"
     local seed = world and world.meta and world.meta.seed or "???"
@@ -228,7 +240,7 @@ function EMBEDS.WorldRegen(world, session_id)
     local displayed = {}
     local displayed_count = 0
     local max_displayed = 10 * 2 -- For generation options and world setting
-    for i, customization in ipairs(customizations) do
+    for _, customization in ipairs(customizations) do
         local override = world.topology.overrides[customization.name] or customization.default
         if override ~= customization.default then
             displayed[customization.name] = override
@@ -258,8 +270,9 @@ function EMBEDS.WorldRegen(world, session_id)
         description = STRINGS.PEARL.EMBEDS.REGEN.DESC_TITLE..MARKDOWN.codeblock(description, "ini")
     end
 
-    return Embed()
-        :SetTitle(STRINGS.PEARL.EMBEDS.REGEN.TITLE:format(PEARL.GetShardFancyName()))
+    local title = regen == true and STRINGS.PEARL.EMBEDS.REGEN.REGENERATED or STRINGS.PEARL.EMBEDS.REGEN.TITLE
+    local embed = Embed()
+        :SetTitle(title:format(PEARL.GetShardFancyName()))
         :SetColor(Embed.COLORS.GREEN)
         :SetThumbnail(STRINGS.PEARL.EMBEDS.REGEN.THMB_URL)
         :SetDescription(description)
@@ -268,8 +281,13 @@ function EMBEDS.WorldRegen(world, session_id)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
         :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
-        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
-        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
+
+    if TheShard:IsMaster() then
+        embed:AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
+        embed:AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
+    end
+
+    return embed
 end
 
 --- @return Embed
@@ -342,6 +360,8 @@ end
 --- @TODO: Add more info
 --- @return Embed
 function EMBEDS.ClientProfile(userid, dbr)
+    dbr = dbr or PEARL.DB:GetRecordFor(userid)
+
     local P_STRINGS = STRINGS.PEARL.EMBEDS.PROFILE
 
     local prefab = dbr.lastprefabfancy or dbr.lastprefab or ""
@@ -360,19 +380,46 @@ function EMBEDS.ClientProfile(userid, dbr)
         last_seen_time = PEARL.ICONS.ONLINE.." "..P_STRINGS.PLAYING
     end
 
+    local gametime = PEARL.Reputation:GetGamePlayTime(userid) or PEARL.Reputation:GetLocalGamePlayTime(userid)
+    local hours = math.floor(gametime / 60)
+    local minutes = gametime - (hours * 60)
+
+    local daysalive = PEARL.DB:GetField(userid, "daysalive")
+    local totaldays = PEARL.DB:GetField(userid, "totaldays")
+    local deathscount = PEARL.DB:GetField(userid, "deathscount")
+
+    local reputation = PEARL.Reputation:GetOf(userid)
+
+    local netprofiletimecreated = PEARL.DB:GetField(userid, "profiletimecreated")
+
     local embed = Embed()
         :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
         :SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
         :SetColor(Embed.COLORS.BLUE)
         :SetThumbnail(dbr.avatar)
-        :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(dbr.totaldays), true)
-        :AddField(P_STRINGS.FD_NAMES.REP, MARKDOWN.codeline(dbr.reputation.value), true)
+        :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(STRINGS.PEARL.PROPORTION:format(
+            daysalive, totaldays
+        )), true)
+        :AddField(P_STRINGS.FD_NAMES.DEATHS, MARKDOWN.codeline(deathscount), true)
+        :AddField(P_STRINGS.FD_NAMES.REP, MARKDOWN.codeline(reputation), true)
         :AddField(P_STRINGS.FD_NAMES.SEEN, last_seen_time, true)
         :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon and loc_icon.." "..loc_str or "UNKNOWN", true)
+        :AddField(P_STRINGS.FD_NAMES.GAMEPLAYTIME, STRINGS.PEARL.HM_TIME_FORMAT:format(
+            hours, minutes
+        ), true)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootuserid or "UNKNOWN"))
 
     if dbr[PEARL.DB.BINDING_FIELD[PEARL.DB.BINDING_TYPE.DISCORD]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
+    end
+
+    if netprofiletimecreated then
+        embed:AddField(P_STRINGS.FD_NAMES.STEAMCREATED, MARKDOWN.timestamp(netprofiletimecreated), true)
+    end
+
+    -- Check for explicity true since this is false by default.
+    if dbr.privateprofile == true then
+        embed:SetDescription(MARKDOWN.italic(P_STRINGS.PRIVATE))
     end
 
     return embed

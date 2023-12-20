@@ -57,6 +57,13 @@ SteamAPI.STATUS_CODES = {
     SERVICE_UNAVAILABLE = 503,   -- Server is temporarily unavailable, or too busy to respond. Please wait and try again later.
 }
 
+SteamAPI.PROFILE_CONFIGURED = "1"
+
+SteamAPI.PROFILE_VISIBILITY = {
+    PUBLIC  = "3",
+    PRIVATE = "1",
+}
+
 -------------------------------------
 -- [[ Local Functions ]]
 -------------------------------------

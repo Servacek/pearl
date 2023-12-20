@@ -285,8 +285,7 @@ function ClientNetwork:OnConnectionAllowed(initial)
     _hasrecord = initial == false
     if initial == true and PEARL.AgreementManager:HasRecord() then
         local version = PEARL.AgreementManager:GetLocalVersion()
-        local agreedintime = PEARL.AgreementManager:GetLocalLastAgreeTime()
-        self:SendAgreementData(true, true, agreedintime, version)
+        self:SendAgreementData(true, true, nil, version)
     end
 
     if self:IsDisconnected() or self:IsConnectionAllowed() then

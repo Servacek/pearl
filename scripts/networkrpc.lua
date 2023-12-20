@@ -99,10 +99,14 @@ local CLIENT_RPCS = {
 --- These handlers should be called only from the server.
 --- That means, they should be trusted and we do not need to add any additional checks.
 local SHARD_RPCS = {
+    ShardResponse = function(shardid, id, response)
+        PEARL.EventProcessor:HandleEvent("shardresponse_"..tostring(id), response)
+    end,
+
     -- Used by the VersionChecker for shutting down secondary shards
     -- to synchronize the shutdown process on version mismatch.
-    BroadcastLua = function(shard_id, luastring)
-        if tostring(shard_id) ~= SHARDID.MASTER then
+    BroadcastLua = function(shardid, luastring, id)
+        if tostring(shardid) ~= SHARDID.MASTER then
             return PEARL.error("Got lua chunk from a secondary shard!")
         end
 
@@ -110,9 +114,33 @@ local SHARD_RPCS = {
         -- Calling RPC from an RPC handler is not allowed!
         PEARL.WallScheduler:ExecuteInTime(0, function()
             PEARL.info("Executing arbitrary lua chunk from Master...")
-            PEARL.SafeRun(function()
-                loadstring(luastring)()
-            end)
+            luastring = tostring(luastring)
+            if not luastring:startswith("return ") then
+                luastring = "return "..luastring
+            end
+
+            local result
+            local fn, errmsg = loadstring(luastring)
+            if type(fn) == "function" then
+                result = {pcall(fn)}
+            else
+                result = {false, errmsg}
+            end
+
+            errmsg = result[2]
+            local success = result[1]
+            if success == false and result then
+                PEARL.error(errmsg)
+            end
+
+            if id ~= nil then
+                local response
+                if result and #result > 0 then
+                    response = pcall(json.decode, result)
+                end
+
+                PEARL.SendRPCToShard(PEARL.RPC.ShardResponse, shardid, id, response)
+            end
         end)
     end,
 

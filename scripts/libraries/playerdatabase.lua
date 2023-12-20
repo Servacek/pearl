@@ -56,6 +56,8 @@ end
 local RECORD_TEMPLATE = {
     joinedtime = nil,
     totaldays = 0,
+    daysalive = 0,
+    deathscount = 0,
     netid = nil,
     agreement = {
         collectdata = false,
@@ -178,7 +180,6 @@ function DB:GetRecordFor(userid)
             -- If not on active shard, unload the record the next tick
             -- to ensure the data stays up-to-date.
             PEARL.WallScheduler:ExecuteInTime(0, function()
-                print("UNLOAD")
                 self:UnloadRecord(userid)
             end)
         end

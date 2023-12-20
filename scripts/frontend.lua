@@ -101,7 +101,6 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
             PEARL.CONFIG[option.name] = UnzipConfigData(option)
         else
             PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
-            print(option.name, PEARL.CONFIG[option.name])
         end
     end
 end

@@ -203,6 +203,7 @@ GLOBAL.PEARL = setmetatable({
     SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
 
     -- Used for sending internal mod events.
+    --- @type EventProcessor
     EventProcessor   = EventProcessor(),
 }, {
     __index = function(tbl, name)

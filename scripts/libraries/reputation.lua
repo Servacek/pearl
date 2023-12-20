@@ -107,6 +107,16 @@ function Reputation:IsExperienced(userid)
     return playtime and playtime > EXP_NEUTRAL_THRESHOLD or false
 end
 
+function Reputation:GetGamePlayTime(userid)
+    return PEARL.DB:GetField(userid, "gameplaytime")
+end
+
+-- Returns time in minutes spent actively playing on the server.
+function Reputation:GetLocalGamePlayTime(userid)
+    local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
+    return (totaldays * TUNING.TOTAL_DAY_TIME) / 60
+end
+
 --------------------------------------
 -- [[ Setters ]]
 --------------------------------------

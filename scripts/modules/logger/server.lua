@@ -17,7 +17,6 @@ local TheShard = TheShard
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 -------------------------------
@@ -107,7 +106,7 @@ local function OnFirstLaunch()
         return
     end
 
-    PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerBoot())
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerInfo(true))
 end
 
 local function OnShardLoaded(master)
@@ -136,6 +135,10 @@ local function OnInvalidClientRPC(rpc_name, userid)
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.INVALIDRPC:format(
         (rpc_name or "???"), userid or "UNKNOWN"
     ), PEARL.ICONS.X)
+end
+
+local function OnErrorCatched(traceback)
+
 end
 
 -------------------------------
@@ -180,3 +183,5 @@ PEARL.EventProcessor:AddSafeEventHandler("shard_shutdown", OnShutdown)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
+
+PEARL.EventProcessor:AddSafeEventHandler("errorcatched", OnErrorCatched)

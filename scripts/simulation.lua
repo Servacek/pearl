@@ -89,14 +89,12 @@ end, TheSim)
 
 -- Looks like GamePostInit isn't called when regenerating the world.
 PEARL.AddSimPostInit(function()
-    print("OnSimPostInit")
     if not TheWorld then
         return
     end
 
     -- Push this here since this is the place where all the meta data are loaded as well.
     if PEARL.GameInstParams:GetModParam("regenerated") == true then
-        print("WORLD REGENERATED!!")
         TheWorld:PushModEvent("worldgencomplete")
     end
 end)

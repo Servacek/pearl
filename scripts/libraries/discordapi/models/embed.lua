@@ -259,13 +259,17 @@ function Embed:AddField(name, value, inline)
         self.fields = {}
     end
 
-    if #self.fields <= Embed.MAX_FIELDS then
-        self.fields[#self.fields + 1] = {
-            name = name,
-            value = value,
-            inline = inline,
-        }
+    if #self.fields >= Embed.MAX_FIELDS then
+        PEARL.warn("Too many fields added to the embed!")
+
+        return self
     end
+
+    self.fields[#self.fields + 1] = {
+        name = name,
+        value = value,
+        inline = inline,
+    }
 
     return self
 end

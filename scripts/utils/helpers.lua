@@ -454,6 +454,7 @@ end
 --
 -- Note: This is not the most efficient thing so run it only
 -- on places where we do not care about time.
+--- @return boolean success, any result, ...
 function PEARL.SafeRun(func, ...)
     if type(func) ~= "function" then
         PEARL.warn("Tryed to run a non existing function!")
@@ -465,11 +466,7 @@ function PEARL.SafeRun(func, ...)
     -- #2 is error message in case the status is false
     local result = {xpcall(
         function()
-            if args then
-                return func(unpack(args))
-            end
-
-            return func()
+            return func(PEARL.unpack(args))
         end,
         function(err)
             local stacktrace = StackTrace(err) or err
@@ -477,6 +474,7 @@ function PEARL.SafeRun(func, ...)
                 "Error in function call:", stacktrace or "Unknown"
             )
 
+            --- @TODO: Replace this with an event.
             -- Try to always print at least something when an error happens.
             local traceback = stacktrace or STRINGS.PEARL.REPORTS.NO_STACKTRACE
             -- This function is being used in frontend as well!

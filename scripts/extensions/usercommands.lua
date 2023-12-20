@@ -96,6 +96,15 @@ UserCommands.PERMISSION_LEVEL = {
     [COMMAND_PERMISSION.ADMIN] = 2,
 }
 
+UserCommands.STD_PARAMS = {
+    PLAYER = "player",
+    SHARD  = "shard",
+    PREFAB = "prefab",
+    USER   = "user",
+}
+
+local PARAMS = UserCommands.STD_PARAMS
+
 -------------------------------------
 -- Public Functions
 -------------------------------------
@@ -118,7 +127,12 @@ function UserCommands.RouteHybridCommand(name, context, shardid)
     return false
 end
 
+function UserCommands.IsCommandRoutable(command)
+    return command.routing ~= UserCommands.SHARD_ROUTING.NONE and PEARL.ServerNetwork:IsAnySecondaryShardConnected()
+end
+
 --- Returns an array of parameter values for the given context
+--- Also modifies the given table so the changes apply accordingly.
 --- or nil if there was an error.
 --- @param ctx CommandContext
 --- @return table? args, integer? count
@@ -150,6 +164,7 @@ local function ValidateParams(ctx, params)
             end
 
             value = converted
+            params[paramname] = converted
         end
 
         local standardizer = standardized_params[paramname]
@@ -166,6 +181,7 @@ local function ValidateParams(ctx, params)
             end
 
             value = standardized
+            params[paramname] = standardized
         end
 
         if type(args) ~= "table" then
@@ -186,10 +202,10 @@ local function ValidateParams(ctx, params)
     return args, n
 end
 
---- @param paramname string
+--- @param name string
 --- @param fn fun(ctx: CommandContext, param: any): any, boolean
-function UserCommands.AddStandardizedParam(paramname, fn)
-    standardized_params[paramname] = fn
+function UserCommands.AddStandardizedParam(name, fn)
+    standardized_params[name] = fn
 
     return fn -- So we allow chaining
 end
@@ -225,7 +241,8 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         n = count
     end
 
-    local target = UserCommands.InputToClientTable(ctx.params and ctx.params.player or ctx.params.user)
+    local player_param = ctx.params and (ctx.params[PARAMS.PLAYER] or ctx.params[PARAMS.USER])
+    local target = UserCommands.InputToClientTable(player_param)
     local target_userid = target and target.userid
     local target_permission = UserCommands.GetPermissionLevel(
         target_userid and UserCommands.CalculatePermissionFor(target_userid)
@@ -251,12 +268,15 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
 
     local route_shardid
     local routing_type      = norouting and UserCommands.SHARD_ROUTING.NONE or command.routing
-    local routing_fallback  = command.routingfallback
-    local is_routing        = routing_type ~= UserCommands.SHARD_ROUTING.NONE and PEARL.ServerNetwork:IsAnySecondaryShardConnected()
+    local is_routing        = norouting ~= true and UserCommands.IsCommandRoutable(command)
 
-    if routing_type == UserCommands.SHARD_ROUTING.AUTO then
+    if is_routing == true and routing_type == UserCommands.SHARD_ROUTING.AUTO then
+        -- If a shardid is explicitly specified as a parameter, then prioritize it.
+        -- "nil" is a valid parameter as well but it just means that we want the command on all shards.
+        if ctx.params[PARAMS.SHARD] ~= nil and ctx.params[PARAMS.SHARD] ~= PEARL.SHARDID then
+            route_shardid = ctx.params[PARAMS.SHARD]
         -- Route commands to the target player if the player is provided and connected to our server.
-        if target_userid and PEARL.ServerNetwork:IsClientConnectedAny(target_userid) then
+        elseif target_userid and PEARL.ServerNetwork:IsClientConnectedAny(target_userid) then
             is_routing = false
 
             -- Use the player's active shard ID as our routing target.
@@ -266,7 +286,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
                 is_routing = true
             end
         else -- Handle fallback
-            if routing_fallback == UserCommands.SHARD_ROUTINGFALLBACK.CURRENT then
+            if command.routingfallback ~= UserCommands.SHARD_ROUTINGFALLBACK.ALL then
                 is_routing = false -- Looks like no routing this time :,(
             end
         end
@@ -584,8 +604,8 @@ end)
 -- Param Standardizers
 -------------------------------------
 
-UserCommands.AddStandardizedParam("userid",
-UserCommands.AddStandardizedParam("player", function(ctx, param)
+UserCommands.AddStandardizedParam(PARAMS.USER,
+UserCommands.AddStandardizedParam(PARAMS.PLAYER, function(ctx, param)
     if param == nil then
         return nil, true
     end
@@ -599,7 +619,7 @@ UserCommands.AddStandardizedParam("player", function(ctx, param)
     return userid, true
 end))
 
-UserCommands.AddStandardizedParam("shard", function(ctx, param)
+UserCommands.AddStandardizedParam(PARAMS.SHARD, function(ctx, param)
     if param == nil then
         return nil, true
     end
@@ -613,7 +633,7 @@ UserCommands.AddStandardizedParam("shard", function(ctx, param)
     return shardid, true
 end)
 
-UserCommands.AddStandardizedParam("prefab", function(ctx, param)
+UserCommands.AddStandardizedParam(PARAMS.PREFAB, function(ctx, param)
     local prefab = tostring(param):lower():gsub("-", "_")
     if not PEARL.PrefabExists(param) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)

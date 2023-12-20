@@ -409,7 +409,7 @@ local function OnWorldGenComplete(world)
         return
     end
 
-    PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldRegen(world))
+    PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldInfo(world, nil, true))
 end
 
 local function OnSaved(world)

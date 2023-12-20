@@ -57,7 +57,7 @@ local OnToxicNameDetected, OnBannedFriendsDetected
 -------------------------------------
 -- [[ Event Handlers ]]
 -------------------------------------
-
+--- @TODO: Add translations
 function OnBannedFriendsDetected(userid, count)
     return PEARL.DiscordReporter:SendRawReportString("One or more of player's friends are banned! "..tostring(count))
 end
@@ -128,9 +128,10 @@ end
 local function CalculateProfileData(steamid, cfd, cb)
     -- Keep these in sync with the names in the DB.
     local data = {
-        profilerep = MAX_PROFILE_REP,
+        profilerep          = MAX_PROFILE_REP,
         -- Let's make it fail safe.
-        communityprofile = true,
+        communityprofile    = true,
+        privateprofile      = false, -- Profiles are public by default.
     }
 
     PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
@@ -260,8 +261,13 @@ local function CalculateProfileData(steamid, cfd, cb)
         end
 
         print("COMMUNITYPROFILE:", tostring(player.profilestate))
-        if tostring(player.profilestate) ~= "1" then
+        if tostring(player.profilestate) ~= PEARL.SteamAPI.PROFILE_CONFIGURED then
             data.communityprofile = false
+        end
+
+        print("PROFILE_VISIBILITY:", tostring(player.communityvisibilitystate))
+        if tostring(player.communityvisibilitystate) ~= PEARL.SteamAPI.PROFILE_VISIBILITY.PUBLIC then
+            data.privateprofile = true
         end
 
         data.avatar = player.avatarfull or player.avatarmedium or player.avatar

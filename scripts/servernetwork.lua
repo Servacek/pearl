@@ -84,6 +84,12 @@ for _, client in ipairs(TheNet:GetClientTable()) do
     connected_clients[client.userid] = true
 end
 
+local lua_command_id = 0
+
+----------------------------------
+-- Class Declaration
+----------------------------------
+
 --- @class ServerNetwork
 local ServerNetwork = {
     FILTER_PRIORITY = {
@@ -136,17 +142,44 @@ end
 -- Public Methods
 ----------------------------------
 
---- Sends the given lua string to all connected shards (except the sender).
-function ServerNetwork:BroadcastLuaToShards(lua_str)
-    if not TheShard:IsMaster() then
-        return PEARL.error("Attempted to send arbitrary lua from a secondary shard!")
+--- Sends the given lua string to the specified shard, if connected.
+--- If a callback is provided, it will wait for the response of the command
+--- and call the callback function when the response is received or it timeouts.
+--- @param shardid string
+--- @param lua_str string
+--- @param cb fun(success: boolean, ...: any)
+--- @param timeout integer The time to wait for the response until timeout.
+function ServerNetwork:SendLuaToShard(shardid, lua_str, cb, timeout)
+    -- if not ServerNetwork:IsShardConnected(shardid) then
+    --     return PEARL.error("Shard", shardid, "is not connected!")
+    -- end
+
+    local id
+    if type(cb) == "function" then
+        -- Make sure we always receive some response.
+        local timeout_task
+        local respond = false
+        timeout_task = PEARL.WallScheduler:ExecuteInTime(timeout_task, function()
+            if respond == false then
+                cb(false)
+            end
+
+            if timeout_task ~= nil then
+                timeout_task:cancel()
+                timeout_task = nil
+            end
+        end)
+
+        lua_command_id = lua_command_id + 1
+        id = lua_command_id
+
+        local eventname = "shardresponse_"..tostring(id)
+        PEARL.EventProcessor:AddSafeOneTimeHandler(eventname, function(success, response)
+            cb(success, PEARL.unpack(response))
+        end)
     end
 
-    if not self:IsAnySecondaryShardConnected() then
-        return PEARL.error("No shards connected!")
-    end
-
-    return PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, self:GetConnectedShardIDs(), lua_str)
+    PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, lua_str, id)
 end
 
 -- Called from server-side user command handlers.

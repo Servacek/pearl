@@ -16,7 +16,11 @@
     Adds safe versions for AddEventHandler and HandleEvent methods.
 ]]
 
+-- Make sure all the needed global variables are declared.
+require("events")
 
+--- @class EventProcessor
+EventProcessor = EventProcessor
 --- @class EventProcessor
 local EventProcessor = EventProcessor
 
@@ -29,4 +33,16 @@ end
 
 function EventProcessor:SafeHandleEvent(...)
     return PEARL.SafeRun(self.HandleEvent, self, ...)
+end
+
+function EventProcessor:AddSafeOneTimeHandler(event, fn, ...)
+    return self:AddSafeEventHandler(event, function(...)
+        fn(...)
+
+        -- Make this event a one timer.
+        local handlers = PEARL.EventProcessor:GetHandlersForEvent(event)
+        for handler, _ in pairs(handlers) do
+            PEARL.EventProcessor:RemoveHandler(handler)
+        end
+    end, ...)
 end
