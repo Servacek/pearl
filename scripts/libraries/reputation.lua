@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -24,6 +24,8 @@ local MAX_REP_LOSE = -100
 local REMEMBER_LOSE_THRESHOLD = -5
 
 local NEGATIVE_REP_MULTIPLIER = 1
+local MAX_REP_MULTIPLIER      = 2
+local MIN_REP_MULTIPLIER      = 0
 
 local REP_EARN_SCALE = 0.16
 local REP_BASE = 1.39
@@ -206,10 +208,13 @@ function Reputation:EarnFor(userid, amount, griefing)
     end
 
     local old_rep = self:GetOf(userid)
-    local gained = math.max(old_rep - Reputation.STARTING_VALUE, 0)
-    local mult = REP_BASE / math.log(math.max(gained ^ REP_EARN_SCALE, 2))
-    if amount < 0 then
-        mult = NEGATIVE_REP_MULTIPLIER
+    local mult = NEGATIVE_REP_MULTIPLIER
+    if amount > 0 then
+        local gained = math.max(old_rep - Reputation.STARTING_VALUE, 0)
+        mult = 1 / math.log10(gained^(math.logb(10, Reputation.STARTING_VALUE)))
+        mult = math.max(math.min(mult, MAX_REP_MULTIPLIER), MIN_REP_MULTIPLIER)
+        -- Make sure the multiplier is never zero.
+        mult = mult <= 0 and MAX_REP_MULTIPLIER or mult
     end
 
     -- Stop right before warnings would start. Only push warning when doing really bad things.

@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -37,6 +37,8 @@ local MIN_ASYNC_FILTER_TIMEOUT = 2
 
 -- Give a few ticks to the RPC network for the reason to deliver.
 local DISCONNECT_WITH_REASON_DELAY = 5
+
+local DEFAULT_RPC_TIMEOUT = 5
 
 ----------------------------------
 -- Netvars
@@ -159,7 +161,8 @@ function ServerNetwork:SendLuaToShard(shardid, lua_str, cb, timeout)
         -- Make sure we always receive some response.
         local timeout_task
         local respond = false
-        timeout_task = PEARL.WallScheduler:ExecuteInTime(timeout_task, function()
+        timeout = timeout or DEFAULT_RPC_TIMEOUT
+        timeout_task = PEARL.WallScheduler:ExecuteInTime(timeout, function()
             if respond == false then
                 cb(false)
             end
@@ -788,7 +791,7 @@ end
 -- Start the timeout here since we are sure that this is being only called when joining.
 -- After this is called, the OnClientDisconnected event will ALWAYS follow.
 --
--- Always called only on the Master shard.
+-- Always called ONLY on the MASTER shard.
 PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
     PEARL.debug("JoinServerFilter", userid, ...)
 

@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -11,9 +11,11 @@
 --]==]====================================================]]
 
 
+--[[
+    Wrapper for the wonkey built in whitelisting system.
+--]]
 
-local math = math
-local PEARL = PEARL
+local ClusterUserList = PEARL.loadlib("clusteruserlist")
 
 --------------------------------------
 -- [[ Constants ]]
@@ -22,18 +24,21 @@ local PEARL = PEARL
 local WHITELIST_PATH = "../../whitelist.txt"
 
 --------------------------------------
--- [[ Initialization ]]
+-- [[ Class Declaration ]]
 --------------------------------------
 
---- @class Whitelist
-local WhiteList = {
-    _userids = {},
+--- @singleton
+--- @class Whitelist: ClusterUserList
+local WhiteList = ClusterUserList(WHITELIST_PATH)
 
-    MODE = {
-        DISABLED = 0,
-        DEFAULT = 1,
-        STRICT = 2, -- Only players on the list will be able to join
-    }
+--------------------------------------
+-- [[ Static ]]
+--------------------------------------
+
+WhiteList.MODE = {
+    DISABLED = 0,
+    DEFAULT = 1,
+    STRICT = 2, -- Only players on the list will be able to join
 }
 
 --------------------------------------
@@ -94,14 +99,6 @@ function WhiteList:GetMode()
 end
 
 --------------------------------------
--- [[ Getters ]]
---------------------------------------
-
-function WhiteList:Contains(userid)
-    return self._userids[userid] == true
-end
-
---------------------------------------
 -- [[ Public Functions ]]
 --------------------------------------
 
@@ -113,10 +110,6 @@ function WhiteList:Load()
     local lines = PEARL.ClusterPersistance:GetAllFileLines(WHITELIST_PATH, false, true)
     for _, userid in ipairs(lines) do
         self._userids[userid] = true
-    end
-
-    if _mode == WhiteList.MODE.STRICT then
-        self:SyncReservedWithSlots()
     end
 end
 

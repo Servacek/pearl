@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -38,7 +38,6 @@ local function OnClientError(traceback)
         if KnownModIndex:IsModEnabledAny(afflicter_modname) then
             PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
 
-            --- @TODO: Debug
             ModManager:RemoveBadMod(afflicter_modname, traceback)
             -- Make sure we call this only when all afflicter mods exist.
             ModManager:DisplayBadMods()

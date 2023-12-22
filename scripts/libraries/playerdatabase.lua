@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -18,7 +18,7 @@
         - Maybe we save the lastinv as well?
 ]]
 
---- @TODO: Save lastactive shard for synchrnous reading between shards.
+--- Save lastactive shard for synchrnous reading between shards.
 --- For other non-active shards, use RPCs to send the data to the active one.
 
 local Library = PEARL.loadfile("models/library")

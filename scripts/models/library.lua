@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -49,7 +49,6 @@ end
 function Library:IsDisabled()
     return not self:IsEnabled()
 end
-
 -------------------------------------
 -- [[ Setters ]]
 -------------------------------------
@@ -62,6 +61,10 @@ end
 --- @param disabled boolean
 function Library:SetIsDisabled(disabled)
     self.enabled = not disabled
+end
+
+function Library:ToggleEnabled()
+    self.enabled = not self.enabled
 end
 
 -------------------------------------

@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -94,15 +94,6 @@ Message.MAX_TOTAL_LENGTH                = 6000
 Message.CONTENT_LENGTH_LIMIT_RESERVE    = 100
 Message.CONTENT_LENGHT_LIMIT            = Message.MAX_CONTENT_LENGTH - Message.CONTENT_LENGTH_LIMIT_RESERVE
 Message.EMBED_COUNT_LIMIT               = 10
---- @TODO: Possible optimization since the json rarely changes.
-Message.JSON_STRING                     = [[
-    {
-        "content": "%q",
-        "embeds": "%q",
-        "flags": "%q",
-        "allowed_mentions:" "%q"
-    }
-]]
 Message.MENTION_TYPES           = {
     USERS       = "users",
     ROLES       = "roles",

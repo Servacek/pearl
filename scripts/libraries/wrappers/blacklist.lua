@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -44,7 +44,10 @@ local STEAM_ID_PATTERN = string.rep("%d", 17)
 --------------------------------
 
 --- @class BlackList
-local BlackList = {}
+local BlackList = {
+    --- @type table<string, boolean?>
+    _userids = {},
+}
 
 --------------------------------
 -- [[ Setters ]]
@@ -54,29 +57,6 @@ function BlackList:Set(blacklist)
     return TheNet:SetBlacklist(blacklist)
 end
 
---- @param userid string Supports both Klei and Steam IDs.
---- @return boolean success Whether we were able to remove the given userid or not
-function BlackList:Remove(userid)
-    local success = false
-    local blacklist = self:Get()
-    for i, record in ipairs(blacklist) do
-        if not record.empty and (record.userid == userid or record.netid == userid) then
-            table.remove(blacklist, i)
-            self:Set(blacklist)
-
-            PEARL.EventProcessor:HandleEvent("clientunbanned", userid)
-
-            success = true -- Remove all occurrences
-        end
-    end
-
-    return success
-end
-
-function BlackList:Add(userid)
-    return TheNet:Ban(userid)
-end
-
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
@@ -84,6 +64,82 @@ end
 --- @return table blacklist An array-like table of user tables.
 function BlackList:Get()
     return TheNet:GetBlacklist()
+end
+
+--- @param id string? Identifier of the user (Steam ID, Klei ID)
+--- @return table<string, any>? record, integer? index An array-like table of user tables.
+function BlackList:GetPlayerByID(id)
+    for i, record in ipairs(self:Get()) do
+        if not record.empty and (record.userid == id or record.netid == id) then
+            return record, i
+        end
+    end
+end
+
+--- @param id string? Identifier of the user (Steam ID, Klei ID)
+--- @return boolean result Whether the given ID is on the blacklist or not.
+function BlackList:Contains(id)
+    return self._userids[id] == true or self:GetPlayerByID(id) ~= nil
+end
+
+--------------------------------
+-- [[ Public Methods ]]
+--------------------------------
+
+--- Adds the given ID from the local and networked table.
+--- If the user is playing on the server, a ban popup will be shown as well.
+--- @param id string? Identifier of the user (Steam ID, Klei ID)
+--- @return boolean success Whether the ID was added or not.
+function BlackList:Add(id)
+    TheNet:Ban(id)
+
+    return self:AddLocal(id)
+end
+
+--- Adds the given ID to the local table.
+--- @param id string? Identifier of the user (Steam ID, Klei ID)
+--- @return boolean success Whether the ID was added or not.
+function BlackList:AddLocal(id)
+    if type(id) == "string" and self._userids[id] == nil then
+        self._userids[id] = true
+        return true
+    end
+
+    return false
+end
+
+--- Removes the given ID from the local and networked table.
+--- @param id string? Identifier of the user (Steam ID, Klei ID)
+--- @return boolean success Whether we were able to remove the given userid or not
+function BlackList:Remove(id)
+    local success = false
+    local blacklist = self:Get()
+    for i, record in ipairs(blacklist) do
+        if not record.empty and (record.userid == id or record.netid == id) then
+            if table.remove(blacklist, i) ~= nil then
+                self:Set(blacklist)
+
+                PEARL.EventProcessor:HandleEvent("clientunbanned", id)
+
+                success = true -- Remove all occurrences
+            end
+        end
+    end
+
+    self:RemoveLocal(id)
+    return success
+end
+
+--- Removes the given ID from the local table.
+--- @param id string? Identifier of the user (Steam ID, Klei ID)
+function BlackList:RemoveLocal(id)
+    if type(id) == "string" and self._userids[id] ~= nil then
+        self._userids[id] = nil
+
+        return true
+    end
+
+    return false
 end
 
 -- Supports Steam ID and Klei ID
@@ -100,6 +156,10 @@ function BlackList:Load()
             return
         end
 
+        self:AddLocal(userid)
+        self:AddLocal(netid)
+
+
         -- We are saving only the IDs for now.
         blocklist[#blocklist+1] = {
             netid               = netid or "",
@@ -112,21 +172,6 @@ function BlackList:Load()
     end, true)
 
     self:Set(blocklist)
-end
-
---- @param userid string Supports both Klei and Steam IDs.
-function BlackList:GetPlayerByID(userid)
-    for _, record in ipairs(self:Get()) do
-        if not record.empty and (record.userid == userid or record.netid == userid) then
-            return record
-        end
-    end
-end
-
---- @param userid string Supports both Klei and Steam IDs.
---- @return boolean result Whether the given ID is on the blacklist or not.
-function BlackList:Contains(userid)
-    return self:GetPlayerByID(userid) ~= nil
 end
 
 --------------------------------
@@ -142,6 +187,35 @@ function BlackList:PrintDebugInfo()
         end
     end
 end
+
+--------------------------------
+-- [[ Handlers ]]
+--------------------------------
+
+PEARL.AddUserDataFunctionPreCall("SetBlacklist", function(self, userid)
+    return WhiteList:Add(userid)
+end, TheNet)
+
+--------------------------------
+-- [[ Overrides ]]
+--------------------------------
+
+_RemoveFromWhiteList = PEARL.OverrideUserdataValue("GetBlacklist", function(self)
+    return WhiteList:Remove(id)
+end, TheNet)
+
+
+--------------------------------
+-- [[ RPCs ]]
+--------------------------------
+
+PEARL.AddShardRPCHandler("BlackListModified", function(shardid, userid)
+    WhiteList:Remove(userid, true)
+end)
+
+PEARL.AddShardRPCHandler("ClientBanned", function(shardid, userid)
+    WhiteList:Remove(userid, true)
+end)
 
 --------------------------------
 -- [[ Return ]]

@@ -2,7 +2,7 @@
     The "Pearl" - modification software for
     the game "Don"t Starve Together" by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the "Pearl" software shared under
@@ -955,8 +955,6 @@ AddCommand("despawn", {
     end,
 })
 
---- @TODO: Add discord support
--- This is here mainly for debugging purposes
 AddCommand("skip", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SKIP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SKIP.DESC,

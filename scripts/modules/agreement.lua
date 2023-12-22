@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -10,7 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category FrontEnd
---- @TODO: Display the modification time on the agreement.
 
 local AgreementScreen = PEARL.loadfile("screens/agreementscreen")
 
