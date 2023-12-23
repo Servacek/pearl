@@ -32,6 +32,9 @@ local PlayerMetadata = Class(function(self, userid, netid)
     --- @TODO: Separate equip slots from main slots
     --- Also separate backpacks.
     self._inventory = {}
+
+    --- @type table
+    self._session_data = nil
 end)
 
 -------------------------------------
@@ -80,12 +83,21 @@ function PlayerMetadata:SetInventory(inventory)
     end)
 end
 
+function PlayerMetadata:SetSessionData(data)
+    self._session_data = data
+end
+
 -------------------------------------
 -- [[ Getters ]]
 -------------------------------------
 
 function PlayerMetadata:GetInventory()
     return self._inventory
+end
+
+--- Used for simulating inventories of offline players.
+function PlayerMetadata:GetSessionData()
+    return self._session_data
 end
 
 function PlayerMetadata:GetPrefab()
@@ -113,6 +125,8 @@ end
 -------------------------------------
 
 function PlayerMetadata:Load(data)
+    self:SetSessionData(data)
+
     self._age = data.age
     self._prefab = data.prefab
 
@@ -136,6 +150,11 @@ function PlayerMetadata:Load(data)
                 end
             end
         end
+    end
+
+    --- [[ Active Item ]] ---
+    if inventory.activeitem then
+        self:AddInventoryItem(inventory.activeitem)
     end
 
     --- [[ Equip slots ]] ---

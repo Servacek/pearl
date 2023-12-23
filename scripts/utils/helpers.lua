@@ -31,18 +31,18 @@ local string, table, math = string, table, math
 
 local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
 
-local KLEI_ID_PATTERN = "KU_"..string.rep("[%d%a%p]", 8)
-local STEAM_ID_PATTERN = string.rep("[%d", 17)
+local KLEI_ID_PATTERN   = PEARL.CONSTS.KLEI_ID_PATTERN
+local STEAM_ID_PATTERN  = PEARL.CONSTS.STEAM_ID_PATTERN
 
 --------------------------------
 -- [[ Inventory ]]
 --------------------------------
 
-function PEARL.GetStackSize(stack)
-    if stack.components and stack.components.stackable then
-        return stack.components.stackable:StackSize()
-    elseif stack.data and stack.data.stackable then
-        return stack.data.stackable.stack
+function PEARL.GetStackSize(item)
+    if item.components and item.components.stackable then
+        return item.components.stackable:StackSize()
+    elseif item.data and item.data.stackable then
+        return item.data.stackable.stack
     else
         return 1
     end

@@ -466,7 +466,14 @@ function DB:SaveToDatabaseFile(path, data, ensure, encode)
         encode = PEARL.CONFIG.DATABASE.ENCODE_DATA
     end
 
-    local data_str = json.encode(data)
+    local data_str
+    if PEARL.CONFIG.DEBUG_MODE then
+        -- In debug mode, we use datadumper with identation for better readability.
+        data_str = DataDumper(data, nil, false, 2)
+    else
+        data_str = json.encode(data)
+    end
+
     if encode then
         -- Only encode and zip the data in production
         data_str = TheSim:ZipAndEncodeString(data_str)
@@ -508,7 +515,12 @@ function DB:LoadDatabaseFile(path, ensure)
 
     local success, data = pcall(json.decode, str)
     if not success or type(data) ~= "table" then
-        return
+        local _, result = RunInSandbox(str)
+        if type(result) ~= "table" then
+            return
+        end
+
+        data = result
     end
 
     return data
@@ -579,7 +591,7 @@ function DB:LoadRecordFor(userid, validate)
 
     local record = self:LoadDatabaseFile(self:GetRecordFilePathFor(userid))
     if type(record) ~= "table" then
-        PEARL.error("Failed to load record for", userid)
+        PEARL.error("Failed to load record for", userid, PEARL.CalledFrom(4))
         return
     end
 

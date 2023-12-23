@@ -94,21 +94,33 @@ local function OnClientDataRecevied(userid, data)
     return RecordClientConnectionData(userid, data)
 end
 
-local function OnClientBanned(userid, reason, author, seconds)
+local function OnClientBanned(userid, seconds, reason, author)
     seconds = tonumber(seconds)
     local timenow = os.time()
 
     local bans = PEARL.DB:GetField(userid, "bans", {})
-    bans[#bans] = {
+    bans[#bans + 1] = {
         reason      = reason,
         author      = author,
         timestart   = timenow,
         timestop    = seconds and timenow + seconds or nil
     }
-    PEARL.DB:SetField("bans", bans)
+    PEARL.DB:SetField(userid, "bans", bans)
 
     -- Reset reputation value in case of an unban.
     PEARL.Reputation:SetFor(userid, PEARL.CONSTS.STARTING_REPUTATION)
+end
+
+local function OnClientUnbanned(userid)
+    local bans = PEARL.DB:GetField(userid, "bans")
+    -- Try to get the latest ban.
+    local ban = type(bans) == "table" and bans[#bans]
+    if not ban then
+        return
+    end
+
+    ban.timestop = os.time()
+    PEARL.DB:SetField(userid, "bans", bans)
 end
 
 local function OnClientAgreementDataReceived(data)
@@ -227,23 +239,28 @@ local function OnNewDaySurvived(userid)
     -- Add reputation for surviving days.
 end
 
+local function OnNewDayPercentSegmentFor(userid)
+    -- Do only increase the days alive for alive active players.
+    if not PEARL.ServerNetwork:IsClientGhost(userid) and not PEARL.ServerNetwork:IsClientInactive(userid) then
+        local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
+        local newdaysalive = daysalive + DAY_PERCENT_SEGMENT
+        PEARL.DB:SetField(userid, "daysalive", newdaysalive)
+
+        if math.floor(daysalive) < math.floor(newdaysalive) then
+            OnNewDaySurvived(userid)
+        end
+    end
+
+    local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
+    PEARL.DB:SetField(userid, "totaldays", totaldays + DAY_PERCENT_SEGMENT)
+end
+
 local function OnNewDayPercentSegment()
     for _, player in ipairs(AllPlayers) do
         local userid = player.userid
-
-        -- Do only increase the days alive for alive active players.
-        if not PEARL.ServerNetwork:IsClientGhost(userid) and not PEARL.ServerNetwork:IsClientInactive(userid) then
-            local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
-            local newdaysalive = daysalive + DAY_PERCENT_SEGMENT
-            PEARL.DB:SetField(userid, "daysalive", newdaysalive)
-
-            if math.floor(daysalive) < math.floor(newdaysalive) then
-                OnNewDaySurvived(userid)
-            end
+        if userid ~= nil then
+            OnNewDayPercentSegmentFor(userid)
         end
-
-        local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
-        PEARL.DB:SetField(userid, "totaldays", totaldays + DAY_PERCENT_SEGMENT)
     end
 end
 
@@ -272,6 +289,7 @@ PEARL.EventProcessor:AddSafeEventHandler("clientagreementdatareceived", OnClient
 PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
+PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
 

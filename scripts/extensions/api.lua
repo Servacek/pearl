@@ -88,7 +88,7 @@ function PEARL.SetValue(t, name, value, noraw)
     return rawset(t, name, value)
 end
 
---- @return origin any, new any
+--- @return any origin, any new
 function PEARL.OverrideValue(t, name, value, noraw)
     t = t or _G
     local origin = PEARL.GetValue(t, name, noraw)
@@ -558,7 +558,7 @@ end
 -- [[ Classes ]]
 --------------------------------
 
---- @type fun(base: Class|fun(self: Class, ...: any), _ctor: fun(self: Class, ...: any)|table<string, fun(value)>?, props: table<string, fun(value)>?)
+--- @type fun(base: Class|fun(self, ...: any), _ctor: fun(self, ...: any)|table<string, fun(value)>?, props: table<string, fun(value)>?)
 PEARL.Class = Class
 
 --------------------------------
@@ -610,4 +610,20 @@ function PEARL.RegenerateShard()
         -- In case this is being called from a client.
         c_remote("c_regenerateshard()")
     end
+end
+
+-- Provides access to the original ban functions.
+local _Ban, _BanForTime, _Kick = TheNet.Ban, TheNet.BanForTime, TheNet.Kick
+function PEARL.Ban(userid, seconds)
+    seconds = tonumber(seconds)
+    if seconds then
+        return _BanForTime(TheNet, userid, seconds)
+    end
+
+    return _Ban(TheNet, userid)
+end
+
+-- Provides access to the original kick function.
+function PEARL.Kick(userid, seconds)
+    _Kick(TheNet, userid, seconds)
 end

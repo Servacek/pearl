@@ -31,6 +31,26 @@ local WHITELIST_PATH = "../../whitelist.txt"
 --- @class Whitelist: ClusterUserList
 local WhiteList = ClusterUserList(WHITELIST_PATH)
 
+--- @type function, function
+local _AddToEngineList, _RemoveFromEngineList
+WhiteList:SetSaveFn(function() end) -- No explicit saving :/
+WhiteList:SetAddFn(function(self, userid)
+    if WhiteList:GetMode() == WhiteList.MODE.STRICT and PEARL.ServerNetwork:IsClientConnectedAny(userid) then
+        TheNet:Kick(userid)
+    end
+
+    -- These engine functions do only work on the Master shard.
+    if TheShard:IsMaster() then
+        _AddToEngineList(TheNet, userid) -- Implicitly saves the whitelist.
+    end
+end)
+WhiteList:SetRemoveFn(function(self, userid)
+    -- These engine functions do only work on the Master shard.
+    if TheShard:IsMaster() then
+        _RemoveFromEngineList(TheNet, userid) -- Implicitly saves the whitelist.
+    end
+end)
+
 --------------------------------------
 -- [[ Static ]]
 --------------------------------------
@@ -45,85 +65,23 @@ WhiteList.MODE = {
 -- [[ Private Variables ]]
 --------------------------------------
 
-local _AddToWhiteList, _RemoveFromWhiteList, _IsWhiteListed
-
 local _mode = WhiteList.MODE.DEFAULT
 
 --------------------------------------
 -- [[ Setters ]]
 --------------------------------------
 
-function WhiteList:Add(userid, broadcasted)
-    if userid ~= nil and self._userids[userid] ~= true then
-        PEARL.debug("WhiteList:Add", userid, broadcasted)
-
-        self._userids[userid] = true
-        if TheShard:IsMaster() then
-            -- Update the engines table
-            _AddToWhiteList(TheNet, userid)
-        end
-
-        if not broadcasted then
-            PEARL.BroadcastRPCToAllShards(PEARL.RPC.AddToWhiteList, userid)
-        end
-    end
-end
-
--- If string mode is enabled then the user is being kicked after calling this.
-function WhiteList:Remove(userid, broadcasted)
-    if self._userids[userid] ~= nil then
-        PEARL.debug("WhiteList:Remove", userid, broadcasted)
-
-        self._userids[userid] = nil
-        if TheShard:IsMaster() then
-            -- Update the engines table
-            _RemoveFromWhiteList(TheNet, userid)
-        end
-
-        if not broadcasted then
-            PEARL.BroadcastRPCToAllShards(PEARL.RPC.RemoveFromWhiteList, userid)
-
-            if WhiteList:GetMode() == WhiteList.MODE.STRICT then
-                TheNet:Kick(userid, 0)
-            end
-        end
-    end
-end
-
 function WhiteList:SetMode(mode)
     _mode = mode
 end
 
+--------------------------------------
+-- [[ Getters ]]
+--------------------------------------
+
 function WhiteList:GetMode()
     return _mode
 end
-
---------------------------------------
--- [[ Public Functions ]]
---------------------------------------
-
-function WhiteList:Load()
-    if not PEARL.ClusterPersistance:FileExists(WHITELIST_PATH) then
-        return PEARL.info("whitelist.txt not found -> skipping loading proccess...")
-    end
-
-    local lines = PEARL.ClusterPersistance:GetAllFileLines(WHITELIST_PATH, false, true)
-    for _, userid in ipairs(lines) do
-        self._userids[userid] = true
-    end
-end
-
---------------------------------------
--- [[ RPCs ]]
---------------------------------------
-
-PEARL.AddShardRPCHandler("AddToWhiteList", function(shardid, userid)
-    WhiteList:Add(userid, true)
-end)
-
-PEARL.AddShardRPCHandler("RemoveFromWhiteList", function(shardid, userid)
-    WhiteList:Remove(userid, true)
-end)
 
 --------------------------------------
 -- [[ Overrides ]]
@@ -133,15 +91,15 @@ end)
 --
 -- Note: These functions expect saving!
 
-_IsWhiteListed = PEARL.OverrideUserdataValue("IsWhiteListed", function(self, userid)
+PEARL.OverrideUserdataValue("IsWhiteListed", function(self, userid)
     return WhiteList:Contains(userid)
 end, TheNet)
 
-_AddToWhiteList = PEARL.OverrideUserdataValue("AddToWhiteList", function(self, userid)
+_AddToEngineList = PEARL.OverrideUserdataValue("AddToWhiteList", function(self, userid)
     return WhiteList:Add(userid)
 end, TheNet)
 
-_RemoveFromWhiteList = PEARL.OverrideUserdataValue("RemoveFromWhiteList", function(self, userid)
+_RemoveFromEngineList = PEARL.OverrideUserdataValue("RemoveFromWhiteList", function(self, userid)
     return WhiteList:Remove(userid)
 end, TheNet)
 

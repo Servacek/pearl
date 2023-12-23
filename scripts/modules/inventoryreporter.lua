@@ -19,16 +19,11 @@
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
+local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+
 -------------------------------
 -- [[ Constants ]]
 -------------------------------
-
---- <item_name>: <priority>
-local DROP_DEPOS = {
-    ["firepit"]         = 1,
-    ["treasurechest"]   = 2,
-    ["dragonflychest"]  = 3,
-}
 
 -- custom_id is expected to be string
 local BUTTONS = {
@@ -90,20 +85,9 @@ local OnPredictionMessageReceived
 -- [[ Locals ]]
 -------------------------------
 
-local _depos = {}
 local _weights = {}
 local _biases  = {}
 local _predictions = {}
-
-local _sorted = false
-
--------------------------------
--- [[ Sorters ]]
--------------------------------
-
-local function sort_by_priority(a, b)
-    return (DROP_DEPOS[a.prefab] or 0) < (DROP_DEPOS[b.prefab] or 0)
-end
 
 -------------------------------
 -- [[ Helper Functions ]]
@@ -202,96 +186,6 @@ local function ReportInventoryWithFeedback(message, pd)
     else
         PEARL.error("No report channel set for Inventory Reporter, using default prediction...")
     end
-end
-
-local function SortDepos()
-    table.sort(_depos, sort_by_priority)
-
-    _sorted = true
-end
-
-local function GetDepoForItem(item)
-    -- Map for marking depos as used.
-    local used = {}
-    return function()
-        local optimal_depo
-        -- Optimal amount is calculated for each iteration starting from the previous depo.
-        local optimal_amount = -1
-
-        -- Depos are sorted, so the containers are being iterated first.
-        for _, depo in ipairs(_depos) do
-            if not used[depo] then
-                used[depo] = true
-
-                local container = depo.components.container
-                local amount = container and container:CountItem(item.prefab) or 0
-                if amount > optimal_amount then
-                    optimal_amount = amount
-                    optimal_depo = depo
-                end
-            end
-        end
-
-        return optimal_depo
-    end
-end
-
-local function DepositItem(inventory, item)
-    item.components.inventoryitem:RemoveFromOwner()
-
-    if not _sorted then
-        print("SORTING DEPOS...")
-        SortDepos()
-    end
-
-    for depo in GetDepoForItem(item) do
-        if item == nil then
-            print("ITEM SUCCESSFULLY DEPLOYED!")
-            return -- We have managed to add the whole item to the container.
-        end
-
-        print("CHECKING DEPO:", depo)
-        local container = depo.components and depo.components.container
-        if container and container:CanTakeItemInSlot(item) and container:AcceptsStacks() then
-            local slot = container:GetSlotForItem(item.prefab)
-            print("GOT SLOT:", slot)
-            local dest = container:GetItemInSlot(slot)
-            if dest and dest.components.stackable then
-                print("Adding item to stack...")
-                item = dest.components.stackable:Put(item)
-            else
-                print("Putting the item in the container...")
-                if container:GiveItem(item) then
-                    print("SUCCESS")
-                    item = nil
-                end
-            end
-        elseif depo.Transform then
-            print("Dropping the item at depo position", item)
-            if inventory:DropItem(item, true, true, depo:GetPosition()) then
-                item = nil
-            end
-        end
-    end
-
-    print("Dropping on the ground...")
-    -- If no depo existed for this item.
-    inventory:DropItem(item, true, true)
-end
-
-local function DepositAllItems(inventory)
-    inventory:ForEachItem(function(item)
-        DepositItem(inventory, item)
-    end)
-end
-
-local function DepositRareItems(inventory, rarity_threshold)
-    inventory:ForEachItem(function(item)
-        local item_rarity = PEARL.PREFABS.RARE_ITEMS[item.prefab]
-        if item_rarity and item_rarity > rarity_threshold then
-            DepositItem(inventory, item)
-        end
-    end)
 end
 
 -- Returns the total predicted weight for the item with all the biases applied.
@@ -445,13 +339,13 @@ local function CheckPlayersInventory(world, player)
         local reputation = PEARL.Reputation:GetOf(player.userid)
         print("REP", reputation)
         if reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
-            DepositAllItems(inventory)
+            ItemDepositor:DepositAllItems(inventory)
             print("IS EMPTY AFTER DEPOSIT?", inventory:IsEmpty())
             print(inventory:GetDebugString())
 
             drop_type = DROP_TYPE.ALL
         elseif reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_REP then
-            DepositRareItems(inventory, RARITY_THRESHOLD)
+            ItemDepositor:DepositRareItems(inventory, RARITY_THRESHOLD)
 
             drop_type = DROP_TYPE.RARE
         end
@@ -507,23 +401,6 @@ local function OnPlayerDespawn(world, player)
     CheckPlayersInventory(world, player)
 end
 
-local function OnDepoRemove(inst)
-    for i = #_depos, 1, -1 do
-        if _depos[i].GUID == inst.GUID then
-            print("REMOVING A DEPO", inst)
-            -- Keeps them sorted
-            table.remove(_depos, i)
-        end
-    end
-end
-
-local function OnDepoInit(inst)
-    print("NEW DEPO ADDED!", inst)
-    _depos[#_depos+1] = inst
-
-    _sorted = false
-end
-
 local function OnPredictionFeedback(id, positive)
     local prediction = _predictions[id]
     if not prediction then
@@ -569,22 +446,6 @@ PEARL.AddWorldPostInit(function(inst)
     -- Question is, if this is being called on migration or not.
     inst:SafeListenForEvent("ms_playerdespawn", OnPlayerDespawn)
 end)
-
-for depo_prefab, _ in pairs(DROP_DEPOS) do
-    PEARL.AddPrefabPostInit(depo_prefab, function(inst)
-        print("OnPrefabPostInit", inst)
-        PEARL.WallScheduler:ExecuteInTime(0, function()
-            if inst.components.workable and not inst.components.workable:HasBuilder() then
-                print("IGNORING NEW DEPO!")
-                return -- Special case for naturaly generated chests for example.
-            end
-
-            OnDepoInit(inst)
-
-            inst:SafeListenForEvent("onremove", OnDepoRemove)
-        end)
-    end)
-end
 
 PEARL.EventProcessor:AddSafeEventHandler("input_proxy_event", OnInputProxyEvent)
 PEARL.EventProcessor:AddSafeEventHandler("set_item_rarity", OnItemRaritySet)

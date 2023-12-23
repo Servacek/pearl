@@ -29,7 +29,7 @@ local DEFERANT = {
 ----------------------------------
 
 local _server_slots
-PEARL.AddPlayerPostInit(function(inst)
+PEARL.AddWorldPostInit(function(inst)
     _server_slots = net_byte(inst.GUID, "_server_slots")
     _server_slots:set_local(TheNet:GetServerMaxPlayers())
 end)

@@ -127,7 +127,7 @@ end
 --- @param field string?
 --- @param value any
 function Reputation:SetFieldFor(userid, field, value)
-    if PEARL.DB:IsDisabled() or PEARL.CONFIG.PERMISSIVE_MODE then
+    if PEARL.DB:IsDisabled() or PEARL.CONFIG.PERMISSIVE_MODE or not PEARL.DB:HasRecordFile(userid) then
         return false
     end
 

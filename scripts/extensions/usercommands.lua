@@ -38,7 +38,7 @@ local REQUIRED_FIELDS = {
 
 local custom_commands       = {}
 
---- @type table<string, fun(ctx: CommandContext, value: any): any, boolean?>
+--- @type table<string, fun(ctx: CommandContext, param: any, validate: boolean?): any, boolean?>
 local standardized_params   = {}
 
 --------------------------------------
@@ -101,6 +101,7 @@ UserCommands.STD_PARAMS = {
     SHARD  = "shard",
     PREFAB = "prefab",
     USER   = "user",
+    JSON   = "json",
 }
 
 local PARAMS = UserCommands.STD_PARAMS
@@ -131,65 +132,62 @@ function UserCommands.IsCommandRoutable(command)
     return command.routing ~= UserCommands.SHARD_ROUTING.NONE and PEARL.ServerNetwork:IsAnySecondaryShardConnected()
 end
 
+--- @return boolean, any
+local function StandardizeParam(ctx, name, value, validate)
+    --- @type any, boolean?
+    local standardized, success = value, true
+    local standardizer = standardized_params[name]
+    if type(standardizer) == "function" then
+        standardized, success = standardizer(ctx, value, validate)
+    end
+
+    return success == true, standardized
+end
+
 --- Returns an array of parameter values for the given context
 --- Also modifies the given table so the changes apply accordingly.
 --- or nil if there was an error.
 --- @param ctx CommandContext
 --- @return table? args, integer? count
-local function ValidateParams(ctx, params)
-    local optional = ctx.command.paramsoptional
-    local types    = ctx.command.paramtypes
-    local raw      = ctx.command.paramsraw
+local function ProccessParams(ctx, params)
+    local optional      = ctx.command.paramsoptional
+    local types         = ctx.command.paramtypes
+    local novalidation  = ctx.command.paramsnovalidation
 
-    local args
-    local n = 0
-    for i, paramname in ipairs(ctx.command.params) do
-        local value = params[paramname]
+    local args, n = nil, 0
+    for i, name in ipairs(ctx.command.params) do
+        local value = params[name]
 
         -- Parameters are optional by default
-        if optional and optional[i] == false then
-            if value == nil then
-                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER:format(paramname))
-                return
-            end
+        if optional and optional[i] == false and value == nil then
+            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER:format(name))
+            return
         end
 
         -- Check if the value type is correct, if not try to convert it.
-        local tp = types and types[paramname]
+        local tp = types and types[name]
         if tp and value ~= nil and value ~= tp then
-            local converted = PEARL.TryConvertToType(value, tp)
-            if type(converted) ~= tp then
-                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE:format(paramname))
+            value = PEARL.TryConvertToType(value, tp)
+            if type(value) ~= tp then
+                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE:format(name))
+                return
+            end
+        end
+
+        local validate = not novalidation or novalidation[i] ~= true
+        local success, standardized = StandardizeParam(ctx, name, value, validate)
+        if success == false then
+            if ctx:WasReplied() then
                 return
             end
 
-            value = converted
-            params[paramname] = converted
-        end
-
-        local standardizer = standardized_params[paramname]
-        if (not raw or raw[i] ~= true) and type(standardizer) == "function" then
-            local standardized, success = standardizer(ctx, value)
-
-            if success == false then
-                if not ctx:WasReplied() then
-                    ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED:format(paramname))
-                    return
-                end
-
-                return
-            end
-
-            value = standardized
-            params[paramname] = standardized
-        end
-
-        if type(args) ~= "table" then
-            args = {}
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED:format(name))
         end
 
         n = n + 1
-        args[n] = value
+        args = args or {}
+        args[n] = standardized
+        params[name] = standardized
     end
 
     for paramname, _ in pairs(params) do
@@ -203,7 +201,7 @@ local function ValidateParams(ctx, params)
 end
 
 --- @param name string
---- @param fn fun(ctx: CommandContext, param: any): any, boolean
+--- @param fn fun(ctx: CommandContext, param: any, validate: boolean): any, boolean
 function UserCommands.AddStandardizedParam(name, fn)
     standardized_params[name] = fn
 
@@ -232,7 +230,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
     local n = validated_args and table.size(validated_args) or 0
     if not validated_args then
         local count
-        validated_args, count = ValidateParams(ctx, ctx.params)
+        validated_args, count = ProccessParams(ctx, ctx.params)
         if not count then
             return false
         end
@@ -256,7 +254,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         return false
     end
 
-    if (command.cantargetself == false and target_userid == ctx.author.userid) or
+    if (command.cantargetself == false and target_userid == ctx.author.userid and ctx.author.userid ~= nil) or
         (command.cantargetadmin == false and target_permission > author_permission)
     then
         ctx:Reply(STRINGS.UI.USERCOMMANDS.BADTARGETFMT:format(
@@ -385,12 +383,10 @@ local function ParseParamsArray(command, params_array)
         if params_array and params_array[i] ~= nil then
             params[paramname] = params_array[i]
         else
-            if command.paramsoptional ~= nil and command.paramsoptional[i] == true then
-                break
+            if command.paramsoptional == nil or command.paramsoptional[i] ~= true then
+                PEARL.error("Didn't supply enough arguments to command!")
+                return nil, false
             end
-
-            PEARL.error("Didn't supply enough arguments to command!")
-            return nil, false
         end
     end
 
@@ -436,6 +432,7 @@ function UserCommands.AddConsoleCommand(name, command)
             command, CommandContext(command, CommandContext.TYPE.CONSOLE, params, {
                 name = "[Host]",
                 permission = COMMAND_PERMISSION.ADMIN,
+                userid = TheNet:GetUserID(),
             })
         )
     end)
@@ -605,40 +602,51 @@ end)
 -------------------------------------
 
 UserCommands.AddStandardizedParam(PARAMS.USER,
-UserCommands.AddStandardizedParam(PARAMS.PLAYER, function(ctx, param)
+UserCommands.AddStandardizedParam(PARAMS.PLAYER, function(ctx, param, validate)
     if param == nil then
         return nil, true
     end
 
+    print(validate)
     local userid = UserCommands.InputToUserID(tostring(param))
-    if not userid or not PEARL.ServerNetwork:IsKleiIDKnown(userid) then
+    if validate and (not userid or not PEARL.ServerNetwork:IsKleiIDKnown(userid)) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER)
-        return nil, false
+        return userid, false
     end
 
     return userid, true
 end))
 
-UserCommands.AddStandardizedParam(PARAMS.SHARD, function(ctx, param)
+UserCommands.AddStandardizedParam(PARAMS.SHARD, function(ctx, param, validate)
     if param == nil then
         return nil, true
     end
 
     local shardid = tostring(param)
-    if shardid ~= SHARDID.MASTER and not PEARL.ServerNetwork:IsShardConnected(shardid) then
+    if validate and shardid ~= SHARDID.MASTER and not PEARL.ServerNetwork:IsShardConnected(shardid) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND)
-        return nil, false
+        return shardid, false
     end
 
     return shardid, true
 end)
 
-UserCommands.AddStandardizedParam(PARAMS.PREFAB, function(ctx, param)
+UserCommands.AddStandardizedParam(PARAMS.PREFAB, function(ctx, param, validate)
     local prefab = tostring(param):lower():gsub("-", "_")
-    if not PEARL.PrefabExists(param) then
+    if validate and not PEARL.PrefabExists(param) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
-        return nil, false
+        return prefab, false
     end
 
     return prefab, true
+end)
+
+UserCommands.AddStandardizedParam(PARAMS.JSON, function(ctx, param, validate)
+    local success, data = pcall(json.encode, param)
+    if validate and (success ~= true or type(data) ~= "table" or table.empty(data)) then
+        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON)
+        return param, false
+    end
+
+    return data, true
 end)

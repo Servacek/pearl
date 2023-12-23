@@ -47,7 +47,7 @@ end
 
 local function OnClientBanned(userid)
     -- Log only offline players being banned, since they are announced by the game itself otherwise.
-    if userid and LookupPlayerInstByUserID(userid) == nil then
+    if userid and not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.OFFLINE_CLIENT_BANNED:format(
             userid
         ), PEARL.ICONS.ANNOUNCEMENTS["banned_from_game"])
@@ -181,7 +181,9 @@ end)
 PEARL.EventProcessor:AddSafeEventHandler("invalidrpc", OnInvalidClientRPC)
 PEARL.EventProcessor:AddSafeEventHandler("shard_shutdown", OnShutdown)
 
-PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
-PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
+if TheShard:IsMaster() then
+    PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
+    PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
+end
 
 PEARL.EventProcessor:AddSafeEventHandler("errorcatched", OnErrorCatched)

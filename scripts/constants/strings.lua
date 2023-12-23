@@ -550,6 +550,8 @@ local STRINGS = {
             INVALID_PARAM = "Invalid parameter \"%s\"!",
             STANDARDIZATION_FAILED = "Standardization failed for command \"%s\"!",
             VALIDATION_FAILED = "Failed to validate command \"%s\"!",
+            JSON_DECODING_FAILED = "Failed to decode the provided JSON data!",
+            INVALID_JSON = "Invalid JSON data provided!",
         },
 
         -- Add more translations
@@ -576,7 +578,15 @@ local STRINGS = {
                 PRETTYNAME = "Give Item",
                 DESC       = "Gives an item to any player you have specified.",
 
-                ON_SUCCESS = "Gave %sx %s to %s."
+                ALL        = "Gave %sx %s to %s.",
+                SOME       = "Gave only %sx %s to %s because the rest can not be dropped. Player is offline.",
+                NONE       = "Wasn't able to add the provided item to the inventory!",
+            },
+
+            GIVEALL = {
+                GAVE_ALL     = "Gave all %d items to %s!",
+                GAVE_SOME    = "Gave %d items to %s! %d items were ignored because they were invalid.",
+                GAVE_NONE    = "All of the provided items are invalid!"
             },
 
             TAKE = {
@@ -668,7 +678,10 @@ local STRINGS = {
 
                 ON_SUCCESS          = "Inventory was sent to discord.",
                 ON_NOTFOUND         = "Inventory is empty or doesn't exist...",
-                ON_FAILURE          = "Sending the inventory failed..."
+                ON_FAILURE          = "Sending the inventory failed...",
+
+                FAILED_TO_ENCODE    = "Failed to encode the inventory to the JSON format!",
+                INVENTORY_HEADER    = "%s's Inventory:",
             },
 
             INV_FIND = {

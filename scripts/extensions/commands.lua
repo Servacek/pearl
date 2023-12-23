@@ -31,6 +31,8 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
+local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+
 -------------------------------------
 -- Localization
 -------------------------------------
@@ -176,7 +178,7 @@ AddCommand("unban", {
     permission = COMMAND_PERMISSION.ADMIN,
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {false},
-    paramsraw = {true},
+    paramsnovalidation = {true},
     routing = UserCommands.SHARD_ROUTING.NONE, --- @TODO: Maybe to ALL?
 
     --- @param ctx CommandContext
@@ -195,7 +197,7 @@ AddCommand("grant", {
     permission = COMMAND_PERMISSION.ADMIN,
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {false},
-    paramsraw = {true},
+    paramsnovalidation = {true},
     routing = UserCommands.SHARD_ROUTING.NONE,
 
     --- @param ctx CommandContext
@@ -219,7 +221,7 @@ AddCommand("revoke", {
     permission = COMMAND_PERMISSION.ADMIN,
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {false},
-    paramsraw = {true},
+    paramsnovalidation = {true},
     routing = UserCommands.SHARD_ROUTING.NONE,
 
     --- @param ctx CommandContext
@@ -238,17 +240,35 @@ AddCommand("inv", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {false},
+    params = {UserCommands.STD_PARAMS.PLAYER, "raw"},
+    paramsoptional = {false, true},
+    paramtypes = {["raw"] = "boolean"},
 
     --- @param ctx CommandContext
-    fn = function(ctx, userid)
+    fn = function(ctx, userid, raw)
         local reference = PEARL.GetPlayerMetadataFor(userid)
-        if table.empty(reference:GetInventory()) then
+        local inventory = reference and reference:GetInventory()
+        if table.empty(inventory) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND)
         end
 
-        local request = ctx:ReplyDiscordMessage(MESSAGES.InvReport(userid, reference))
+        local request
+        if raw == true then
+            local success, inventory_json = pcall(json.encode, inventory)
+            if success == false then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.FAILED_TO_ENCODE)
+            end
+
+            local content = MARKDOWN.bold(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.INVENTORY_HEADER:format(
+                reference:GetName() or PEARL.DB:GetField(userid, "username", userid)
+            ))..MARKDOWN.codeblock(inventory_json, "json")
+
+            -- Force the response in this case to be always on discord.
+            request = ctx:ReplyDiscordMessage(Message(content))
+        else
+            request = ctx:ReplyDiscordMessage(MESSAGES.InvReport(userid, reference))
+        end
+
         if request then
             request:SetOnComplete(function(response, success)
                 if success then
@@ -536,7 +556,7 @@ AddCommand("borrowed", {
     routing = UserCommands.SHARD_ROUTING.NONE, -- No need for routing in this case
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {false},
-    paramsraw = {true},
+    paramsnovalidation = {true},
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
@@ -640,12 +660,12 @@ AddCommand("profile", {
     end,
 })
 
---- @TODO: Maybe make these for offline players by simulating the inventory?
 AddCommand("give", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    console = false, -- Already implemented for console by the game.
+    console = true,
+    --console = false, -- Already implemented for console by the game.
     params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
     paramsoptional = {false, false, true},
     paramtypes = {["count"] = "number"},
@@ -653,34 +673,148 @@ AddCommand("give", {
     --- @param count number
     --- @param ctx CommandContext
     fn = function(ctx, userid, prefab, count)
+        print("GIVE", userid, prefab)
+        local leftovers = 0
+        local simulated = false
+
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.inventory then --- @WARNING
+            player = SpawnPrefab("player_classified")
+            if player then
+                simulated = true
+
+                player.persists = false
+                player.userid = userid
+                if not player.components.inventory then
+                    player:AddComponent("inventory")
+                end
+
+                local pref = PEARL.GetPlayerMetadataFor(userid)
+                local session_data = pref:GetSessionData()
+                local inventory_data = session_data and session_data.data and session_data.data.inventory
+                if inventory_data then
+                    player.components.inventory:OnLoad(inventory_data)
+
+                    player.components.inventory.HandleLeftoversFn = function(self, item)
+                        leftovers = PEARL.GetStackSize(item)
+                    end
+
+                    player.prefab = pref:GetPrefab()
+                    player.player_classified = nil
+                    player.GetSaveRecord = function()
+                        local inv_save_data = player.components.inventory:OnSave()
+                        session_data.data.inventory = inv_save_data
+
+                        return session_data
+                    end
+                else
+                    player:Remove()
+                    player = nil
+                end
+            end
+
+            if not player then
+                return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+            end
+        end
+
+        local name = simulated and PEARL.DB:GetField(userid, "username") or player.name
+        local item, amount = player.components.inventory:GiveItemPrefabCount(prefab, count)
+        if simulated == true then
+            --- @TODO: The game has to be saved in order to preserve all the changes!
+            TheNet:TruncateSnapshots(TheNet:GetSessionIdentifier(), -1)
+
+            SerializeUserSession(player, true)
+            player:Remove()
+            player = nil
+        end
+        if not item then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID)
+        end
+
+        amount = amount or 1
+        if leftovers > 0 then
+            if leftovers == amount then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.NONE)
+            end
+
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ALL:format(
+                amount, item:GetBasicDisplayName(), name
+            ))
+        end
+
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ALL:format(
+            amount, item:GetBasicDisplayName(), name
+        ))
+    end,
+})
+
+AddCommand("giveall", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = false,
+    params = {UserCommands.STD_PARAMS.PLAYER, UserCommands.STD_PARAMS.JSON},
+    paramsoptional = {false, false},
+
+    --- @param ctx CommandContext
+    fn = function(ctx, userid, items)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.inventory then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
-        local item
-        local count_left = math.max(count or 1, 1)
-        count = count_left
-        while count_left > 0 do
-            if not PEARL.PrefabExists(prefab) then
-                return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID)
+        local added, ignored = player.components.inventory:GiveItemPrefabs(items)
+        if ignored > 0 then
+            if added > 0 then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_SOME:format(
+                    added, player.name, ignored
+                ))
             end
 
-            local maxsize = item.components.stackable and item.components.stackable.maxsize or 1
-            -- Between 1 - maxsize
-            local stacksize = math.max(math.min(maxsize, count_left), 1)
-
-            if item.components.stackable and stacksize > 1 then
-                item.components.stackable:SetStackSize(stacksize)
-            end
-
-            player.components.inventory:GiveItem(item)
-
-            count_left = count_left - stacksize
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_NONE)
         end
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ON_SUCCESS:format(
-            count, item:GetBasicDisplayName(), player.name
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_ALL:format(
+            added, player.name
+        ))
+    end,
+})
+
+AddCommand("return", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = false,
+    params = {UserCommands.STD_PARAMS.JSON},
+    paramsoptional = {false},
+
+    --- @param ctx CommandContext
+    fn = function(ctx, userid, items)
+        local player = userid and LookupPlayerInstByUserID(userid)
+        if not player or not player.components.inventory then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        local added, ignored = 0, 0
+        for prefab, count in pairs(items) do
+            ItemDepositor:DepositAllItems()
+            count = tonumber(count)
+            if count and player.components.inventory:GiveItemPrefabCount(prefab, count) then
+                added = added + count
+            else
+                ignored = ignored + (count or 1)
+            end
+        end
+
+        if ignored > 0 then
+            if added > 0 then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_SOME:format(
+                    added, player.name, ignored
+                ))
+            end
+
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_NONE)
+        end
+
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_ALL:format(
+            added, player.name
         ))
     end,
 })
@@ -1267,6 +1401,42 @@ AddCommand("setslots", {
     end
 })
 
+AddCommand("show", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = false,
+    params = {"player"},
+    paramsoptional = {false},
+
+    --- @param ctx CommandContext
+    fn = function(ctx, userid)
+        local record = PEARL.DB:GetRecordFor(userid)
+        if not record then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        local str = DataDumper(record, nil, false, 2)
+        str = str:gsub("return ", ""):gsub("    ", ""):gsub("\t", "")
+        if ctx.type == CommandContext.TYPE.DISCORD then
+            str = MARKDOWN.codeblock(str, "lua")
+        end
+
+        return ctx:Reply(str)
+    end
+})
+
+AddCommand("ls", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash = false,
+    discord = false,
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        -- Everyone has a binding with steam!
+        local ids = PEARL.DB:GetBindings(PEARL.DB.BINDING_TYPE.STEAM)
+        table.dump(ids)
+    end
+})
+
 -------------------------------------------
 -- Command Post Inits
 -------------------------------------------
@@ -1414,7 +1584,7 @@ UserCommands.CustomizeCommand("ban", function(command)
     command.remote = true
     command.localfn = nil
     command.routing = UserCommands.SHARD_ROUTING.NONE
-    command.paramsraw = {true} -- We can ban any userids!
+    command.paramsnovalidation = {true} -- We can ban any userids!
 
     table.insert(command.params, "reason")
     table.insert(command.paramsoptional, true)
@@ -1425,7 +1595,7 @@ UserCommands.CustomizeCommand("ban", function(command)
         end
 
         -- In case we have passed only the reason parameter.
-        if type(seconds) == "string" and reason == nil and seconds == nil then
+        if type(seconds) == "string" and reason == nil then
             reason = seconds
         end
 
@@ -1434,5 +1604,3 @@ UserCommands.CustomizeCommand("ban", function(command)
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ON_SUCCESS)
     end
 end)
-
--- 1511 before standardization changes.

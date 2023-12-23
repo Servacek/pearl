@@ -386,6 +386,8 @@ PEARL.info("Loading server network...")
 --- @type ServerNetwork
 PEARL.ServerNetwork = PEARL.loadfile("servernetwork")
 
+PEARL.loadfile("networkhandlers")
+
 --------------------------------
 -- [[ Discord Proxy ]]
 --------------------------------

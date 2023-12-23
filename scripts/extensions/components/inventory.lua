@@ -75,3 +75,43 @@ end
 function Inventory:IsEmpty()
     return table.empty(self.itemslots) == true
 end
+
+function Inventory:GiveItemPrefabCount(prefab, count)
+    local item
+    local count_left = math.max(count or 1, 1)
+    count = count_left
+    while count_left > 0 do
+        item = SpawnPrefab(prefab)
+        if item == nil then
+            return
+        end
+
+        local maxsize = item.components.stackable and item.components.stackable.maxsize or 1
+        -- Between 1 - maxsize
+        local stacksize = math.max(math.min(maxsize, count_left), 1)
+
+        if item.components.stackable and stacksize > 1 then
+            item.components.stackable:SetStackSize(stacksize)
+        end
+
+        self:GiveItem(item)
+
+        count_left = count_left - stacksize
+    end
+
+    return item, count
+end
+
+function Inventory:GiveItemPrefabs(items)
+    local added, ignored = 0, 0
+    for prefab, count in pairs(items) do
+        count = tonumber(count)
+        if count and self:GiveItemPrefabCount(prefab, count) then
+            added = added + count
+        else
+            ignored = ignored + (count or 1)
+        end
+    end
+
+    return added, ignored
+end

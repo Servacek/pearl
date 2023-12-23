@@ -43,7 +43,7 @@ function ClusterPersistance:FileExists(fp)
         file_exists = exists
     end)
 
-    return file_exists
+    return file_exists == true
 end
 
 function ClusterPersistance:GetFileContent(fp, ensure)

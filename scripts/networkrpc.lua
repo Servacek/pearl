@@ -381,7 +381,7 @@ end
 --- @param rpc_id string The identifier of the RPC, these can be found in the mod's RPCS table.
 --- @param ... any Any additional data provided to the rpc handler.
 function PEARL.BroadcastRPCToConnectedShards(rpc_id, ...)
-     PEARL.debug("BroadcastRPCToConnectedShards", rpc_id, ...)
+    PEARL.debug("BroadcastRPCToConnectedShards", rpc_id, ...)
 
     local connected_shards = PEARL.ServerNetwork:GetConnectedShardIDs()
     if table.empty(connected_shards) then
