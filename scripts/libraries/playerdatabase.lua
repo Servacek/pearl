@@ -587,8 +587,11 @@ end
 --- @param userid string
 --- @param validate boolean?
 function DB:LoadRecordFor(userid, validate)
-    PEARL.info("Loading record for ", userid)
+    if not PEARL.IsKleiIDValid(userid) then
+        return PEARL.error("Invalid Klei ID provided!")
+    end
 
+    PEARL.info("Loading record for ", userid)
     local record = self:LoadDatabaseFile(self:GetRecordFilePathFor(userid))
     if type(record) ~= "table" then
         PEARL.error("Failed to load record for", userid, PEARL.CalledFrom(4))
@@ -607,8 +610,12 @@ end
 --- @param record table<string, any>?
 --- @return boolean success
 function DB:SaveRecordFor(userid, record)
-    PEARL.debug("SaveRecordFor", userid, record)
+    if not PEARL.IsKleiIDValid(userid) then
+        PEARL.error("Invalid Klei ID provided!")
+        return false
+    end
 
+    PEARL.debug("SaveRecordFor", userid, record)
     record = record or self._records[userid]
     -- Only save data for users that have agreed to the agreement.
     --- @TODO: Re-think the data collection complication.

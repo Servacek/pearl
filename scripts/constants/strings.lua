@@ -82,11 +82,15 @@ local STRINGS = {
 
         KILL = {
             GENERIC     = "{doer} killed {target}!",
+            STRUCTURE   = "{doer} destroyed {target}!",
             NEAR        = "{doer} killed {target} near {near}!",
             REMAINING   = "{doer} killed {target}! Remaining: {remaining}",
             LAST        = "{doer} killed the last {target}!",
             FOLLOWER    = "{doer} killed {target}! Owner: {owner}",
-            BOSS        = "{target} defeated {doer}!"
+            BOSS        = "{doer} defeated {target}!",
+            BOSS_DOERS  = "{doer} defeated {target}!",
+            NODOER      = "{target} was killed!",
+            NODOERNEAR  = "{target} was killed near {near}!"
         },
 
         CHOP = {
@@ -99,6 +103,7 @@ local STRINGS = {
         },
 
         CAST = {
+            GENERIC     = "{doer} used {item}!",
             NEAR        = "{doer} used {item} near {near}!",
             ON          = "{doer} used {item} on {target}!",
             ON_OWNERED  = "{doer} used {item} on {target}! Owner: {owner}",
@@ -126,6 +131,7 @@ local STRINGS = {
 
         PLANT = {
             GENERIC     = "{doer} planted {target}.",
+            IN          = "{doer} planted {target} in {source}."
         },
 
         FERTILIZE = {
@@ -285,6 +291,9 @@ local STRINGS = {
         UNKNOWN                 = "Unknown",
         NONE_EVENT              = "No Event",
 
+        HOUNDS                  = "Hounds",
+        DEPTH_WORMS             = "Depth Worms",
+
         INV_REPORT_TITLE        = "%s %s's Inventory",
         INV_REPORT_EMPTY        = "*Loading failed or the inventory is empty.*",
         INV_REPORT_ITEM_RARE    = "**%dx\t%s (\"%s\")**",
@@ -293,6 +302,7 @@ local STRINGS = {
         INV_RARE_ITEMS_DROPPED  = "Rare items were dropped from player's inventory before despawning.",
 
         PERMISSIVE_MODE_WARNING = "Permissive mode is turned on! Reputation and penalization systems disabled.",
+        WAVE_WARNING            = "%s are comming!",
 
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
@@ -337,7 +347,8 @@ local STRINGS = {
         RESET_COUNTDOWN_START   = "World reset countdown has started! The server will be regenerated in %s seconds.",
         RESET_COUNTDOWN_STOP    = "World reset countdown has stopped.",
 
-        SERVER_INITIALIZED      = "The system has been initialized. Loading the server...",
+        MOD_INIT                = "The system has been initialized. Loading the server...",
+        MOD_BACKUP_INIT         = "The system backup has been initialized. Loading the server...",
         SHARD_LOADED_MASTER     = "Shard `%s` was loaded.",
         SHARD_LOADED_SECONDARY  = "Shard `%s` was loaded. Connecting to shard `%s`...",
 
@@ -502,9 +513,8 @@ local STRINGS = {
 
         STATIC_BAN_REASONS = {
             NONE = "Reason not specified.",
-            AUTO = "Automatically banned for repeated violation of the rules.",
-            ALT  = "Banned for using an alternative account of a banned user."
-
+            AUTO = "Auto-Banned for repeated violation of the rules.",
+            ALT  = "Auto-Banned for attempting to bypass a ban using an alternative account.",
         },
 
         PROXY_STATE = "Proxy Server: %s",
@@ -525,6 +535,8 @@ local STRINGS = {
         WHISPER_WARN_TEXT = "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone.",
 
         DM_DESIGNATOR = "[DM]",
+
+        BACKUP_TAG    = "[Backup]",
 
         LOADING_VERIFICATION = "Verifying connection...",
         LOADING_ERROR = "Maybe it didn't work that well at the end...",
@@ -552,6 +564,10 @@ local STRINGS = {
             VALIDATION_FAILED = "Failed to validate command \"%s\"!",
             JSON_DECODING_FAILED = "Failed to decode the provided JSON data!",
             INVALID_JSON = "Invalid JSON data provided!",
+        },
+
+        CMD_WARN = {
+            SAVE_REQUIRED = "In order for the changes to be correctly applied, you have to save the server.",
         },
 
         -- Add more translations
@@ -585,8 +601,8 @@ local STRINGS = {
 
             GIVEALL = {
                 GAVE_ALL     = "Gave all %d items to %s!",
-                GAVE_SOME    = "Gave %d items to %s! %d items were ignored because they were invalid.",
-                GAVE_NONE    = "All of the provided items are invalid!"
+                GAVE_SOME    = "Gave %d items to %s! %d items were skipped because they were invalid or didn't fit in the inventory.",
+                GAVE_NONE    = "Wasn't able to add any of the provided items!",
             },
 
             TAKE = {

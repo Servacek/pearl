@@ -96,7 +96,7 @@ local function WriteTranslatedStrings(base, original, translated, file)
 	end
 
     if #unmatched > 0 then
-        PEARL.error("The following translation have unmatched magic characters:\n"..table.concat(unmatched, "\n"))
+        PEARL.error("The following translations have unmatched magic characters:\n"..table.concat(unmatched, "\n"))
     end
 end
 

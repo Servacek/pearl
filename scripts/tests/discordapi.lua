@@ -17,50 +17,53 @@
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
+local _, PRIVATE = PEARL.loadlib("discordapi/restapi")
+assert(PRIVATE, "Private function for discordrest api not provided in DEBUG MODE!")
+
 ----------------------------------------
 
 local tests = {}
 
 function tests.test_all()
-    local init_request_count = PEARL.HTTPClient:GetSentRequestsCount()
+    --local init_request_count = PEARL.HTTPClient:GetSentRequestsCount()
 
     PEARL.info("=============== Message Buffer Test ===============")
     tests.msg_buffer_test()
 
-    PEARL.WallScheduler:ExecuteInTime(5, function()
-        PEARL.info("=============== Message Embed Test ===============")
-        tests.msg_embed_test()
-    end)
-
-    PEARL.WallScheduler:ExecuteInTime(10, function()
-        PEARL.info("=============== Return Value Test ===============")
-        tests.ret_val_test()
-    end)
-
-    PEARL.WallScheduler:ExecuteInTime(15, function()
-        PEARL.info("=============== Content Limit Test ===============")
-        tests.content_limit_test()
-    end)
-
-    PEARL.WallScheduler:ExecuteInTime(20, function()
-        PEARL.info("=============== Content Limit Test Mutliple ===============")
-        tests.content_limit_test_multiple()
-    end)
-
-    PEARL.WallScheduler:ExecuteInTime(25, function()
-        PEARL.info("=============== Embed Limit Test ===============")
-        tests.too_many_embeds()
-    end)
-
-    PEARL.WallScheduler:ExecuteInTime(30, function()
+    PEARL.WallScheduler:ExecuteInTime(0, function()
         PEARL.info("=============== Rate Limit Test ===============")
         tests.rate_limit_test()
     end)
 
+    PEARL.WallScheduler:ExecuteInTime(10, function()
+        PEARL.info("=============== Message Embed Test ===============")
+        tests.msg_embed_test()
+    end)
+
+    PEARL.WallScheduler:ExecuteInTime(15, function()
+        PEARL.info("=============== Return Value Test ===============")
+        tests.ret_val_test()
+    end)
+
+    PEARL.WallScheduler:ExecuteInTime(20, function()
+        PEARL.info("=============== Content Limit Test ===============")
+        tests.content_limit_test()
+    end)
+
+    PEARL.WallScheduler:ExecuteInTime(25, function()
+        PEARL.info("=============== Content Limit Test Mutliple ===============")
+        tests.content_limit_test_multiple()
+    end)
+
+    PEARL.WallScheduler:ExecuteInTime(30, function()
+        PEARL.info("=============== Embed Limit Test ===============")
+        tests.too_many_embeds()
+    end)
+
     PEARL.WallScheduler:ExecuteInTime(35, function()
         PEARL.info("=============== END ===============")
-        local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
-        PEARL.info("Requests Sent:", current_requests_count - init_request_count)
+        --local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
+        --PEARL.info("Requests Sent:", current_requests_count - init_request_count)
     end)
 end
 
@@ -80,8 +83,8 @@ function tests.msg_embed_test()
 end
 
 function tests.ret_val_test()
-    PEARL.DiscordLogger:LogString("<@481731484982444052>", "ikonka")
-        --:AllowMentionsForType(Message.MENTION_TYPES.USERS)
+    PEARL.DiscordLogger:LogStringRaw("<@481731484982444052>", "ikonka")
+        :SetAllowedMentionTypes({Message.MENTION_TYPES.USERS})
         :AddEmbed(Embed():SetDescription("The Testing Embed"))
 end
 
@@ -103,13 +106,11 @@ function tests.too_many_embeds()
 end
 
 function tests.rate_limit_test()
-    PEARL.DiscordRestAPI:_OnErrorStatusCode(429, [[
-        {
-            "message": "You are being rate limited.",
-            "retry_after": 20,
-            "global": false
-        }
-    ]])
+    PRIVATE.OnErrorStatusCode({
+        message ="You are being rate limited.",
+        retry_after = 20,
+        global = false
+    }, 429)
 
     -- Attempt to send some messages while we are being rate limitted.
     tests.msg_buffer_test()

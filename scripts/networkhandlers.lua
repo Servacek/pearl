@@ -69,12 +69,12 @@ PEARL.OverrideUserdataValue("BanForTime", function(self, userid, seconds, reason
     return PEARL.ServerNetwork:BanUser(userid, seconds, reason, author)
 end, TheNet)
 
-PEARL.AddUserDataFunctionPostCall("SetDefaultMaxPlayers", function(self, value)
-    local slots = tonumber(TheNet:GetDefaultMaxPlayers())
-    if slots then
-        PEARL.ServerNetwork:SetClientSlots(slots)
-    end
-end, TheNet)
+-- PEARL.AddUserDataFunctionPostCall("SetDefaultMaxPlayers", function(self, value)
+--     local slots = tonumber(TheNet:GetDefaultMaxPlayers())
+--     if slots then
+--         PEARL.ServerNetwork:SetClientSlots(slots)
+--     end
+-- end, TheNet)
 
 PEARL.AddUserDataFunctionPreCall("SerializeUserSession", function(self, userid)
     PEARL.info("Serializing user session for", userid)

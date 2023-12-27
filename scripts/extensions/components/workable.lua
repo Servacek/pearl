@@ -52,8 +52,11 @@ function Workable:GetBuilder()
     return self._builder
 end
 
+-- Nil when there is no builder.
 function Workable:GetBuilderName()
-    return self._builder and tostring(self._builder.name) or "UNKNOWN"
+    if self._builder then
+        return self._builder.name and tostring(self._builder.name) or "UNKNOWN"
+    end
 end
 
 function Workable:IsBuildBy(userid)

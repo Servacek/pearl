@@ -575,6 +575,16 @@ configuration_options = {
         public = true,
     },
 
+    {
+        name="LOG_CONSOLE_COMMANDS",
+        default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
     --------------------
     -- Anti-AFK Module
     --------------------

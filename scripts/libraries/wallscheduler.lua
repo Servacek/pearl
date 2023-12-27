@@ -134,7 +134,7 @@ end
 --- @param id any? The identifier of the task. Used for debugging purposes only.
 --- @param ... any? All the additional parameters for the callback function.
 local function create_task(time, fn, limit, initialdelay, id, ...)
-    --PEARL.debug("create_task", time, fn, limit, initialdelay, id)
+    PEARL.debug("create_task", time, fn, limit, initialdelay, id)
     if type(fn) ~= "function" or type(time) ~= "number" then
         return PEARL.error("Attempted to create a task with invalid parameters!")
     end
@@ -185,7 +185,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     -- Even running tasks can be restarted.
     function task:restart()
-        --PEARL.debug("task:restart", self)
+        PEARL.debug("task:restart", self:tostring())
 
         if type(self._time) ~= "number" then
             return PEARL.warn("This task doesn't support restarting...")
@@ -198,6 +198,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
             add_task(self, true)
         end
 
+        -- Also resorts the tasks.
         self:setexttime(wtime + self._time)
     end
 
@@ -218,10 +219,6 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         return self._time
     end
 
-    function task:isperiodic()
-        return self._limit == nil
-    end
-
     function task:settime(t)
         if not t or type(t) ~= "number" then
             return PEARL.error("Attempted to set invalid task time period.")
@@ -235,6 +232,15 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         if self._time ~= t then
             self._time = t
         end
+    end
+
+    function task:setcb(cb, ...)
+        if type(cb) ~= "function" then
+            return PEARL.error("Attempted to set task callback to an invalid value!")
+        end
+
+        self._fn = cb
+        self._args = toarrayornil(...)
     end
 
     function task:stop()
@@ -256,6 +262,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         )
     end
 
+    -- Tasks that have been canceled shouldn't be reused again.
     function task:cancel()
         self._time = 0
         self._fn = nil
@@ -318,7 +325,8 @@ local function OnWallUpdate()
 
             local success, result = pcall(task.run, task)
             if success == false then
-                PEARL.error("Failed to run task:", task:tostring(), "Reason:\n", result)
+                PEARL.error("Failed to run task:", task:tostring())
+                PEARL.HandleError(result)
                 PEARL.error("Cancelling...")
 
                 -- Make sure the task is going to be removed immediately this tick.
@@ -327,9 +335,9 @@ local function OnWallUpdate()
         end
 
         -- Check the limit after we have called the task since it can change during the call.
-        if task._limit == 0 then
-            -- Only remove tasks whose limit has reached zero.
-            -- We can just nil them since this is guranteed to be the end.
+        if task._limit ~= nil and task._limit <= 0 then
+            -- Using regular removing instead of just nilling the values
+            -- just to be safe. This should be the end of the task list 99% of time.
             table_remove(tasks, i)
             task_count = task_count - 1
         end

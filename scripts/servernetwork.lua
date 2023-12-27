@@ -38,11 +38,11 @@ local DEFAULT_RPC_TIMEOUT = 5
 -- Netvars
 ----------------------------------
 
-local _server_slots
-PEARL.AddWorldPostInit(function(inst)
-    _server_slots = net_byte(inst.GUID, "_server_slots")
-    _server_slots:set(TheNet:GetDefaultMaxPlayers())
-end)
+-- local _server_slots
+-- PEARL.AddWorldPostInit(function(inst)
+--     _server_slots = net_byte(inst.GUID, "_server_slots")
+--     _server_slots:set(TheNet:GetDefaultMaxPlayers())
+-- end)
 
 ----------------------------------
 -- Locals
@@ -568,7 +568,7 @@ end
 function ServerNetwork:IsClientInLobby(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
     return client and self:IsClientLoading(userid) == false and
-        client.prefab == "" and not self:HasClientInGameInstance(userid)
+        client.prefab == "" and not self:HasClientActiveInstance(userid)
 end
 
 -- Migration doesn't count here.
@@ -589,8 +589,17 @@ function ServerNetwork:IsClientPriviliged(userid)
     return self:IsAdmin(userid) or PEARL.AllowList:Contains(userid) or TheNet:GetUserID() == userid
 end
 
-function ServerNetwork:HasClientInGameInstance(userid)
-    return LookupPlayerInstByUserID(userid) ~= nil
+function ServerNetwork:HasClientActiveInstance(userid)
+    return self:GetClientInstance(userid, true) ~= nil
+end
+
+function ServerNetwork:GetClientInstance(userid, active)
+    if active then
+        return LookupPlayerInstByUserID(userid)
+    end
+
+    local meta = PEARL.GetPlayerMetadataFor(userid, true)
+    return meta and meta:GetInstance() or nil
 end
 
 --- Debugging puposes.
@@ -664,12 +673,12 @@ function ServerNetwork:SetServerRequiresCFD(requires)
     PEARL.CONFIG.SERVER_REQUIRE_CFD = requires
 end
 
---- @param slots integer
-function ServerNetwork:SetClientSlots(slots)
-    if _server_slots then
-        _server_slots:set(slots)
-    end
-end
+-- --- @param slots integer
+-- function ServerNetwork:SetClientSlots(slots)
+--     if _server_slots then
+--         _server_slots:set(slots)
+--     end
+-- end
 
 function ServerNetwork:CacheClientTableFor(userid)
     if type(userid) == "string" then

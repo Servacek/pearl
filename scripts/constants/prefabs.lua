@@ -112,6 +112,8 @@ local PREFABS = {
 	AREA_IGNITE_STAFFS = {
 		["yellowstaff"] = 4,
 		["firestaff"] = 6,
+        [STRINGS.PYROMANCY.FIRE_BALL] = 4,
+        [STRINGS.PYROMANCY.FIRE_BURST] = 2,
 	},
 
 	-- These only affect the target.
@@ -144,6 +146,7 @@ local PREFABS = {
 
     DO_NOT_MINE = {
         ["statueglommer"]        = true,
+        ["cave_entrance"]        = true, -- For the annoying bats...
 
         -- Announce mining stalagmites as well,
         -- since they are not renewable (the only source of fossils).

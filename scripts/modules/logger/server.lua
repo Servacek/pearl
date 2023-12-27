@@ -125,8 +125,11 @@ local function OnModBackendPostInit()
         return
     end
 
+    local str = PEARL.IS_BACKUP and STRINGS.PEARL.LOGS.MOD_BACKUP_INIT or
+        STRINGS.PEARL.LOGS.MOD_INIT
+
     --- @type LogLine
-    local logline = LogLine(MARKDOWN.bold(STRINGS.PEARL.LOGS.SERVER_INITIALIZED))
+    local logline = LogLine(MARKDOWN.bold(str))
     logline:SetSize(LogLine.SIZES.SMALL)
     PEARL.DiscordLogger:LogLine(logline, true)
 end

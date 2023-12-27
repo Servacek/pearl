@@ -523,11 +523,13 @@ end
 --- or just to discord (according to the configurations).
 ---
 ---@param str string The content text of the announcement (supports multiline).
----@param tp string The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
+---@param tp? string The type of the announcement, see PEARL.CONSTS.ANNOUNCEMENT_TYPES.
 ---@param entity? unknown The entity the announcement is about.
 ---@param silent? boolean Whether the announcement should be sent to game or not.
----@param ... any Additional arguments to the TheNet:Announce function.
-function PEARL.AnnounceWithType(str, tp, entity, silent, ...)
+---@param icon? string The specific icon for silent announcements.
+function PEARL.AnnounceWithType(str, tp, entity, silent, icon)
+    tp = tp and string.lower(tp) or "default"
+
     local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
     -- Everything overrides the default value
     if type(PEARL.CONFIG.ANNOUNCEMENTS[tp]) == "boolean" then
@@ -547,10 +549,10 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, ...)
         end
 
         -- When we announce the message it will be logged to discord implicitly.
-        return TheNet:Announce(str, entity, nil, tp, ...)
+        return TheNet:Announce(str, entity, nil, tp)
     end
 
-    local icon = PEARL.ICONS.ANNOUNCEMENTS[string.lower(tp)] or PEARL.ICONS.ANNOUNCEMENTS.default
+    icon = icon or PEARL.ICONS.ANNOUNCEMENTS[tp] or PEARL.ICONS.ANNOUNCEMENTS.default
     PEARL.DiscordLogger:LogString(str, icon)
 end
 

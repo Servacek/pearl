@@ -39,26 +39,32 @@ end
 
 --- @class QueuedLogAction
 local QueuedLogAction = Class(function(self, pattern)
+    --- Represents the identity of the string.
+    --- The static, unique, non-stackable part.
+    --- This cannot be changed after the first init!
     --- @type string
     self.pattern = pattern
 
     --- @type integer
     self.timestart = os.time()
 
-    --- @type table<name, count>?
+    --- @type table<GUID, boolean>?
     self.targets = nil
 
     --- @type table<name, value>
-    self.dynamic = nil
+    self.stackable = nil
 
+    --- We use logtype when dealing with announcements displayed in-game.
     --- @type string?
     self.logtype = nil
-    --- @type fun(data: table<name, value>)
-    self.dynamicfn = nil
 
-    --- @type fun(action)
-    self.queuefn = nil
-    self.queuefninst = nil
+    --- For silent announcements displayed outside, changing the icon should be enough.
+    --- @type string?
+    self.icon = nil
+
+    -- By default everything is silent if not explicitly stated otherwise.
+    --- @type boolean
+    self.silent = true
 
     --- @type integer
     self.queuetime = QUEUE_TIME
@@ -75,16 +81,13 @@ end)
 -- [[ Static ]]
 --------------------------------
 
-QueuedLogAction.STATIC_FIELDS  = {
-    DOER   = "doer",
-    OWNER  = "owner",
-    SOURCE = "source",
-    TOOL   = "tool",
-}
-
-QueuedLogAction.DYNAMIC_FIELDS = {
-    TARGET    = "target",
-    REMAINING = "remaining",
+QueuedLogAction.FIELDS  = {
+    DOER        = "doer",
+    OWNER       = "owner",
+    SOURCE      = "source",
+    TOOL        = "tool",
+    TARGET      = "target",
+    REMAINING   = "remaining",
 }
 
 --------------------------------
@@ -95,7 +98,24 @@ QueuedLogAction.DYNAMIC_FIELDS = {
 --- @param stacksize integer? Optional stacksize override for case where the target's stacksize cannot be used.
 --- @return QueuedLogAction
 function QueuedLogAction:AddTarget(target, stacksize, ...)
-    return self:AddToDynamicField(self.DYNAMIC_FIELDS.TARGET, target, stacksize, ...)
+    if not target then
+        return self
+    end
+
+    if type(target) == "table" then
+        if not self.targets then
+            self.targets = {}
+        elseif self.targets[target.GUID] == true then
+            return self -- Ignore this target!
+        end
+
+        -- Only stackable entities are allowed to be reused.
+        if target.GUID and not target.components.stackable then
+            self.targets[target.GUID] = true
+        end
+    end
+
+    return self:AddToStackableField(self.FIELDS.TARGET, target, stacksize, ...)
 end
 
 --- @return QueuedLogAction
@@ -111,6 +131,10 @@ end
 
 --- @return QueuedLogAction
 function QueuedLogAction:SetQueueTask(task)
+    if self.task then
+        PEARL.warn("Queue task already!")
+    end
+
     --- @type Task
     self.task = task
 
@@ -120,14 +144,6 @@ end
 --- @return QueuedLogAction
 function QueuedLogAction:SetIsSilent(silent)
     self.silent = silent
-
-    return self
-end
-
---- @return QueuedLogAction
-function QueuedLogAction:SetQueueFn(fn, inst)
-    self.queuefn = fn
-    self.queuefninst = inst
 
     return self
 end
@@ -154,32 +170,10 @@ function QueuedLogAction:SetQueueTimeMult(mult)
 end
 
 --- @return QueuedLogAction
-function QueuedLogAction:SetFormatDataFn(datafn)
-    self.datafn = datafn
-
-    return self
-end
-
---- @return QueuedLogAction
-function QueuedLogAction:SetStaticField(name, value)
-    if not value or not name or self.queued then
-        return self
-    end
-
-    if EntityScript.is_instance(value) then
-        value = value:GetStandardizedName()
-    end
-
-    self.pattern = self.pattern:nformat(name, value)
-
-    return self
-end
-
---- @return QueuedLogAction
-function QueuedLogAction:AddToDynamicField(field, key, stacksize, noprefix)
+function QueuedLogAction:AddToStackableField(field, key, stacksize, noprefix)
     -- Ensure that the field exists
     if not self:HasDynamicField(field) then
-        self:SetDynamicField(field, {})
+        self:SetStackableField(field, {})
     end
 
     local name = key
@@ -194,35 +188,23 @@ function QueuedLogAction:AddToDynamicField(field, key, stacksize, noprefix)
     end
 
     stacksize = tonumber(stacksize) or PEARL.GetStackSize(key) or 1
-    self.dynamic[field][name] = (self.dynamic[field][name] or 0) + stacksize
+    self.stackable[field][name] = (self.stackable[field][name] or 0) + stacksize
 
     return self
 end
 
 --- Always overrides the value provided for the name.
 --- @return QueuedLogAction
-function QueuedLogAction:SetDynamicField(field, value)
+function QueuedLogAction:SetStackableField(field, value)
     if EntityScript.is_instance(value) then
         value = value:GetStandardizedName()
     end
 
-    if not self.dynamic then
-        self.dynamic = {}
+    if not self.stackable then
+        self.stackable = {}
     end
 
-    self.dynamic[field] = value
-
-    return self
-end
-
---- @return any
-function QueuedLogAction:GetDynamicField(name)
-    return self.dynamic[name]
-end
-
---- @return QueuedLogAction
-function QueuedLogAction:SetData(data)
-    self.dynamic = data
+    self.stackable[field] = value
 
     return self
 end
@@ -234,29 +216,36 @@ function QueuedLogAction:SetLogType(ltp)
     return self
 end
 
+--- @return QueuedLogAction
+function QueuedLogAction:SetIcon(icon)
+    self.icon = icon
+
+    return self
+end
+
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
 
 function QueuedLogAction:HasDynamicField(field)
-    return self.dynamic and self.dynamic[field] ~= nil or false
+    return self.stackable and self.stackable[field] ~= nil or false
 end
 
 function QueuedLogAction:GetString()
-    self.dynamic = self.dynamic or {}
+    self.stackable = self.stackable or {}
     if type(self.datafn) == "function" then
-        self.datafn(self.dynamic)
+        self.datafn(self.stackable)
     end
 
-    for name, value in pairs(self.dynamic) do
+    for name, value in pairs(self.stackable) do
         if type(value) == "table" then
-            self.dynamic[name] = _GetStringFromStackableData(value)
+            self.stackable[name] = _GetStringFromStackableData(value)
         else
-            self.dynamic[name] = value
+            self.stackable[name] = value
         end
     end
 
-    return self.pattern:nformat(self.dynamic)
+    return self.pattern:nformat(self.stackable)
 end
 
 --- @return boolean
@@ -264,9 +253,35 @@ function QueuedLogAction:IsInQueue()
     return self.queued
 end
 
+--- Stackable actions are defined as action with at least one dynamic field.
+--- @return boolean
+function QueuedLogAction:IsStackable()
+    return self.stackable and not table.empty(self.stackable)
+end
+
+function QueuedLogAction:IsExecutable()
+    return self.task ~= nil
+end
+
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
+
+function QueuedLogAction:CancelQueueTask()
+    if self.task then
+        self.task:cancel()
+        self.task = nil
+    end
+end
+
+--- @param cb function
+function QueuedLogAction:StartQueueTask(cb)
+    if self.task then
+        self.task:settime(self.queuetime)
+        self.task:setcb(cb)
+        self.task:restart()
+    end
+end
 
 function QueuedLogAction:Repeat()
     if not self.task or not self.timestart then
@@ -303,8 +318,7 @@ end
 function QueuedLogAction:Execute()
     if self.task then
         self.task:run()
-        self.task:cancel()
-        self.task = nil
+        self:CancelQueueTask()
     end
 end
 

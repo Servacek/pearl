@@ -19,20 +19,11 @@ require("stacktrace")
 
 --- Load as little stuff here as possible since this is loaded at the start.
 local EncodeBase64 = PEARL.loadfile('utils/base64encoder')
-local PlayerReference = PEARL.loadfile("models/playermetadata")
-
---------------------------------
-
-local TheSim, TheShard, TheNet, bit = TheSim, TheShard, TheNet, bit
-local ParseUserSessionData = ParseUserSessionData
-local string, table, math = string, table, math
+local PlayerMetadata = PEARL.loadfile("models/playermetadata")
 
 --------------------------------
 
 local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
-
-local KLEI_ID_PATTERN   = PEARL.CONSTS.KLEI_ID_PATTERN
-local STEAM_ID_PATTERN  = PEARL.CONSTS.STEAM_ID_PATTERN
 
 --------------------------------
 -- [[ Inventory ]]
@@ -49,47 +40,15 @@ function PEARL.GetStackSize(item)
 end
 
 --- @return PlayerMetadata
-function PEARL.GetPlayerMetadataFor(userid, cb)
-    local player_ref = PlayerReference(userid)
-
-    -- Do not prefer the cached client table since it doesn't have to be up-to-date.
-    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
-    if client then
-        player_ref:SetName(client.name)
-        player_ref:SetAge(client.playerage)
-        player_ref:SetPrefab(client.prefab)
-        player_ref:SetNetID(client.netid)
-
-        -- If the player is playing in the server.
-        local player = LookupPlayerInstByUserID(userid)
-        if player and player.components and player.components.inventory then
-            player_ref:SetInventory(player.components.inventory)
-        end
-
-        return player_ref
+function PEARL.GetPlayerMetadataFor(userid, noload)
+    --- @type PlayerMetadata
+    local metadata = PlayerMetadata(userid)
+    if noload ~= true then
+        metadata:LoadPlayerData()
+        metadata:LoadInventoryData()
     end
 
-    local sessionid = TheNet:GetSessionIdentifier()
-    local file = TheNet:GetUserSessionFile(sessionid, userid)
-    if not file then
-        return player_ref
-    end
-
-    -- This is some fake async function or something?
-    TheNet:DeserializeUserSession(file, function(success, str)
-        if not (success and str) then
-            return
-        end
-
-        local data, _ = ParseUserSessionData(str)
-        if not data then
-            return
-        end
-
-        player_ref:Load(data)
-    end)
-
-    return player_ref
+    return metadata
 end
 
 function PEARL.GetMaxStringSize(string_list, key, keyname)
@@ -297,16 +256,9 @@ end
 -- [[ Utils ]]
 --------------------------------
 
+--- @param kleid string
 function PEARL.IsKleiIDValid(kleid)
-    return kleid:match(KLEI_ID_PATTERN) ~= nil
-end
-
-function PEARL.GetKleiIDFromString(str)
-
-end
-
-function PEARL.GetSteamIDFromString(str)
-
+    return type(kleid) == "string" and kleid:match(PEARL.CONSTS.KLEI_ID_PATTERN) ~= nil
 end
 
 function PEARL.TimestampToTable(timestamp)
@@ -417,6 +369,10 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
     end
 
     local name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
+    if entity.components.spellbook then
+        name = entity.components.spellbook:GetSpellName() or name
+    end
+
     if noprefix ~= true then
         for tagname, prefix in pairs(STRINGS.PEARL.TAG_PREFIXES) do
             if entity:HasTag(tagname) then
@@ -449,6 +405,23 @@ function PEARL.GetBurnableEntitiesNearPos(pos, radius)
     )
 end
 
+function PEARL.HandleError(err)
+    local stacktrace = StackTrace(err) or err
+    PEARL.error(
+        "Catched lua error:", stacktrace or "Unknown"
+    )
+
+    --- @TODO: Replace this with an event.
+    -- Try to always print at least something when an error happens.
+    local traceback = stacktrace or STRINGS.PEARL.REPORTS.NO_STACKTRACE
+    -- This function is being used in frontend as well!
+    if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+        PEARL.DiscordReporter:ReportCatchedLuaError(traceback)
+    elseif PEARL.ClientNetwork then
+        PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
+    end
+end
+
 -- Runs a function and catches errors during the call.
 -- Return values are the same as for calling it via xpcall function.
 --
@@ -468,22 +441,7 @@ function PEARL.SafeRun(func, ...)
         function()
             return func(PEARL.unpack(args))
         end,
-        function(err)
-            local stacktrace = StackTrace(err) or err
-            PEARL.error(
-                "Error in function call:", stacktrace or "Unknown"
-            )
-
-            --- @TODO: Replace this with an event.
-            -- Try to always print at least something when an error happens.
-            local traceback = stacktrace or STRINGS.PEARL.REPORTS.NO_STACKTRACE
-            -- This function is being used in frontend as well!
-            if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
-                PEARL.DiscordReporter:ReportCatchedLuaError(traceback)
-            elseif PEARL.ClientNetwork then
-                PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
-            end
-        end
+        PEARL.HandleError
     )}
 
     return unpack(result)

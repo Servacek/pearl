@@ -35,6 +35,7 @@ function io.line(fp)
     return f and f:close() and line or ""
 end
 
+-- True when successfully created.
 function io.ensure(fp, init_txt)
     return not io.exists(fp) and io.create(fp, init_txt)
 end

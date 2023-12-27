@@ -18,6 +18,7 @@
 --- @class EMOTES
 local EMOTES = {
     -- Game utf-8 formatted emotes accessed by name
+    --- @class EMOTES.GAME
     GAME = {
         ABIGAIL         = "󰀜",
         ALCHEMY		    = "󰀝",
@@ -72,6 +73,7 @@ local EMOTES = {
         LMB             = "",
     },
 
+    --- @class EMOTES.DISCORD
     -- Converts a game utf-8 formatted emote to a discord emoji
     MAP_DISCORD = {
         ["󰀜"] = "<a:abigail:997498948161900584>", -- :abigail:
@@ -135,6 +137,7 @@ local EMOTES = {
 }
 
 -- Game Icon Name -> Discord Emoji
+--- @class EMOTES.GAME
 EMOTES.DISCORD = {}
 for name, symbol in pairs(EMOTES.GAME) do
     EMOTES.DISCORD[name] = EMOTES.MAP_DISCORD[symbol]

@@ -28,11 +28,11 @@ local DEFERANT = {
 -- Netvars
 ----------------------------------
 
-local _server_slots
-PEARL.AddWorldPostInit(function(inst)
-    _server_slots = net_byte(inst.GUID, "_server_slots")
-    _server_slots:set_local(TheNet:GetServerMaxPlayers())
-end)
+-- local _server_slots
+-- PEARL.AddWorldPostInit(function(inst)
+--     _server_slots = net_byte(inst.GUID, "_server_slots")
+--     _server_slots:set_local(TheNet:GetServerMaxPlayers())
+-- end)
 
 ----------------------------------
 -- Locals
@@ -42,12 +42,12 @@ local _OnNetworkDisconnect = PEARL.GetGlobal("OnNetworkDisconnect")
 
 local disconnection_notified = false
 local disconnect_data = {}
+local disconnect_reason = nil
 local disconnected = false
 local disconnected_by_server = false
 local force_disconnected = false
 local connection_allowed = false
 
-local _server_error = false
 local _hasrecord = false
 
 local cfd = {}
@@ -182,6 +182,10 @@ function ClientNetwork:SetDisconnectionData(data)
     disconnect_data = data
 end
 
+function ClientNetwork:SetDisconnectioReason(reason)
+    disconnect_reason = reason
+end
+
 function ClientNetwork:StartTimeout()
     if timeout_task then
         return PEARL.debug("Timeout task already running!")
@@ -203,11 +207,6 @@ end
 ----------------------------------
 -- Getters
 ----------------------------------
-
-function ClientNetwork:HasServerCrashed()
-    return _server_error == true
-end
-
 function ClientNetwork:IsConnectionAllowed()
     return connection_allowed
 end
@@ -231,6 +230,11 @@ end
 
 function ClientNetwork:GetCFD()
     return cfd
+end
+
+--- @return string?
+function ClientNetwork:GetDisconnectReason()
+    return disconnect_reason
 end
 
 -- function ClientNetwork:IsWaitingForResponse()
@@ -332,10 +336,6 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     PEARL.debug("ClientNetwork: OnNetworkDisconnect")
     ClientNetwork:CancelTimeout()
 
-    if reason == "ID_DST_SERVER_CRASHED" then
-        _server_error = true
-    end
-
     -- We have already showed a disconnection popup to the user
     -- Show only the first one.
     if disconnection_notified then
@@ -348,6 +348,7 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
         ClientNetwork:OnConnectionClosed(reason)
     end
 
+    ClientNetwork:SetDisconnectioReason(reason)
     -- Record only the first disconnection
     ClientNetwork:SetDisconnectionData({
         reason, should_reset, immediate, ...
@@ -365,14 +366,14 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     PEARL.debug("Deffering OnNetworkDisconnect")
 end)
 
-PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
-    local count =  tonumber(_server_slots and _server_slots:value())
-    if type(count) == "number" and count > 0 then
-        return count
-    end
+-- PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
+--     local count =  tonumber(_server_slots and _server_slots:value())
+--     if type(count) == "number" and count > 0 then
+--         return count
+--     end
 
-    -- Fallback to default if nil.
-end, false, true)
+--     -- Fallback to default if nil.
+-- end, false, true)
 
 ----------------------------------
 -- RPCs

@@ -22,7 +22,6 @@ local Memory = Class(function(self, inst)
     --- @type table
     self.data = nil
     self.ttls = nil
-    self.keys = {}
 end)
 
 --------------------------------
@@ -37,46 +36,45 @@ function Memory:SetLifetime(name, time)
 
     self.ttls[name] = time
 
-    print("EntityScript:StartUpdatingComponent")
-    self.inst:StartUpdatingComponent(self)
+    if not table.empty(self.ttls) then
+        self.inst:StartUpdatingComponent(self)
+    end
 end
 
 function Memory:ForEach(fn, ...)
     if self.data then
-        for userid, damage in pairs(self.data) do
-            fn(userid, damage, self.data, ...)
+        for name, value in pairs(self.data) do
+            fn(name, value, ...)
         end
     end
 end
 
-function Memory:Add(key, value)
+function Memory:Set(key, value)
+    if key == nil then
+        PEARL.error("Invalid key provided!")
+        return
+    end
+
     if not self.data then
         self.data = {}
     end
 
-    self.keys[#self.keys+1] = key
     self.data[key] = value
 end
 
 function Memory:Remove(name)
-    local value
     if self.data then
-        value = self.data[name]
         self.data[name] = nil
     end
 
     if self.ttls then
         self.ttls[name] = nil
     end
-
-    return value
 end
 
 function Memory:Clear()
-    for i = #self.keys, 1, -1 do
-        local key = self.keys[i]
-        self:Remove(key)
-        self.keys[key] = nil
+    for name, _ in pairs(self.data) do
+        self:Remove(name)
     end
 end
 
@@ -92,14 +90,17 @@ function Memory:Retrieve()
     return self.data
 end
 
-function Memory:Sorted(sortfn)
-    if self.data then
-        table.sort(table.keys(self.data), sortfn or function(name1, name2)
-            return self.data[name1] and self.data[name2] and self.data[name1] < self.data[name2]
-        end)
+function Memory:SortedKeys(sortfn)
+    if not self.data then
+        return {}
     end
 
-    return self.data
+    local keys = table.keys(self.data)
+    table.sort(keys, sortfn or function(name1, name2)
+        return self.data[name1] and self.data[name2] and self.data[name1] < self.data[name2]
+    end)
+
+    return keys
 end
 
 --------------------------------
@@ -116,7 +117,6 @@ end
 function Memory:OnLoad(data)
     self.data = data.data
     self.ttls = data.ttls
-    self.keys = table.keys(data.data or data.ttls or {})
 end
 
 function Memory:OnUpdate(dt)
@@ -124,21 +124,16 @@ function Memory:OnUpdate(dt)
         return
     end
 
-    for i = 1, #self.keys do
-        local name = self.keys[i]
-        if name then
-            local ttl = self.ttls[name]
-            if ttl == nil or ttl <= 0 then
-                print("REMOVING ATTACKER! EXPIRED: ", name)
-                self.ttls[name] = nil
-            end
-
+    for name, ttl in pairs(self.ttls) do
+        if ttl <= 0 then
+            print("REMOVING ATTACKER! EXPIRED: ", name)
+            self.ttls[name] = nil
+        else
             self.ttls[name] = ttl - dt
         end
     end
 
-    if #self.ttls <= 0 then
-        print("EntityScript:StopUpdatingComponent")
+    if table.empty(self.ttls) then
         self.inst:StopUpdatingComponent(self)
     end
 end

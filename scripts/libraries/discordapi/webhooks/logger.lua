@@ -87,7 +87,7 @@ function Logger:_OnNewLog(force)
     end
 
     self._buffered:Start()
-    return self._buffer
+    return self._buffered
 end
 
 -------------------------------------
@@ -106,7 +106,7 @@ end
 
 -- Warning: This can be nil if we are disabled!
 function Logger:GetBufferedMessage()
-    return self._buffer
+    return self._buffered
 end
 
 function Logger:IsDisabled()
@@ -122,7 +122,7 @@ end
 -------------------------------------
 
 function Logger:ProccessBuffer()
-    return self._buffer and self._buffer:Timeout()
+    return self._buffered and self._buffered:Timeout()
 end
 
 --- @param embed Embed The embed to be logged.
@@ -164,6 +164,7 @@ function Logger:LogLine(logline, force)
         return PEARL.error("Attempted to send an invalid logline!", logline)
     end
 
+    --- @type boolean, LogLine
     local success, rest = self._buffered:AddLogLine(logline)
     if rest then
         self:ProccessBuffer()

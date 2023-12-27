@@ -367,6 +367,8 @@ AddCommand("invf", {
 --     end,
 -- })
 
+--- @TODO: Migrate to the new cooldown API, keep all cooldowns on the server.
+--- Remove the unnecessary RPC call...
 -- Slash commands only
 AddCommand("admins", {
     aliases = {"staff", "sos"},
@@ -446,16 +448,18 @@ AddCommand("server", {
     end
 })
 
-AddCommand("players", {
-    permission = COMMAND_PERMISSION.USER,
-    console = false,
-    slash = false,
+--- @TODO:?
+-- AddCommand("players", {
+--     permission = COMMAND_PERMISSION.USER,
+--     discord = false,
+--     console = false,
+--     slash = false,
 
-    --- @param ctx CommandContext
-    fn = function(ctx)
-        ctx:ReplyDiscordEmbed(EMBEDS.PlayerInfo())
-    end,
-})
+--     --- @param ctx CommandContext
+--     fn = function(ctx)
+--         ctx:ReplyDiscordEmbed(EMBEDS.PlayerInfo())
+--     end,
+-- })
 
 AddCommand("world", {
     permission = COMMAND_PERMISSION.USER,
@@ -534,6 +538,7 @@ AddCommand("giverep", {
     paramsoptional = {false},
     console = false, -- This is meant to be a user-only command.
     cantargetself = false,
+    cooldown = 6 * 60 * 60, -- Cooldown for six hours.
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
@@ -542,6 +547,8 @@ AddCommand("giverep", {
         end
 
         if PEARL.Reputation:GiveTo(userid, GIVEREP_AMOUNT) then
+            UserCommands.StartCommandCooldownFor(ctx.author.userid, ctx.command)
+
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SUCCESS)
         end
 
@@ -661,91 +668,41 @@ AddCommand("profile", {
 })
 
 AddCommand("give", {
+    consolename = "giveto",
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    console = true,
-    --console = false, -- Already implemented for console by the game.
     params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
     paramsoptional = {false, false, true},
     paramtypes = {["count"] = "number"},
+    instrequired = true,
 
     --- @param count number
     --- @param ctx CommandContext
-    fn = function(ctx, userid, prefab, count)
-        print("GIVE", userid, prefab)
-        local leftovers = 0
-        local simulated = false
-
-        local player = userid and LookupPlayerInstByUserID(userid)
-        if not player or not player.components.inventory then --- @WARNING
-            player = SpawnPrefab("player_classified")
-            if player then
-                simulated = true
-
-                player.persists = false
-                player.userid = userid
-                if not player.components.inventory then
-                    player:AddComponent("inventory")
-                end
-
-                local pref = PEARL.GetPlayerMetadataFor(userid)
-                local session_data = pref:GetSessionData()
-                local inventory_data = session_data and session_data.data and session_data.data.inventory
-                if inventory_data then
-                    player.components.inventory:OnLoad(inventory_data)
-
-                    player.components.inventory.HandleLeftoversFn = function(self, item)
-                        leftovers = PEARL.GetStackSize(item)
-                    end
-
-                    player.prefab = pref:GetPrefab()
-                    player.player_classified = nil
-                    player.GetSaveRecord = function()
-                        local inv_save_data = player.components.inventory:OnSave()
-                        session_data.data.inventory = inv_save_data
-
-                        return session_data
-                    end
-                else
-                    player:Remove()
-                    player = nil
-                end
-            end
-
-            if not player then
-                return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-            end
-        end
-
-        local name = simulated and PEARL.DB:GetField(userid, "username") or player.name
-        local item, amount = player.components.inventory:GiveItemPrefabCount(prefab, count)
-        if simulated == true then
-            --- @TODO: The game has to be saved in order to preserve all the changes!
-            TheNet:TruncateSnapshots(TheNet:GetSessionIdentifier(), -1)
-
-            SerializeUserSession(player, true)
-            player:Remove()
-            player = nil
-        end
+    fn = function(ctx, player, prefab, count)
+        local item, given = player.components.inventory:GiveItemPrefabCount(prefab, count)
         if not item then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.ITEM_PREFAB_INVALID)
         end
 
-        amount = amount or 1
-        if leftovers > 0 then
-            if leftovers == amount then
+        local isactive = PEARL.ServerNetwork:HasClientActiveInstance(player.userid)
+        local postfix = isactive and "" or "\n"..STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
+
+        given = given or 1
+        count = tonumber(count) or 1
+        if given < count then
+            if given <= 0 then
                 return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.NONE)
             end
 
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ALL:format(
-                amount, item:GetBasicDisplayName(), name
-            ))
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.SOME:format(
+                given, item:GetBasicDisplayName(), player.name
+            )..postfix)
         end
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.ALL:format(
-            amount, item:GetBasicDisplayName(), name
-        ))
+            given, item:GetBasicDisplayName(), player.name
+        )..postfix)
     end,
 })
 
@@ -754,20 +711,18 @@ AddCommand("giveall", {
     slash = false,
     params = {UserCommands.STD_PARAMS.PLAYER, UserCommands.STD_PARAMS.JSON},
     paramsoptional = {false, false},
+    instrequired = true,
 
     --- @param ctx CommandContext
-    fn = function(ctx, userid, items)
-        local player = userid and LookupPlayerInstByUserID(userid)
-        if not player or not player.components.inventory then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-        end
-
+    fn = function(ctx, player, items)
+        local isactive = PEARL.ServerNetwork:HasClientActiveInstance(player.userid)
+        local postfix = isactive and "" or "\n"..STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
         local added, ignored = player.components.inventory:GiveItemPrefabs(items)
         if ignored > 0 then
             if added > 0 then
                 return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_SOME:format(
                     added, player.name, ignored
-                ))
+                )..postfix)
             end
 
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_NONE)
@@ -775,47 +730,7 @@ AddCommand("giveall", {
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_ALL:format(
             added, player.name
-        ))
-    end,
-})
-
-AddCommand("return", {
-    permission = COMMAND_PERMISSION.ADMIN,
-    slash = false,
-    params = {UserCommands.STD_PARAMS.JSON},
-    paramsoptional = {false},
-
-    --- @param ctx CommandContext
-    fn = function(ctx, userid, items)
-        local player = userid and LookupPlayerInstByUserID(userid)
-        if not player or not player.components.inventory then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-        end
-
-        local added, ignored = 0, 0
-        for prefab, count in pairs(items) do
-            ItemDepositor:DepositAllItems()
-            count = tonumber(count)
-            if count and player.components.inventory:GiveItemPrefabCount(prefab, count) then
-                added = added + count
-            else
-                ignored = ignored + (count or 1)
-            end
-        end
-
-        if ignored > 0 then
-            if added > 0 then
-                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_SOME:format(
-                    added, player.name, ignored
-                ))
-            end
-
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_NONE)
-        end
-
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEALL.GAVE_ALL:format(
-            added, player.name
-        ))
+        )..postfix)
     end,
 })
 
@@ -826,15 +741,11 @@ AddCommand("take", {
     params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
     paramsoptional = {false, false, true},
     paramtypes = {["count"] = "number"},
+    instrequired = true,
 
     --- @param count number
     --- @param ctx CommandContext
-    fn = function(ctx, userid, prefab, count)
-        local player = userid and LookupPlayerInstByUserID(userid)
-        if not player or not player.components.inventory then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-        end
-
+    fn = function(ctx, player, prefab, count)
         -- Take all items by default.
         count = count or math.huge
         local items = player.components.inventory:GetItemByName(prefab, count, false)
@@ -861,9 +772,11 @@ AddCommand("take", {
             end
         end
 
+        local isactive = PEARL.ServerNetwork:HasClientActiveInstance(player.userid)
+        local postfix = isactive and "" or "\n"..STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.ON_SUCCESS:format(
             total_count, item_name or "UNKNOWN", player.name
-        ))
+        )..postfix)
     end,
 })
 
@@ -871,25 +784,25 @@ AddCommand("drop", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
+    params = {UserCommands.STD_PARAMS.PLAYER, UserCommands.STD_PARAMS.PREFAB, "count"},
     paramsoptional = {false, true, true},
     paramtypes = {["count"] = "number"},
+    instrequired = true,
 
     --- @param count number
     --- @param ctx CommandContext
-    fn = function(ctx, userid, prefab, count)
-        local player = userid and LookupPlayerInstByUserID(userid)
-        if not player or not player.components.inventory then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-        end
+    fn = function(ctx, player, prefab, count)
+        local isactive = PEARL.ServerNetwork:HasClientActiveInstance(player.userid)
+        local postfix = isactive and "" or "\n"..STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
 
         -- If no item specified, drop everything.
         if not prefab then
-            player.components.inventory:DropEverything()
+            -- Use depositor to support offline inventories.
+            ItemDepositor:DepositAllItems(player.components.inventory)
 
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP_ALL:format(
                 player.name
-            ))
+            )..postfix, PEARL.ICONS.PLAYER_STATE.DROP_ITEMS)
         end
 
         -- Take all items by default.
@@ -911,12 +824,12 @@ AddCommand("drop", {
             end
 
             -- Drop the whole stack of the item taken from the source stack!
-            player.components.inventory:DropItem(item, true)
+            ItemDepositor:DepositItem(player.components.inventory, item)
         end
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP:format(
             total_amount, item_name or "UNKNOWN", player.name
-        ))
+        )..postfix)
     end,
 })
 
@@ -990,10 +903,10 @@ AddCommand("kill", {
     permission = COMMAND_PERMISSION.ADMIN,
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {true},
+    targetselfbydefault = true,
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
-        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.health then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -1009,10 +922,10 @@ AddCommand("revive", {
     permission = COMMAND_PERMISSION.ADMIN,
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {true},
+    targetselfbydefault = true,
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
-        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -1069,10 +982,10 @@ AddCommand("despawn", {
     console = false, -- Already built in
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {true},
+    targetselfbydefault = true,
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
-        userid = userid or ctx.author.userid or (ThePlayer and ThePlayer.userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -1174,6 +1087,7 @@ AddCommand("system", {
 AddCommand("notify", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.DESC,
+    slash = false, -- Doesn't support multiword parameters :(
     permission = COMMAND_PERMISSION.ADMIN,
     params = {UserCommands.STD_PARAMS.PLAYER, "message", "title"},
     paramsoptional = {false, false, true},
@@ -1183,34 +1097,6 @@ AddCommand("notify", {
         PEARL.ServerNetwork:DisplayPopupFor(userid, title, message)
 
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.ON_SUCCESS)
-    end
-})
-
-AddCommand("gameowner", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.DESC,
-    permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {false},
-    routing = UserCommands.SHARD_ROUTING.NONE, -- No need for routing here
-
-    --- @param ctx CommandContext
-    fn = function(ctx, userid)
-        local request = PEARL.KleiAccounts:QueryGameOwner(
-            userid, PEARL.KleiAccounts.GAME.DST, function(rootid)
-                local result = STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.ON_FAILURE
-                if type(rootid) == "string" and #rootid > 2 then
-                    result = STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.ON_SUCCESS:format(rootid)
-                end
-
-                return ctx:Reply(result)
-        end)
-
-        if not request then
-            error("Failed to encode verification json data!")
-        end
-
-        request:Send()
     end
 })
 
@@ -1380,26 +1266,27 @@ AddCommand("setrarity", {
     end
 })
 
-AddCommand("setslots", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
-    permission = COMMAND_PERMISSION.ADMIN,
-    params = {"count"},
-    paramsoptional = {false},
-    paramtypes = {["count"] = "number"},
+-- --- @TODO: Repair
+-- AddCommand("setslots", {
+--     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
+--     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
+--     permission = COMMAND_PERMISSION.ADMIN,
+--     params = {"count"},
+--     paramsoptional = {false},
+--     paramtypes = {["count"] = "number"},
 
-    --- @param ctx CommandContext
-    fn = function(ctx, count)
-        if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
-        end
+--     --- @param ctx CommandContext
+--     fn = function(ctx, count)
+--         if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
+--             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
+--         end
 
-        -- This prints some weird error at first use. But the count is actually set.
-        TheNet:SetDefaultMaxPlayers(tostring(count))
+--         -- This prints some weird error at first use. But the count is actually set.
+--         TheNet:SetDefaultMaxPlayers(tostring(count))
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS)
-    end
-})
+--         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS)
+--     end
+-- })
 
 AddCommand("show", {
     permission = COMMAND_PERMISSION.ADMIN,

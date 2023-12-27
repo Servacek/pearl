@@ -76,7 +76,24 @@ function Inventory:IsEmpty()
     return table.empty(self.itemslots) == true
 end
 
-function Inventory:GiveItemPrefabCount(prefab, count)
+-- Returns the previous handler if any
+function Inventory:AddLeftoversHandler(fn)
+    local prev = self.HandleLeftoversFn
+    self.HandleLeftoversFn = fn
+
+    return prev
+end
+
+function Inventory:GiveItemPrefabCount(prefab, count, drop)
+    local leftovers = 0
+    local handleleftovers = drop ~= true
+    local leftovers_handler
+    if handleleftovers then
+        leftovers_handler = self:AddLeftoversHandler(function(self, item)
+            leftovers = leftovers + PEARL.GetStackSize(item)
+        end)
+    end
+
     local item
     local count_left = math.max(count or 1, 1)
     count = count_left
@@ -99,19 +116,24 @@ function Inventory:GiveItemPrefabCount(prefab, count)
         count_left = count_left - stacksize
     end
 
-    return item, count
+    if handleleftovers then
+        -- Restore the previous leftovers handler if any.
+        self:AddLeftoversHandler(leftovers_handler)
+    end
+
+    return item, count - leftovers
 end
 
-function Inventory:GiveItemPrefabs(items)
-    local added, ignored = 0, 0
+function Inventory:GiveItemPrefabs(items, nodrop)
+    local total, added = 0, 0
     for prefab, count in pairs(items) do
         count = tonumber(count)
-        if count and self:GiveItemPrefabCount(prefab, count) then
-            added = added + count
-        else
-            ignored = ignored + (count or 1)
+        total = total + (count or 1)
+        if count then
+            local _, given = self:GiveItemPrefabCount(prefab, count, nodrop)
+            added = added + given
         end
     end
 
-    return added, ignored
+    return added, total - added
 end

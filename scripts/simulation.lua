@@ -39,6 +39,7 @@ PEARL.AddGlobalFunctionPreCall("OnSimPaused", function()
 end)
 
 PEARL.AddUserDataFunctionPreCall("Reset", function()
+    print("RESTART!!!")
     if TheWorld ~= nil then
         TheWorld:PushModEvent("world_restart")
     end

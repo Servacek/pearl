@@ -14,12 +14,13 @@ local Text = require "widgets/text"
 local Health = require("components/health")
 
 --- Check also components/healthbar.lua
+--- That component looks uncomplete. It adds just an small percentage label to mobs.
 
 -------------------------------
 -- [[ Constants ]]
 -------------------------------
 
-local HEALTH_NOTE_PT = "󰀍 %d/%d"
+local HEALTH_NOTE_PT = PEARL.EMOTES.GAME.HEART.." %d/%d"
 local HEALTH_INFO_POS = Vector3(0, 80, 0)
 local HEATLH_INFO_FONT = UIFONT
 local HEALTH_INFO_FSIZE = 24
@@ -27,11 +28,7 @@ local HEALTH_INFO_FSIZE = 24
 local HEALTH_THRESHOLD = 50
 local THRESHOLD_MULT   = 100 / HEALTH_THRESHOLD
 
--------------------------------
--- [[ Locals ]]
--------------------------------
-
-local colour = shallowcopy(WEBCOLOURS.GREEN)
+local ALPHA = 1
 
 -------------------------------
 -- [[ Local Functions ]]
@@ -42,18 +39,20 @@ local colour = shallowcopy(WEBCOLOURS.GREEN)
 -- 0.5> -> G = 255
 -- <=0  -> B = 255
 -- Colors are in RGB percent!
-local function UpdateColour(percent)
+local function GetColourRGBA(percent)
     if percent <= 0 then
-        -- Black colour for percentages lower than or equal to zero.
-        colour[1], colour[2], colour[3] = 255, 255, 255
-        return
+        -- Black colour for death mobs.
+        return 0, 0, 0, ALPHA
     end
 
-    colour[1] = percent > 0.5 and (1 - percent) * THRESHOLD_MULT or 1
-    colour[2] = percent < 0.5 and percent * THRESHOLD_MULT or 1
+    local r = percent > 0.5 and (1 - percent) * THRESHOLD_MULT or 1
+    local g = percent < 0.5 and percent * THRESHOLD_MULT or 1
+    local b = 0
+
+    return r, g, b, ALPHA
 end
 
-local function OnHealthPercentDirty(inst)
+local function OnHealthDirty(inst)
     -- Make sure we still have the health component
     -- because it can be removed during runtime.
     if not inst.replica or not inst.replica.health then
@@ -64,8 +63,8 @@ local function OnHealthPercentDirty(inst)
         return
     end
 
-    inst.replica.health._current = inst.replica.health._max:value() * inst.replica.health._percent:value()
-    UpdateColour(inst.replica.health._percent:value())
+    local percent = inst.replica.health._percent:value()
+    inst.replica.health._current = inst.replica.health._max:value() * percent
 end
 
 local function OnHealthDelta(self, data)
@@ -91,6 +90,11 @@ PEARL.AddClassPostConstruct("components/health_replica", function(self, inst)
         return
     end
 
+    -- self.inst:AddComponent("healthbar")
+    -- self.inst:DoTaskInTime(1, function()
+    --     self.inst.components.healthbar:Enable()
+    -- end)
+
     self._current = 100
 
     self._max = net_uint(inst.GUID, PEARL.MODNAME.."_health._max", PEARL.MODNAME.."healthmaxdirty")
@@ -102,7 +106,8 @@ PEARL.AddClassPostConstruct("components/health_replica", function(self, inst)
     if TheWorld.ismastersim then
         self.inst:SafeListenForEvent("healthdelta", OnHealthDelta)
     else
-        self.inst:SafeListenForEvent(PEARL.MODNAME.."healthpercentdirty", OnHealthPercentDirty)
+        self.inst:SafeListenForEvent(PEARL.MODNAME.."healthpercentdirty", OnHealthDirty)
+        self.inst:SafeListenForEvent(PEARL.MODNAME.."healthmaxdirty", OnHealthDirty)
     end
 end)
 
@@ -137,10 +142,11 @@ PEARL.AddClassPostConstruct("widgets/hoverer", function(self)
             return health_info:Hide()
         end
 
+        local percent = inst.replica.health._percent:value() or 0
         health_info:SetString(HEALTH_NOTE_PT:format(
-            (inst.replica.health._current or 0), inst.replica.health._max:value()
+            (inst.replica.health._current or 0), (inst.replica.health._max:value() or 0)
         ))
-        health_info:SetColour(colour)
+        health_info:SetColour(GetColourRGBA(percent))
         health_info:Show()
     end, self)
 end)

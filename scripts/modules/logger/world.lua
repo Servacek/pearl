@@ -462,7 +462,8 @@ PEARL.AddWorldPostInit(function(world)
         if world.components.playerspawner then
             --- Use precall because some data may be cleared during the original function execution.
             PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
-                if player and x and y and z then
+                -- For non-loading players we have the "ms_newplayerspawned" event.
+                if player and x and y and z and isloading then
                     OnPlayerSpawned(player, x, y, z)
                 end
             end, world.components.playerspawner)

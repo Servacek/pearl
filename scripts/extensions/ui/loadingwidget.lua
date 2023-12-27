@@ -21,6 +21,11 @@ local LoadingWidget = require("widgets/redux/loadingwidget")
 -- [[ Constants ]]
 ---------------------------
 
+local LT_TYPES = PEARL.CONSTS.LT_TYPES
+local DO_NOT_LOAD_TIPS = {
+    [LT_TYPES.WELCOME] = true
+}
+
 --- @---------------------NOTE-----------------------
 --- The element names in bg_loading_<name>.xml needs to be just <name> without the bg_loading part!
 local CUSTOM_LOADING_IMAGES = {
@@ -28,10 +33,8 @@ local CUSTOM_LOADING_IMAGES = {
 }
 
 local CUSTOM_LOADING_TIPS = {}
-
-local LT_TYPES = PEARL.CONSTS.LT_TYPES
-local DO_NOT_LOAD_TIPS = {
-    [LT_TYPES.WELCOME] = true
+local CUSTOM_DISCONNECT_TIPS = {
+    ["ID_DST_SERVER_CRASHED"] = {STRINGS.PEARL.UI.LOADING_ERROR, LT_TYPES.CONTROLS},
 }
 
 local TEX_PATTERN = "%s.tex"
@@ -140,14 +143,23 @@ local function ShowCustomImage(self)
     end
 end
 
+local function ShowCustomDisconnectTip(self, reason)
+    local tip_data = CUSTOM_DISCONNECT_TIPS[reason]
+    if type(tip_data) == "table" then
+        self:SetLoadingTip(PEARL.unpack(tip_data))
+    end
+end
+
 PEARL.AddClassFunctionPostCall("SetEnabled", function(self, enabled)
     if not enabled then
         return
     end
 
-    PEARL.debug("LoadingWidget:SetEnabled", enabled)
-    if PEARL.ClientNetwork:HasServerCrashed() then
-        self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_ERROR, LT_TYPES.CONTROLS)
+    if PEARL.ClientNetwork:IsDisconnected() then
+        local reason = PEARL.ClientNetwork:GetDisconnectReason()
+        if reason ~= nil then
+            ShowCustomDisconnectTip(self, reason)
+        end
     end
 end, LoadingWidget)
 

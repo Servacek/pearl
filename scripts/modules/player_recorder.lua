@@ -109,6 +109,7 @@ local function OnClientBanned(userid, seconds, reason, author)
 
     -- Reset reputation value in case of an unban.
     PEARL.Reputation:SetFor(userid, PEARL.CONSTS.STARTING_REPUTATION)
+    PEARL.DB:SaveRecordFor(userid)
 end
 
 local function OnClientUnbanned(userid)
@@ -121,6 +122,7 @@ local function OnClientUnbanned(userid)
 
     ban.timestop = os.time()
     PEARL.DB:SetField(userid, "bans", bans)
+    PEARL.DB:SaveRecordFor(userid)
 end
 
 local function OnClientAgreementDataReceived(data)

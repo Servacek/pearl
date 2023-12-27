@@ -84,10 +84,11 @@
         string.utf8lower = utf8strtolower
 --]]
 
+GLOBAL.assert(GLOBAL.rawget(GLOBAL, "PEARL") == nil, "Multiple instances of the PEARL mod loaded!")
+
 local GLOBAL = GLOBAL
 local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
---- LINK TESTS
 --------------------------------
 -- [[ Local Constants ]]
 --------------------------------
@@ -199,6 +200,8 @@ GLOBAL.PEARL = setmetatable({
     INIT_FULL           = TheSim:GetNumLaunches() == 2,
     LAUNCHES            = TheSim:GetNumLaunches(),
 
+    BACKUP_ID           = "3122299418",--"2924921999",
+
     --- @type string?
     SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
 
@@ -223,6 +226,12 @@ PEARL.LUATYPES = {
     BOOLEAN     = "boolean",
     NIL         = "nil",
 }
+
+local id = GetWorkshopIdNumber(PEARL.MODNAME)
+PEARL.WORKSHOP_ID   = tonumber(id) ~= nil and tostring(id) or nil
+PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
+print(PEARL.WORKSHOP_ID, PEARL.BACKUP_ID)
+PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
 
 --------------------------------
 -- [[ Server Mod Config ]]
@@ -491,6 +500,11 @@ end
 -- [[ Load ]]
 --------------------------------
 
+-- Load emotes before icons
+--- @readonly
+--- @type EMOTES table<table<string, string>>
+PEARL.EMOTES = PEARL.loadfile("constants/emotes")
+
 if not PEARL.INIT then
 
 PEARL.RegisterDefaultAnnouncementTypes()
@@ -500,7 +514,8 @@ PEARL.AddAnnouncementIcon("burn", "fire.tex")
 PEARL.AddAnnouncementIcon("take", "backpack.tex")
 PEARL.AddAnnouncementIcon("swallow", "faketheeth.tex")
 PEARL.AddAnnouncementIcon("hammer", "hammer.tex")
-PEARL.AddAnnouncementIcon("kill", "hambat.tex")
+PEARL.AddAnnouncementIcon("kill", "hambat.tex") -- For regular mobs
+PEARL.AddAnnouncementIcon("murder", "hambat.tex") -- For loyal mobs
 PEARL.AddAnnouncementIcon("defeat", "trophy.tex")
 PEARL.AddAnnouncementIcon("deploy", "eyeplant.tex")
 
@@ -514,7 +529,6 @@ PEARL.AddAnnouncementIcon("welcome")
 PEARL.AddAnnouncementIcon("extinguish")
 PEARL.AddAnnouncementIcon("build")
 PEARL.AddAnnouncementIcon("craft")
-PEARL.AddAnnouncementIcon("dig")
 PEARL.AddAnnouncementIcon("plant")
 PEARL.AddAnnouncementIcon("give")
 PEARL.AddAnnouncementIcon("sleep")
@@ -524,6 +538,7 @@ PEARL.AddAnnouncementIcon("propagator")
 PEARL.AddAnnouncementIcon("play")
 PEARL.AddAnnouncementIcon("chop")
 PEARL.AddAnnouncementIcon("fertilize")
+PEARL.AddAnnouncementIcon("waste")
 PEARL.AddAnnouncementIcon("heal")
 PEARL.AddAnnouncementIcon("sew")
 
@@ -643,4 +658,6 @@ end
 --------------------------------
 
 PEARL.OnModPostInit()
-PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version)
+PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version,
+    PEARL.IS_BACKUP == true and "[Backup]" or ""
+)

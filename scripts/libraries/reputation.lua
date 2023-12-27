@@ -203,7 +203,7 @@ end
 function Reputation:EarnFor(userid, amount, griefing)
     -- Preventing quick changes in reputation.
     local lastlose = self:GetFieldOf(userid, "lastlose")
-    if amount > 0 and lastlose > 0 and (os.time() - lastlose) < GAIN_COOLDOWN then
+    if lastlose and amount > 0 and lastlose > 0 and (os.time() - lastlose) < GAIN_COOLDOWN then
         return -- We are on cooldown!
     end
 

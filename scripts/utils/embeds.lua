@@ -200,6 +200,10 @@ function EMBEDS.ServerInfo(boot)
     local active_event = GetFirstActiveSpecialEvent() or "none"
     local title = boot == true and STRINGS.PEARL.EMBEDS.SERVER.BOOT or STRINGS.PEARL.EMBEDS.SERVER.TITLE
     local colour = boot == true and Embed.COLORS.GREEN or Embed.COLORS.DARK_GREY
+    local modv = MARKDOWN.codeline(tostring(PEARL.MOD_INFO.version))
+    if PEARL.IS_BACKUP then
+        modv = MARKDOWN.bold(STRINGS.PEARL.UI.BACKUP_TAG).."\n"..modv
+    end
 
     return Embed()
         :SetTitle(title)
@@ -208,7 +212,7 @@ function EMBEDS.ServerInfo(boot)
         :SetTimestamp(os.time())
 
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLATFORM, MARKDOWN.codeline(PLATFORM), true)
-        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.MOD_V, MARKDOWN.codeline(PEARL.MOD_INFO.version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.MOD_V, modv, true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.GAME_V, MARKDOWN.codeline(TEMPLATES.GetBuildString()), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)

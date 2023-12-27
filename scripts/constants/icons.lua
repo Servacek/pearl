@@ -206,6 +206,7 @@ local ICONS = {
         ["take"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.BACKPACK],
         ["swallow"]=    PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.FAKETEETH],
         ["kill"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.HAMBAT],
+        ["murder"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.CHESTER],
         ["hammer"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.HAMMER],
         ["defeat"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.TROPHY],
         ["deploy"]=     PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.EYEPLANT],
@@ -215,7 +216,7 @@ local ICONS = {
         ["extinguish"]= "<:extinguish:1133083578381643818>",
         ["build"]=      "<:build:1133086015146438686>",
         ["craft"]=      PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.SCIENCEMACHINE],
-        ["dig"]=        PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.SHOVEL],
+        --["dig"]=        PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.SHOVEL],
         ["plant"]=      PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.BERRY],
         ["give"]=       PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.PIG],
         ["sleep"]=      "<:tent:1133091346371072040>",
@@ -227,6 +228,8 @@ local ICONS = {
         ["cook"]=       PEARL.EMOTES.DISCORD.CROCKPOT,
         ["heal"]=       PEARL.EMOTES.DISCORD.HEART,
         ["sew"]=        "<:sewing_kit:1170438166168215652>",
+        ["mine"]=       "<:mine:1189591897673576579>",
+        ["play"]=       "<:play:1189612902282428486>",
     },
 }
 

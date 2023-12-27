@@ -358,11 +358,7 @@ function PEARL.OnNewMonth(stb)
     CreateNewUpdatingMessage()
 end
 
-local function OnTimestampUpdated(changes)
-    if changes then
-        return
-    end
-
+local function OnTimestampUpdated()
     PEARL.debug("OnTimestampUpdated")
 
     -- If we are in updating mode and no updating message was created yet.

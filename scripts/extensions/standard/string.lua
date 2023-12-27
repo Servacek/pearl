@@ -173,12 +173,20 @@ end
 --- If name is a table, all formattings in that table will be applied.
 --- Otherwise, if it's a string then a only specific formatting with that name
 --- will be replaced with the value string provided.
+---
+--- @KnownErrors: Invalid replacement value:
+---  - This is thrown when the replacement table contains other subtables as replacements,
+---
 --- @param self string
 --- @param name table<string, any>|string
 --- @param value string?
 function string:nformat(name, value)
     if type(name) == "table" then
         return (self:gsub("{([^}]+)}", name))
+    end
+
+    if name == nil or value == nil then
+        return self
     end
 
     return self:gsub("{"..name.."}", value, 1)

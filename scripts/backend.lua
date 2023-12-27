@@ -96,13 +96,17 @@ PEARL.SafeModTableExtend("CONSTS", {
     LEADERBOARD_MAX_LEN         = 5,
     STARTING_REPUTATION         = 100,
 
+    --- @class REPUTATION_TABLES
     REPUTATION_TABLES           = {
         REVIVE              = 25,
         DIED                = -15,
         EXTINGUISH_STRUCT   = 2.5,
         EXTINGUISH          = 1.5,
-        BOSS_DAMAGE         = 0.01, -- Per HP dealt
+        BOSS_DAMAGE         = 0.001, -- Per HP dealt
+        COMPANION_DAMAGE    = -0.2, -- Companions have less HP
+        FOLLOWER_DAMAGE     = -0.1,
         BURNABLE_NEAR_FIRE  = -3,
+        POPULATION_EXINCT   = -10,
         STRUCT_NEAR_FIRE    = -6,
         BUILT_STRUCTURE     = 5,
         FERTILIZED          = 1,
@@ -124,6 +128,9 @@ PEARL.SafeModTableExtend("CONSTS", {
         HAMMER_STRUCTURE    = -7,
         IGNITED_STRUCTURE   = -3, -- Per One Structure
         IGNITING_AT_BASE    = -8,
+        FIRE_MOB_KILLED     = -5,
+        LEARNED_BLUEPRINT   = -5,
+        LEARNED_RAREPRINT   = -10,
     },
 
     ITEM_WEIGHT_BIAS       = {
@@ -361,10 +368,6 @@ PEARL.info("Loading constants...")
 --- @type PREFABS table<table<string, boolean>>
 PEARL.PREFABS = PEARL.loadfile("constants/prefabs")
 
--- Load emotes before icons
---- @readonly
---- @type EMOTES table<table<string, string>>
-PEARL.EMOTES = PEARL.loadfile("constants/emotes")
 --- @readonly
 --- @type ICONS table<table<string, string>|table<table<string, string>>>
 PEARL.ICONS = PEARL.loadfile("constants/icons")

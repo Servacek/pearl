@@ -81,6 +81,8 @@ RestAPI.STATUS_CODES = {
 --------------------------------
 
 local function _OnErrorStatusCode(response, status_code, request)
+    status_code = tonumber(status_code) or 0
+
     -- Handle rate limits first
     if status_code == RestAPI.STATUS_CODES.TOO_MANY_REQUESTS then
         -- WallScheduler doesn't support floats with the current precision.
@@ -265,5 +267,12 @@ end
 --------------------------------
 -- [[ Return ]]
 --------------------------------
+
+if PEARL.CONFIG.DEBUG_MODE then
+    return RestAPI, {
+        OnErrorStatusCode = _OnErrorStatusCode,
+        SendActionRequest = _SendActionRequest,
+    }
+end
 
 return RestAPI

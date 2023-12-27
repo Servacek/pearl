@@ -28,16 +28,39 @@ local ActionLog = {
 --------------------------------
 
 --- @param action QueuedLogAction
---- @return QueuedLogAction
-function ActionLog:_QueueAction(pattern, action)
-    self._queue[pattern] = action
+local function _OnActionInitialized(action)
+    if not action:IsExecutable() then
+        return
+    end
 
-    return action:SetQueueTask(PEARL.WallScheduler:ExecuteInTime(action.queuetime, function()
-        self:RemoveAction(pattern)
-        self:LogAction(
-            action.colorentity, action.logtype, action:GetString(), action.silent
-        )
-    end))
+    -- The action did not manage to become stackable during its construction,
+    -- so it won't be added to the queue but logged right away.
+    if not action:IsStackable() then
+        print("NON STACKABLE")
+        action:CancelQueueTask()
+        ActionLog:LogAction(action)
+        return
+    end
+
+    ActionLog:QueueAction(action)
+    action:StartQueueTask(function()
+        print("QUEUE DONE")
+        ActionLog:DequeueAction(action.pattern)
+        ActionLog:LogAction(action)
+    end)
+end
+
+--- @param pattern string
+--- @return QueuedLogAction
+local function _InitializeAction(pattern)
+    print("initialize action")
+    local action = QueuedLogAction(pattern)
+
+    -- Wait a tick until the action is fully constructed.
+    return action:SetQueueTask(PEARL.WallScheduler:ExecutePeriodic(0, function()
+        print("INIT")
+        _OnActionInitialized(action)
+    end, 2)) -- 1. Initialization, 2. Queue (optional)
 end
 
 --------------------------------
@@ -51,27 +74,46 @@ function ActionLog:GetQueuedAction(pattern)
 end
 
 --- @param pattern string Removes from the queue action with the provided pattern.
---- @return QueuedLogAction? action The action that was removed from the queue.
-function ActionLog:RemoveAction(pattern)
-    local action = self._queue[pattern]
+function ActionLog:DequeueAction(pattern)
     self._queue[pattern] = nil
-    return action
 end
 
-function ActionLog:LogAction(entity, tp, actionstr, silent, ...)
+--- @param action QueuedLogAction
+function ActionLog:QueueAction(action)
+    self._queue[action.pattern] = action
+end
+
+function ActionLog:Log(ent, tp, str, slt, icon)
     return PEARL.AnnounceWithType(
-        actionstr, tp, (entity and entity.entity or entity), silent, ...
+        str, tp, (ent and ent.entity or ent), slt, icon
+    )
+end
+
+--- @param action QueuedLogAction
+function ActionLog:LogAction(action)
+    return self:Log(
+        action.colorentity, action.logtype, action:GetString(), action.silent, action.icon
     )
 end
 
 --- @param p string The initial pattern of the action.
---- @param sn string|table<string, string>? The name of the static field in the pattern or the formatting table for the given pattern.
+--- @param sn string|table? The name of the static field in the pattern or the formatting table for the given pattern.
 --- @param sv string? The value of the "sn" field, if provided.
 --- @return QueuedLogAction action The current action for the given pattern built up from the static data provided.
-function ActionLog:QueueAct(p, sn, sv)
+function ActionLog:Act(p, sn, sv)
     if sn then
+        -- Handle sv being an entity
         if sv and EntityScript.is_instance(sv) then
             sv = sv:GetFancyName()
+        end
+
+        -- Handle sn being a table of entities
+        if type(sn) == "table" then
+            for name, value in pairs(sn) do
+                if type(value) == "table" then
+                    sn[name] = PEARL.GetStandardizedNameFor(value)
+                end
+            end
         end
 
         -- This will handle the case where "sn" is a table of fields as well.
@@ -83,7 +125,7 @@ function ActionLog:QueueAct(p, sn, sv)
         return queued:Repeat()
     end
 
-    return self:_QueueAction(p, QueuedLogAction(p))
+    return _InitializeAction(p)
 end
 
 --------------------------------
@@ -91,14 +133,14 @@ end
 --------------------------------
 
 --- @return QueuedLogAction
-function ActionLog:QueueEntAct(p, ent, sn, sv)
+function ActionLog:EntityAct(p, ent, sn, sv)
     if ent then
-        p = p:nformat(QueuedLogAction.STATIC_FIELDS.DOER,
+        p = p:nformat(QueuedLogAction.FIELDS.DOER,
             EntityScript.is_instance(ent) and ent:GetStandardizedName() or ent
         )
     end
 
-    return self:QueueAct(p, sn, sv):SetColorEntity(ent)
+    return self:Act(p, sn, sv):SetColorEntity(ent)
 end
 
 --------------------------------

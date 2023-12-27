@@ -34,6 +34,7 @@ local removearrayvalue = table.removearrayvalue
 
 local MAX_COMMAND_LENGTH = 256
 
+--- @type REPUTATION_TABLES
 local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
 -- Determines the number of burnable structures needed to activate the extinguisher.
@@ -77,8 +78,9 @@ end
 --- @param action class<Action> The action to register the handler for.
 --- @param handler function The additional handler for the provided action.
 --- @param checkfn function? Optional check function used to verify the arguments passed for the action handler.
+--- @param pre boolean? Whether the action should be proccessed before the handler.
 --- @return function handler? The handler parameter. Used for chaining.
-local function RegisterActionHandler(action, handler, checkfn)
+local function RegisterActionHandler(action, handler, checkfn, pre)
     if type(action) ~= "table" then
         error("invalid action")
     end
@@ -89,22 +91,29 @@ local function RegisterActionHandler(action, handler, checkfn)
 
     local _action = action.fn
     action.fn = function(act, ...)
-        local success = _action(act, ...)
-        if success and act ~= nil and handler ~= nil then
-            local doer, target, item, pos = act.doer, act.target, (act.invobject or act.recipe), act:GetActionPoint()
-            pos = pos or (target and target:GetPosition())
-
-            local result, was_successfull
+        local was_successfull, result
+        local doer, target, item, pos = act.doer, act.target, (act.invobject or act.recipe), act:GetActionPoint()
+        pos = pos or (target and target:GetPosition())
+        if pre == true then
             if type(checkfn) ~= "function" or checkfn(doer, target, item, pos) then
                 was_successfull, result = PEARL.SafeRun(handler,
                     doer, target, item, pos
                 )
             end
+        end
 
-            -- Check for explicit false
-            if was_successfull == false then
-                PEARL.error("Error while executing an action handler!\n Reason: "..tostring(result), "error")
+        local success = _action(act, ...)
+        if success and pre ~= true then
+            if type(checkfn) ~= "function" or checkfn(doer, target, item, pos) then
+                was_successfull, result = PEARL.SafeRun(handler,
+                    doer, target, item, pos
+                )
             end
+        end
+
+        -- Check for explicit false
+        if was_successfull == false then
+            PEARL.error("Error while executing an action handler!\n Reason: "..tostring(result), "error")
         end
 
         return success
@@ -117,17 +126,54 @@ end
 --     return RegisterActionHandler(action, handler, defaultactioncheck)
 -- end
 
-local function RegisterPlayerActionHandler(action, handler)
-    return RegisterActionHandler(action, handler, playeractioncheck)
+local function RegisterPlayerActionHandler(action, handler, pre)
+    return RegisterActionHandler(action, handler, playeractioncheck, pre)
 end
 
-local function RegisterPlayerItemActionHandler(action, handler)
-    return RegisterActionHandler(action, handler, playeritemactioncheck)
+local function RegisterPlayerActionHandler(action, handler, pre)
+    return RegisterActionHandler(action, handler, playeritemactioncheck, pre)
 end
 
 ------------------------
 -- [[ Action Handler ]]
 ------------------------
+
+--- @TODO: Create some separate "pyromaniac" component for this.
+--- Cache the ignited entities somewhere.
+local function OnIgniteNear(doer, near)
+    local mult = near and #near or 0 + 1
+    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITED_STRUCTURE * mult, true)
+
+    --- For now this is enough since griefing is not that big of a problem as it was.
+    if doer.Transform and (
+        #near >= EXTINGUISHER_ANY or
+        table.find(near, burnablestructuresearchfn, EXTINGUISHER_STRUCTURES)
+    ) and PEARL.CONFIG.PERMISSIVE_MODE ~= true then
+        PEARL.info("Extinguishing the fires!")
+
+        local doername = doer:GetDisplayName()
+        local x, y, z = doer.Transform:GetWorldPosition()
+        -- Extinguish fires near the doer.
+        -- Use WallScheduler in case the server gets paused after this.
+        PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_EXTINGUISH, function()
+            if PEARL.ExtinguishFires(x, y, z, EXTINGUISHER_RADIUS) > 0 then
+                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITING_AT_BASE, true)
+            end
+
+            if type(doername) ~= "string" then
+                return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH)
+            end
+
+            if doername then
+                TheNet:SystemMessage(
+                    STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(
+                        doername
+                    )
+                )
+            end
+        end)
+    end
+end
 
 -- Announce when an object gets set on fire and who set it on fire.
 -- Only announces setting items and structures on fire (player creations)
@@ -151,48 +197,15 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         silent = true
     end
 
-    --- @TODO: Create some separate "pyromaniac" component for this.
-    --- Cache the ignited entities somewhere.
-    --- For now this is enough since griefing is not that big of a problem as it was.
-    if doer.Transform and (
-        #near >= EXTINGUISHER_ANY or
-        table.find(near, burnablestructuresearchfn, EXTINGUISHER_STRUCTURES)
-    ) and PEARL.CONFIG.PERMISSIVE_MODE ~= true then
-        PEARL.info("Extinguishing the fires!")
-
-        local doername = doer:GetDisplayName()
-        local x, y, z = doer.Transform:GetWorldPosition()
-        -- Extinguish fires near the doer.
-        -- Use TheWorld as a more reliable parent for the task.
-        TheWorld:DoTaskInTime(TIME_UNTIL_EXTINGUISH, function()
-            if PEARL.ExtinguishFires(x, y, z, EXTINGUISHER_RADIUS) > 0 then
-                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITING_AT_BASE, true)
-            end
-
-            if type(doername) ~= "string" then
-                return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH)
-            end
-
-            if doername then
-                TheNet:SystemMessage(
-                    STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(
-                        doername
-                    )
-                )
-            end
-        end)
-    end
-
     if near and #near > 0 then
-        return AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.IGNITE, subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
+        OnIgniteNear(doer, near)
+
+        return AL:Log(doer, PEARL.CONSTS.ANN_TYPE.IGNITE, subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
             doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)
         }), silent)
     end
 
-    local mult = silent and 1 or (near and #near or 0) + 1
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITED_STRUCTURE * mult, true)
-
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.IGNITE.GENERIC, doer)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.IGNITE.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.IGNITE)
         :SetIsSilent(silent)
         :AddTarget(target)
@@ -207,10 +220,15 @@ RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EAT_RARE * rarity)
     end
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EAT.GENERIC, doer)
+    local action = AL:EntityAct(STRINGS.PEARL.ACTIONS.EAT.GENERIC, doer)
         :SetLogType(type)
         :SetIsSilent(silent)
         :AddTarget(item, 1)
+
+    -- Make sure those rare items wont be combined with regular ones.
+    if not silent then
+        action:Execute()
+    end
 end)
 
 RegisterPlayerActionHandler(ACTIONS.HEAL, function(doer, target, item)
@@ -219,25 +237,31 @@ RegisterPlayerActionHandler(ACTIONS.HEAL, function(doer, target, item)
     end
 
     local pt = STRINGS.PEARL.ACTIONS.HEAL[target and "TARGET" or "USING"]
-    AL:QueueEntAct(pt, doer)
+    AL:EntityAct(pt, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.HEAL)
         :SetIsSilent(true)
-        :AddToDynamicField(QueuedLogAction.STATIC_FIELDS.TOOL, item, 1)
+        :AddToStackableField(QueuedLogAction.FIELDS.TOOL, item, 1)
         :AddTarget(target, 1)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.SEW, function(doer, target, item)
     local pt = STRINGS.PEARL.ACTIONS.SEW[item and "USING" or "GENERIC"]
-    AL:QueueEntAct(pt, doer, "tool", item)
+    AL:EntityAct(pt, doer, "tool", item)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.SEW)
         :SetIsSilent(true)
         :AddTarget(target, 1)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
+    local rare = item.is_rare == true
+    if doer.components.age and not doer.components.age:IsTrustworthy() then
+        local reputation = rare and REPUTATIONS.LEARNED_RAREPRINT or REPUTATIONS.LEARNED_BLUEPRINT
+        PEARL.Reputation:EarnFor(doer.userid, reputation)
+    end
+
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TEACH)
-        :SetIsSilent(item.is_rare ~= true)
+        :SetIsSilent(not rare)
         :AddTarget(target, 1)
 end)
 
@@ -262,10 +286,10 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
 
         local action
         if workable:HasBuilder() then
-            action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, doer,
-            QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName())
+            action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, doer,
+            QueuedLogAction.FIELDS.OWNER, workable:GetBuilderName())
         else
-            action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.HAMMER.GENERIC, doer)
+            action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.GENERIC, doer)
         end
 
         action:SetLogType(PEARL.CONSTS.ANN_TYPE.HAMMER)
@@ -286,7 +310,7 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.READ_OFFENSIVE_BOOK)
     end
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.READ.GENERIC, doer)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.READ.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.READ)
         :SetIsSilent(not prohibited)
         :AddTarget(item, 1)
@@ -298,7 +322,7 @@ RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
         target.components.activatable:SetLastPlayerActivator(doer)
 
         -- No point in queuing this action since it's so specific.
-        AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.ACTIVATE, STRINGS.PEARL.ACTIONS.ACTIVATE:format(
+        AL:Log(doer, PEARL.CONSTS.ANN_TYPE.ACTIVATE, STRINGS.PEARL.ACTIONS.ACTIVATE:format(
             -- No stacksize here
             doer:GetDisplayName(), target:GetBasicDisplayName()
         ), false)
@@ -332,7 +356,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
         end
     end
 
-    local action = AL:QueueEntAct(pattern, doer, "tool", tool)
+    local action = AL:EntityAct(pattern, doer, "tool", tool)
     if stewer and stewer.ingredient_prefabs and not table.empty(stewer.ingredient_prefabs) then
         for _, prefab in ipairs(stewer.ingredient_prefabs) do
             action:AddTarget(PEARL.PrefabToName(prefab), 1)
@@ -360,8 +384,8 @@ RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, ite
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH)
     end
 
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
-        QueuedLogAction.STATIC_FIELDS.TOOL, item)
+    return AL:EntityAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
+        QueuedLogAction.FIELDS.TOOL, item)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.EXTINGUISH)
         :SetIsSilent(true)
         :AddTarget(target)
@@ -382,16 +406,18 @@ RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
     PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CHOPPED_PROHIBITED)
 
     -- Too spammy, announce only if prohibited.
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.CHOP)
         :SetIsSilent(not prohibited)
         :AddTarget(target)
 end)
 
-RegisterPlayerItemActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
-    local reserve = math.max(target.components.fueled.maxfuel - target.components.fueled.currentfuel, 0)
+RegisterPlayerActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
+    print("CUR", target.components.fueled.currentfuel)
     local added = item.components.fuel.fuelvalue
-    local waste = math.min(added - reserve, 0) / added
+    local reserve = math.max(target.components.fueled.maxfuel - target.components.fueled.currentfuel, 0)
+    local waste = math.max(added - reserve, 0) / added
+    print("ADDED:", added, "RESERVE:", reserve, "WASTE:", waste)
 
     if item.components.inventoryitem:IsRare() then
         waste = 1
@@ -406,31 +432,37 @@ RegisterPlayerItemActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FUEL_WASTED * waste)
     end
 
-    AL:QueueEntAct(str, doer, "source", target)
+    AL:EntityAct(str, doer, "source", target)
         :SetLogType(type)
         :SetIsSilent(true)
-        :AddTarget(item)
-end)
+        :AddTarget(item, 1)
+end, true) -- We have to do the calculations before the action actually happens.
 
 RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.DIG)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
+        :SetIcon(PEARL.EMOTES.DISCORD.SHOVEL)
         :SetIsSilent(true)
         :AddTarget(target)
 end)
 
 -- This is for planting in a farm plot or something like that.
--- RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
---     PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZE)
+local OnPlant = RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
+    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.PLANT)
 
---     AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
---         :SetLogType(PEARL.CONSTS.ANN_TYPE.PLANT)
---         :SetIsSilent(true)
---         :AddTarget(item, 1)
--- end)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.PLANT[target and "IN" or "GENERIC"], doer,
+        QueuedLogAction.FIELDS.SOURCE, target)
+        :SetIcon(PEARL.EMOTES.DISCORD.FARM)
+        :SetIsSilent(true)
+        :AddTarget(item, 1)
+end)
 
+RegisterPlayerActionHandler(ACTIONS.PLANTWEED,
+RegisterPlayerActionHandler(ACTIONS.PLANTSOIL,
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
+    print("DEPLOY", doer, target, item)
+    local icon = PEARL.EMOTES.DISCORD.EYEPLANT
     if item:HasTag("plant") then
+        icon = PEARL.EMOTES.DISCORD.BERRY
         if item:HasTag("witherable") then
             PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.PLANT_WITHERABLE)
         else
@@ -438,124 +470,103 @@ RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
         end
     end
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.PLANT)
-        :SetIsSilent(true)
+    if target ~= nil then
+        icon = PEARL.EMOTES.DISCORD.FARM
+    end
+
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
+        :SetIcon(icon)
         :AddTarget(item, 1)
-end)
+end)))
 
-RegisterPlayerItemActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZE)
+RegisterPlayerActionHandler(ACTIONS.DEPLOY_TILEARRIVE,
+RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
+    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.FERTILIZE.WITH, doer, "item", item)
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.FERTILIZE)
-        :SetIsSilent(true)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.FERTILIZE.WITH, doer, "item", item)
+        :SetIcon(PEARL.EMOTES.DISCORD.POOP)
         :AddTarget(target)
-end)
+end))
 
-RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target)
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.SLEEP.GENERIC, doer)
+RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target, item)
+    print("SLEEP", doer, target, item)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.SLEEP.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.SLEEP)
-        :SetIsSilent(true)
-        :AddTarget(target)
+        :AddTarget(target or item)
 end)
 
-RegisterPlayerItemActionHandler(ACTIONS.GIVEALLTOPLAYER,
-RegisterPlayerItemActionHandler(ACTIONS.GIVETOPLAYER,
-RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
+RegisterPlayerActionHandler(ACTIONS.GIVEALLTOPLAYER,
+RegisterPlayerActionHandler(ACTIONS.GIVETOPLAYER,
+RegisterPlayerActionHandler(ACTIONS.GIVE, function(doer, target, item)
+    if target.components.grower or target.components.harvestable then
+        return OnPlant(doer, target, item)
+    end
+
     local prohibited = PEARL.GetRarityForPrefab(item.prefab) >= 1
 
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer)
+    return AL:EntityAct(STRINGS.PEARL.ACTIONS.GIVE.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.GIVE)
-        :AddToDynamicField(QueuedLogAction.STATIC_FIELDS.TOOL, item, 1)
+        :AddToStackableField(QueuedLogAction.FIELDS.TOOL, item, 1)
         :SetIsSilent(not prohibited)
         :AddTarget(target, 1)
 end)))
 
-RegisterPlayerItemActionHandler(ACTIONS.PLAY, function(doer, target, item)
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.PLAY.GENERIC, doer)
+RegisterPlayerActionHandler(ACTIONS.PLAY, function(doer, target, item)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.PLAY.GENERIC, doer,
+        QueuedLogAction.FIELDS.TARGET, PEARL.GetStandardizedNameFor(target, true))
         :SetLogType(PEARL.CONSTS.ANN_TYPE.PLAY)
-        :SetIsSilent(true)
-        :AddTarget(item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.MINE, function(doer, target)
-    if not target.components.workable then
-        local prohibited = PEARL.PREFABS.DO_NOT_MINE[target.prefab]
+    local prohibited = PEARL.PREFABS.DO_NOT_MINE[target and target.prefab]
+    if prohibited ~= true then
+        return -- Too spammy, announce only if prohibited.
+    end
 
-        -- Too spammy, announce only if prohibited.
-        if prohibited then
-            AL:QueueEntAct(STRINGS.PEARL.ACTIONS.MINE.GENERIC, doer)
-                :SetLogType(PEARL.CONSTS.ANN_TYPE.MINE)
-                :SetIsSilent(not prohibited)
-                :AddTarget(target, 1)
-        end
+    local workable = target.components and target.components.workable or nil
+    if not workable or (workable.workleft and workable.workleft <= 0) then
+        AL:EntityAct(STRINGS.PEARL.ACTIONS.MINE.GENERIC, doer)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.MINE)
+            :AddTarget(target, 1)
     end
 end)
 
-local function OnAreaCast(doer, item, target, entities, tp, nosilent, noowner)
+-- Using a cast affecting entities around in a certain radius.
+local function OnAreaCast(doer, item, target, entities, tp, nosilent)
     if not entities or #entities <= 0 then
         return
     end
 
-    local silent = not nosilent and #entities < 3
-    local ents_str = PEARL.BuildFancyStringForEntities(entities)
+    local pt = (target and STRINGS.PEARL.ACTIONS.CAST.ON_NEAR or STRINGS.PEARL.ACTIONS.CAST.NEAR):nformat({
+        doer = doer:GetStandardizedName(),
+        item = item and item:GetStandardizedName(),
+        target = target and target:GetStandardizedName(),
+        near = PEARL.BuildFancyStringForEntities(entities),
+    })
 
+    return AL:Log(
+        doer, tp, pt, nosilent ~= true and (not tp or #entities < 3), PEARL.EMOTES.DISCORD.ARCANE)
+end
+
+-- Regular casting with or without a target.
+local function OnCast(doer, item, target, tp)
+    local workable = target and target.components.workable
+    local owner = workable and workable:GetBuilderName() or nil
+    local has_owner = owner ~= nil
+    local prohibited = target and target:HasTag("structure")
+    local pt = STRINGS.PEARL.ACTIONS.CAST.GENERIC
     if target then
-        if not noowner and target.components.workable and target.components.workable:HasBuilder() then
-            return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON_OWN_NEAR, {
-                doer = doer:GetDisplayName(),
-                item = item:GetBasicDisplayName(),
-                target = target:GetBasicDisplayName(),
-                near = ents_str,
-                owner = target.components.workable:GetBuilderName(),
-            }), tp, doer.entity, silent)
-        end
-
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON_NEAR, {
-            doer = doer:GetDisplayName(),
-            item = item:GetBasicDisplayName(),
-            target = target:GetBasicDisplayName(),
-            near = ents_str
-        }), tp, doer.entity, silent)
+         pt = has_owner and STRINGS.PEARL.ACTIONS.CAST.ON_OWNERED or STRINGS.PEARL.ACTIONS.CAST.ON
     end
 
-    return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.NEAR, {
-        doer = doer:GetBasicDisplayName(),
-        item = item:GetBasicDisplayName(),
-        near = ents_str
-    }), tp, doer.entity, silent)
-end
+    pt = pt:nformat({
+        doer = doer:GetStandardizedName(),
+        item = item and item:GetStandardizedName(),
+        owner = owner,
+        target = target and target:GetStandardizedName()
+    })
 
-local function OnCast(doer, item, target, type, nosilent, noowner)
-    if not target then
-        return
-    end
-
-    local has_owner = target.components.workable and target.components.workable:HasBuilder() or false
-    local silent = not nosilent and (not has_owner or target.components.workable:IsBuildBy(doer.userid))
-
-    if not noowner and has_owner then
-        return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON_OWNERED, {
-            doer = doer:GetDisplayName(),
-            item = item:GetBasicDisplayName(),
-            target = target:GetBasicDisplayName(),
-            owner = target.components.workable:GetBuilderName(),
-        }), type, doer.entity, silent)
-    end
-
-    return PEARL.AnnounceWithType(subfmt(STRINGS.PEARL.ACTIONS.CAST.ON, {
-        doer = doer:GetDisplayName(),
-        item = item:GetBasicDisplayName(),
-        target = target:GetBasicDisplayName(),
-    }), type, doer.entity, silent)
-end
-
-local function OnCastDestruction(doer, item, target)
-    return OnCast(
-        doer, item, target,
-        PEARL.CONSTS.ANN_TYPE.HAMMER
-    )
+    return AL:Log(doer, tp, pt, not tp or not prohibited, PEARL.EMOTES.DISCORD.ARCANE)
 end
 
 local function OnCastFire(doer, item, target, pos, radius)
@@ -571,17 +582,15 @@ local function OnCastFire(doer, item, target, pos, radius)
     end
 
     if #entities > 0 then
+        OnIgniteNear(doer, entities)
+
         return OnAreaCast(
             doer, item, target, entities,
             PEARL.CONSTS.ANN_TYPE.BURN
         )
     end
 
-    if not target or not target:HasOneOfTags(PEARL.CONSTS.ENT_ONEOF_TAGS) then
-        return -- Something we do not really care about away from anything we care.
-    end
-
-    OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.BURN, false, true)
+    OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.BURN)
 end
 
 local function OnCastAreaDestruction(doer, item, target, pos, radius)
@@ -601,34 +610,36 @@ local function OnCastAreaDestruction(doer, item, target, pos, radius)
         )
     end
 
-    if not target or not target:HasTag("structure") then
-        return
-    end
-
     return OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.HAMMER)
 end
 
---- @DEBUG + Add Reputation
-RegisterPlayerItemActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
-    -- Green Staff
-    if PEARL.PREFABS.DESTRUCTION_ITEMS[item.prefab] then
-        return OnCastDestruction(doer, item, target)
+RegisterPlayerActionHandler(ACTIONS.CASTAOE,
+RegisterPlayerActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
+    if item and item:HasTag("veryquickcast") then -- Ignore stuff like resking tool...
+        return
     end
 
-    local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
+    local prefab = item.components.spellbook and item.components.spellbook:GetSpellName() or item.prefab
+    -- Green Staff
+    if PEARL.PREFABS.DESTRUCTION_ITEMS[prefab] then
+        return OnCast(doer, item, target, PEARL.CONSTS.ANN_TYPE.HAMMER)
+    end
+
+    local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[prefab] or 0
     if ign_radius > 0 then
         return OnCastFire(doer, item, target, pos, ign_radius)
     end
 
     -- Tornado Staff
-    local des_radius = PEARL.PREFABS.AREA_DESTRUCTIVE_STAFFS[item.prefab] or 0
+    local des_radius = PEARL.PREFABS.AREA_DESTRUCTIVE_STAFFS[prefab] or 0
     if des_radius > 0 then
         return OnCastAreaDestruction(doer, item, target, pos, des_radius)
     end
-end)
 
---- @DEBUG + Add Reputation
-RegisterPlayerItemActionHandler(ACTIONS.ATTACK, function(doer, target, item, pos)
+    return OnCast(doer, item, target)
+end))
+
+RegisterPlayerActionHandler(ACTIONS.ATTACK, function(doer, target, item, pos)
     -- Fire Staff - Using it counts as attacking not casting.
     local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
     if ign_radius > 0 then
@@ -640,91 +651,120 @@ end)
 -- KILLS --
 -------------------
 
-local function onentitydeath(world, data)
-    if type(data) ~= "table" then
-        return
-    end
+local function onepicdeath(doer, target, data)
+    local pt = STRINGS.PEARL.ACTIONS.KILL.BOSS
 
-    local doer = data.afflicter
-    local target = data.inst
-    if not target then
-        return
-    end
-
-    -- Bosses (announce their deaths even if they were not killed by a player)
-    --- @DEBUG Handle special transition case for Klaus.
-    if target:HasTag("epic") and not (target.sg and target.sg:HasStateTag("transition")) then
-        local pt = STRINGS.PEARL.ACTIONS.KILL.BOSS
-        pt = pt:nformat("target", target:GetBasicDisplayName())
-
-        if target.components.memory then
-            local doers = {}
-            local records = target.components.memory:Sorted()
-            for userid, _ in pairs(records) do
-                local player = LookupPlayerInstByUserID(userid)
-                if player then
-                    doers[#doers + 1] = player:GetDisplayName()
-                end
+    -- Only bosses have memory because of their large HP capacity.
+    if target.components.memory then
+        local doers = {}
+        for _, id in ipairs(target.components.memory:SortedKeys()) do
+            local attacker = LookupPlayerInstByUserID(id) or Ents[id]
+            if attacker then
+                doers[#doers + 1] = PEARL.GetStandardizedNameFor(attacker, true)
             end
-
-            target.components.memory:Clear()
-            target:RemoveComponent("memory")
-            pt = pt:nformat("doer", PEARL.FancyTableConcat(doers))
-        else
-            pt = pt:nformat("doer", (doer and doer:GetDisplayName()) or (data.explosion and "Explosion") or "Shenanigans")
         end
 
-        return AL:LogAction(doer.entity, PEARL.CONSTS.ANN_TYPE.DEFEAT, pt)
+        if #doers > 1 then
+            pt = STRINGS.PEARL.ACTIONS.KILL.BOSS_DOERS
+        end
+
+        target.components.memory:Clear()
+        target:RemoveComponent("memory")
+        pt = pt:nformat(QueuedLogAction.FIELDS.DOER, PEARL.FancyTableConcat(doers))
+    else
+        local doername = doer and doer:GetStandardizedName() or nil
+        local cause = doername or (data and (data.explosion == true and "Explosion" or data.cause))
+        pt = pt:nformat(QueuedLogAction.FIELDS.DOER, cause or "Shenanigans")
+    end
+
+    return AL:EntityAct(pt, doer, "target", target)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.DEFEAT)
+end
+
+local function onfirespreaderdeath(doer, target)
+    local near = target:GetPropagableBurnableEntities(
+        nil, nil, PEARL.CONSTS.LARGE_PROPAGATOR_RADIUS
+    )
+
+    if doer.userid then
+        PEARL.Reputation:EarnFor(doer.userid, #near * REPUTATIONS.BURNABLE_NEAR_FIRE)
+    end
+
+    local prefix = doer and "" or "NODOER"
+    if #near > 0 then
+        prefix = prefix.."NEAR"
+    end
+
+    local pt = STRINGS.PEARL.ACTIONS.KILL[prefix]
+    local prohibited = #near >= 4 or table.find(near, structuresearchfn)
+    AL:Act(pt, {
+        doer = doer, target = target, near = PEARL.BuildFancyStringForEntities(near)
+    })
+    :SetIsSilent(not prohibited)
+    :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
+end
+
+local function onmonitoreddeath(doer, target, remaining)
+    local extinct = remaining <= 0
+    if doer.userid and extinct  then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.POPULATION_EXINCT)
+    end
+
+    local str = extinct and STRINGS.PEARL.ACTIONS.KILL.LAST or STRINGS.PEARL.ACTIONS.KILL.REMAINING
+    return AL:EntityAct(str, doer)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+        :SetColorEntity(doer and doer.entity)
+        :SetIsSilent(false)
+        :AddTarget(target)
+        :SetStackableField(QueuedLogAction.FIELDS.REMAINING, remaining)
+end
+
+-- This is for announcing the last hit made by an player/mob to another mob.
+-- Try to increase/decrease the reputation
+-- for each damage point dealt where possible.
+local function onentitydeath(doer, target, data)
+    if not target then
+        return -- Give us at least a target.
+    end
+
+    -- For bosses with multiple lifes announce all deaths.
+    if target:HasTag("epic") then
+        return onepicdeath(doer, target, data)
     end
 
     --- @DEBUG
     -- MOB SPREADING FIRE AFTER DEATH
     if PEARL.PREFABS.MOBS.FIRE_SPREADERS[target.prefab] then
-        local near = target:GetPropagableBurnableEntities(
-            nil, nil, PEARL.CONSTS.LARGE_PROPAGATOR_RADIUS
-        )
-
-        local prohibited = #near >= 4 or table.find(near, structuresearchfn)
-
-        return AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.FIRE, subfmt(STRINGS.PEARL.ACTIONS.KILL.NEAR, {
-            doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)
-        }), not prohibited)
+        return onfirespreaderdeath(doer, target)
     end
 
     --- @DEBUG
     -- NOT RESPAWNABLE MOB
     local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
-        --- This works for the current shard only, but is just enough for our use cases currently.
+        -- Counts only prefabs on the current shard. Thats enough for now.
         local remaining = PEARL.CountPrefabs(target.prefab) - 1
-        if remaining < 0 or remaining > pop_threshold then
-            return
+        if remaining >= 0 and remaining <= pop_threshold then
+            return onmonitoreddeath(doer, target, remaining)
         end
-
-        if remaining == 0 then
-            -- Queue to make sure this will be announced after the last remaining announcement.
-            return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.LAST, doer)
-                :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
-                :SetColorEntity(doer and doer.entity)
-                :AddTarget(target)
-        end
-
-        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.REMAINING, doer)
-            :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
-            :SetColorEntity(doer and doer.entity)
-            :AddTarget(target)
-            :SetDynamicField(QueuedLogAction.DYNAMIC_FIELDS.REMAINING, remaining)
     end
 
+    --- @TODO:
     local leader = target.components.follower and target.components.follower:GetLeader() or nil
-    if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] then
-
+    -- Process untamed followers first since they can have an leader as well.
+    if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] == true then
+        return AL:EntityAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.MURDER)
+            :SetIsSilent(false)
+            :SetColorEntity(doer)
+            :AddTarget(target)
     -- FOLLOWER
     elseif leader and leader:HasTag("player") then
-        return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
-            QueuedLogAction.STATIC_FIELDS.OWNER, leader)
+        return AL:EntityAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
+            QueuedLogAction.FIELDS.OWNER, leader)
             :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
-            :SetColorEntity(doer and doer.entity)
+            :SetIsSilent(false)
+            :SetColorEntity(doer)
             :AddTarget(target)
     end
 
@@ -732,15 +772,30 @@ local function onentitydeath(world, data)
         return
     end
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.KILL.GENERIC, doer)
+    local pt = STRINGS.PEARL.ACTIONS.KILL.GENERIC
+    if target and target:HasTag("structure") or target:HasTag("hive") then
+        pt = STRINGS.PEARL.ACTIONS.KILL.STRUCTURE
+    end
+
+    AL:EntityAct(pt, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
-        :SetColorEntity(doer and doer.entity)
+        :SetColorEntity(doer)
         :AddTarget(target)
 end
 
-AddPrefabPostInit("world", function(world)
+RegisterPlayerActionHandler(ACTIONS.MURDER, function(doer, target, item)
+    onentitydeath(doer, target or item)
+end)
+
+PEARL.AddPrefabPostInit("world", function(world)
     -- Pushed for every living entity (players too) that dies in the current shard.
-    world:SafeListenForEvent("entity_death", onentitydeath)
+    world:SafeListenForEvent("entity_death", function(self, data)
+        if not data then
+            return
+        end
+
+        onentitydeath(data.afflicter, data.inst, data)
+    end)
 end)
 
 -------------------
@@ -762,11 +817,11 @@ onburntup = function(target)
     local wasbuilt = workable and workable:HasBuilder()
     if wasbuilt and workable then
         pattern = STRINGS.PEARL.ACTIONS.BURNTUP.OWNED:nformat(
-            QueuedLogAction.STATIC_FIELDS.OWNER, workable:GetBuilderName()
+            QueuedLogAction.FIELDS.OWNER, workable:GetBuilderName()
         )
     end
 
-    AL:QueueAct(pattern)
+    AL:Act(pattern)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
         -- Only announce when a player creation burns up.
         :SetIsSilent(not wasbuilt)
@@ -774,7 +829,7 @@ onburntup = function(target)
 end
 
 --- @param inst EntityScript
-AddComponentPostInit("burnable", function(self, inst)
+PEARL.AddComponentPostInit("burnable", function(self, inst)
     if not (inst and inst:HasTag("structure")) then
         return
     end
@@ -803,75 +858,100 @@ end
 -- Killers --
 -------------------
 
-local onhealthdelta
-onhealthdelta = function(target, data)
-    if data.cause == "regen" and target.components.memory and target.components.health then
-        PEARL.debug("onhealthdelta - REGEN", data.amount)
+-- local onhealthdelta
+-- onhealthdelta = function(target, data)
+--     if data.cause == "regen" and target.components.memory and target.components.health then
+--         PEARL.debug("onhealthdelta - REGEN", data.amount)
 
-        -- The boss was healed to maximal HP
-        if target.components.heatlh.currenthealth == target.components.health.maxhealth then
-            PEARL.debug("onhealthdelta: Boss was healed to maximal health! Clearing memory!")
-            target.components.memory:Clear()
-            target:RemoveComponent("memory")
-            target:RemoveEventCallback("healthdelta", onhealthdelta)
-        end
+--         -- The boss was healed to maximal HP
+--         if target.components.heatlh.currenthealth == target.components.health.maxhealth then
+--             PEARL.debug("onhealthdelta: Boss was healed to maximal health! Clearing memory!")
+--             target.components.memory:Clear()
+--             target:RemoveComponent("memory")
+--             target:RemoveEventCallback("healthdelta", onhealthdelta)
+--         end
 
-        target.components.memory:ForEach(function(userid, damage, records)
-            records[userid] = damage - data.amount
-            if records[userid] <= MIN_DAMAGE_DEALT then
-                -- Remove the record if there is no damage delath.
-                records[userid] = nil
-            end
-        end)
-    end
-end
+--         target.components.memory:ForEach(function(userid, damage, records)
+--             records[userid] = damage - data.amount
+--             if records[userid] <= MIN_DAMAGE_DEALT then
+--                 -- Remove the record if all the damage was restored.
+--                 records[userid] = nil
+--             end
+--         end)
+--     end
+-- end´
 
--- Track damage dealt to bosses.
--- Higher level version of onhitother for players and their followers.
-local function onplayerhitother(player, target, damage)
-    -- Only for bosses for now.
-    if not target or not target.HasTag or not target:HasTag("epic") then
-        return
-    end
-
-    print("HIT", damage)
-    local dmg = math.max(damage or 1, 1)
+local function onplayerhitepic(doer, target, dmg, mult)
     local maxhealth = target.components.health.maxhealth
 
     if type(target.components.memory) ~= "table" then
         target:AddComponent("memory")
     end
 
-    local total_dmg = (tonumber(target.components.memory:Get(player.userid)) or 0) + dmg
+    -- The more damage we deal to the mob, the longer will it remember us.
+    local total_dmg = (tonumber(target.components.memory:Get(doer.userid)) or 0) + dmg
     local ttl = math.min(MAX_REMEMBERING_DELAY * total_dmg / maxhealth, MAX_REMEMBERING_DELAY)
-    target.components.memory:Add(player.userid, total_dmg)
-    target.components.memory:SetLifetime(player.userid, ttl)
-    target:SafeListenForEvent("healthdelta", onhealthdelta)
+    target.components.memory:Set(doer.userid, total_dmg)
+    target.components.memory:SetLifetime(doer.userid, ttl)
+    -- target:SafeListenForEvent("healthdelta", onhealthdelta)
 
+    --- @TODO: Add a modifier, so that the less the HP is the more rep will be gained.
     PEARL.Reputation:EarnFor(
-        player.userid, dmg * REPUTATIONS.BOSS_DAMAGE
+        doer.userid, dmg * mult * REPUTATIONS.BOSS_DAMAGE
     )
+
 end
 
-local function onhitother(inst, data)
+-- Track damage dealt to bosses.
+-- Higher level version of onhitother for players and their followers.
+local function onplayerhitother(player, target, damage)
+    if not damage or not target.components.health then
+        return
+    end
+
+    local dmg = math.max(damage or 1, 1)
+    local hpercent = target.components.health:GetPercent()
+    -- The less HP the boss has the more damage we get.
+    local mult = 1 - hpercent + 1
+    print("HIT", damage, mult)
+
+    if target:HasTag("epic") then
+        -- Special handler for bosses.
+        return onplayerhitepic(player, target, dmg, mult)
+    end
+
+    if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] == true then
+        PEARL.Reputation:EarnFor(player.userid, mult * dmg * REPUTATIONS.COMPANION_DAMAGE)
+        return
+    end
+
+    local leader = target.components.follower and target.components.follower:GetLeader()
+    if leader ~= nil and leader.userid ~= player.userid then
+        PEARL.Reputation:EarnFor(player.userid, mult * dmg * REPUTATIONS.FOLLOWER_DAMAGE)
+        return
+    end
+end
+
+local function onhitother(doer, data)
     local target = data and data.target
     if not (target and target.components.health and target:IsValid()) then
         return
     end
 
-    --- @DEBUG
-    if not inst.userid then
-        inst.userid = inst.GUID
-    end
-    --------------------------------------
-
-    local damage = math.max(data.damageresolved or data.damage or 1, 1)
-
     local leader
-    --- @DEBUG
-    --local leader = inst.components.follower and inst.components.follower:GetLeader()
+    -- Non-players are required to have a player leader in order for us to not ignore them.
+    if not doer:HasTag("player") then
+        leader = doer.components.follower and doer.components.follower:GetLeader() or nil
+        leader = leader or (doer.brain and doer.brain._leader)
+        print("LEADER", leader, doer, doer.brain)
+        if leader == nil or not leader.userid then
+            return
+        end
+    end
 
-    onplayerhitother(leader and leader:HasTag("player") and leader or inst, target, damage)
+    local player = leader or doer
+    local damage = math.max(data.damageresolved or data.damage or 1, 1)
+    onplayerhitother(player, target, damage)
 end
 
 -------------------
@@ -886,7 +966,7 @@ local function onbuilditem(doer, data)
 
     PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM)
 
-    return AL:QueueEntAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
+    return AL:EntityAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.CRAFT)
         :SetIsSilent(true)
         :AddTarget(target)
@@ -902,7 +982,7 @@ local function onbuildstructure(doer, data)
     local type = PEARL.CONSTS.ANN_TYPE.BUILD
     local propagator = target.components.propagator
     -- Make sure we are actively propagating heat.
-    if propagator and propagator.spreading and (tonumber(propagator.heatouput) or 0) > 0 then
+    if propagator and propagator.spreading then
         type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
 
         local near = target:GetPropagableBurnableEntities()
@@ -911,20 +991,46 @@ local function onbuildstructure(doer, data)
 
             silent = not (#near > 2 or table.find(near, structuresearchfn))
             type = PEARL.CONSTS.ANN_TYPE.BURN
-            action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
+            action = AL:EntityAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
         end
     else
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BUILT_STRUCTURE)
     end
 
     if not action then
-        action = AL:QueueEntAct(STRINGS.PEARL.ACTIONS.BUILD.GENERIC, doer)
+        action = AL:EntityAct(STRINGS.PEARL.ACTIONS.BUILD.GENERIC, doer)
     end
 
     action
         :SetLogType(type)
         :SetIsSilent(silent)
         :AddTarget(target)
+end
+
+-------------------
+-- Warnings --
+-------------------
+
+local wave_level
+local function onhoundwarning(player, level)
+    if wave_level == level then
+        return
+    end
+
+    local wave_type
+    if level == HOUNDWARNINGTYPE.LVL4 then
+        wave_type = STRINGS.PEARL.LOGS.HOUNDS
+    elseif level == HOUNDWARNINGTYPE.LVL4_WORM then
+        wave_type = STRINGS.PEARL.LOGS.DEPTH_WORMS
+    end
+
+    if wave_type ~= nil then
+        AL:Log(nil, nil, STRINGS.PEARL.LOGS.WAVE_WARNING:format(
+            wave_type
+        ), true, PEARL.EMOTES.DISCORD.HORN)
+    end
+
+    wave_level = level
 end
 
 -------------------
@@ -1005,7 +1111,7 @@ local function ontookrareitem(doer, item)
         return
     end
 
-    AL:QueueEntAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TAKE)
         :SetIsSilent(not item.components.inventoryitem:IsVeryRare())
         :AddTarget(item)
@@ -1017,7 +1123,7 @@ local function ontookrarecontainer(doer, data)
     end
 
     local items_str = PEARL.BuildFancyStringForEntities(data.items)
-    AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH:nformat{
+    AL:Log(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH:nformat{
         doer = doer:GetStandardizedName(), source = data.container:GetStandardizedName(), target = items_str
     })
 end
@@ -1029,7 +1135,7 @@ local function onfinishedlooting(doer, data)
 
     -- Do not queue this action
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
-    AL:LogAction(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
+    AL:Log(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
         doer = doer:GetDisplayName(), target = loot_string, source = data.container:GetFancyName()
     }), not data.items.rare)
 end
@@ -1052,17 +1158,24 @@ PEARL.AddPlayerPostInit(function(player)
     player:SafeListenForEvent("respawnfromghost", onrespawnfromghost)
     player:SafeListenForEvent("death", ondeath)
 
-    player:SafeListenForEvent("onhitother", onplayerhitother)
-    player:SafeListenForEvent("heatlhdelta", onhealthdelta)
+    --player:SafeListenForEvent("onhitother", onplayerhitother)
+    -- player:SafeListenForEvent("heatlhdelta", onhealthdelta)
+
+    player:SafeListenForEvent("houndwarning", onhoundwarning)
 
     if player.components.builder then
         player:SafeListenForEvent("builditem", onbuilditem)
         player:SafeListenForEvent("buildstructure", onbuildstructure)
     end
 
-    if PEARL.DiscordLogger:IsEnabled() then
+    if PEARL.DiscordLogger:IsEnabled() and PEARL.CONFIG.LOG_CONSOLE_COMMANDS then
         player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
     end
+
+    player:SafeListenForEvent("performaction", function(self, buffered, ...)
+        print(buffered.action, buffered, table.getkey(ACTIONS, buffered))
+        print("ACTION", table.getkey(ACTIONS, buffered.action))
+    end)
 end)
 
 PEARL.AddComponentPostInit("combat", function(self)
@@ -1070,12 +1183,15 @@ PEARL.AddComponentPostInit("combat", function(self)
         return
     end
 
-    --- Do only track damage dealt by followers and players.
-    if not self.inst:HasTag("player") and not self.inst.components.follower then
-        return
-    end
+    self.inst:DoTaskInTime(0, function()
+        --- Do only track damage dealt by followers and players.
+        --- Do not check the leader here since it can be changed later on.
+        if not self.inst:HasTag("player") and not self.inst.components.follower then
+            return
+        end
 
-    self.inst:SafeListenForEvent("onhitother", onhitother)
+        self.inst:SafeListenForEvent("onhitother", onhitother)
+    end)
 end)
 
 PEARL.EventProcessor:AddSafeEventHandler("afk_kicked", onafkdisconnected)

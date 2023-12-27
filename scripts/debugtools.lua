@@ -27,16 +27,13 @@ local Message = PEARL.loadfile('libraries/discordapi/models/message')
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
-local ActionLog = PEARL.loadfile("libraries/actionlog")
-local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
 
-
-AddGlobalDebugKey(KEY_G, function()
-    if TheInput:IsKeyDown(KEY_CTRL) then
-        TheSim:ResetError()
-        DoRestart(true)
-    end
-end)
+-- AddGlobalDebugKey(KEY_G, function()
+--     if TheInput:IsKeyDown(KEY_CTRL) then
+--         TheSim:ResetError()
+--         DoRestart(true)
+--     end
+-- end)
 
 function PEARL.DisplayLoadingTips()
     local types = {
@@ -395,40 +392,6 @@ function PEARL.TESTS.AltDentifier()
         --local current_requests_count = PEARL.HTTPClient:GetSentRequestsCount()
         --PEARL.info("Requests Sent:", current_requests_count - init_request_count)
     end)
-end
-
---------------------------------
--- [[ Action Queue Tests ]]
---------------------------------
-
-function PEARL.TESTS.ActionLogQueue()
-    local log = c_spawn("log")
-    log.components.stackable:SetStackSize(11)
-
-    ActionLog:QueueEntAct("{doer} lit {target}!", "Fi7iP")
-        :AddTarget(c_spawn("pigman"))
-        :AddTarget(c_spawn("rocks"))
-        :AddTarget(log)
-        :AddTarget(c_spawn("log"))
-        :AddTarget(c_spawn("pigman"))
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.IGNITE)
-
-    ActionLog:QueueAct("{target} burnt up!")
-        :AddTarget(log)
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
-end
-
-function PEARL.TESTS.RawActionLogQueue()
-    local log = c_spawn("log")
-    log.components.stackable:SetStackSize(11)
-
-    return ActionLog:QueueEntAct("{doer} lit {target}! Owner: {owner}", "Fi7iP",
-        QueuedLogAction.STATIC_FIELDS.OWNER, "Franta")
-        :AddTarget(c_spawn("rocks"))
-        :AddTarget(log)
-        :AddTarget(c_spawn("log"))
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
-
 end
 
 --------------------------------

@@ -41,6 +41,9 @@ local custom_commands       = {}
 --- @type table<string, fun(ctx: CommandContext, param: any, validate: boolean?): any, boolean?>
 local standardized_params   = {}
 
+local user_cooldowns        = PEARL.GameInstParams:GetModParam("user_cmd_cooldowns") or {}
+PEARL.GameInstParams:SetModParam("user_cmd_cooldowns", user_cooldowns)
+
 --------------------------------------
 -- Local Functions
 --------------------------------------
@@ -208,6 +211,23 @@ function UserCommands.AddStandardizedParam(name, fn)
     return fn -- So we allow chaining
 end
 
+function UserCommands.IsOnCooldownForCommand(userid, commandname)
+    local cooldown_timeout = user_cooldowns[commandname] and user_cooldowns[commandname][userid]
+    return cooldown_timeout and cooldown_timeout > os.time()
+end
+
+function UserCommands.StartCommandCooldownFor(userid, command)
+    if type(command.cooldown) ~= "number" then
+        return PEARL.error("Attempted to start cooldown for an invalid command!")
+    end
+
+    if not user_cooldowns[command.name] then
+        user_cooldowns[command.name] = {}
+    end
+
+    user_cooldowns[command.name][userid] = os.time() + command.cooldown
+end
+
 --- @param command table<string, any>
 --- @param ctx CommandContext
 --- @param norouting boolean?
@@ -226,6 +246,11 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         return false
     end
 
+    if UserCommands.IsOnCooldownForCommand(ctx.author.userid, command.name) then
+        ctx:Reply(STRINGS.UI.PLAYERSTATUSSCREEN.COMMANDCANNOTSTART.COOLDOWN)
+        return false
+    end
+
     local validated_args = ctx:GetValidatedArguments()
     local n = validated_args and table.size(validated_args) or 0
     if not validated_args then
@@ -240,7 +265,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
     end
 
     local player_param = ctx.params and (ctx.params[PARAMS.PLAYER] or ctx.params[PARAMS.USER])
-    local target = UserCommands.InputToClientTable(player_param)
+    local target = type(player_param) == "table" and player_param or UserCommands.InputToClientTable(player_param)
     local target_userid = target and target.userid
     local target_permission = UserCommands.GetPermissionLevel(
         target_userid and UserCommands.CalculatePermissionFor(target_userid)
@@ -361,10 +386,14 @@ end
 
 --- @param flagname string The name of the flag used to choose the commands.
 --- @return table flagged The table of chosen commands.
-function UserCommands.GetCustomCommandsWithFlag(flagname)
+function UserCommands.GetCustomCommandsWithFlag(flagname, value)
+    if value == nil then
+        value = true
+    end
+
     local flagged = {}
     for name, command in pairs(custom_commands) do
-        if command[flagname] then
+        if command[flagname] == value then
             flagged[name] = command
         end
     end
@@ -466,6 +495,8 @@ function UserCommands.AddSlashCommand(name, command)
 end
 
 function UserCommands.AddCustomCommand(name, command)
+    assert(type(name) == "string", "Missing or invalid command name!")
+
     if (command.slash == false and command.console == false) and not TheNet:GetIsServer() then
         return -- Ignore backend-only commands
     end
@@ -493,6 +524,13 @@ function UserCommands.AddCustomCommand(name, command)
     -- Disabled by default
     command.usermenu = command.usermenu or false
     command.servermenu = command.servermenu or false
+
+    -- Cooldown
+    if type(command.cooldown) == "number" then
+        if command.canstartfn then
+            PEARL.warn("Command has already implemented canstartfn.")
+        end
+    end
 
     -- Make all the functions safe
     if command.localfn then
@@ -604,14 +642,31 @@ end)
 UserCommands.AddStandardizedParam(PARAMS.USER,
 UserCommands.AddStandardizedParam(PARAMS.PLAYER, function(ctx, param, validate)
     if param == nil then
+        if ctx.command and ctx.command.targetselfbydefault == true then
+            return ThePlayer and ThePlayer.userid or ctx.author.userid, true
+        end
+
         return nil, true
     end
 
-    print(validate)
     local userid = UserCommands.InputToUserID(tostring(param))
     if validate and (not userid or not PEARL.ServerNetwork:IsKleiIDKnown(userid)) then
+        -- Player is unknown to the server as a whole.
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER)
-        return userid, false
+        return nil, false
+    end
+
+    if ctx.command.instrequired == true or ctx.command.activeinstrequired == true then
+        local player_inst = PEARL.ServerNetwork:GetClientInstance(userid, ctx.command.activeinstrequired)
+        if player_inst ~= nil then
+            return player_inst, true
+        end
+
+        if validate then
+            -- Player has no active instance.
+            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+            return nil, false
+        end
     end
 
     return userid, true
@@ -625,27 +680,35 @@ UserCommands.AddStandardizedParam(PARAMS.SHARD, function(ctx, param, validate)
     local shardid = tostring(param)
     if validate and shardid ~= SHARDID.MASTER and not PEARL.ServerNetwork:IsShardConnected(shardid) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND)
-        return shardid, false
+        return nil, false
     end
 
     return shardid, true
 end)
 
 UserCommands.AddStandardizedParam(PARAMS.PREFAB, function(ctx, param, validate)
+    if param == nil then
+        return nil, true
+    end
+
     local prefab = tostring(param):lower():gsub("-", "_")
     if validate and not PEARL.PrefabExists(param) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
-        return prefab, false
+        return nil, false
     end
 
     return prefab, true
 end)
 
 UserCommands.AddStandardizedParam(PARAMS.JSON, function(ctx, param, validate)
+    if param == nil then
+        return nil, true
+    end
+
     local success, data = pcall(json.encode, param)
     if validate and (success ~= true or type(data) ~= "table" or table.empty(data)) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON)
-        return param, false
+        return nil, false
     end
 
     return data, true
