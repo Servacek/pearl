@@ -10,21 +10,13 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
-
 --[[
    Additional utility functions for the age component
 --]]
 
+
 --- @class Age
 local Age = require("components/age")
-
---------------------------------
--- [[ Contants ]]
---------------------------------
-
--- local MIN_TRUSTWORTHY_AGE   = 24
--- local MAX_NEWCOMER_AGE      = 5
 
 --------------------------------
 -- [[ Public Functions ]]
@@ -33,10 +25,6 @@ local Age = require("components/age")
 function Age:IsTrustworthy()
     return self:GetAgeInDays() >= PEARL.CONFIG.TRUST_AGE or self:GetPercent() >= PEARL.CONFIG.TRUST_AGE_PERCENT
 end
-
--- function Age:IsNewcomer()
---     return self:GetAgeInDays() <= MAX_NEWCOMER_AGE
--- end
 
 function Age:GetPercent()
     return self:GetDisplayAgeInDays() / (TheWorld.state.cycles + 1)

@@ -10,14 +10,16 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+
 -------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 -------------------------------------
 
 local QUERIES = PEARL.SteamAPI.QUERIES
 
 local MAX_PROFILE_REP = 100
-local MIN_PROFILE_REP = 1
 local BAD_PROFILE_REP = 25
 
 local MAX_COMMENT_REP = 50
@@ -39,35 +41,47 @@ local REP_PER_GAME_BAN      = -40
 local REP_PER_COMMUNITY_BAN = -15
 local REP_PER_ECONOMY_BAN   = -10
 
---- Check only the first 50 comments of a profile
 local MAX_COMMENTS_CHECK_COUNT = 25
 local MAX_NEGATIVE_COMMENTS_PERCENT = .6
 
 local COMMENT_PATTERN = "<bdi>(.-)<\\/bdi>.-<div class=\\\"commentthread_comment_text\\\" id=\\\"comment_content_%d+\\\">(.-)<\\/div>"
 
+--- @TODO: Add more words here.
 local POSITIVE_COMMENT_PATTERN = "+rep"
 local NEGATIVE_COMMENT_PATTERN = "-rep"
 
--------------------------------------
--- [[ Declarations ]]
--------------------------------------
+-- Keep these in sync with the names in the DB.
+local PROFILE_DATA = {
+    profilerep          = MAX_PROFILE_REP,
+    -- Let's make it fail safe.
+    communityprofile    = true,
+    privateprofile      = false, -- Profiles are public by default.
 
-local OnToxicNameDetected, OnBannedFriendsDetected
+    --- optional
+    gameplaytime        = nil,
+    profilecountrycode  = nil,
+    profiletimecreated  = nil,
+    avatar              = nil,
+}
 
 -------------------------------------
 -- [[ Event Handlers ]]
 -------------------------------------
---- @TODO: Add translations
-function OnBannedFriendsDetected(userid, count)
-    return PEARL.DiscordReporter:SendRawReportString("One or more of player's friends are banned! "..tostring(count))
+
+local function OnBannedFriendsDetected(username, steamid, banned, total)
+    PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.STEAM_BANNED_FRIENDS:format(
+        MARKDOWN.hlink(username, MARKDOWN.escape_link_embeds(
+            PEARL.CONSTS.STEAM_ACCOUNT_URL:format(steamid)
+        )), banned, total
+    ))
 end
 
-function OnToxicNameDetected(steamid)
-    return PEARL.DiscordReporter:SendRawReportString("Toxic Name Detected in Players name history!")
-end
-
-local function OnBadProfileRep(userid)
-    return PEARL.DiscordReporter:SendRawReportString("Profile Repuation For Client Is TOO BAD!")
+local function OnCountryInfoMismatch(username, steamid, profile, assumed)
+    PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.STEAM_LOCALE_MISMATCH:format(
+        assumed, profile, MARKDOWN.hlink(username, MARKDOWN.escape_link_embeds(
+            PEARL.CONSTS.STEAM_ACCOUNT_URL:format(steamid)
+        ))
+    ))
 end
 
 -------------------------------------
@@ -125,20 +139,25 @@ local function CalculateRepInComments(comments_html, profileusername)
     return math.min((pos_count * REP_PER_POSITIVE_COMMENT) + (neg_count * REP_PER_NEGATIVE_COMMENT), MAX_COMMENT_REP)
 end
 
-local function CalculateProfileData(steamid, cfd, cb)
-    -- Keep these in sync with the names in the DB.
-    local data = {
-        profilerep          = MAX_PROFILE_REP,
-        -- Let's make it fail safe.
-        communityprofile    = true,
-        privateprofile      = false, -- Profiles are public by default.
-    }
-
-    PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
-        if type(cb) == "function" then
-            cb(data)
+local function HasAllRequiredProfileData(record)
+    -- Traverse the required profile data and check if they are not absent.
+    for key, _ in pairs(PROFILE_DATA) do
+        -- Even if the types do not match we have to recollect the data.
+        if type(record[key]) ~= type(PROFILE_DATA[key]) then
+            return false
         end
-    end)
+    end
+
+    return true
+end
+
+local function CalculateProfileData(userid, cfd, cb)
+    local steamid = userid and --[[TheNet:GetNetIdForUser(userid)]] "76561198050735090"
+    if not steamid then
+        return PEARL.error("Failed to get steam ID for", userid)
+    end
+
+    local data = shallowcopy(PROFILE_DATA)
 
     -- VAC - Valve Anti-Cheat
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_BANS, function(query)
@@ -173,14 +192,12 @@ local function CalculateProfileData(steamid, cfd, cb)
 
         local toxicity_count = ProfanityFilter:CountSwears(str)
         if toxicity_count > 0 then
-            OnToxicNameDetected(steamid)
-
             data.profilerep = data.profilerep + (toxicity_count * REP_PER_TOXIC_NAME)
         end
     end)
 
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_FRIENDLIST, function(query)
-        PEARL.debug("P_FRIENDLIST:", data.rep)
+        PEARL.debug("P_FRIENDLIST:", data.profilerep)
 
         if not (query.friendslist and query.friendslist.friends) then
             return -- no friends or profile is private
@@ -188,7 +205,8 @@ local function CalculateProfileData(steamid, cfd, cb)
 
         -- Count banned friends.
         local banned_count = 0
-        for _, friend in pairs(query.friendslist.friends) do
+        local friends = query.friendslist.friends
+        for _, friend in pairs(friends) do
             -- Attempt to conver the Steam ID to Klei ID since its used more frequently for banning.
             local userid = PEARL.DB:MapSteamID(friend.steamid) or friend.steamid
             if PEARL.BlackList:Contains(userid) then
@@ -198,7 +216,9 @@ local function CalculateProfileData(steamid, cfd, cb)
 
         if banned_count > 0 then
             PEARL.info("Banned friends detected for user!")
-            OnBannedFriendsDetected(steamid, banned_count)
+            OnBannedFriendsDetected(
+                cfd.username, steamid, banned_count, table.size(friends)
+            )
 
             data.profilerep = data.profilerep + (banned_count * REP_PER_BANNED_FRIEND)
         end
@@ -220,7 +240,7 @@ local function CalculateProfileData(steamid, cfd, cb)
     end, MAX_COMMENTS_CHECK_COUNT)
 
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_SUMMARIES, function(query)
-        PEARL.debug("P_SUMMARIES", data.rep)
+        PEARL.debug("P_SUMMARIES", data.profilerep)
 
         local player = query and query.response and query.response.players and query.response.players[1]
         if not player then
@@ -228,17 +248,21 @@ local function CalculateProfileData(steamid, cfd, cb)
             return
         end
 
-        data.loccountrycode = player.loccountrycode
-        data.timecreated    = player.timecreated
-        data.profilerep     = MAX_PROFILE_REP
+        data.profilecountrycode = player.loccountrycode
+        data.profiletimecreated = player.timecreated
 
         -- If the locale on profile doesn't match the locale
         -- set on the steam profile (only if set).
         if (
             type(player.loccountrycode) == "string" and
             type(cfd.locale) == "string" and
-            player.loccountrycode ~= cfd.locale
+            player.loccountrycode:lower() ~= cfd.locale:lower()
         ) then
+            OnCountryInfoMismatch(
+                player.personaname or cfd.username or "UNKNOWN", steamid,
+                player.loccountrycode, cfd.locale
+            )
+
             data.profilerep = data.profilerep + REP_PER_UNMATCHED_LOCALE
         end
 
@@ -273,57 +297,45 @@ local function CalculateProfileData(steamid, cfd, cb)
         data.avatar = player.avatarfull or player.avatarmedium or player.avatar
     end)
 
-    PEARL.SteamAPI:ExecuteDataQuerySequenceFor(steamid)
-end
-
-local function CalculateProfileDataForUser(userid, cfd, ...)
-    local steamid = userid and TheNet:GetNetIdForUser(userid) -- "76561198050735090"
-    if not steamid then
-        return PEARL.error("Failed to get steam ID for", userid)
-    end
-
-    return CalculateProfileData(steamid, cfd, ...)
-end
-
-local function RunSteamProfileFilters(data, filtercb)
-    -- Check both because if we have only one set then the query most likely just failed.
-    if data.communityprofile == nil and data.profilerep == nil then
-        filtercb(true)
-        return false -- There is still some data to be catched up
-    end
-
-    print("COMMUNITYPROFILE:", tostring(data.communityprofile))
-    if data.communityprofile == false then
-        filtercb(false, "ID_DST_NO_COMMUNITY_PROFILE")
-        return true
-    end
-
-    if type(data.profilerep) == "number" and data.profilerep < MIN_PROFILE_REP then
-        filtercb(false, "ID_DST_PROFILE_REP_TOO_LOW")
-        return true
-    end
-
-    filtercb(true)
-    return true
-end
-
---------------------------------
--- [[ Setup - Server ]]
---------------------------------
-
-PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cfd, cb)
-    local record = PEARL.DB:GetRecordFor(userid)
-    if record and RunSteamProfileFilters(record, cb) then
-        return -- We already have all the required data to complete the verification.
-    end
-
-    CalculateProfileDataForUser(userid, cfd, function(pdata)
-        PEARL.EventProcessor:HandleEvent("clientprofiledata", userid, pdata)
-
-        if pdata.profilerep < BAD_PROFILE_REP then
-            OnBadProfileRep(userid)
+    local function RecordGamePlayTime(querydata)
+        local games = type(querydata.response) == "table" and querydata.response.games
+        local playtime = type(games) == "table" and #games > 0 and games[1].playtime_forever
+        if type(playtime) == "number" and playtime > 0 then
+            data.gameplaytime = (querydata.gameplaytime or 0) + playtime
         end
+    end
 
-        RunSteamProfileFilters(pdata, cb)
+    PEARL.SteamAPI:AddQueryToSequence(
+        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_TOGETHER_APPID
+    )
+    PEARL.SteamAPI:AddQueryToSequence(
+        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_APPID
+    )
+
+    PEARL.SteamAPI:ExecuteDataQuerySequenceFor(steamid, function()
+        if type(cb) == "function" then
+            cb(data)
+        end
     end)
-end)
+end
+
+--------------------------------
+-- [[ Event Handlers ]]
+--------------------------------
+
+local function OnClientDataRecevied(userid, cfd)
+    local record = PEARL.DB:GetRecordFor(userid)
+    if not record or HasAllRequiredProfileData(record) then
+        return
+    end
+
+    CalculateProfileData(userid, cfd, function(resultdata)
+        PEARL.EventProcessor:HandleEvent("clientprofiledata", userid, resultdata)
+    end)
+end
+
+--------------------------------
+-- [[ Event Listeners ]]
+--------------------------------
+
+PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)

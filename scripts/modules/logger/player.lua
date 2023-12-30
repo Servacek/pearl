@@ -130,7 +130,7 @@ local function RegisterPlayerActionHandler(action, handler, pre)
     return RegisterActionHandler(action, handler, playeractioncheck, pre)
 end
 
-local function RegisterPlayerActionHandler(action, handler, pre)
+local function RegisterPlayerItemActionHandler(action, handler, pre)
     return RegisterActionHandler(action, handler, playeritemactioncheck, pre)
 end
 
@@ -439,6 +439,14 @@ RegisterPlayerActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
 end, true) -- We have to do the calculations before the action actually happens.
 
 RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
+    if PEARL.PREFABS.DO_DIGUP[target.prefab] == true then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.DUG_UP_GOODS)
+    end
+
+    if PEARL.PREFABS.DO_NOT_DIGUP_FOREST[target.prefab] == true and TheWorld:HasTag("forest") then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.DUG_UP_BAD)
+    end
+
     AL:EntityAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
         :SetIcon(PEARL.EMOTES.DISCORD.SHOVEL)
         :SetIsSilent(true)
@@ -483,9 +491,16 @@ RegisterPlayerActionHandler(ACTIONS.DEPLOY_TILEARRIVE,
 RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
     PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
 
-    AL:EntityAct(STRINGS.PEARL.ACTIONS.FERTILIZE.WITH, doer, "item", item)
+    local pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD
+    if target then
+        pt = STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
+    elseif item  then
+        pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD_WITH
+    end
+
+    AL:EntityAct(pt, doer, "item", item)
         :SetIcon(PEARL.EMOTES.DISCORD.POOP)
-        :AddTarget(target)
+        :AddTarget(target or STRINGS.NAMES.FARM_SOIL_DEBRIS)
 end))
 
 RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target, item)
@@ -495,9 +510,9 @@ RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target, item)
         :AddTarget(target or item)
 end)
 
-RegisterPlayerActionHandler(ACTIONS.GIVEALLTOPLAYER,
-RegisterPlayerActionHandler(ACTIONS.GIVETOPLAYER,
-RegisterPlayerActionHandler(ACTIONS.GIVE, function(doer, target, item)
+RegisterPlayerItemActionHandler(ACTIONS.GIVEALLTOPLAYER,
+RegisterPlayerItemActionHandler(ACTIONS.GIVETOPLAYER,
+RegisterPlayerItemActionHandler(ACTIONS.GIVE, function(doer, target, item)
     if target.components.grower or target.components.harvestable then
         return OnPlant(doer, target, item)
     end
@@ -513,7 +528,7 @@ end)))
 
 RegisterPlayerActionHandler(ACTIONS.PLAY, function(doer, target, item)
     AL:EntityAct(STRINGS.PEARL.ACTIONS.PLAY.GENERIC, doer,
-        QueuedLogAction.FIELDS.TARGET, PEARL.GetStandardizedNameFor(target, true))
+        QueuedLogAction.FIELDS.TARGET, PEARL.GetStandardizedNameFor((target or item), true))
         :SetLogType(PEARL.CONSTS.ANN_TYPE.PLAY)
 end)
 
@@ -830,9 +845,9 @@ end
 
 --- @param inst EntityScript
 PEARL.AddComponentPostInit("burnable", function(self, inst)
-    if not (inst and inst:HasTag("structure")) then
-        return
-    end
+    -- if not (inst and inst:HasTag("structure")) then
+    --     return
+    -- end
 
     -- Announce when a structure burnts up
     inst:SafeListenForEvent("burntup", onburntup)
@@ -899,12 +914,11 @@ local function onplayerhitepic(doer, target, dmg, mult)
     PEARL.Reputation:EarnFor(
         doer.userid, dmg * mult * REPUTATIONS.BOSS_DAMAGE
     )
-
 end
 
 -- Track damage dealt to bosses.
 -- Higher level version of onhitother for players and their followers.
-local function onplayerhitother(player, target, damage)
+local function onplayerhitother(player, target, damage, follower)
     if not damage or not target.components.health then
         return
     end
@@ -912,7 +926,8 @@ local function onplayerhitother(player, target, damage)
     local dmg = math.max(damage or 1, 1)
     local hpercent = target.components.health:GetPercent()
     -- The less HP the boss has the more damage we get.
-    local mult = 1 - hpercent + 1
+    -- Reputation is halved for followers and is constant.
+    local mult = follower ~= nil and .5 or (1 - hpercent + 1)
     print("HIT", damage, mult)
 
     if target:HasTag("epic") then
@@ -951,7 +966,7 @@ local function onhitother(doer, data)
 
     local player = leader or doer
     local damage = math.max(data.damageresolved or data.damage or 1, 1)
-    onplayerhitother(player, target, damage)
+    onplayerhitother(player, target, damage, leader and doer or nil)
 end
 
 -------------------
@@ -1007,6 +1022,19 @@ local function onbuildstructure(doer, data)
         :AddTarget(target)
 end
 
+local function onplayerconstructed(doer, target)
+    local pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.GENERIC
+    if target:HasTag("structure") then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CONSTRUCTED)
+    else
+        pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.QUEST
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.QUEST_COMPLETED)
+    end
+
+    AL:EntityAct(pt, doer, QueuedLogAction.FIELDS.TARGET, target)
+        :SetIcon(PEARL.EMOTES.DISCORD.REFINE)
+end
+
 -------------------
 -- Warnings --
 -------------------
@@ -1037,25 +1065,8 @@ end
 -- AFK --
 -------------------
 
-local function onafkdisconnected(userid)
-    local player = LookupPlayerInstByUserID(userid)
-    local client = userid and TheNet:GetClientTableForUser(userid)
-    if not (player or client) then
-        return
-    end
-
-    local userflags = client and client.userflags
-    if player and player:HasTag("playerghost") or (userflags and checkbit(userflags, USERFLAGS.IS_GHOST)) then
-        PEARL.Reputation:EarnFor(userid, REPUTATIONS.AFK_GHOST_KICKED)
-    else
-        PEARL.Reputation:EarnFor(userid, REPUTATIONS.AFK_KICKED)
-    end
-
-    return PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.USER_INACTIVE_KICKED:format(
-        player and player:GetDisplayName() or client.name
-    ), PEARL.CONSTS.ANN_TYPE.KICKED_FROM_GAME, player and player.entity or nil)
-end
-
+--- @TODO: decrease reputation incrementaly each tick being AFK.
+--- Doubled for ghosts.
 local function onafkstatechanged(userid, is_afk)
     local player = LookupPlayerInstByUserID(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
@@ -1137,7 +1148,7 @@ local function onfinishedlooting(doer, data)
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
     AL:Log(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
         doer = doer:GetDisplayName(), target = loot_string, source = data.container:GetFancyName()
-    }), not data.items.rare)
+    }), false, PEARL.EMOTES.DISCORD.CHEST) --data.items.rare)
 end
 
 -------------------------------
@@ -1194,8 +1205,14 @@ PEARL.AddComponentPostInit("combat", function(self)
     end)
 end)
 
-PEARL.EventProcessor:AddSafeEventHandler("afk_kicked", onafkdisconnected)
 PEARL.EventProcessor:AddSafeEventHandler("afk_statechanged", onafkstatechanged)
 
+PEARL.EventProcessor:AddSafeEventHandler("constructionfinished", function(doer, target)
+    if doer and doer:HasTag("player") and target then
+        onplayerconstructed(doer, target)
+    end
+end)
+
 --- @TODO: Maybe remove some reputation when being kicked?
+--- Maybe rather not since not every kick is meant to be bad.
 --PEARL.EventProcessor:AddSafeEventHandler("clientkicked", onplayerkicked)

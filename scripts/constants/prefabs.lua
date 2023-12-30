@@ -140,6 +140,18 @@ local PREFABS = {
 
 	-- },
 
+    DO_DIGUP = {
+        ["forgetmelots"]        = true,
+        ["pirate_stash"]        = true,
+        ["mound"]               = true, -- Digging up graves.
+        ["farm_soil_debris"]    = true,
+    },
+
+    DO_NOT_DIGUP_FOREST = {
+        ["green_cap"]    = true,
+        ["blue_cap"]     = true,
+    },
+
     DO_NOT_CHOP = {
         ["oceantree_pillar"] = true,
     },

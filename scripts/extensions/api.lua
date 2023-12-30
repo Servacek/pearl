@@ -174,6 +174,7 @@ function PEARL.AddRPCHandlerPreCall(name, precb)
     return PEARL.AddClassFunctionPreCall(name, precb, handlers)
 end
 
+--- @param class table
 function PEARL.AddClassFunctionPreCall(name, precb, class)
     PEARL.debug("PEARL.AddClassFunctionPreCall", name, class)
 
@@ -186,6 +187,7 @@ function PEARL.AddClassFunctionPreCall(name, precb, class)
     return PEARL.AddFunctionPreCall(name, precb, class, true)
 end
 
+--- @param class table
 function PEARL.AddClassFunctionPostCall(name, postcb, class, with_res)
     class = type(class) == "string" and require(class) or class
 
@@ -196,6 +198,7 @@ function PEARL.AddClassFunctionPostCall(name, postcb, class, with_res)
     return PEARL.AddFunctionPostCall(name, postcb, class, with_res, true)
 end
 
+--- @param userdata userdata
 function PEARL.AddUserDataFunctionPreCall(name, precb, userdata)
     if KnownModIndex:IsModInitPrintEnabled() then
         PEARL.info("AddUserDataFunctionPreCall", precb, userdata)
@@ -207,6 +210,7 @@ function PEARL.AddUserDataFunctionPreCall(name, precb, userdata)
     return PEARL.AddFunctionPreCall(name, precb, mt.__index)
 end
 
+--- @param userdata userdata
 function PEARL.AddUserDataFunctionPostCall(name, postcb, userdata)
     if KnownModIndex:IsModInitPrintEnabled() then
         PEARL.info("AddUserDataFunctionPostCall", postcb, userdata)

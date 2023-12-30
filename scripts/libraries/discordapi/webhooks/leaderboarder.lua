@@ -82,8 +82,9 @@ function LeaderBoarder:SetEmbed(pos, embed)
     return embed
 end
 
-function LeaderBoarder:SetUpdateMessageID(message_id)
-    self._message_id = tostring(message_id)
+--- @param message_id string
+function LeaderBoarder:SetUpdatingMessageID(message_id)
+    self._message_id = message_id
 
     return self
 end
@@ -106,6 +107,18 @@ end
 
 function LeaderBoarder:GetMessage()
     return Message():AddEmbeds(self._embeds)
+end
+
+function LeaderBoarder:CanEditMessages()
+    return self._mode == LeaderBoarder.MODE.UPDATE
+end
+
+function LeaderBoarder:HasUpdatingMessage()
+    return self._message_id ~= nil
+end
+
+function LeaderBoarder:GetUpdatingMessageID()
+    return self._message_id
 end
 
 -------------------------------------
@@ -144,9 +157,18 @@ function LeaderBoarder:PostUpdatingMessage(cb)
         return PEARL.error("No leaderboard embeds were added!")
     end
 
-    if self._mode == LeaderBoarder.MODE.UPDATE and PEARL.HTTPClient:IsProxyEnabled() then
+    if self:CanEditMessages() and PEARL.HTTPClient:IsProxyEnabled() then
         request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, message:ToTable())
         request:SetParameters({ ["wait"] = true })
+        request:SetOnComplete(function(message)
+            PEARL.debug("OnUpdatingMessagePosted", message)
+
+            if type(message) ~= "table" or type(message.id) ~= "string" then
+                return PEARL.error("Failed to post the initial updating message!")
+            end
+
+            self:SetUpdatingMessageID(message.id)
+        end)
     else -- Defaults to STACK mode
         request = self._webhook:PostMessage(message)
     end

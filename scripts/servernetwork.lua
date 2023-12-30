@@ -99,9 +99,9 @@ local ServerNetwork = {
 -- Local Functions
 ----------------------------------
 
-local _Kick
-
 local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
+    PEARL.debug("Async filters finished with result", allowed, "reason", reason)
+
     if not ServerNetwork:IsClientConnectedAny(userid) then
         return PEARL.debug("Already disconnected... Deffering filter results...")
     end
@@ -340,6 +340,7 @@ function ServerNetwork:RunConnectionFiltersFor(userid, cfd)
     return true
 end
 
+--- @TODO: Rework this to be more reliable and work in paralel.
 -- Returns always nil, this one requires a finishcb function
 -- where the first 2 parameters will be the allowed flag and reason string.
 --- @param userid string The Klei ID of the user you want to run filters for.
@@ -391,10 +392,13 @@ function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
     handle_async_filter = function(allowed, reason)
         -- If this was the last filter or the filter failed.
         if i >= #async_conn_filters or allowed == false then
-            PEARL.debug("Asynchrounous connection filters finished!")
+            PEARL.debug("Asynchrounous connection filters finished!", reason)
 
             if timeout_task then
                 timeout_task:cancel()
+                timeout_task = nil
+            else
+                PEARL.error("Responded to an already extecuted async filter!")
             end
 
             return finishcb(userid, allowed, reason)

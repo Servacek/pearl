@@ -67,13 +67,17 @@ local LEARNING_RATE = 0.1
 local ITEM_WEIGHT_BIAS = PEARL.CONSTS.ITEM_WEIGHT_BIAS
 
 -- Determines the maximal bias for players with age 1.
-local AGE_BIAS      = 0.2
+local MAX_AGE_BIAS              = 0.2 -- Age bias for 100%
+local AGE_THRESHOLD             = 20 -- Age where the bias is 0
 
 local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
 local BIASES_FILE_PATH  = PEARL.MODROOT.."data/item_weight_biases.json"
 
 --- @TODO: FOR DEBUGGING
 local MESSAGE_QUERY_URL = "http://localhost:10997/dst/proxy/message"
+
+--- @type REPUTATION_TABLES
+local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
 -------------------------------
 -- [[ Declarations ]]
@@ -293,9 +297,10 @@ local function DoLegalityPrediction(inventory, age)
     -- print(worst_scenario)
 
     -- Apply age bias
-    local age_bias = (1 / math.max(age, 1)) * AGE_BIAS
-    pd.weight = pd.weight + age_bias
-    print(pd.weight, age_bias)
+    local age_bias_percent = (-age + AGE_THRESHOLD) / AGE_THRESHOLD
+    local age_bias = MAX_AGE_BIAS * age_bias_percent
+    pd.weight = pd.weight + age_bias_percent
+    print("AGE BIAS", age_bias_percent, age_bias)
 
     -- local wpercent = pd.weight / worst_scenario
     pd.prediction = pd.weight > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
@@ -328,6 +333,8 @@ local function CheckPlayersInventory(world, player)
         print("INVENTORY IS LEGAL")
         return -- This inventory is not flagged.
     end
+
+    PEARL.Reputation:EarnFor(player.userid, REPUTATIONS.LEFT_WITH_BAD_INV)
 
     print("SENDING REPORT TO THE SERVER:")
 

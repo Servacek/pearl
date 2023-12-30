@@ -72,7 +72,7 @@ local LogLine = Class(function(self, content)
 end)
 
 ------------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 ------------------------------------------
 
 LogLine.SIZES = {

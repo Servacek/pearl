@@ -149,6 +149,11 @@ configuration_options = {
         default = {
             ENABLED = false,
             ENCODE_DATA = false,
+            DIRECTORY = ".",
+            TYPES = {
+                MONTHLY = true,
+                ABSOLUTE = true,
+            }
         },
         type = "table",
     },
@@ -163,6 +168,11 @@ configuration_options = {
             ENABLED = false,
             FOLDER = ".", -- "data" folder by default
             ENCODE_DATA = false,
+            DIRECTORIES = {
+                ROOT = ".",
+                RECORDS = ".",
+                BINDINGS = ".",
+            },
         },
         type = "table",
     },

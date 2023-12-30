@@ -298,7 +298,7 @@ function Request:SetOnSuccess(onsuccessfn, ...)
     return self
 end
 
---- @param oncompletefn? fun(response: table|string, self: Request, ...: any)
+--- @param oncompletefn fun(response: table|string, success: boolean, code: string, self: Request, ...: any)
 --- @param ... any
 --- @return Request
 function Request:SetOnComplete(oncompletefn, ...)

@@ -12,7 +12,7 @@
 
 
 -------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 -------------------------------------
 
 local DEFAULT_MESSAGE_COLOUR = WHITE

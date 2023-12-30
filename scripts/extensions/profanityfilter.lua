@@ -26,7 +26,7 @@ local len = string.utf8len
 local strhash = smallhash
 
 -------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 -------------------------------------
 
 local DEFAULT_REPL_CHAR = "*"

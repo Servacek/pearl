@@ -19,11 +19,18 @@
 -- Make sure all the needed global variables are declared.
 require("events")
 
+-------------------------------------
+-- [[ Class Declaration ]]
+-------------------------------------
+
 --- @class EventProcessor
 EventProcessor = EventProcessor
 --- @class EventProcessor
 local EventProcessor = EventProcessor
 
+-------------------------------------
+-- [[ Public Methods ]]
+-------------------------------------
 
 function EventProcessor:AddSafeEventHandler(event, fn, ...)
     return self:AddEventHandler(event, function(...)
@@ -45,4 +52,15 @@ function EventProcessor:AddSafeOneTimeHandler(event, fn, ...)
             PEARL.EventProcessor:RemoveHandler(handler)
         end
     end, ...)
+end
+
+-------------------------------------
+-- [[ Debugging ]]
+-------------------------------------
+
+if PEARL.CONFIG.DEBUG_MODE then
+    -- Use "pre-call" in case the handler throws an error.
+    PEARL.AddClassFunctionPreCall("HandleEvent", function(event, ...)
+        PEARL.debug("EventProcesser:HandleEvent", event, ...)
+    end, EventProcessor)
 end

@@ -183,7 +183,7 @@ local function OnClientAuthenticationComplete(world, data)
 end
 
 local function OnClientConnectionClosed(userid, reason)
-    if not userid or not PEARL.ServerNetwork:IsClientConnected(userid) then
+    if not userid or not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
         return
     end
 

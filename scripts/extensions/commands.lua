@@ -31,6 +31,8 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
+local Leaderboard = PEARL.loadfile("models/leaderboard")
+
 local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
 
 -------------------------------------
@@ -667,6 +669,43 @@ AddCommand("profile", {
     end,
 })
 
+AddCommand("mystats", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MYSTATS.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MYSTATS.DESC,
+    permission = COMMAND_PERMISSION.USER,
+    routing = UserCommands.SHARD_ROUTING.NONE,
+    console = false,
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        local userid     = ctx.author.userid
+        local reputation = PEARL.Reputation:GetOf(userid)
+        local daygains   = PEARL.Reputation:GetTodayGainsOf(userid)
+        local monthgains = PEARL.Reputation:GetMonthGainsOf(userid)
+        local username   = PEARL.DB:GetField(userid, "username", userid)
+        local board      = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)
+        --- @TODO: Make this more accurate for players not displayed on the leaderboard.
+        local place      = board and board:GetPositionFor(userid) or "?"
+
+        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.MYSTATS.RESULT:format(
+            place, username, reputation, daygains, monthgains
+        ))
+    end,
+})
+
+AddCommand("leaderboard", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.DESC,
+    permission = COMMAND_PERMISSION.USER,
+    discord = false,
+    routing = UserCommands.SHARD_ROUTING.NONE,
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        return ctx:Reply(PEARL.LeaderboardService:ToString())
+    end,
+})
+
 AddCommand("give", {
     consolename = "giveto",
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.PRETTYNAME,
@@ -1225,7 +1264,7 @@ AddCommand("setdbfield", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
     params = {UserCommands.STD_PARAMS.PLAYER, "field", "value"},
-    paramsoptional = {false, false, false},
+    paramsoptional = {false, false, true}, -- value can be nil
     paramtypes = {["field"] = "string"},
 
     --- @param ctx CommandContext
@@ -1234,7 +1273,7 @@ AddCommand("setdbfield", {
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED)
         end
 
-        if PEARL.DB:HasRecordFile(userid) then
+        if not PEARL.DB:HasRecordFile(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
@@ -1477,7 +1516,7 @@ UserCommands.CustomizeCommand("ban", function(command)
     table.insert(command.paramsoptional, true)
 
     command.fn = function(ctx, userid, seconds, reason)
-        if PEARL.BlackList:Contains(userid) and not PEARL.ServerNetwork:IsClientConnected(userid) then
+        if PEARL.BlackList:Contains(userid) and not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ALREADY_BANNED)
         end
 

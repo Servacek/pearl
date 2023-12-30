@@ -1,0 +1,69 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023-2024 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+-------------------------------------
+-- [[ Constants ]]
+-------------------------------------
+
+local MIN_PROFILE_REP = 1
+
+-------------------------------------
+-- [[ Local Functions ]]
+-------------------------------------
+
+local function RunAsyncProfileFilter(data, filtercb)
+    -- Check both because if we have only one set then the query most likely just failed.
+    if type(data.communityprofile) ~= "boolean" or type(data.profilerep) ~= "number" then
+        print("MISSNG DATA")
+        return false -- There is still some data to be catched up
+    end
+
+    print("COMMUNITYPROFILE:", tostring(data.communityprofile))
+    if data.communityprofile == false then
+        filtercb(false, "ID_DST_NO_COMMUNITY_PROFILE")
+        return true
+    end
+
+    if data.profilerep < MIN_PROFILE_REP then
+        filtercb(false, "ID_DST_PROFILE_REP_TOO_LOW")
+        return true
+    end
+
+    print("SUCCESS")
+    table.dump(data)
+    filtercb(true)
+    return true
+end
+
+--------------------------------
+-- [[ Setup - Server ]]
+--------------------------------
+
+PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cfd, cb)
+    local record = PEARL.DB:GetRecordFor(userid)
+    if not record or RunAsyncProfileFilter(record, cb) then
+        return
+    end
+
+    local handler
+    handler = PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", function(target_userid, data)
+        if target_userid ~= userid then
+            return
+        end
+
+        PEARL.EventProcessor:RemoveHandler(handler)
+        if not RunAsyncProfileFilter(data, cb) then
+            cb(true) -- fail safe if data are still missing
+        end
+    end)
+end)

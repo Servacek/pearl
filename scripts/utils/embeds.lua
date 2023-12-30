@@ -37,6 +37,7 @@ local EMBEDS = {}
 -- [[ Embed Builders ]]
 -------------------------------------
 
+--- @TODO: Make the inventory embed a bit nicer.
 --- @param pmd PlayerMetadata
 --- @return Embed
 function EMBEDS.Inventory(pmd, highlighted)
@@ -132,7 +133,9 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         :SetTimestamp(os.time())
 
     if not leaderboard:HasEnoughPlayers() then
-        embed:SetDescription(STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA)
+        embed:SetDescription(MARKDOWN.italic(
+            STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA
+        ))
     else
         local max_rep_len = 0
         local index_col, name_col, rep_col = "", "", ""
@@ -169,7 +172,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             local percent = math.round(gains / reputation, 4) * 100
 
             embed:AddField("Hráč Dňa", string.format("%s %s +%s (%s%%)",
-                PEARL.ICONS.GAINS, MARKDOWN.hlink(
+                PEARL.ICONS.ARROW_UP, MARKDOWN.hlink(
                 MARKDOWN.codeline(tostring(username)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
             ), gains, percent))
         end
@@ -187,11 +190,15 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         )
     end
 
-    local local_count = leaderboard:HasEnoughPlayers() and #data.players or 0
-    local total_count = math.max(local_count, tonumber(data.recordcount) or PEARL.DB:GetTotalRecordCount())
-    embed:SetFooter(("%s/%s"):format(local_count, total_count))
+    local displayed = leaderboard:GetDisplayedCount()
+    local total_count = leaderboard:GetRecordCount()
+    embed:SetFooter(("%s/%s"):format(displayed, math.max(total_count, displayed)))
 
     return embed
+end
+
+function EMBEDS.PlayerStats(userid)
+    return Embed()
 end
 
 --- @return Embed
@@ -361,7 +368,6 @@ function EMBEDS.ClientMods(enabled_mods, userid)
         :SetFooter(footer)
 end
 
---- @TODO: Add more info
 --- @return Embed
 function EMBEDS.ClientProfile(userid, dbr)
     dbr = dbr or PEARL.DB:GetRecordFor(userid)
@@ -380,7 +386,7 @@ function EMBEDS.ClientProfile(userid, dbr)
     )
 
     local last_seen_time = MARKDOWN.timestamp(dbr.lastseentime)
-    if PEARL.ServerNetwork:IsClientConnected(userid) then
+    if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
         last_seen_time = PEARL.ICONS.ONLINE.." "..P_STRINGS.PLAYING
     end
 
@@ -392,7 +398,15 @@ function EMBEDS.ClientProfile(userid, dbr)
     local totaldays = PEARL.DB:GetField(userid, "totaldays")
     local deathscount = PEARL.DB:GetField(userid, "deathscount")
 
-    local reputation = PEARL.Reputation:GetOf(userid)
+    local repvalue = MARKDOWN.codeline(PEARL.Reputation:GetOf(userid))
+    local gains = math.floor(PEARL.Reputation:GetTodayGainsOf(userid))
+    local postfix = " "
+    if gains > 0 then
+        postfix = " "..PEARL.ICONS.ARROW_UP.." +"..tostring(gains)
+    elseif gains < 0 then
+        postfix = " "..PEARL.ICONS.ARROW_DOWN.." -"..tostring(gains)
+    end
+    repvalue = repvalue..postfix
 
     local netprofiletimecreated = PEARL.DB:GetField(userid, "profiletimecreated")
 
@@ -405,13 +419,13 @@ function EMBEDS.ClientProfile(userid, dbr)
             daysalive, totaldays
         )), true)
         :AddField(P_STRINGS.FD_NAMES.DEATHS, MARKDOWN.codeline(deathscount), true)
-        :AddField(P_STRINGS.FD_NAMES.REP, MARKDOWN.codeline(reputation), true)
+        :AddField(P_STRINGS.FD_NAMES.REP, repvalue, true)
         :AddField(P_STRINGS.FD_NAMES.SEEN, last_seen_time, true)
         :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon and loc_icon.." "..loc_str or "UNKNOWN", true)
         :AddField(P_STRINGS.FD_NAMES.GAMEPLAYTIME, STRINGS.PEARL.HM_TIME_FORMAT:format(
             hours, minutes
         ), true)
-        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid, dbr.rootuserid or "UNKNOWN"))
+        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid), P_STRINGS.FOOTER_ICON)
 
     if dbr[PEARL.DB.BINDING_FIELD[PEARL.DB.BINDING_TYPE.DISCORD]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
@@ -419,6 +433,21 @@ function EMBEDS.ClientProfile(userid, dbr)
 
     if netprofiletimecreated then
         embed:AddField(P_STRINGS.FD_NAMES.STEAMCREATED, MARKDOWN.timestamp(netprofiletimecreated), true)
+    end
+
+    if dbr.rootuserid and dbr.rootuserid ~= userid then
+        embed:AddField(P_STRINGS.FD_NAMES.ALT_ACCOUNT, PEARL.DB:MentionOrName(dbr.rootuserid))
+    end
+
+    if dbr.bans and table.empty(dbr.bans) == false then
+        local lastban = dbr.bans[#dbr.bans]
+        local active = lastban.timestop == nil
+        local author = lastban.author and PEARL.DB:MentionOrName(lastban.author) or nil
+        embed:AddField(P_STRINGS.FD_NAMES.LAST_BAN, P_STRINGS.FD_VALUES.LAST_BAN:format(
+            author or MARKDOWN.italic(P_STRINGS.SYSTEM_BAN),
+            MARKDOWN.timestamp(lastban.timestart)..(active and " "..P_STRINGS.ACTIVE_BAN_TAG or ""),
+            lastban.reason or MARKDOWN.italic(P_STRINGS.NO_REASON)
+        ), false) -- Print all these on a new line always.
     end
 
     -- Check for explicity true since this is false by default.

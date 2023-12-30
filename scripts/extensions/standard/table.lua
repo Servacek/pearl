@@ -133,7 +133,7 @@ function table.rcontains(t, value)
     return false
 end
 
---- @param fn fun(k: any, v: any): result: any
+--- @param fn fun(v: any): result: table<any, any>
 function table:map(fn)
     local t = {}
     for k, v in pairs(self) do

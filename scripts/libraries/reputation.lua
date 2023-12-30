@@ -78,25 +78,24 @@ function Reputation:GetOf(userid)
     return userid and tonumber(self:GetFieldOf(userid, "value")) or Reputation.STARTING_VALUE
 end
 
+--- @return number
 function Reputation:GetPeakOf(userid)
     return userid and self:GetFieldOf(userid, "peak") or 0
 end
 
+--- @return number
 function Reputation:GetTodayGainsOf(userid)
     return userid and self:GetFieldOf(userid, "daygains") or 0
 end
 
+--- @return number
 function Reputation:GetMonthGainsOf(userid)
     return userid and self:GetFieldOf(userid, "monthgains") or 0
 end
 
+--- @return number
 function Reputation:GetLowestOf(userid)
     return userid and self:GetFieldOf(userid, "lowest") or 0
-end
-
---- @TODO: Handle special case for non-reputable users trying to display they own reputation.
-function Reputation:IsReputable(userid)
-    return not PEARL.AdminList:Contains(userid)
 end
 
 function Reputation:IsNewbie(userid)

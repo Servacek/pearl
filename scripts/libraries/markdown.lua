@@ -100,6 +100,7 @@ end
 
 -- https://some.host/ -> <https://some.host>
 -- The result link is clickable but doesn't create the embed when posted.
+-- Warning: Use only on real links, not just text!
 function MARKDOWN.escape_link_embeds(link)
     return LINK_ESCAPE_PATTERN:format(link)
 end

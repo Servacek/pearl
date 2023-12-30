@@ -26,9 +26,10 @@ local STEAM_QUERY_TIMEOUT = 10
 -- [[ Class Declaration ]]
 -------------------------------------
 
+--- @singleton
 --- @class SteamAPI
 local SteamAPI = {
-    --- @type table<steamid, table<function, table<string, any>|string>>
+    --- @type table<string, table<integer, Request>>
     _query_sequences = {}
 }
 
@@ -68,35 +69,13 @@ SteamAPI.PROFILE_VISIBILITY = {
 -- [[ Local Functions ]]
 -------------------------------------
 
-local function HandleQueryResponse(query, response)
-    if type(query.cb) == "function" then
-        return query.cb(response)
-    end
-end
-
-local function OnQueryCompleted(response, success, code, request, steamid, index)
-    local seq = SteamAPI._query_sequences[steamid]
-    if not seq then
-        return PEARL.error("Query finished for invalid sequence!")
-    end
-
-    local query = seq[index]
-    if not query then
-        return PEARL.error("Invalid query finished!")
-    end
-
-    seq[index] = nil
-
-    if success then
-        -- We do not care if this errors, our work here is to just call it.
-        HandleQueryResponse(query, response)
-    end
-
-    if #seq == 0 then
-        SteamAPI:RemoveDataQuerySequenceFor(steamid)
-
-        if type(seq.finishcb) == "function" then
-            seq.finishcb()
+local function OnQueryCompleted(response, success, code, request, steamid, index, finishcb)
+    local sequence = SteamAPI._query_sequences[steamid]
+    sequence[index] = nil
+    if table.empty(sequence) then
+        SteamAPI._query_sequences[steamid] = nil
+        if type(finishcb) == "function" then
+            finishcb()
         end
     end
 end
@@ -105,68 +84,44 @@ end
 -- [[ Public Methods ]]
 -------------------------------------
 
+--- @param steamid string
+--- @param url string
+--- @param cb fun(response: string|table)
+--- @return Request query The query that was added to the sequence, or nil when it fails.
 function SteamAPI:AddQueryToSequence(steamid, url, cb, ...)
     if type(self._query_sequences[steamid]) ~= "table" then
-        return PEARL.error("Invalid sequence", steamid)
+        self._query_sequences[steamid] = {}
     end
 
-    local qr = {
-        url = url,
-        cb = cb,
-        args = toarray(...),
-    }
-    self._query_sequences[steamid][#self._query_sequences[steamid] + 1] = qr
+    local query = PEARL.HTTPClient:GET(
+        url:format(steamid, ...), cb, STEAM_QUERY_TIMEOUT
+    )
+    table.insert(self._query_sequences[steamid], query)
 
-    return qr
+    return query
 end
 
-function SteamAPI:AddRawQueryToSequence(steamid, query, cb, ...)
-    local qr = self:AddQueryToSequence(steamid, query, cb, ...)
-    qr.raw = true
-
-    return qr
+--- @param steamid string
+--- @param url string
+--- @param cb fun(response: string|table)
+--- @return Request query The query that was added to the sequence, or nil when it fails.
+function SteamAPI:AddRawQueryToSequence(steamid, url, cb, ...)
+    return self:AddQueryToSequence(steamid, url, cb, ...)
+        :SetIsRaw(true)
 end
 
-function SteamAPI:RemoveDataQuerySequenceFor(steamid)
-    self._query_sequences[steamid] = nil
-end
-
-function SteamAPI:CreateDataQuerySequenceFor(steamid, finishcb)
-    if type(self._query_sequences[steamid]) ~= "table" then
-        self._query_sequences[steamid] = {
-            finishcb = finishcb
-        }
-    end
-end
-
-function SteamAPI:ExecuteDataQuerySequenceFor(steamid)
-    if type(self._query_sequences[steamid]) ~= "table" then
-        return PEARL.error("Attempted to execute an invalid query sequence.")
-    end
-
-    local query
-    local seq = self._query_sequences[steamid]
-    for i = #seq, 1, -1 do
-        query = seq[i]
-
-        if query then
-            PEARL.HTTPClient:GET(
-                query.url:format(steamid, unpack(query.args)), nil, STEAM_QUERY_TIMEOUT
-            )
-            :SetIsRaw(query.raw)
-
+--- @param finishcb fun()
+--- @param steamid string
+function SteamAPI:ExecuteDataQuerySequenceFor(steamid, finishcb)
+    for i, query in ipairs(self._query_sequences[steamid]) do
+        query
             -- These most likely mean that the users profile is set to private.
             :SetStatusCodeHandle(SteamAPI.STATUS_CODES.UNAUTHORIZED)
             :SetStatusCodeHandle(SteamAPI.STATUS_CODES.FORBIDDEN)
             :SetMaxRetries(STEAM_QUERY_RETRIES)
-            :SetOnComplete(OnQueryCompleted, steamid, i)
+            :SetOnComplete(OnQueryCompleted, steamid, i, finishcb)
             :Send()
-        end
     end
-end
-
-function SteamAPI:DeleteDataQuerySequenceFor(steamid)
-    self._query_sequences[steamid] = nil
 end
 
 -------------------------------------

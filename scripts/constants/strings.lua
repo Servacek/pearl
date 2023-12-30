@@ -55,6 +55,11 @@ local STRINGS = {
             TARGET      = "{doer} healed {target} using {tool}.",
         },
 
+        CONSTRUCT = {
+            GENERIC     = "{doer} constructed {target}.",
+            QUEST       = "{doer} completed quest from {target}.",
+        },
+
         SEW = {
             GENERIC     = "{doer} sewn {target}.",
             USING       = "{doer} sewn {target} using {tool}."
@@ -136,7 +141,9 @@ local STRINGS = {
 
         FERTILIZE = {
             GENERIC     = "{doer} fertilized {target}.",
+            FIELD       = "{doer} fertilized the field.",
             WITH        = "{doer} fertilized {target} with {item}.",
+            FIELD_WITH  = "{doer} fertilized the field with {item}."
         },
 
         DIG = {
@@ -219,7 +226,7 @@ local STRINGS = {
             TITLE_ARCHIVED = "Archived",
 
             FD_NAMES = {
-                INDEX_COL   = "Place",
+                INDEX_COL   = "#",
                 NAME_COL    = "Name",
                 REP_COL     = "Reputation",
                 MONTH       = "Month",
@@ -233,7 +240,8 @@ local STRINGS = {
             THMB_ABS_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1129005246027419648/trophy-big.png",
             THMB_CUR_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1127332501858291732/daychanges.png",
 
-            NOT_ENOUGH_DATA = "*Not enough data*"
+            NOT_ENOUGH_DATA = "Not enough data",
+            NO_LEADERBOARDS = "No leaderboards active",
         },
 
         INV = {
@@ -258,9 +266,13 @@ local STRINGS = {
         PROFILE = {
             -- Prefab + Username
             TITLE = "%s %s",
-            FOOTER = "Klei ID: %s Steam ID: %s Root Klei ID: %s",
+            FOOTER = "Klei ID: %s • Steam ID: %s",
             PLAYING = "Playing Now!",
-            PRIVATE = "Profile is set as private, therefore some data may be inaccurate or not provided at all.",
+            PRIVATE = "Profile is set as private, therefore some data may be inaccurate or not provided.",
+            SYSTEM_BAN = "System Ban",
+            NO_REASON  = "No Reason Provided",
+            FOOTER_ICON = "https://cdn.discordapp.com/attachments/1066442901380403333/1190652981864042556/authentication.png",
+            ACTIVE_BAN_TAG = "[Active]",
             FD_NAMES = {
                 PLAYED          = "Total Days Played/Survived",
                 REP             = "Reputation",
@@ -271,7 +283,12 @@ local STRINGS = {
                 GAMEPLAYTIME    = "Game Play Time",
                 DEATHS          = "Deaths Count",
                 STEAMCREATED    = "Steam Member Since",
+                LAST_BAN        = "Last Ban",
+                ALT_ACCOUNT     = "Alternative Account",
             },
+            FD_VALUES = {
+                LAST_BAN        = "> `Author:` %s\n> `From:` %s\n> `Reason:` %s",
+            }
         },
     },
 
@@ -303,6 +320,9 @@ local STRINGS = {
 
         PERMISSIVE_MODE_WARNING = "Permissive mode is turned on! Reputation and penalization systems disabled.",
         WAVE_WARNING            = "%s are comming!",
+
+        STEAM_BANNED_FRIENDS    = "User %s has %d/%d friends currently banned on this server.",
+        STEAM_LOCALE_MISMATCH   = "Mismatch between the IP locale (`%s`) and the locale set on Steam Profile (`%s`) for user %s.\nMaybe they are using a VPN?",
 
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
@@ -524,6 +544,9 @@ local STRINGS = {
         ALLOWED = "Allowed",
         BLOCKED = "Blocked",
 
+        POTM_ANNOUNCEMENT = "Best player of the month %s is %s! New month begins from today!",
+        POTM_AGAIN_ANNOUNCEMENT = "Best player of the month %s is again %s! New month begins from today!",
+
         -- Mod blocker popup
         MODS_BLOCKED_TITLE = "Mods Disabled",
         MODS_BLOCKED_ALL_TITLE = "All Mods Blocked",
@@ -597,6 +620,18 @@ local STRINGS = {
                 ALL        = "Gave %sx %s to %s.",
                 SOME       = "Gave only %sx %s to %s because the rest can not be dropped. Player is offline.",
                 NONE       = "Wasn't able to add the provided item to the inventory!",
+            },
+
+            LEADERBOARD = {
+                PRETTYNAME  = "Show Active Leaderboards",
+                DESC        = "Displays the active leaderboards and players on them.",
+            },
+
+            MYSTATS = {
+                PRETTYNAME  = "Show My Stats",
+                DESC        = "Shows your current statistics and place on the leaderboard.",
+
+                RESULT      = "#%s - %s:\nReputation: %d\nGains for today: %d\nGains for this month: %d",
             },
 
             GIVEALL = {

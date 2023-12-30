@@ -31,7 +31,7 @@
 --]]
 
 --------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 --------------------------------
 
 PEARL.info("Loading BE constants...")
@@ -98,19 +98,22 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     --- @class REPUTATION_TABLES
     REPUTATION_TABLES           = {
-        REVIVE              = 25,
+        REVIVE              = 15,
         DIED                = -15,
         EXTINGUISH_STRUCT   = 2.5,
         EXTINGUISH          = 1.5,
-        BOSS_DAMAGE         = 0.001, -- Per HP dealt
+        BOSS_DAMAGE         = 0.01, -- Per HP dealt 100 000 *
         COMPANION_DAMAGE    = -0.2, -- Companions have less HP
         FOLLOWER_DAMAGE     = -0.1,
         BURNABLE_NEAR_FIRE  = -3,
         POPULATION_EXINCT   = -10,
         STRUCT_NEAR_FIRE    = -6,
-        BUILT_STRUCTURE     = 5,
+        BUILT_STRUCTURE     = 4,
         FERTILIZED          = 1,
         CRAFTED_ITEM        = 1,
+        CONSTRUCTED         = 8,
+        QUEST_COMPLETED     = 12,
+        LEFT_WITH_BAD_INV   = -20,
         PLAYER_HEALED       = 4,
         OFFENSIVE_WORD_USED = -1,
         AFK_GHOST           = -8,
@@ -131,6 +134,8 @@ PEARL.SafeModTableExtend("CONSTS", {
         FIRE_MOB_KILLED     = -5,
         LEARNED_BLUEPRINT   = -5,
         LEARNED_RAREPRINT   = -10,
+        DUG_UP_GOODS        = 2,
+        DUG_UP_BAD          = -1,
     },
 
     ITEM_WEIGHT_BIAS       = {
@@ -450,9 +455,45 @@ PEARL.DiscordReporter._webhook:FetchData()
 
 --- @type LeaderBorder
 PEARL.DiscordLeaderBoarder = PEARL.loadfile("libraries/discordapi/webhooks/leaderboarder")()
+PEARL.DiscordLeaderBoarder:SetIsDisabled(true)
 
-if PEARL.HTTPClient:IsProxyEnabled() then
-    PEARL.DiscordLeaderBoarder:SetMode(PEARL.DiscordLeaderBoarder.MODE.UPDATE)
+if TheShard:IsMaster() then
+    PEARL.DiscordLeaderBoarder:SetIsDisabled(false)
+
+    if PEARL.HTTPClient:IsProxyEnabled() then
+        PEARL.DiscordLeaderBoarder:SetMode(PEARL.DiscordLeaderBoarder.MODE.UPDATE)
+    end
+end
+
+-------------------------------------
+-- [[ Player Libraries ]]
+-------------------------------------
+
+--- Has to be laaded before LeaderboardService
+--- @type DB
+PEARL.DB = PEARL.loadfile("libraries/database")
+PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
+if PEARL.DB:IsEnabled() then
+    PEARL.DB:LoadBindingFiles()
+end
+
+--- @type Reputation
+PEARL.Reputation = PEARL.loadfile("libraries/reputation")
+
+--------------------------------
+-- [[ Leaderboard Service ]]
+--------------------------------
+
+--- @type LeaderboardService
+PEARL.LeaderboardService = PEARL.loadfile("libraries/leaderboardservice")
+-- Leaderboarding is centralized.
+if TheShard:IsMaster() then
+    PEARL.LeaderboardService:SetIsEnabled(PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
+    if PEARL.LeaderboardService:IsEnabled() then
+        PEARL.info("Loading leaderboard service...")
+        PEARL.LeaderboardService:Load()
+        PEARL.LeaderboardService:ValidateLoadedData()
+    end
 end
 
 --------------------------------
@@ -471,6 +512,7 @@ local function LoadExtensions()
     PEARL.loadfile("extensions/components/container")
     PEARL.loadfile("extensions/components/edible")
     PEARL.loadfile("extensions/components/activable")
+    PEARL.loadfile("extensions/components/constructionsite")
 
     -- Performance testing
     if PEARL.CONFIG.PERFORMANCE_MODE then
@@ -483,9 +525,6 @@ local function LoadExtensions()
     PEARL.info("Loading game script extensions...")
     PEARL.loadfile("extensions/scripts/entityscript")
     PEARL.loadfile("extensions/scripts/playercommon")
-
-    PEARL.info("Loading mob brain extensions...")
-    PEARL.loadfile("extensions/brains/pigbrain")
 
     --- @type ExtensionManager
     local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
@@ -535,20 +574,6 @@ PEARL.info("Loading adminlist...")
 --- @type AdminList
 PEARL.AdminList = PEARL.loadfile("libraries/wrappers/adminlist")
 PEARL.AdminList:Load()
-
--------------------------------------
--- [[ Player Libraries ]]
--------------------------------------
-
---- @type DB
-PEARL.DB = PEARL.loadfile("libraries/playerdatabase")
-PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
-if PEARL.DB:IsEnabled() then
-    PEARL.DB:LoadBindingFiles()
-end
-
---- @type Reputation
-PEARL.Reputation = PEARL.loadfile("libraries/reputation")
 
 -------------------------------------
 -- [[ Commands ]]
@@ -611,22 +636,21 @@ ModuleManager:AddModule("lazyloading", PEARL.CONFIG.LAZY_LOAD_PREFABS)
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("characterblocker", PEARL.CONFIG.CHARACTER_BLOCKLIST)
 ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
-ModuleManager:AddModule("steamprofilechecker", PEARL.CONFIG.FILTER_NEW_PROFILES)
+ModuleManager:AddModule("steamprofilefetcher", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("globalbanlist", PEARL.CONFIG.GLOBAL_BANLIST.ENABLED and PEARL.CONFIG.GLOBAL_BANLIST.URL)
---- @DEBUG
 ModuleManager:AddModule("autoban", PEARL.CONFIG.AUTOBAN.ENABLED)
 
 --- Filters
 ModuleManager:AddModule("filters/usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)
 ModuleManager:AddModule("filters/platformfilter", PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS)
 ModuleManager:AddModule("filters/customfilters.lua", PEARL.CONFIG.CUSTOM_CONNECTION_FILTERS)
+ModuleManager:AddModule("filters/profilefilter", PEARL.CONFIG.FILTER_NEW_PROFILES)
 
 --- Master-only Modules
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
-    --- @DEBUG
-    ModuleManager:AddModule("leaderboard", PEARL.DiscordLeaderBoarder:IsEnabled() and PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
+    ModuleManager:AddModule("leaderboard", PEARL.LeaderboardService:IsEnabled())
 end
 
 -- Logger Modules

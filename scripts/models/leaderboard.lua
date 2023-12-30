@@ -41,14 +41,17 @@ end
 local Leaderboard
 
 --- @param self Leaderboard
-Leaderboard = Class(function(self, data)
+Leaderboard = Class(function(self, typ, data)
+    assert(typ == nil or type(typ) == "string", "Invalid leaderboard type provided!")
+    assert(data == nil or type(data) == "table", "Invalid data provided!")
+
     --- @type boolean
     self.loaded = type(data) == "table" and not table.empty(data)
     --- @type boolean
     self.changed = not self.loaded
 
     --- @type string
-    self.type = Leaderboard.TYPE.ABSOLUTE
+    self.type = typ or Leaderboard.TYPE.ABSOLUTE
     --- @type integer
     self.minplayers = 1
     --- @type integer
@@ -71,8 +74,8 @@ end)
 --------------------------------------
 
 Leaderboard.TYPE = {
-    ABSOLUTE = "absolute",
-    MONTHLY  = "monthly",
+    ABSOLUTE = PEARL.CONFIG.LEADERBOARD.TYPES.ABSOLUTE == true and "absolute" or nil,
+    MONTHLY  = PEARL.CONFIG.LEADERBOARD.TYPES.MONTHLY == true and "monthly" or nil,
 }
 
 --------------------------------------
@@ -115,8 +118,24 @@ function Leaderboard:GetData()
     return self.data
 end
 
+function Leaderboard:IsArchived()
+    return self.archived
+end
+
 function Leaderboard:GetEmbed()
+    if self:IsArchived() then
+        return EMBEDS.LeaderboardArchived()
+    end
+
     return EMBEDS.Leaderboard(self, self.type == Leaderboard.TYPE.MONTHLY)
+end
+
+function Leaderboard:GetRecordCount()
+    return self.data.records or 0
+end
+
+function Leaderboard:GetDisplayedCount()
+    return self:HasEnoughPlayers() and #self.data.players or 0
 end
 
 --------------------------------------
@@ -128,6 +147,10 @@ function Leaderboard:SetDayLeaderUserID(userid)
         self.data.dayleader = userid
         self.changed = true
     end
+end
+
+function Leaderboard:SetIsArchived(archived)
+    self.archived = archived
 end
 
 function Leaderboard:SetIndex(index)
@@ -179,7 +202,7 @@ function Leaderboard:InsertPlayer(i, userid)
     PEARL.debug("Leaderboard:InsertPlayer", i, userid, self.type)
 
     if self:HasPlayer(userid) then
-        return print("ALREADY!") -- Player already in the leaderboard
+        return PEARL.debug("ALREADY!") -- Player already in the leaderboard
     end
 
     self.data.players[i] = userid
@@ -233,6 +256,29 @@ function Leaderboard:Reset()
     PEARL.debug("Leaderboard:Reset()")
 
     self:SetData(CreateValidDataFrom(self:ClearData()))
+end
+
+function Leaderboard:ToString()
+    local abs = self.type == Leaderboard.TYPE.ABSOLUTE
+    local FDS = STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES
+    local str = STRINGS.PEARL.EMBEDS.LEADERBOARD["TITLE_"..(abs and "ABS" or "CUR")]
+    if not self:HasEnoughPlayers() then
+        return str.."\n"..STRINGS.PEARL.EMBEDS.LEADERBOARD.NOT_ENOUGH_DATA
+    end
+
+    local names = table.map(self.data.players, function(userid)
+        return PEARL.DB:GetField(userid, "username", userid)
+    end)
+    local maxsize = PEARL.GetMaxStringSize(names)
+    str = str.."\n"..FDS.INDEX_COL.."\t"..FDS.NAME_COL.."\t\t"..FDS.REP_COL
+    for place, userid in ipairs(self.data.players) do
+        local rep = PEARL.Reputation:GetOf(userid)
+        local name = names[place]
+        local spacing2 = string.rep(" ", maxsize - string.utf8len(name) + 3).."\t"
+        str = str.."\n"..place.."\t"..name..spacing2..tostring(rep)
+    end
+
+    return str
 end
 
 --------------------------------------

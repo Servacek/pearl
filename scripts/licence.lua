@@ -15,7 +15,7 @@
 local PEARL = PEARL
 
 --------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 --------------------------------------
 
 local LICENCE_FILENAME = PEARL.ROOTDIR.."LICENSE"

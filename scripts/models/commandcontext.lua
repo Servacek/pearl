@@ -18,6 +18,7 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 --------------------------------------
 
 local RESPONSE_ICON_PATTERN = "%s %s"
+local CONSOLE_RESPONSE_PREFIX = "Command Response:\n"
 
 --------------------------------------
 -- [[ Class Declaration ]]
@@ -55,7 +56,7 @@ CommandContext.TYPE = {
 --- @type table<integer, fun(context: CommandContext, response: string)>
 CommandContext.OHANDLER = {
     [CommandContext.TYPE.CONSOLE] = function(context, response)
-        PEARL.info(response)
+        PEARL.info(CONSOLE_RESPONSE_PREFIX..response)
     end,
     [CommandContext.TYPE.SLASH]   = function(context, response)
         PEARL.ServerNetwork:SendCommandResponse(context.author.userid, response)

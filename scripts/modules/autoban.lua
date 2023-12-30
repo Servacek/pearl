@@ -32,6 +32,14 @@ local WARNING_THRESHOLDS = {
 }
 
 --------------------------------------
+-- [[ Local Functions ]]
+--------------------------------------
+
+local function IsPlayerUntouchable(userid)
+    return PEARL.ServerNetwork:IsAdmin(userid) and not PEARL.CONFIG.DEBUG_MODE
+end
+
+--------------------------------------
 -- [[ Event Handlers ]]
 --------------------------------------
 
@@ -97,13 +105,9 @@ local function BanPlayer(userid, player)
     end)
 end
 
-local function OnReputationChanged(userid, old, new)
-    print("OnReputationChanged", old, new)
-    if old <= new then
-        return
-    end
-
-    if new <= PEARL.CONFIG.AUTOBAN.THRESHOLD then
+local function CheckForBanableRep(userid, rep)
+    rep = rep or PEARL.Reputation:GetOf(userid)
+    if rep <= PEARL.CONFIG.AUTOBAN.THRESHOLD then
         -- Ban Time!
 
         local player = LookupPlayerInstByUserID(userid)
@@ -115,10 +119,18 @@ local function OnReputationChanged(userid, old, new)
     end
 end
 
+local function OnReputationChanged(userid, old, new)
+    if old <= new or IsPlayerUntouchable(userid) then
+        return
+    end
+
+    CheckForBanableRep(userid)
+end
+
 local function OnReputationEarned(userid, old, new)
     -- This player has too much reputation for being penalized in any way.
     -- Keeping this after ban since the threshold can be any number configured.
-    if WARNING_THRESHOLDS[1] < new then
+    if WARNING_THRESHOLDS[1] < new or IsPlayerUntouchable(userid) then
         return
     end
 
@@ -140,8 +152,16 @@ local function OnReputationEarned(userid, old, new)
 end
 
 --------------------------------------
+-- [[ Connection Filters ]]
+--------------------------------------
+
+PEARL.ServerNetwork:AddConnectionFilter(function(userid)
+    CheckForBanableRep(userid)
+end)
+
+--------------------------------------
 -- [[ Event Listeners ]]
 --------------------------------------
 
-PEARL.EventProcessor:HandleEvent("onreputationchanged", OnReputationChanged)
-PEARL.EventProcessor:HandleEvent("onreputationearned", OnReputationEarned)
+PEARL.EventProcessor:AddSafeEventHandler("onreputationchanged", OnReputationChanged)
+PEARL.EventProcessor:AddSafeEventHandler("onreputationearned", OnReputationEarned)

@@ -389,12 +389,6 @@ PEARL.loadfile("extensions/json")
 PEARL.loadfile("extensions/logging")
 
 --------------------------------
--- [[ Event Processor ]]
---------------------------------
-
-PEARL.loadfile("extensions/eventprocessor")
-
---------------------------------
 -- [[ Cluster Persistance Lib ]]
 --------------------------------
 
@@ -440,6 +434,13 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
+
+--------------------------------
+-- [[ Global Extensions ]]
+--------------------------------
+-- Load after API.
+
+PEARL.loadfile("extensions/eventprocessor")
 
 --------------------------------
 -- [[ License ]]

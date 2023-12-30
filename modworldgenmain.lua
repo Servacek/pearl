@@ -20,7 +20,7 @@ if GLOBAL.rawget(GLOBAL, "TheNet") or GLOBAL.rawget(GLOBAL, "TheSim") then
 end
 
 ----------------------------------
--- Contants
+-- Constants
 ----------------------------------
 
 local SEED_PATH = MODROOT.."data/seed.txt"

@@ -24,10 +24,18 @@ local DEFERANT = {
     DISCONNECT      = "disconnect",
 }
 
+--- @type table<string, number>
+local DISCONNECT_REASON_PRIORITIES = {
+    -- Error reporting should have the highest priority,
+    -- in case other more trivial disconnect reason pops up sooner.
+    ["ID_DST_SERVER_CRASHED"] = math.huge,
+}
+
 ----------------------------------
 -- Netvars
 ----------------------------------
 
+--- @TODO:
 -- local _server_slots
 -- PEARL.AddWorldPostInit(function(inst)
 --     _server_slots = net_byte(inst.GUID, "_server_slots")
@@ -154,12 +162,10 @@ end
 
 function ClientNetwork:NotifyNetworkDisconnect()
     PEARL.debug("ClientNetwork:NotifyNetworkDisconnect")
-    if not disconnection_notified then
-        disconnection_notified = true
+    disconnection_notified = true
 
-        -- Call the original non-hooked function to prevent any loops.
-        return _OnNetworkDisconnect(unpack(disconnect_data))
-    end
+    -- Call the original non-hooked function to prevent any loops.
+    return _OnNetworkDisconnect(unpack(disconnect_data))
 end
 
 ----------------------------------
@@ -339,8 +345,12 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     -- We have already showed a disconnection popup to the user
     -- Show only the first one.
     if disconnection_notified then
-        PEARL.debug("Already disconnected!")
-        return false
+        local old_reason_priority = tonumber(DISCONNECT_REASON_PRIORITIES[disconnect_reason]) or 0
+        local new_reason_priority = tonumber(DISCONNECT_REASON_PRIORITIES[reason]) or 0
+        if old_reason_priority >= new_reason_priority then
+            PEARL.debug("Already disconnected!")
+            return false
+        end
     end
 
     --- Only notify the server if he isn't the cause.

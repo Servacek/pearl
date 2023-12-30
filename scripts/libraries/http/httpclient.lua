@@ -77,7 +77,7 @@ end
 
 --- @param request Request
 function HTTPClient:SendRequest(request)
-    PEARL.debug("HTTPClient:SendRequest", request, request.url, request.method)
+    --PEARL.debug("HTTPClient:SendRequest", request, request.url, request.method)
 
     if type(request) ~= "table" then
         return PEARL.error("Attempted to send an invalid request!")

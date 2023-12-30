@@ -11,13 +11,15 @@
 --]==]====================================================]]
 
 
+--- @class ConstructionSite
+local ConstructionSite = require("components/constructionsite")
 
-local UpvalueHacker = require("utils/upvaluehacker")
+-------------------
 
-PEARL.AddBrainPostInit("pigbrain", function(self)
-    -- print("ON PIG BRAIN POST INIT!")
-    -- local FindFoodAction = UpvalueHacker.GetUpvalue(self.OnStart, "FindFoodAction")
-    -- PEARL.AddFunctionPreCall(FindFoodAction, function()
-    --     print("FINDING FOOD!!!")
-    -- end)
-end)
+PEARL.AddClassFunctionPostCall("OnConstruct", function(self, doer, items)
+    if self:IsComplete() then
+        PEARL.EventProcessor:HandleEvent(
+            "constructionfinished", doer, self.inst
+        )
+    end
+end, ConstructionSite)

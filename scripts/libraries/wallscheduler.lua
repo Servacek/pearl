@@ -42,7 +42,7 @@ local WallScheduler = {
 }
 
 ------------------------------------------
--- [[ Contants ]]
+-- [[ Constants ]]
 ------------------------------------------
 
 local Q_SIZE_ALLOC = 2^5
@@ -134,7 +134,7 @@ end
 --- @param id any? The identifier of the task. Used for debugging purposes only.
 --- @param ... any? All the additional parameters for the callback function.
 local function create_task(time, fn, limit, initialdelay, id, ...)
-    PEARL.debug("create_task", time, fn, limit, initialdelay, id)
+    --PEARL.debug("create_task", time, fn, limit, initialdelay, id)
     if type(fn) ~= "function" or type(time) ~= "number" then
         return PEARL.error("Attempted to create a task with invalid parameters!")
     end
@@ -185,7 +185,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     -- Even running tasks can be restarted.
     function task:restart()
-        PEARL.debug("task:restart", self:tostring())
+        --PEARL.debug("task:restart", self:tostring())
 
         if type(self._time) ~= "number" then
             return PEARL.warn("This task doesn't support restarting...")

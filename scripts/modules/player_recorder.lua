@@ -10,11 +10,10 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
-
-local QUERIES = PEARL.SteamAPI.QUERIES
 
 local DAY_PERCENT_SEGMENT = .1
 
@@ -39,46 +38,6 @@ local function RecordClientConnectionData(userid, data)
 
     -- Make sure these data are saved, because they are important.
     PEARL.DB:SaveRecordFor(userid)
-end
-
-function PEARL.RecordProfileData(userid, cb)
-    local gameplaytime
-
-    local steamid = userid and TheNet:GetNetIdForUser(userid)
-    if not steamid then
-        return PEARL.error("Failed to get steam ID for", userid)
-    end
-
-    local function RecordGamePlayTime(data)
-        PEARL.debug("RecordGamePlayTime")
-        table.dump(data)
-
-        local games = type(data.response) == "table" and data.response.games
-        local playtime = type(games) == "table" and #games > 0 and games[1].playtime_forever
-        if type(playtime) == "number" and playtime > 0 then
-            gameplaytime = (gameplaytime or 0) + playtime
-        end
-    end
-
-    PEARL.SteamAPI:CreateDataQuerySequenceFor(steamid, function()
-        if gameplaytime == 0 then
-            gameplaytime = nil
-        end
-
-        -- This is in minutes!
-        PEARL.DB:SafeSetField(userid, "gameplaytime", gameplaytime)
-
-        if type(cb) == "function" then
-            cb()
-        end
-    end)
-
-    PEARL.SteamAPI:AddQueryToSequence(
-        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_TOGETHER_APPID
-    )
-    PEARL.SteamAPI:AddQueryToSequence(
-        steamid, QUERIES.P_PLAYTIME, RecordGamePlayTime, DONT_STARVE_APPID
-    )
 end
 
 local function SaveSessionInfoFor(userid)
@@ -196,14 +155,9 @@ local function OnClientMigrating(world, data)
 end
 
 local function OnClientProfileData(userid, data)
-    -- Maybe a pairs loop would be better here but then we would have to rely
-    -- on the names provided by steamprofilechecker.
-    -- This way, changing the names there won't break the DB.
-    PEARL.DB:SafeSetField(userid, "profilecountrycode", data.loccountrycode)
-    PEARL.DB:SafeSetField(userid, "profiletimecreated", data.timecreated)
-    PEARL.DB:SafeSetField(userid, "profilerep", data.profilerep)
-    PEARL.DB:SafeSetField(userid, "communityprofile", data.communityprofile)
-    PEARL.DB:SafeSetField(userid, "avatar", data.avatar)
+    for key, value in pairs(data) do
+        PEARL.DB:SafeSetField(userid, key, value)
+    end
 end
 
 local function OnPlayerChanged(world, player)

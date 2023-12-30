@@ -23,6 +23,8 @@
 
 local Library = PEARL.loadfile("models/library")
 
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+
 ------------------------------------------
 -- [[ Localization ]]
 ------------------------------------------
@@ -35,11 +37,16 @@ local json = json
 ------------------------------------------
 
 local FILE_EXTENSION = ".json"
-local DATABASE_FILE_PATH = PEARL.CONFIG.DATABASE.FOLDER.."/%s"..FILE_EXTENSION
+local FILE_PATH = "/%s"..FILE_EXTENSION
+local DATABASE_ROOT_PATH = PEARL.CONFIG.DATABASE.DIRECTORIES.ROOT
+local DATABASE_RECORD_PATH = DATABASE_ROOT_PATH.."/"..PEARL.CONFIG.DATABASE.DIRECTORIES.RECORDS..FILE_PATH
+local DATABASE_BINDING_PATH = DATABASE_ROOT_PATH.."/"..PEARL.CONFIG.DATABASE.DIRECTORIES.BINDINGS..FILE_PATH
+
+print(DATABASE_RECORD_PATH, DATABASE_BINDING_PATH)
 
 local BINDING_TYPE = {
-    STEAM = "steamids"..FILE_EXTENSION,
-    DISCORD = "discordids"..FILE_EXTENSION,
+    STEAM = "steamids",
+    DISCORD = "discordids",
 }
 
 local BINDING_FIELD = {
@@ -60,7 +67,7 @@ local RECORD_TEMPLATE = {
     deathscount = 0,
     netid = nil,
     agreement = {
-        collectdata = false,
+        --collectdata = false,
     },
 }
 
@@ -116,6 +123,16 @@ function DB:FirstTimeJoined(userid)
     return record and record.lastseentime == nil
 end
 
+--- @TODO: add these to some separate lib
+function DB:MentionOrName(userid)
+    local discordid = self:GetField(userid, "discordid")
+    if discordid ~= nil then
+        return MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
+    end
+
+    return self:GetField(userid, "username", userid)
+end
+
 --- @return boolean
 function DB:IsDataCollectionEnabledFor(userid)
     --- @TODO:
@@ -131,22 +148,22 @@ function DB:GetTotalRecordCount()
 end
 
 function DB:GetRecordFilePathFor(userid)
-    return DATABASE_FILE_PATH:format(tostring(userid))
+    return DATABASE_RECORD_PATH:format(tostring(userid))
 end
 
 --- Checks whether the provided userid has a record file created.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return boolean
 function DB:HasRecordFile(userid)
-    return userid and io.exists(DATABASE_FILE_PATH:format(userid))
+    return userid and io.exists(self:GetRecordFilePathFor(userid))
 end
 
 --- Checks whether the given player's record is writeable.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return boolean
 function DB:IsRecordActive(userid)
+    -- Whether the client is playing on the current shard.
     return PEARL.ServerNetwork:IsClientConnected(userid)
-    --tostring(record.lastshardid) == tostring(TheShard:GetShardId())
 end
 
 --- Checks whether the given player's record is writeable.
@@ -492,10 +509,11 @@ function DB:SaveToDatabaseFile(path, data, ensure, encode)
     return wf:close()
 end
 
---- @return table?
+--- @return table?, boolean
 function DB:LoadDatabaseFile(path, ensure)
+    local created = false
     if ensure then
-        io.ensure(path, "{}")
+        created = io.ensure(path, "{}")
     end
 
     -- Klei has some weird checks here when opening files with special characters in path.
@@ -503,7 +521,7 @@ function DB:LoadDatabaseFile(path, ensure)
     local rf, err = io.open(path, "r")
     if not rf or err then
         PEARL.error(err or rf)
-        return
+        return nil, created
     end
 
     local str = rf:read("*a")
@@ -517,13 +535,13 @@ function DB:LoadDatabaseFile(path, ensure)
     if not success or type(data) ~= "table" then
         local _, result = RunInSandbox(str)
         if type(result) ~= "table" then
-            return
+            return nil, created
         end
 
         data = result
     end
 
-    return data
+    return data, created
 end
 
 --- Loads a single binding file with the specified type from disk.
@@ -531,7 +549,8 @@ end
 function DB:LoadBindingFile(type)
     PEARL.info("Loading bindings from", type)
 
-    local bindings = self:LoadDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, true)
+    local path = DATABASE_BINDING_PATH:format(type)
+    local bindings = self:LoadDatabaseFile(path, true)
     if not bindings then
         return PEARL.error("Failed to load binding file with type", type)
     end
@@ -563,7 +582,7 @@ function DB:SaveBindingFile(type)
 
     PEARL.info("Saving binding file", type)
 
-    self:SaveToDatabaseFile(PEARL.CONFIG.DATABASE.FOLDER.."/"..type, bindings, true)
+    self:SaveToDatabaseFile(DATABASE_BINDING_PATH:format(type), bindings, true)
 
     --setmetatable(bindings, CreateRecordMT(bindings))
 end
