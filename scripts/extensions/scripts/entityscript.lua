@@ -41,13 +41,21 @@ function EntityScript:IsResourcePlant()
         and self:HasOneOfTags(PEARL.CONSTS.RESOURCE_PLANT_TAGS)
 end
 
---- @param checkfn fun(ent: Entity): boolean
-function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, checkfn, rad)
-    local x, y, z = self.Transform:GetWorldPosition()
-    if not (x and y and z) then
-        return {}
-    end
+function EntityScript:IsFireProtected()
+    return PEARL.IsPosFireProtected(self:GetPosition())
+end
 
+function EntityScript:GetNearbyEntities(radius, musttags, canttags, mustoneoftags, filterfn)
+    return PEARL.GetEntitiesNearPos(self:GetPosition(),
+        radius, musttags,  canttags, mustoneoftags,
+        function(ent)
+            return ent and (ent.GUID ~= self.GUID) and (not filterfn or filterfn(ent))
+        end
+    )
+end
+
+--- @param filterfn fun(ent: Entity): boolean
+function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, filterfn, rad)
     -- For example flares.
     if self.components.propagator and (self.components.propagator.heatoutput or 0) <= 0 then
         return {}
@@ -60,14 +68,13 @@ function EntityScript:GetPropagableEntities(musttags, canttags, mustoneoftags, c
         radius = radius * TUNING.SPRING_FIRE_RANGE_MOD
     end
 
-    local entities = TheSim:FindEntities(
-        x, y, z, radius, musttags, canttags, mustoneoftags
-    ) or {}
-
-    -- Remove self
-    return table.filter(entities, function(k, v)
-        return v and v.GUID ~= self.GUID and (not checkfn or checkfn(v))
-    end)
+    return self:GetNearbyEntities(
+        radius,
+        musttags,
+        canttags,
+        mustoneoftags,
+        filterfn
+    )
 end
 
 function EntityScript:GetPropagableBurnableEntities(mustoneoftags, ...)

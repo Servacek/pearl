@@ -266,7 +266,7 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
         "agreement", type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" or type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table"
     )
     ModuleManager:AddModule(
-        "commandblocker", not IsTableEmpty(PEARL.CONFIG.COMMAND_BLOCKLIST or {}) or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
+        "commandblocker", table.empty(PEARL.CONFIG.COMMAND_BLOCKLIST) == false or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
     )
 end
 

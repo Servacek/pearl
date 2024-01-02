@@ -26,7 +26,7 @@ local ChatMessage = PEARL.loadfile("models/chatmessage")
 
 local TIME_UNTIL_KICK = 10
 
-local ASYNC_FILTER_TIMEOUT = 5
+local ASYNC_FILTER_TIMEOUT = 2
 local MIN_ASYNC_FILTER_TIMEOUT = 2
 
 -- Give a few ticks to the RPC network for the reason to deliver.
@@ -123,6 +123,10 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
     -- If all the filters have successfully passed, then the connection should be allowed.
     PEARL.debug("Allowing connection for", userid, initial)
     return ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
+end
+
+local function filter_comp(a, b)
+
 end
 
 ----------------------------------
@@ -319,97 +323,69 @@ function ServerNetwork:DisconnectAllClients(reason, immediately)
 end
 
 --- @param userid string The Klei ID of the user you want to run filters for.
---- @param cfd table? The data proccessed by the filters.
---- @return boolean? allowed Representing whether the client is allowed
---- to join according the filters or not.
+--- @param filters table The filters to execute for the given user.
+--- @param cfd table The data proccessed by the filters.
+--- @return boolean allowed Representing whether the client is allowed to join.
 --- @return string? reason The code of the reason why the access was prohibited.
 --- @return string? title The code of the title why the access was prohibited.
-function ServerNetwork:RunConnectionFiltersFor(userid, cfd)
-    cfd = cfd or self:GetCachedCFDFor(userid)
-
-    for i = 1, #conn_filters do
+function ServerNetwork:RunConnectionFiltersFor(userid, filters, cfd)
+    for i = 1, #filters do
         local success, allowed, reason, title = PEARL.SafeRun(conn_filters[i].fn, userid, cfd)
         if success == false then
             -- Allowed should be the error message in this case.
             PEARL.error("Failed to execute a connection data filter!", allowed)
         elseif allowed == false then -- Check for explicit false
-            return allowed, reason, title
+            return allowed == true, reason, title
         end
     end
 
     return true
 end
 
---- @TODO: Rework this to be more reliable and work in paralel.
--- Returns always nil, this one requires a finishcb function
--- where the first 2 parameters will be the allowed flag and reason string.
+--- Using the paralel aproach for efficiency, since we are storing most of the filter data anyway.
 --- @param userid string The Klei ID of the user you want to run filters for.
---- @param cfd table? The data proccessed by the filters.
+--- @param filters table The async filters to execute for the given user.
 --- @param finishcb fun(userid: string, allowed: boolean?, reason: string?)
-function ServerNetwork:RunAsyncConnectionFilters(userid, cfd, finishcb)
-    if not (async_conn_filters and #async_conn_filters > 0) then
-        return
-    end
+function ServerNetwork:RunAsyncConnectionFilters(userid, filters, finishcb)
+    local finished, canceled          = false, false
+    local count_finished, count_total = 0, #filters
 
-    cfd = cfd or self:GetCachedCFDFor(userid)
-    local default_timeout = math.max(ASYNC_FILTER_TIMEOUT / #async_conn_filters, MIN_ASYNC_FILTER_TIMEOUT)
-
-    -- Starting with the first filter in the set.
-    local i = 1
-    --- @type Task?
-    local timeout_task
-    local handle_async_filter
-    local function run_async_filter(index)
-        local filter = async_conn_filters[index]
-        local timeout = filter.timeout or default_timeout
-
-        if timeout_task then
-            timeout_task:settime(timeout)
-            timeout_task:restart()
-        else -- In case the timeout task was disabled by the previous filter or something.
-            timeout_task  = PEARL.WallScheduler:ExecuteInTime(timeout, function()
-                if PEARL.CONFIG.DEBUG_MODE then
-                    return error("Async filter timed out!")
-                end
-
-                PEARL.error("Async filter timed out! Did you forgot to call 'oncomplete'?")
-                handle_async_filter(true)
-            end)
+    local function handle_filter(allowed, reason)
+        if finished then
+            return -- Ignore responses after we are done with the filters.
         end
 
-        PEARL.debug("Running asynchrounous connection filter at index", i)
-        if PEARL.SafeRun(
-            filter.fn, userid, cfd, handle_async_filter
-        ) == false then
-            -- If the filter throws an error, ignore it and mark it as allowing the connection.
-            handle_async_filter(true)
-
-            -- Allowed should be the error message in this case.
-            PEARL.error("Failed to execute an async connection data filter!")
-        end
-    end
-
-    handle_async_filter = function(allowed, reason)
-        -- If this was the last filter or the filter failed.
-        if i >= #async_conn_filters or allowed == false then
+        count_finished = count_finished + 1
+        if count_finished >= count_total or canceled or allowed == false then
             PEARL.debug("Asynchrounous connection filters finished!", reason)
+            finished = true
 
-            if timeout_task then
-                timeout_task:cancel()
-                timeout_task = nil
-            else
-                PEARL.error("Responded to an already extecuted async filter!")
-            end
-
-            return finishcb(userid, allowed, reason)
+            return finishcb(userid, allowed == true, reason)
         end
-
-        -- Move to the next filter
-        i = i + 1
-        run_async_filter(i)
     end
 
-    run_async_filter(i)
+    for _, filter in ipairs(filters) do
+        if PEARL.SafeRun(filter.fn, userid, handle_filter) == false then
+            PEARL.error("Failed to execute an async connection data filter!")
+            handle_filter(true)
+        end
+    end
+
+    -- Give each filter some time to execute
+    local timeout = math.max(ASYNC_FILTER_TIMEOUT * count_total, MIN_ASYNC_FILTER_TIMEOUT)
+    PEARL.WallScheduler:ExecuteInTime(timeout, function()
+        if finished then
+            return
+        end
+
+        canceled = true
+        if PEARL.CONFIG.DEBUG_MODE then
+            return error("Async filters timed out!")
+        end
+
+        PEARL.error("Async filters timed out! Did you forgot to call 'oncomplete'?")
+        handle_filter(true)
+    end)
 end
 
 --- @param userid string
@@ -449,6 +425,7 @@ function ServerNetwork:GetCachedClientTableFor(userid)
 end
 
 -- All clients connected from each shard!
+--- @return table<integer, table>
 function ServerNetwork:GetConnectedClients()
     return GetPlayerClientTable()
 end
@@ -457,18 +434,16 @@ function ServerNetwork:IsClientBanned(userid)
     return PEARL.BlackList:Contains(userid)
 end
 
-function ServerNetwork:IsAgreementEnabled()
-    return PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT ~= nil
-end
-
 function ServerNetwork:IsAnySecondaryShardConnected()
     return table.empty(ShardList) == false
 end
 
+--- @return table<integer, string>
 function ServerNetwork:GetConnectedShardIDs()
     return table.keys(ShardList)
 end
 
+--- @return table<integer, table>
 function ServerNetwork:GetConnectedClientIDs()
     local ids = {}
     for _, client in pairs(self:GetConnectedClients()) do
@@ -476,6 +451,11 @@ function ServerNetwork:GetConnectedClientIDs()
     end
 
     return ids
+end
+
+--- @return table<string, boolean>
+function ServerNetwork:GetLocalClientIDs()
+    return connected_clients
 end
 
 --- @TODO: Think of a better alternative.
@@ -490,10 +470,6 @@ function ServerNetwork:GetConnectingClientIDs()
     return joining_clients
 end
 
-function ServerNetwork:GetCFDCache()
-    return conn_data_cache
-end
-
 function ServerNetwork:GetHostTable()
     -- For dedicated servers the first index is reserved for the "host" machine.
     return TheNet:GetClientTable()[1]
@@ -501,11 +477,11 @@ end
 
 function ServerNetwork:GetUserFlags(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
-    return client and client.userflags
+    return client and client.userflags or 0
 end
 
 function ServerNetwork:HasUserAnyFlags(userid)
-    return self:GetUserFlags(userid) == 0
+    return self:GetUserFlags(userid) ~= 0
 end
 
 function ServerNetwork:HasUserFlag(userid, flag)
@@ -627,19 +603,13 @@ local function AddFilter(tbl, filter, priority, timeout, name)
         error("Invalid filter function")
     end
 
-    ServerNetwork:SetServerRequiresCFD(true)
-
-    table.insert(tbl, {
+    -- Keep the filters sorted.
+    table.insort(tbl, {
         fn = filter,
         priority = type(priority) == "number" and priority or math.huge,
         timeout = type(timeout) == "number" and timeout or ASYNC_FILTER_TIMEOUT,
         name = type(name) == "string" and name or nil,
-    })
-
-    -- Keep the filters sorted.
-    table.sort(tbl, function(f1, f2)
-        return f1.priority < f2.priority
-    end)
+    }, filter_comp)
 end
 
 --- @param filter function<userid, data>
@@ -653,7 +623,7 @@ function ServerNetwork:AddConnectionFilter(filter, priority, name)
 end
 
 --- NOTE: Async filters ALWAYS require a response by calling the filter function!
---- @param filter function<userid, data, fun(allowed: boolean?, reason: string?)>
+--- @param filter function<userid, fun(allowed: boolean?, reason: string?)>
 --- @param priority number? Whether this filter should be called sooner or later.
 --- @param timeout integer? Whether this filter should be called sooner or later.
 --- @param name string? Whether this filter should be called sooner or later.
@@ -671,10 +641,6 @@ function ServerNetwork:AddJoinServerFilter(filter)
     PEARL.debug("ServerNetwork:AddJoinServerFilter", filter)
 
     return table.insert(join_filters, filter)
-end
-
-function ServerNetwork:SetServerRequiresCFD(requires)
-    PEARL.CONFIG.SERVER_REQUIRE_CFD = requires
 end
 
 -- --- @param slots integer
@@ -791,15 +757,15 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
     end
 
     -- Skip already trusted clients
-    local allowed, reason, title
+    local allowed, reason, title = true, nil, nil
     if not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE then
-        if allowed ~= false and conn_filters and #conn_filters > 0 then
-            allowed, reason, title = self:RunConnectionFiltersFor(userid)
+        if allowed ~= false and table.empty(conn_filters) == false then
+            allowed, reason, title = self:RunConnectionFiltersFor(userid, conn_filters, cfd)
         end
 
-        if allowed ~= false and async_conn_filters and #async_conn_filters > 0 then
+        if allowed ~= false and table.empty(async_conn_filters) == false then
             return self:RunAsyncConnectionFilters(
-                userid, cfd, _OnConnectionFiltersFinished
+                userid, async_conn_filters, _OnConnectionFiltersFinished
             )
         end
     end

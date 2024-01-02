@@ -18,17 +18,17 @@
 local VERY_BAD_REP_THRESHOLD = PEARL.CONSTS.STARTING_REPUTATION / 4
 local BAD_REP_THRESHOLD = PEARL.CONSTS.STARTING_REPUTATION / 2
 
-local MAX_REP_EARN = 750
+--- Per action
+local MAX_REP_EARN = 50
 local MAX_REP_LOSE = -100
+
+local MAX_REP_PER_CYCLE = 100
 
 local REMEMBER_LOSE_THRESHOLD = -5
 
 local NEGATIVE_REP_MULTIPLIER = 1
 local MAX_REP_MULTIPLIER      = 2
 local MIN_REP_MULTIPLIER      = 0
-
-local REP_EARN_SCALE = 0.16
-local REP_BASE = 1.39
 
 -- If we have lost at least REMEMBER_LOSE_THRESHOLD of reputation
 -- we won't gain any reputation again until this cooldown finishes.
@@ -38,15 +38,6 @@ local GAIN_COOLDOWN = 60
 local EXP_NEWBIE_THRESHOLD  = 60 * 60
 local EXP_NEUTRAL_THRESHOLD = 200 * 60
 
-local DEFAULT_REP_DATA = {
-    value = PEARL.CONSTS.STARTING_REPUTATION,
-    peak = PEARL.CONSTS.STARTING_REPUTATION,
-    lowest = PEARL.CONSTS.STARTING_REPUTATION,
-    lastlose = 0,
-    monthgains = 0,
-    daygains = 0,
-}
-
 local FIELD_NAME = "reputation"
 
 --------------------------------------
@@ -54,7 +45,23 @@ local FIELD_NAME = "reputation"
 --------------------------------------
 
 --- @class Reputation
-local Reputation = {}
+local Reputation = {
+    sync_rep_table = {},
+}
+
+--------------------------------------
+-- [[ Static ]]
+--------------------------------------
+
+Reputation.DEFAULT_REP_DATA = {
+    value = PEARL.CONSTS.STARTING_REPUTATION,
+    peak = PEARL.CONSTS.STARTING_REPUTATION,
+    lowest = PEARL.CONSTS.STARTING_REPUTATION,
+    lastlose = 0,
+    monthgains = 0,
+    daygains = 0,
+    cyclegains = 0,
+}
 
 --------------------------------------
 -- [[ Static ]]
@@ -70,7 +77,11 @@ Reputation.STARTING_VALUE = PEARL.CONSTS.STARTING_REPUTATION
 function Reputation:GetFieldOf(userid, field)
     field = field or "value"
 
-    return PEARL.DB:GetSubField(userid, "reputation", field)
+    if self.sync_rep_table[userid] ~= nil and self.sync_rep_table[userid][field] ~= nil then
+        return self.sync_rep_table[userid][field]
+    end
+
+    return PEARL.DB:GetSubField(userid, FIELD_NAME, field)
 end
 
 --- @return number
@@ -94,18 +105,13 @@ function Reputation:GetMonthGainsOf(userid)
 end
 
 --- @return number
+function Reputation:GetCycleGains(userid)
+    return userid and self:GetFieldOf(userid, "cyclegains") or 0
+end
+
+--- @return number
 function Reputation:GetLowestOf(userid)
     return userid and self:GetFieldOf(userid, "lowest") or 0
-end
-
-function Reputation:IsNewbie(userid)
-    local playtime = PEARL.DB:GetField(userid, "gameplaytime")
-    return playtime and playtime < EXP_NEWBIE_THRESHOLD or false
-end
-
-function Reputation:IsExperienced(userid)
-    local playtime = PEARL.DB:GetField(userid, "gameplaytime")
-    return playtime and playtime > EXP_NEUTRAL_THRESHOLD or false
 end
 
 function Reputation:GetGamePlayTime(userid)
@@ -125,20 +131,39 @@ end
 --- @param userid string
 --- @param field string?
 --- @param value any
-function Reputation:SetFieldFor(userid, field, value)
+function Reputation:SetFieldFor(userid, field, value, sync)
     if PEARL.DB:IsDisabled() or PEARL.CONFIG.PERMISSIVE_MODE or not PEARL.DB:HasRecordFile(userid) then
         return false
     end
 
     local record = PEARL.DB:GetRecordFor(userid)
-    if not record or type(record["reputation"]) ~= "table" then
+    if not record or not PEARL.DB:IsRecordWriteable(record) then
+        return false
+    end
+
+    local modifable = record["reputation"]
+    -- When modifable is not really modifable.
+    if not PEARL.DB:IsRecordWriteable(record) then
+        if sync ~= true then
+            -- We will continue but this behaviour should not happen.
+            PEARL.error("Attempted to modify player's reputation on a non-active shard!")
+        end
+
+        if not self.sync_rep_table[userid] then
+            self.sync_rep_table[userid] = shallowcopy(modifable)
+        end
+
+        modifable = self.sync_rep_table[userid]
+    end
+
+    if type(modifable) ~= "table" then
         return false
     end
 
     field = field or "value"
 
-    local old = record["reputation"][field]
-    record["reputation"][field] = value
+    local old = modifable[field]
+    modifable[field] = value
 
     if field == "value" and old ~= value then
         local delta = value - old
@@ -163,8 +188,8 @@ function Reputation:SetFieldFor(userid, field, value)
     return true
 end
 
-function Reputation:SetFor(userid, value)
-    return self:SetFieldFor(userid, "value", value)
+function Reputation:SetFor(userid, value, sync)
+    return self:SetFieldFor(userid, "value", value, sync)
 end
 
 --------------------------------------
@@ -173,16 +198,6 @@ end
 
 function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
-
-    if PEARL.DB:IsDisabled() or PEARL.CONFIG.PERMISSIVE_MODE == true then
-        return
-    end
-
-    if not PEARL.DB:HasRecordFile(userid) then
-        PEARL.error("Record not found for", userid)
-        return
-    end
-
     local rep = self:GetOf(userid)
     delta = math.max(math.min(delta, MAX_REP_EARN), MAX_REP_LOSE)
     local new_rep = math.floor(rep + delta)
@@ -200,6 +215,10 @@ end
 -- This has no limits if marked as griefing, so the reputation can go below zero
 -- which then causes the player to be banned.
 function Reputation:EarnFor(userid, amount, griefing)
+    if PEARL.CONFIG.PERMISSIVE_MODE == true then
+        return
+    end
+
     -- Preventing quick changes in reputation.
     local lastlose = self:GetFieldOf(userid, "lastlose")
     if lastlose and amount > 0 and lastlose > 0 and (os.time() - lastlose) < GAIN_COOLDOWN then
@@ -233,26 +252,22 @@ function Reputation:GiveTo(userid, amount)
     return self:DoDeltaTo(userid, amount, VERY_BAD_REP_THRESHOLD)
 end
 
---- @param value number
---- @return boolean success
-function Reputation:SetTo(userid, value)
-    if type(value) == "number" then
-        return self:SetFieldFor(userid, "value", value)
-    else
-        PEARL.error("Attempted to set an invalid reputation value: ", type(value), value)
-    end
-
-    return false
-end
-
 --- @param userid string
 --- @param value number?
 function Reputation:InitializeFor(userid, value)
-    local data = deepcopy(DEFAULT_REP_DATA)
+    local data = deepcopy(Reputation.DEFAULT_REP_DATA)
     if PEARL.DB:SetField(userid, FIELD_NAME, data) then
         PEARL.EventProcessor:HandleEvent("onreputationchanged", userid, 0, tonumber(value) or data.value)
     end
 end
+
+--------------------------------------
+-- [[ RPCs ]]
+--------------------------------------
+
+PEARL.AddShardRPCHandler("ReputationChanged", function(shardid, userid, new)
+    Reputation:SetFor(userid, new)
+end)
 
 --------------------------------------
 -- [[ Return ]]

@@ -136,7 +136,7 @@ local function OnReputationEarned(userid, old, new)
 
     local warning_level = 0
     for i = 1, #WARNING_THRESHOLDS do
-        if WARNING_THRESHOLDS[i] < old and WARNING_THRESHOLDS > new then
+        if WARNING_THRESHOLDS[i] < old and #WARNING_THRESHOLDS > new then
             warning_level = i
         else
             break -- No other threshold will meet the criteria.

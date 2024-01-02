@@ -138,7 +138,7 @@ end
 -- [[ Setup ]]
 --------------------------------
 
-PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, data, filtercb)
+PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, filtercb)
     if not (ShouldCheckClient(userid) or PEARL.CONFIG.DEBUG_MODE) then
         return filtercb(true)
     end

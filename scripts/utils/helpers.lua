@@ -25,6 +25,15 @@ local PlayerMetadata = PEARL.loadfile("models/playermetadata")
 
 local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
 
+-----------------------------------
+-- [[ Local Functions ]]
+-----------------------------------
+
+local function FligoFilter(fligo)
+    print("FILTER", fligo)
+    return fligo.components.firedetector and fligo.components.firedetector.detectTask ~= nil
+end
+
 --------------------------------
 -- [[ Inventory ]]
 --------------------------------
@@ -397,11 +406,28 @@ function PEARL.GroupEntitiesByPrefab(entities)
     return grouped
 end
 
-function PEARL.GetBurnableEntitiesNearPos(pos, radius)
-    return TheSim:FindEntities(pos.x, pos.y, pos.z, radius,
+function PEARL.IsPosFireProtected(pos)
+    return table.empty(PEARL.GetEntitiesNearPos(pos, TUNING.FIRE_DETECTOR_RANGE, {
+        "hasemergencymode", "structure",
+    }, nil, nil, FligoFilter)) == false
+end
+
+function PEARL.GetEntitiesNearPos(pos, radius, musttags, canttags, mustoneoftags, filterfn)
+    local entities = TheSim:FindEntities(
+        pos.x, pos.y, pos.z, radius, musttags, canttags, mustoneoftags
+    ) or {}
+
+    return type(filterfn) == "function" and table.filter(entities, function(k, v)
+        return v and (not filterfn or filterfn(v))
+    end) or entities
+end
+
+function PEARL.GetBurnableEntitiesNearPos(pos, radius, ...)
+    return PEARL.GetEntitiesNearPos(pos, radius,
         PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
         PEARL.CONSTS.ENT_CANT_HAVE_TAGS,
-        PEARL.CONSTS.ENT_ONEOF_TAGS
+        PEARL.CONSTS.ENT_ONEOF_TAGS,
+        ...
     )
 end
 
@@ -449,7 +475,14 @@ end
 
 --- @return integer
 function PEARL.CountPrefabs(prefab)
-    return c_countprefabs(prefab, true) or 0
+    local count = 0
+    for _, ent in pairs(Ents) do
+        if ent.prefab == prefab and ent:IsValid() and (not ent.components.health or not ent.components.health:IsDead()) then
+            count = count + 1
+        end
+    end
+
+    return count
 end
 
 function PEARL.ToISO8601UTC(timestamp)

@@ -221,10 +221,6 @@ function ClientNetwork:IsWaitingForResponse()
     return timeout_task ~= nil
 end
 
-function ClientNetwork:ShouldSendCFDToServer()
-    return not self:HasSentCFD() and PEARL.CONFIG.SERVER_REQUIRE_CFD == true
-end
-
 function ClientNetwork:GetHostPerformance()
     -- For dedicated servers the first index is reserved for the "host" machine.
     return TheNet:GetClientTable()[1].performance
@@ -234,18 +230,10 @@ function ClientNetwork:HasSentCFD()
     return PEARL.GameInstParams:GetCurrentModParam("cfd_sent") ~= nil
 end
 
-function ClientNetwork:GetCFD()
-    return cfd
-end
-
 --- @return string?
 function ClientNetwork:GetDisconnectReason()
     return disconnect_reason
 end
-
--- function ClientNetwork:IsWaitingForResponse()
---     return PEARL.GameInstParams:GetCurrentModParam("waiting_for_response") == nil
--- end
 
 function ClientNetwork:IsDisconnected()
     return disconnected or disconnected_by_server or force_disconnected
@@ -322,11 +310,11 @@ end
 -- Call the defered OnNetworkDisconnect here!
 PEARL.AddFrontEndPostInit(function(fe)
     -- All modules working with cfd should be loaded.
-    if ClientNetwork:ShouldSendCFDToServer() then
+    if not ClientNetwork:HasSentCFD() then
         ClientNetwork:SendCFDToServer()
     end
 
-    if not IsTableEmpty(disconnect_data) then
+    if table.empty(disconnect_data) == false then
         return ClientNetwork:NotifyNetworkDisconnect()
     end
 end)

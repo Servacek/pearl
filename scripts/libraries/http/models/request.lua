@@ -124,8 +124,11 @@ end)
 -------------------------------------
 
 --- @TODO: This should be configurable and request specific
+--- @see RestAPI.STATUS_CODES
 Request.RETRY_CODES = {
     [0] = true,
+    [100] = true,
+    [502] = true,
 }
 
 -------------------------------------

@@ -520,7 +520,7 @@ AddCommand("setrep", {
     --- @param value number
     --- @param ctx CommandContext
     fn = function(ctx, userid, value)
-        if PEARL.Reputation:SetTo(userid, value) then
+        if PEARL.Reputation:SetFor(userid, value) then
             if PEARL.DB:SaveRecordFor(userid) then
                 return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS)
             end

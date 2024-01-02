@@ -44,9 +44,12 @@ local EXTINGUISHER_RADIUS = PEARL.CONSTS.EXTINGUISH_RADIUS
 
 local TIME_UNTIL_EXTINGUISH = 4 -- in seconds
 
-local MAX_ATTACKERS = 5
+local MIN_DAMAGE_DEALT_PERCENT = .1 -- Max 10 players logged
 local MAX_REMEMBERING_DELAY = 8 * 60 -- Circa one in-game cycle
 local MIN_DAMAGE_DEALT = 10
+
+-- For both food and fuel.
+local MAX_WASTE_TOLERANCE = .5
 
 ------------------------
 -- [[ Check Functions ]]
@@ -80,7 +83,7 @@ end
 --- @param checkfn function? Optional check function used to verify the arguments passed for the action handler.
 --- @param pre boolean? Whether the action should be proccessed before the handler.
 --- @return function handler? The handler parameter. Used for chaining.
-local function RegisterActionHandler(action, handler, checkfn, pre)
+local function RegisterActionHandler(action, handler, checkfn, pre, postevent)
     if type(action) ~= "table" then
         error("invalid action")
     end
@@ -102,7 +105,12 @@ local function RegisterActionHandler(action, handler, checkfn, pre)
             end
         end
 
+        -- If the original action handler crashes, let the error propagate.
         local success = _action(act, ...)
+        if postevent ~= nil then
+            PEARL.EventProcessor:HandleEvent(postevent, success)
+        end
+
         if success and pre ~= true then
             if type(checkfn) ~= "function" or checkfn(doer, target, item, pos) then
                 was_successfull, result = PEARL.SafeRun(handler,
@@ -140,7 +148,8 @@ end
 
 --- @TODO: Create some separate "pyromaniac" component for this.
 --- Cache the ignited entities somewhere.
-local function OnIgniteNear(doer, near)
+local function OnIgniteNear(doer, near, pos)
+    pos = pos or doer:GetPosition()
     local mult = near and #near or 0 + 1
     PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITED_STRUCTURE * mult, true)
 
@@ -152,11 +161,10 @@ local function OnIgniteNear(doer, near)
         PEARL.info("Extinguishing the fires!")
 
         local doername = doer:GetDisplayName()
-        local x, y, z = doer.Transform:GetWorldPosition()
         -- Extinguish fires near the doer.
         -- Use WallScheduler in case the server gets paused after this.
         PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_EXTINGUISH, function()
-            if PEARL.ExtinguishFires(x, y, z, EXTINGUISHER_RADIUS) > 0 then
+            if PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS) > 0 then
                 PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITING_AT_BASE, true)
             end
 
@@ -178,14 +186,11 @@ end
 -- Announce when an object gets set on fire and who set it on fire.
 -- Only announces setting items and structures on fire (player creations)
 RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
-    -- Burnable entities in the propagation radius
-    local near = target:GetPropagableEntities(
-        PEARL.CONSTS.ENT_MUST_HAVE_TAGS,
-        PEARL.CONSTS.ENT_CANT_HAVE_TAGS
-        -- Announce EVERYTHING burnably nearby.
-        --PEARL.CONSTS.ENT_ONEOF_TAGS
-    )
+    if target:IsFireProtected() then
+        return
+    end
 
+    local near = target:GetPropagableBurnableEntities()
     local silent = false
     if not ((
         -- The target is a structure or craftable item
@@ -211,25 +216,62 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         :AddTarget(target)
 end)
 
-RegisterPlayerActionHandler(ACTIONS.EAT, function(doer, target, item)
-    local rarity = PEARL.GetRarityForPrefab(item.prefab)
-    local silent = rarity <= 0
-    local type = PEARL.CONSTS.ANN_TYPE[silent and "EAT" or "SWALLOW"]
-
-    if rarity > 0 then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EAT_RARE * rarity)
+-- Track also mobs eating rare stuff.
+RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
+    local food = item or target
+    local pt = doer and STRINGS.PEARL.ACTIONS.EAT.DOER or STRINGS.PEARL.ACTIONS.EAT.GENERIC
+    local rarity = PEARL.GetRarityForPrefab(food.prefab)
+    local rare = rarity > 0
+    if not rare and (not doer or not doer:HasTag("player")) then
+        return
     end
 
-    local action = AL:EntityAct(STRINGS.PEARL.ACTIONS.EAT.GENERIC, doer)
-        :SetLogType(type)
-        :SetIsSilent(silent)
-        :AddTarget(item, 1)
+    local silent = not rare
+    local atyp = PEARL.CONSTS.ANN_TYPE[silent and "EAT" or "SWALLOW"]
 
-    -- Make sure those rare items wont be combined with regular ones.
-    if not silent then
-        action:Execute()
+    -- Safe some data before the actual eating and compare them afterwards.
+    local pre_hunger, pre_health, pre_sanity
+    if doer then
+        local eater = doer.components.eater
+        pre_hunger = doer.components.hunger and doer.components.hunger.current * eater.hungerabsorption
+        pre_sanity = doer.components.sanity and doer.components.sanity.current * eater.sanityabsorption
+        pre_health = doer.components.health and doer.components.health.currenthealth * eater.healthabsorption
     end
-end)
+
+    -- This event is guarateed to be ALWAYS pushed after the action is executed.
+    PEARL.EventProcessor:AddSafeOneTimeHandler("ACTIONS.EAT", function(success)
+        if not success then
+            return -- Action failed, no food has been actual eaten.
+        end
+
+        -- Calculate wasted value only for players. Mobs are allowed to waste food.
+        local edible = food.components.edible
+        local max = edible and (
+            (edible.healthvalue or 0)+(edible.hungervalue or 0)+(edible.sanityvalue or 0)
+        ) or 0
+        if edible and doer:HasTag("player") and pre_hunger and pre_sanity and pre_health and max > 0 then
+            local hunger_delta = doer.components.hunger.current - pre_hunger
+            local sanity_delta = doer.components.sanity.current - pre_sanity
+            local health_delta = doer.components.health.currenthealth - pre_health
+            local actual = hunger_delta + sanity_delta + health_delta
+            local waste = 1 - actual / max -- Max is always > 0
+            if waste > MAX_WASTE_TOLERANCE then
+                atyp = PEARL.CONSTS.ANN_TYPE.SWALLOW
+                pt = STRINGS.PEARL.ACTIONS.EAT.FULL
+                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.WASTE_FOOD * waste)
+            end
+        end
+
+        if rarity > 0 then
+            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EAT_RARE * rarity)
+        end
+
+        AL:EntityAct(pt, doer)
+            :SetLogType(atyp)
+            :SetIsSilent(silent)
+            :AddTarget(food, 1)
+    end)
+end, nil, true, "ACTIONS.EAT")
 
 RegisterPlayerActionHandler(ACTIONS.HEAL, function(doer, target, item)
     if target and target:HasTag("player") and target.components.health and target.components.health:IsHurt() then
@@ -262,7 +304,8 @@ RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
     AL:EntityAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TEACH)
         :SetIsSilent(not rare)
-        :AddTarget(target, 1)
+        -- We need the exact name here.
+        :AddTarget(item:GetDisplayName())
 end)
 
 RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
@@ -413,23 +456,28 @@ RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
-    print("CUR", target.components.fueled.currentfuel)
     local added = item.components.fuel.fuelvalue
     local reserve = math.max(target.components.fueled.maxfuel - target.components.fueled.currentfuel, 0)
     local waste = math.max(added - reserve, 0) / added
-    print("ADDED:", added, "RESERVE:", reserve, "WASTE:", waste)
 
-    if item.components.inventoryitem:IsRare() then
+    if item.components.inventoryitem:IsRare() or item.components.teacher then
         waste = 1
+
+        -- For very rare items (rare blueprints, etc...)
+        if item.is_rare then
+            waste = 2
+        end
     end
 
     local type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
     local str = STRINGS.PEARL.ACTIONS.ADDFUEL.GENERIC
-    if waste > 0.5 then
+    if waste > MAX_WASTE_TOLERANCE then
         str = STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
         type = PEARL.CONSTS.ANN_TYPE.WASTE
 
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FUEL_WASTED * waste)
+    elseif target.components.wateryprotection then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FUEL_TO_PROTECTOR * (1 - waste))
     end
 
     AL:EntityAct(str, doer, "source", target)
@@ -467,7 +515,6 @@ end)
 RegisterPlayerActionHandler(ACTIONS.PLANTWEED,
 RegisterPlayerActionHandler(ACTIONS.PLANTSOIL,
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
-    print("DEPLOY", doer, target, item)
     local icon = PEARL.EMOTES.DISCORD.EYEPLANT
     if item:HasTag("plant") then
         icon = PEARL.EMOTES.DISCORD.BERRY
@@ -489,25 +536,36 @@ end)))
 
 RegisterPlayerActionHandler(ACTIONS.DEPLOY_TILEARRIVE,
 RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
+    local icon = PEARL.EMOTES.DISCORD.RMB
+    local pt = STRINGS.PEARL.ACTIONS.USED[target and "ON" or "GENERIC"]
+    if not item or item.components.fertilizer then
+        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
 
-    local pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD
-    if target then
-        pt = STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
-    elseif item  then
-        pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD_WITH
+        icon = PEARL.EMOTES.DISCORD.LMB
+        pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD
+        if target then
+            pt = STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
+        elseif item  then
+            pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD_WITH
+        end
     end
 
     AL:EntityAct(pt, doer, "item", item)
-        :SetIcon(PEARL.EMOTES.DISCORD.POOP)
+        :SetIcon(icon)
         :AddTarget(target or STRINGS.NAMES.FARM_SOIL_DEBRIS)
 end))
 
 RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target, item)
-    print("SLEEP", doer, target, item)
     AL:EntityAct(STRINGS.PEARL.ACTIONS.SLEEP.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.SLEEP)
         :AddTarget(target or item)
+end)
+
+RegisterPlayerActionHandler(ACTIONS.DRY, function(doer, target, item)
+    AL:EntityAct(STRINGS.PEARL.ACTIONS.DRIED.GENERIC, doer,
+        QueuedLogAction.FIELDS.TARGET, target)
+        :SetIcon(PEARL.EMOTES.DISCORD.MEAT)
+        :AddToStackableField(QueuedLogAction.FIELDS.ITEM, item, 1)
 end)
 
 RegisterPlayerItemActionHandler(ACTIONS.GIVEALLTOPLAYER,
@@ -597,7 +655,7 @@ local function OnCastFire(doer, item, target, pos, radius)
     end
 
     if #entities > 0 then
-        OnIgniteNear(doer, entities)
+        OnIgniteNear(doer, entities, pos)
 
         return OnAreaCast(
             doer, item, target, entities,
@@ -609,7 +667,7 @@ local function OnCastFire(doer, item, target, pos, radius)
 end
 
 local function OnCastAreaDestruction(doer, item, target, pos, radius)
-    local entities = TheSim:FindEntities(pos.x, pos.y, pos.z, radius,
+    local entities = PEARL.GetEntitiesNearPos(pos, radius,
         -- Do not care about plants here since they are not heavily affected by destruction.
         nil, nil, PEARL.CONSTS.BASE_STRUCTURE_TAGS
     )
@@ -630,7 +688,7 @@ end
 
 RegisterPlayerActionHandler(ACTIONS.CASTAOE,
 RegisterPlayerActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
-    if item and item:HasTag("veryquickcast") then -- Ignore stuff like resking tool...
+    if not item or item:HasTag("veryquickcast") then -- Ignore stuff like resking tool...
         return
     end
 
@@ -655,6 +713,10 @@ RegisterPlayerActionHandler(ACTIONS.CASTSPELL, function(doer, target, item, pos)
 end))
 
 RegisterPlayerActionHandler(ACTIONS.ATTACK, function(doer, target, item, pos)
+    if not item then
+        return
+    end
+
     -- Fire Staff - Using it counts as attacking not casting.
     local ign_radius = PEARL.PREFABS.AREA_IGNITE_STAFFS[item.prefab] or 0
     if ign_radius > 0 then
@@ -672,7 +734,14 @@ local function onepicdeath(doer, target, data)
     -- Only bosses have memory because of their large HP capacity.
     if target.components.memory then
         local doers = {}
+        local total_hp = math.max(tonumber(target.components.health.maxhealth) or 1, 1)
+        -- Iterate over the ids sorted by damage dealt
         for _, id in ipairs(target.components.memory:SortedKeys()) do
+            local damage = target.components.memory:Get(id)
+            if damage <= 0 or (damage / total_hp) < MIN_DAMAGE_DEALT_PERCENT then
+                break -- we are sorted, so the next one can be even worse.
+            end
+
             local attacker = LookupPlayerInstByUserID(id) or Ents[id]
             if attacker then
                 doers[#doers + 1] = PEARL.GetStandardizedNameFor(attacker, true)
@@ -694,6 +763,7 @@ local function onepicdeath(doer, target, data)
 
     return AL:EntityAct(pt, doer, "target", target)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.DEFEAT)
+        :SetIsSilent(false)
 end
 
 local function onfirespreaderdeath(doer, target)
@@ -712,26 +782,31 @@ local function onfirespreaderdeath(doer, target)
 
     local pt = STRINGS.PEARL.ACTIONS.KILL[prefix]
     local prohibited = #near >= 4 or table.find(near, structuresearchfn)
-    AL:Act(pt, {
-        doer = doer, target = target, near = PEARL.BuildFancyStringForEntities(near)
-    })
-    :SetIsSilent(not prohibited)
-    :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
+    AL:EntityAct(pt, doer,
+    {target = target, near = PEARL.BuildFancyStringForEntities(near)})
+        :SetIsSilent(not prohibited)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
 end
 
-local function onmonitoreddeath(doer, target, remaining)
+local function onmonitoreddeath(doer, target, threshold)
+    local remaining = PEARL.CountPrefabs(target.prefab)
     local extinct = remaining <= 0
     if doer.userid and extinct  then
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.POPULATION_EXINCT)
     end
 
     local str = extinct and STRINGS.PEARL.ACTIONS.KILL.LAST or STRINGS.PEARL.ACTIONS.KILL.REMAINING
-    return AL:EntityAct(str, doer)
-        :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+    local action = AL:EntityAct(str, doer)
+        :SetLogType(PEARL.CONSTS.ANN_TYPE.EXTINCT)
         :SetColorEntity(doer and doer.entity)
-        :SetIsSilent(false)
+        :SetIsSilent(remaining > threshold)
         :AddTarget(target)
         :SetStackableField(QueuedLogAction.FIELDS.REMAINING, remaining)
+
+    -- Make sure the extinct announcement will be after this one.
+    if remaining <= 1 then
+        AL:LogAction(action)
+    end
 end
 
 -- This is for announcing the last hit made by an player/mob to another mob.
@@ -747,24 +822,21 @@ local function onentitydeath(doer, target, data)
         return onepicdeath(doer, target, data)
     end
 
-    --- @DEBUG
     -- MOB SPREADING FIRE AFTER DEATH
-    if PEARL.PREFABS.MOBS.FIRE_SPREADERS[target.prefab] then
+    if PEARL.PREFABS.MOBS.FIRE_SPREADERS[target.prefab] and not target:IsFireProtected() then
         return onfirespreaderdeath(doer, target)
     end
 
-    --- @DEBUG
     -- NOT RESPAWNABLE MOB
     local pop_threshold = PEARL.PREFABS.MOBS.MONITOR_POPULATION[target.prefab]
     if pop_threshold and pop_threshold > 0 then
-        -- Counts only prefabs on the current shard. Thats enough for now.
-        local remaining = PEARL.CountPrefabs(target.prefab) - 1
-        if remaining >= 0 and remaining <= pop_threshold then
-            return onmonitoreddeath(doer, target, remaining)
-        end
+        return onmonitoreddeath(doer, target, pop_threshold)
     end
 
-    --- @TODO:
+    if not doer then
+        return
+    end
+
     local leader = target.components.follower and target.components.follower:GetLeader() or nil
     -- Process untamed followers first since they can have an leader as well.
     if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] == true then
@@ -783,7 +855,7 @@ local function onentitydeath(doer, target, data)
             :AddTarget(target)
     end
 
-    if not (doer and doer:HasTag("player")) then
+    if not doer:HasTag("player") then
         return
     end
 
@@ -873,29 +945,6 @@ end
 -- Killers --
 -------------------
 
--- local onhealthdelta
--- onhealthdelta = function(target, data)
---     if data.cause == "regen" and target.components.memory and target.components.health then
---         PEARL.debug("onhealthdelta - REGEN", data.amount)
-
---         -- The boss was healed to maximal HP
---         if target.components.heatlh.currenthealth == target.components.health.maxhealth then
---             PEARL.debug("onhealthdelta: Boss was healed to maximal health! Clearing memory!")
---             target.components.memory:Clear()
---             target:RemoveComponent("memory")
---             target:RemoveEventCallback("healthdelta", onhealthdelta)
---         end
-
---         target.components.memory:ForEach(function(userid, damage, records)
---             records[userid] = damage - data.amount
---             if records[userid] <= MIN_DAMAGE_DEALT then
---                 -- Remove the record if all the damage was restored.
---                 records[userid] = nil
---             end
---         end)
---     end
--- end´
-
 local function onplayerhitepic(doer, target, dmg, mult)
     local maxhealth = target.components.health.maxhealth
 
@@ -908,9 +957,7 @@ local function onplayerhitepic(doer, target, dmg, mult)
     local ttl = math.min(MAX_REMEMBERING_DELAY * total_dmg / maxhealth, MAX_REMEMBERING_DELAY)
     target.components.memory:Set(doer.userid, total_dmg)
     target.components.memory:SetLifetime(doer.userid, ttl)
-    -- target:SafeListenForEvent("healthdelta", onhealthdelta)
 
-    --- @TODO: Add a modifier, so that the less the HP is the more rep will be gained.
     PEARL.Reputation:EarnFor(
         doer.userid, dmg * mult * REPUTATIONS.BOSS_DAMAGE
     )
@@ -928,7 +975,6 @@ local function onplayerhitother(player, target, damage, follower)
     -- The less HP the boss has the more damage we get.
     -- Reputation is halved for followers and is constant.
     local mult = follower ~= nil and .5 or (1 - hpercent + 1)
-    print("HIT", damage, mult)
 
     if target:HasTag("epic") then
         -- Special handler for bosses.
@@ -958,7 +1004,6 @@ local function onhitother(doer, data)
     if not doer:HasTag("player") then
         leader = doer.components.follower and doer.components.follower:GetLeader() or nil
         leader = leader or (doer.brain and doer.brain._leader)
-        print("LEADER", leader, doer, doer.brain)
         if leader == nil or not leader.userid then
             return
         end
@@ -1024,7 +1069,7 @@ end
 
 local function onplayerconstructed(doer, target)
     local pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.GENERIC
-    if target:HasTag("structure") then
+    if target:HasTag("structure") or target:HasTag("multiplayer_portal") then
         PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CONSTRUCTED)
     else
         pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.QUEST
@@ -1065,21 +1110,13 @@ end
 -- AFK --
 -------------------
 
---- @TODO: decrease reputation incrementaly each tick being AFK.
---- Doubled for ghosts.
 local function onafkstatechanged(userid, is_afk)
     local player = LookupPlayerInstByUserID(userid)
-    local client = userid and TheNet:GetClientTableForUser(userid)
-    if not (player or client) then
+    if not player then
         return
     end
 
-    local userflags = client and client.userflags
-    if is_afk == true and player and player:HasTag("playerghost") or (userflags and checkbit(userflags, USERFLAGS.IS_GHOST)) then
-        PEARL.Reputation:EarnFor(userid, REPUTATIONS.AFK_GHOST)
-    end
-
-    local name = player and player:GetDisplayName() or client.name
+    local name = PEARL.GetStandardizedNameFor(player)
     local entity = player and player.entity or nil
     local message = STRINGS.PEARL.LOGS[is_afk and "USER_INACTIVE" or "USER_ACTIVE"]
     local type = PEARL.CONSTS.ANN_TYPE[is_afk and "AFK_START" or "AFK_STOP"]
@@ -1118,13 +1155,14 @@ local function ontookrareitem(doer, item)
         return PEARL.warn("Called ontookrareitem with invalid arguments!")
     end
 
-    if item.components.inventoryitem:IsLastPlayerOwner(doer) or item.components.inventoryitem:IsLastPicker(doer) then
+    local veryrare = item.components.inventoryitem:IsVeryRare()
+    if veryrare and (item.components.inventoryitem:IsLastPlayerOwner(doer) or item.components.inventoryitem:IsLastPicker(doer)) then
         return
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TAKE)
-        :SetIsSilent(not item.components.inventoryitem:IsVeryRare())
+        :SetIsSilent(not veryrare)
         :AddTarget(item)
 end
 
@@ -1157,20 +1195,17 @@ end
 
 --- @param player EntityScript
 PEARL.AddPlayerPostInit(function(player)
-    if not player then
-        return
+    if not player.components.playerthief then
+        player:AddComponent("playerthief")
     end
 
-    player:AddComponent("playerthief")
+    --- Thief component events
     player:ListenForModEvent("tookrareitem", ontookrareitem)
     player:ListenForModEvent("tookrarecontainer", ontookrarecontainer)
     player:ListenForModEvent("finishedlooting", onfinishedlooting)
 
     player:SafeListenForEvent("respawnfromghost", onrespawnfromghost)
     player:SafeListenForEvent("death", ondeath)
-
-    --player:SafeListenForEvent("onhitother", onplayerhitother)
-    -- player:SafeListenForEvent("heatlhdelta", onhealthdelta)
 
     player:SafeListenForEvent("houndwarning", onhoundwarning)
 
@@ -1183,17 +1218,15 @@ PEARL.AddPlayerPostInit(function(player)
         player:ListenForModEvent("ms_commandexecuted", oncommandexecuted)
     end
 
-    player:SafeListenForEvent("performaction", function(self, buffered, ...)
-        print(buffered.action, buffered, table.getkey(ACTIONS, buffered))
-        print("ACTION", table.getkey(ACTIONS, buffered.action))
-    end)
+    if PEARL.CONFIG.DEBUG_MODE then
+        player:SafeListenForEvent("performaction", function(self, buffered, ...)
+            PEARL.debug("PERFORMACTION: ", buffered.action, ...)
+        end)
+    end
 end)
 
 PEARL.AddComponentPostInit("combat", function(self)
-    if not self.inst then
-        return
-    end
-
+    -- Wait a tick in order for all the components to be added.
     self.inst:DoTaskInTime(0, function()
         --- Do only track damage dealt by followers and players.
         --- Do not check the leader here since it can be changed later on.

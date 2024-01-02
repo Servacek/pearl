@@ -33,28 +33,11 @@ local MAX_MESSAGE_RETRIES = 1
 local REP_BUFFER_TIME = 5
 
 --------------------------------------
--- [[ Sorters ]]
---------------------------------------
-
-local function CompRepFields(name, uid1, uid2)
-    return PEARL.Reputation:GetFieldOf(uid1, name) > PEARL.Reputation:GetFieldOf(uid2, name)
-end
-
-local function CompByTotalRep(...)
-    return CompRepFields("value", ...)
-end
-
-local function CompByMonthRepGains(...)
-    return CompRepFields("monthgains", ...)
-end
-
---------------------------------------
 -- [[ Locals ]]
 --------------------------------------
 
 --- @type Leaderboard
 local absolute_leaderboard = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.ABSOLUTE)
-absolute_leaderboard:SetSortFn(CompByTotalRep)
 absolute_leaderboard:SetMinPlayers(MIN_ABS_RECORDS)
 absolute_leaderboard:SetIndex(1)
 absolute_leaderboard:SetCheckFn(function(userid)
@@ -63,7 +46,6 @@ end)
 
 --- @type Leaderboard
 local monthly_leaderboard = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)
-monthly_leaderboard:SetSortFn(CompByMonthRepGains)
 monthly_leaderboard:SetMinPlayers(MIN_CURRENT_RECORDS)
 monthly_leaderboard:SetIndex(2)
 monthly_leaderboard:SetCheckFn(function(userid)
@@ -252,8 +234,10 @@ function PEARL.OnNewMonth(stb)
         )
     end
 
-    -- Since we are creating a new updating message, archive the old one.
-    PEARL.LeaderboardService:ArchiveLeaderboard(Leaderboard.TYPE.ABSOLUTE)
+    if PEARL.DiscordLeaderBoarder:CanEditMessages() then
+        -- Since we are creating a new updating message, archive the old one.
+        PEARL.LeaderboardService:ArchiveLeaderboard(Leaderboard.TYPE.ABSOLUTE)
+    end
 
     -- Clear all the player data and start again.
     monthly_leaderboard:Reset()

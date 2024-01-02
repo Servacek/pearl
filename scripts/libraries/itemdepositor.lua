@@ -55,8 +55,9 @@ end
 -------------------------------
 
 function ItemDepositor:SortDepos()
-    table.sort(_depos, sort_by_priority)
+    PEARL.debug("ItemDepositor:SortDepos")
 
+    table.sort(_depos, sort_by_priority)
     _sorted = true
 end
 
@@ -159,10 +160,10 @@ local function OnDepoRemove(inst)
 end
 
 local function OnDepoInit(inst)
-    print("NEW DEPO ADDED!", inst)
     _depos[#_depos+1] = inst
 
     _sorted = false
+    ItemDepositor:SortDepos()
 end
 
 -------------------------------
@@ -174,7 +175,7 @@ for depo_prefab, _ in pairs(DROP_DEPOS) do
         print("OnPrefabPostInit", inst)
         PEARL.WallScheduler:ExecuteInTime(0, function()
             if inst.components.workable and not inst.components.workable:HasBuilder() then
-                print("IGNORING NEW DEPO!")
+                print("IGNORING NEW DEPO! (no builder)")
                 return -- Special case for naturaly generated chests for example.
             end
 

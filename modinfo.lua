@@ -875,14 +875,6 @@ configuration_options = {
     },
 
     {
-        name="SERVER_REQUIRE_CFD",
-        default = true, -- Let this be always true because a lot of systems depend on these.
-        type = "boolean",
-        public = true,
-        implicit = true,
-    },
-
-    {
         name="CUSTOM_LOADING_TIPS_DATA",
         default = {},
         type = "table",

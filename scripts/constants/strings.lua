@@ -44,8 +44,14 @@ local STRINGS = {
             WITH        = "{doer} feed {target} with {tool}.",
         },
 
+        DRIED = {
+            GENERIC     = "{doer} dried {item}.",
+            ON          = "{doer} dried {item} on {target}.",
+        },
+
         EAT = {
-            GENERIC     = "{doer} ate {target}.",
+            GENERIC     = "{target} has been eaten.",
+            DOER        = "{doer} ate {target}.",
             FULL        = "{doer} overeated with {target}."
         },
 
@@ -75,9 +81,9 @@ local STRINGS = {
         },
 
         COOK = {
-            GENERIC     = "{doer} cooked {target}!",
-            ON          = "{doer} cooked {target} on {tool}!",
-            IN          = "{doer} cooked {target} in {tool}!",
+            GENERIC     = "{doer} cooked {target}.",
+            ON          = "{doer} cooked {target} on {tool}.",
+            IN          = "{doer} cooked {target} in {tool}.",
         },
 
         EXTINGUISH = {
@@ -176,7 +182,12 @@ local STRINGS = {
 
         MINE = {
             GENERIC     = "{doer} mined {target}!",
-        }
+        },
+
+        USED = {
+            GENERIC     = "{doer} used {item}!",
+            ON          = "{doer} used {item} on {target}!",
+        },
     },
 
     SHARDS = {

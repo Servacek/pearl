@@ -58,7 +58,7 @@ end
 -- [[ Debugging ]]
 -------------------------------------
 
-if PEARL.CONFIG.DEBUG_MODE then
+if PEARL.CONFIG.DEBUG_MODE and TheNet:IsDedicated() then
     -- Use "pre-call" in case the handler throws an error.
     PEARL.AddClassFunctionPreCall("HandleEvent", function(event, ...)
         PEARL.debug("EventProcesser:HandleEvent", event, ...)

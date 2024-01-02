@@ -356,6 +356,11 @@ local function CheckPlayersInventory(world, player)
 
             drop_type = DROP_TYPE.RARE
         end
+
+        -- If none is playing make sure to save the server in case of a restart.
+        if #AllPlayers == 0 then
+            TheWorld:PushEvent("ms_save")
+        end
     end
 
     if PEARL.CONFIG.INVENTORY_REPORTER.SEND_REPORT and PEARL.DiscordReporter:IsEnabled() then

@@ -188,18 +188,13 @@ function DB:GetRecordFor(userid)
     end
 
     local record = self:LoadRecordFor(userid, true)
-    if record then
-        -- Only cache when we are the active shard.
-        self:CacheRecord(userid, record)
-
-        -- If the record is not active on this shard but somewhere else.
-        if not self:IsRecordActive(userid) and not self:IsRecordWriteable(record) then
-            -- If not on active shard, unload the record the next tick
-            -- to ensure the data stays up-to-date.
-            PEARL.WallScheduler:ExecuteInTime(0, function()
-                self:UnloadRecord(userid)
-            end)
-        end
+    -- If the record is not active on this shard but somewhere else.
+    if record and not self:IsRecordActive(userid) and not self:IsRecordWriteable(record) then
+        -- If not on active shard, unload the record the next tick
+        -- to ensure the data stays up-to-date.
+        PEARL.WallScheduler:ExecuteInTime(0, function()
+            self:UnloadRecord(userid)
+        end)
     end
 
     return record
@@ -605,6 +600,7 @@ end
 --- Loads the record data from the actual database file for the given player.
 --- @param userid string
 --- @param validate boolean?
+--- @return table? record
 function DB:LoadRecordFor(userid, validate)
     if not PEARL.IsKleiIDValid(userid) then
         return PEARL.error("Invalid Klei ID provided!")
@@ -620,6 +616,12 @@ function DB:LoadRecordFor(userid, validate)
     if validate == true then
         self:ValidateRecord(record)
     end
+
+    -- Only cache when we are the active shard.
+    self:CacheRecord(userid, record)
+
+    -- Called right after the record is loaded so the fresh data can be modified.
+    PEARL.EventProcessor:HandleEvent("db_recordloaded", userid, record)
 
     return record
 end
@@ -653,6 +655,9 @@ function DB:SaveRecordFor(userid, record)
     -- if mt and mt.__changes and mt.__changes <= 0 then
     --     return PEARL.debug("Not saving the record file because no changes were done!")
     -- end
+
+    -- Called before the actual saving so we have time to change some of the data.
+    PEARL.EventProcessor:HandleEvent("db_savingrecord", userid)
 
     if self:SaveToDatabaseFile(
         self:GetRecordFilePathFor(userid), record, true

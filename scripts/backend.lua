@@ -102,8 +102,8 @@ PEARL.SafeModTableExtend("CONSTS", {
         DIED                = -15,
         EXTINGUISH_STRUCT   = 2.5,
         EXTINGUISH          = 1.5,
-        BOSS_DAMAGE         = 0.01, -- Per HP dealt 100 000 *
-        COMPANION_DAMAGE    = -0.2, -- Companions have less HP
+        BOSS_DAMAGE         = 0.008, -- Per HP dealt
+        COMPANION_DAMAGE    = -0.07, -- Companions have less HP
         FOLLOWER_DAMAGE     = -0.1,
         BURNABLE_NEAR_FIRE  = -3,
         POPULATION_EXINCT   = -10,
@@ -120,14 +120,16 @@ PEARL.SafeModTableExtend("CONSTS", {
         AFK_GHOST_KICKED    = -16,
         AFK_KICKED          = -8,
         PLANT               = 1,
-        PLANT_WITHERABLE    = 2, -- Usually a resource plant´
-        FUEL_WASTED         = 1, -- States for 100% fuel wasted.
+        PLANT_WITHERABLE    = 2, -- Usually a resource plant
+        FUEL_WASTED         = -1, -- States for 100% fuel wasted.
+        FUEL_TO_PROTECTOR   = 1,
         CHOPPED_PROHIBITED  = -20,
         COOKED_RARE         = -20, -- When rarity is 100%
         COOKED_RARE_INGRED  = -10,
         READ_OFFENSIVE_BOOK = -5,
         REPAIR_ITEM         = 1, -- For 100% repaired durability
         EAT_RARE            = -10, -- For 100% rarity
+        WASTE_FOOD          = -5, -- For 100% of foods nutrition wasted (> 50%)
         HAMMER_STRUCTURE    = -7,
         IGNITED_STRUCTURE   = -3, -- Per One Structure
         IGNITING_AT_BASE    = -8,
@@ -136,6 +138,9 @@ PEARL.SafeModTableExtend("CONSTS", {
         LEARNED_RAREPRINT   = -10,
         DUG_UP_GOODS        = 2,
         DUG_UP_BAD          = -1,
+        SEGMENT_SURVIVED    = 0.4, -- * 16 per day
+        SEGMENT_DEAD        = -0.4,
+        SEGMENT_AFK         = -0.3, -- Stacks with SEGMENT_DEATH
     },
 
     ITEM_WEIGHT_BIAS       = {
@@ -624,6 +629,11 @@ local ModuleManager = PEARL.loadfile("libraries/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
+--- Default Modules (always enabled)
+ModuleManager:AddModule("timeupdates", true)
+ModuleManager:AddModule("rephandlers", true)
+
+--- Configurable modules
 ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
 ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 -- This needs some refactoring and will probably be migrated to the clients.
@@ -663,8 +673,6 @@ if PEARL.DiscordLogger:IsEnabled() then
     ModuleManager:AddModule("logger/chat", true)
     ModuleManager:AddModule("logger/server", true)
 end
-
-ModuleManager:AddModule("timeupdates", true)
 
 ModuleManager:LoadAllModules()
 

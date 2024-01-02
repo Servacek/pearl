@@ -335,6 +335,7 @@ end
 local function OnResetCountDownStop(self)
     if _countdown_started and InGamePlay() then
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.RESET_COUNTDOWN_STOP)
+        _countdown_started = false
     end
 end
 

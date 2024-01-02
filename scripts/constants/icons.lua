@@ -46,6 +46,9 @@ local ICONS = {
     ONLINE = ":green_circle:",
     OFFLINE = ":red_circle:",
 
+    AFK   = "<:avatar_afk:1191784868347121714>",
+    ADMIN = "<:avatar_admin:1191784852341661696>",
+
     PLAYER_PREFABS = {
         ["walter"] =             "<:avatar_walter:1152542346253180938>",
         ["wagstaff"] =           "<:avatar_wagstaff_npc:1152542386342334525>",
@@ -231,6 +234,9 @@ local ICONS = {
         ["sew"]=        "<:sewing_kit:1170438166168215652>",
         ["mine"]=       "<:mine:1189591897673576579>",
         ["play"]=       "<:play:1189612902282428486>",
+        ["activate"]=   PEARL.EMOTES.DISCORD.LIGHTBULB,
+        ["teach"]=      PEARL.EMOTES.DISCORD.SANITY,
+        ["extinct"]=    PEARL.EMOTES.DISCORD.BEEFALO,
     },
 }
 

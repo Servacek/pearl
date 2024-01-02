@@ -15,6 +15,12 @@ local MAX_DUMP_LEVEL = 10
 local MAX_RECURSIONS = 1000
 
 
+local function default_cmp(a, b)
+    return a > b
+end
+
+--------------------------
+
 function table:filter(checkfn)
     local result = {}
     for k, v in pairs(self) do
@@ -176,6 +182,28 @@ function table.keys(t)
     end
 
     return keys
+end
+
+--- @return integer position The updated position of the item at t[i]. This can be unchanged.
+function table.reorder(t, i, cmp)
+    cmp = cmp or default_cmp
+    local lstep = (t[i+1] ~= nil and cmp(t[i], t[i+1]) and 1) or 0
+    local rstep = (lstep == 0 and t[i-1] ~= nil and cmp(t[i-1], t[i]) and -1) or 0
+    local step = lstep + rstep
+    while t[i+step] ~= nil and cmp(t[i+rstep], t[i+lstep]) do
+        t[i+rstep], t[i+lstep] = t[i+lstep], t[i+rstep]
+        i = i + step
+    end
+
+    return i
+end
+
+function table.insort(t, v, cmp)
+    local i = #t+1
+    t[i] = v
+    --table.insert(t, i, v)
+
+    return table.reorder(t, i, cmp)
 end
 
 function table.values(t)

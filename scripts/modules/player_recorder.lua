@@ -43,6 +43,10 @@ end
 local function SaveSessionInfoFor(userid)
     PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
     PEARL.DB:SafeSetField(userid, "lastsnapshot", TheNet:GetCurrentSnapshot())
+
+    if TheWorld and TheWorld.state then
+        PEARL.DB:SafeSetField(userid, "lastcycle", TheWorld.state.cycles)
+    end
 end
 
 --------------------------------------
@@ -190,28 +194,41 @@ local function OnWorldLoadedForClient(userid)
     SaveSessionInfoFor(userid)
 end
 
-local function OnNewDaySurvived(userid)
-    PEARL.debug("OnNewDaySurvived", userid)
-    -- Add reputation for surviving days.
+local function OnNewSegmentSurvived(userid)
+    local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
+    local newdaysalive = daysalive + DAY_PERCENT_SEGMENT
+    PEARL.DB:SetField(userid, "daysalive", newdaysalive)
+    PEARL.Reputation:EarnFor(userid, PEARL.CONSTS.REPUTATION_TABLES.SEGMENT_SURVIVED)
+
+    -- if math.floor(daysalive) < math.floor(newdaysalive) then
+    --     OnNewDaySurvived(userid)
+    -- end
 end
 
 local function OnNewDayPercentSegmentFor(userid)
-    -- Do only increase the days alive for alive active players.
-    if not PEARL.ServerNetwork:IsClientGhost(userid) and not PEARL.ServerNetwork:IsClientInactive(userid) then
-        local daysalive = PEARL.DB:GetField(userid, "daysalive", 0)
-        local newdaysalive = daysalive + DAY_PERCENT_SEGMENT
-        PEARL.DB:SetField(userid, "daysalive", newdaysalive)
-
-        if math.floor(daysalive) < math.floor(newdaysalive) then
-            OnNewDaySurvived(userid)
-        end
-    end
-
+    -- Always update the total days
     local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
     PEARL.DB:SetField(userid, "totaldays", totaldays + DAY_PERCENT_SEGMENT)
+
+    local survived = true
+    if PEARL.ServerNetwork:IsClientInactive(userid) then
+        survived = false
+        PEARL.Reputation:EarnFor(userid, PEARL.CONSTS.REPUTATION_TABLES.SEGMENT_AFK)
+    end
+
+    -- Do only increase the days alive for alive active players.
+    if PEARL.ServerNetwork:IsClientGhost(userid) then
+        survived = false
+        PEARL.Reputation:EarnFor(userid, PEARL.CONSTS.REPUTATION_TABLES.SEGMENT_DEAD)
+    end
+
+    if survived then
+        OnNewSegmentSurvived(userid)
+    end
 end
 
 local function OnNewDayPercentSegment()
+    -- Update only for players actually in the game (with a game instance)
     for _, player in ipairs(AllPlayers) do
         local userid = player.userid
         if userid ~= nil then
@@ -236,6 +253,17 @@ local function OnWorldClockTick(world, data)
     end
 end
 
+-- Called before the actual saving so we have time to change some of the data.
+local function OnSavingRecordFor(userid)
+    SaveSessionInfoFor(userid)
+end
+
+local function OnCyclesChanged()
+    for userid, _ in ipairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
+        OnWorldLoadedForClient(userid)
+    end
+end
+
 --------------------------------------
 -- [[ Hooks ]]
 --------------------------------------
@@ -248,6 +276,8 @@ PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
+
+PEARL.EventProcessor:AddSafeEventHandler("savingrecordfor", OnSavingRecordFor)
 
 PEARL.AddWorldPostInit(function(world)
     -- Using this instead of NotifyPlayerPresence because that is really inaccurate.
@@ -262,8 +292,10 @@ PEARL.AddWorldPostInit(function(world)
     world:SafeListenForEvent("ms_playerdespawn", OnPlayerChanged)
     world:SafeListenForEvent("ms_playerspawn", OnPlayerChanged)
 
-    for _, client in ipairs(PEARL.ServerNetwork:GetConnectedClients()) do
-        OnWorldLoadedForClient(client.userid)
+    world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
+
+    for userid, _ in ipairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
+        OnWorldLoadedForClient(userid)
     end
 end)
 

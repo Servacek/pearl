@@ -525,6 +525,7 @@ PEARL.AddAnnouncementIcon("activate")
 PEARL.AddAnnouncementIcon("teach")
 PEARL.AddAnnouncementIcon("read")
 PEARL.AddAnnouncementIcon("welcome")
+PEARL.AddAnnouncementIcon("extinct")
 
 --- These do not log in-game
 PEARL.AddAnnouncementIcon("extinguish")
@@ -542,8 +543,6 @@ PEARL.AddAnnouncementIcon("fertilize")
 PEARL.AddAnnouncementIcon("waste")
 PEARL.AddAnnouncementIcon("heal")
 PEARL.AddAnnouncementIcon("sew")
-
---- @TODO: Add Icon:
 PEARL.AddAnnouncementIcon("mine")
 
 end

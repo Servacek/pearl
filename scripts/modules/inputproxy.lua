@@ -223,10 +223,10 @@ PEARL.AddSimPostInit(function()
     PEARL.DiscordProxy:StartSession()
 end)
 
-PEARL.AddPlayerPostInit(function(inst)
-    proxy_state = net_bool(inst.GUID, "proxy_state")
-    proxy_state:set(PEARL.DiscordProxy:IsRunning())
-end)
+-- PEARL.AddPlayerPostInit(function(inst)
+--     proxy_state = net_bool(inst.GUID, "proxy_state")
+--     proxy_state:set(PEARL.DiscordProxy:IsRunning())
+-- end)
 
 ----------------------------------
 -- Event Listeners

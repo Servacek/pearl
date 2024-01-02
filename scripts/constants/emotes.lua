@@ -69,8 +69,8 @@ local EMOTES = {
         WAVE			= "󰀮",
         WORMHOLE		= "󰀯",
 
-        -- Status announcements mod
-        LMB             = "",
+        LMB             = STRINGS.LMB,
+        RMB             = STRINGS.RMB,
     },
 
     --- @class EMOTES.DISCORD
@@ -130,9 +130,8 @@ local EMOTES = {
         ["󰀰"] = "<:endless:1093462962397794314>",
         ["󰀱"] = "<:touchstone:1134905297278877766>",
 
-        -- Status announcements mod
-        [""] = "<a:lmb:997499438077591593>",
-        --["TODO?"] = "<a:rmb:997508955435700224>", -- right mouse click
+        [STRINGS.LMB] = "<a:lmb:997499438077591593>",
+        [STRINGS.RMB] = "<:rmb:999294664458895473>",
     },
 }
 

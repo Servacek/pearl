@@ -62,6 +62,8 @@ RestAPI = Library(RestAPI)
 --------------------------------
 
 RestAPI.STATUS_CODES = {
+    TIMEOUT             = 0,   -- The request timed out.
+    HEADER_RECEIVED     = 100, -- Only the header of the request was received.
     OK                  = 200, -- The request completed successfully.
     CREATED             = 201, -- The entity was created successfully.
     NO_CONTENT          = 204, -- The request completed successfully but returned no content.

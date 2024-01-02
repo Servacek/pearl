@@ -49,7 +49,7 @@ end
 -- [[ Setup - Server ]]
 --------------------------------
 
-PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cfd, cb)
+PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cb)
     local record = PEARL.DB:GetRecordFor(userid)
     if not record or RunAsyncProfileFilter(record, cb) then
         return

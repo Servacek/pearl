@@ -29,7 +29,6 @@ end)
 --------------------------------
 
 function Memory:SetLifetime(name, time)
-    print("Memory:SetLifetime", name, time)
     if not self.ttls then
         self.ttls = {}
     end
@@ -126,7 +125,6 @@ function Memory:OnUpdate(dt)
 
     for name, ttl in pairs(self.ttls) do
         if ttl <= 0 then
-            print("REMOVING ATTACKER! EXPIRED: ", name)
             self.ttls[name] = nil
         else
             self.ttls[name] = ttl - dt

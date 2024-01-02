@@ -65,7 +65,7 @@ local PREFABS = {
 		["eyeturret_item"] 		= 1,
 
         ["gears"]               = .5, -- Highly renewable
-        ["fossil_piece"]             = .9, -- Non-renewable currently. Required for the final boss.
+        ["fossil_piece"]        = .9, -- Non-renewable currently. Required for the final boss.
 
 		["moonrockseed"] 		= 0,
 		["mandrake"]	 		= .7,
@@ -74,7 +74,6 @@ local PREFABS = {
 		["glommerflower"] 		= 0,
 		["hutch_fishbowl"] 		= 0,
 		["panflute"] 			= .8,
-		--- @TODO For rare blueprints this should be * 2
 		["blueprint"] 			= .5,
 		["hivehat"] 			= .8,
 		["yellowamuletlight"] 	= .8,
@@ -95,6 +94,7 @@ local PREFABS = {
 		["walrushat"]			= .4,
 		["walrus_tusk"]			= .3,
 
+        -- New staff
         ["alterguardianhat"]    = .9,
         ["sword_lunarplant"]    = .9,
         ["armor_lunarplant"]    = .9,

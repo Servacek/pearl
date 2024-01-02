@@ -60,5 +60,3 @@ PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", function(userid, 
         return OnBadClientLatency(userid, data.ping, data.locale)
     end
 end)
-
-PEARL.ServerNetwork:SetServerRequiresCFD(true)

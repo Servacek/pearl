@@ -57,7 +57,7 @@ end)
 
 -- This is some additional server side check in case someone gets around our Agreement Screen.
 PEARL.AddGlobalFunctionPreCall("VerifySpawnNewPlayerOnServerRequest", function(userid)
-    if PEARL.ServerNetwork:IsClientPriviliged(userid) or not PEARL.ServerNetwork:IsAgreementEnabled() then
+    if PEARL.ServerNetwork:IsClientPriviliged(userid) or PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT == nil then
         return
     end
 

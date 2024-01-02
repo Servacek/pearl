@@ -15,10 +15,10 @@
 -- [[ Constants ]]
 --------------------------------
 
-local QUEUE_TIME               = 4
-local QUEUE_REPEAT_MULT        = 2
+local QUEUE_TIME               = 3
+local QUEUE_REPEAT_MULT        = 1.5
 
-local MAX_DELAY                = 15
+local MAX_DELAY                = 9
 
 --------------------------------
 -- [[ Local Functions ]]
@@ -88,6 +88,7 @@ QueuedLogAction.FIELDS  = {
     TOOL        = "tool",
     TARGET      = "target",
     REMAINING   = "remaining",
+    ITEM        = "item",
 }
 
 --------------------------------
@@ -143,7 +144,12 @@ end
 
 --- @return QueuedLogAction
 function QueuedLogAction:SetIsSilent(silent)
-    self.silent = silent
+    -- By default silent is set to true.
+    -- Non-silent announcements have higher priority than silent ones,
+    -- so when stacking actions keep that in mind so they are not overriden.
+    if self.silent ~= false then
+        self.silent = silent
+    end
 
     return self
 end
@@ -196,6 +202,7 @@ end
 --- Always overrides the value provided for the name.
 --- @return QueuedLogAction
 function QueuedLogAction:SetStackableField(field, value)
+    PEARL.debug("QueuedLogAction:SetStackableField", field, value)
     if EntityScript.is_instance(value) then
         value = value:GetStandardizedName()
     end

@@ -91,6 +91,9 @@ end
 
 --- @param action QueuedLogAction
 function ActionLog:LogAction(action)
+    -- Prevent the action from being logged twice.
+    action:CancelQueueTask()
+
     return self:Log(
         action.colorentity, action.logtype, action:GetString(), action.silent, action.icon
     )
