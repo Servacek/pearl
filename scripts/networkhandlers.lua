@@ -77,12 +77,14 @@ end, TheNet)
 -- end, TheNet)
 
 PEARL.AddUserDataFunctionPreCall("SerializeUserSession", function(self, userid)
-    PEARL.info("Serializing user session for", userid)
+    PEARL.debug("Serializing user session for", userid)
+
+    PEARL.EventProcessor:HandleEvent("seriliaze_user_session", userid)
 end, TheNet)
 
-PEARL.AddUserDataFunctionPreCall("DeserializeUserSession", function(self, userid)
-    PEARL.info("Deserializing user session for", userid)
-end, TheNet)
+-- PEARL.AddUserDataFunctionPreCall("DeserializeUserSession", function(self, userid)
+--     PEARL.debug("Deserializing user session for", userid)
+-- end, TheNet)
 
 -- We want to have full control over this function on servers.
 PEARL.OverrideVariable("ExecuteConsoleCommand", function(fnstr, guid, x, z)

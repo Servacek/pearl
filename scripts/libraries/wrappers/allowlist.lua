@@ -15,7 +15,7 @@
     Alternative to whitelist.txt.
 --]]
 
-local ClusterUserList = PEARL.loadlib("clusteruserlist")
+local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
 
 --------------------------------------
 -- [[ Constants ]]

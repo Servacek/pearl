@@ -270,13 +270,18 @@ function Reporter:ReportMods(userid, mods)
     self:SendRawReportMessage(MESSAGES.ModsReport(userid, mods))
 end
 
+--- @param userid string
+--- @param message string?
 function Reporter:SendPlayerReportMessage(userid, message)
     local client = userid and TheNet:GetClientTableForUser(userid)
     local username = client and client.name or "UNKNOWN"
+    local prefab = PEARL.GetFancyCharacterPrefabFor(userid)
+    local pt = (type(message) ~= "string" or message:blank())
+        and STRINGS.PEARL.LOGS.PLAYER_REPORT_EMPTY or STRINGS.PEARL.LOGS.PLAYER_REPORT
 
-    --- @TODO: Maybe use an embed instead.
-    self:SendRawReportMessage(Message(STRINGS.PEARL.LOGS.PLAYER_REPORT:format(
-        PEARL.ICONS.ANNOUNCEMENTS["default"], userid, MARKDOWN.escape(username), MARKDOWN.escape(message or "")
+    self:SendRawReportMessage(Message(pt:format(
+        PEARL.ICONS.ANNOUNCEMENTS["default"], userid, PEARL.ICONS.PLAYER_PREFABS[prefab],
+        MARKDOWN.escape(username), MARKDOWN.escape(message or "")
     )):SetAllowedMentionTypes({
         Message.MENTION_TYPES.EVERYONE
     }))

@@ -198,6 +198,22 @@ function PEARL.AddClassFunctionPostCall(name, postcb, class, with_res)
     return PEARL.AddFunctionPostCall(name, postcb, class, with_res, true)
 end
 
+--- @param class table
+function PEARL.AddClassAttrPostSet(attrname, postcb, class)
+    class = type(class) == "string" and require(class) or class
+
+    if type(class) ~= "table" then
+        return error("Invalid class")
+    end
+
+    local attrs = rawget(class, "_")
+    if table.empty(attrs) ~= false then
+        return error("Class has no attribute setters!")
+    end
+
+    return PEARL.AddFunctionPostCall(2, postcb, attrs[attrname])
+end
+
 --- @param userdata userdata
 function PEARL.AddUserDataFunctionPreCall(name, precb, userdata)
     if KnownModIndex:IsModInitPrintEnabled() then
@@ -400,12 +416,6 @@ function PEARL.AddNetworkDisconnectPopupStrings(id, title, body)
 
     rawset(STRINGS.UI.NETWORKDISCONNECT.TITLE, id, title)
     rawset(STRINGS.UI.NETWORKDISCONNECT.BODY, id, body)
-
-    if PEARL.POPUPS ~= "table" then
-        PEARL.POPUPS = {}
-    end
-
-    PEARL.POPUPS[id] = id
 end
 
 ----------------------------------

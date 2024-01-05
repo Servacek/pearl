@@ -69,7 +69,7 @@ end
 -------------------------------------
 
 function PersistentMap:Load()
-    local loaded = PEARL.DB:LoadDatabaseFile(self.filepath, self.autocreate)
+    local loaded = PEARL.ModPersistance:LoadDataFromFile(self.filepath, self.autocreate)
     if type(loaded) ~= "table" then
         PEARL.error("Failed to load persistent tables map file!")
         return
@@ -80,7 +80,7 @@ end
 
 function PersistentMap:Save()
     local data = type(self.onsavefn) == "function" and self.onsavefn(self.map) or self.map
-    local saved = PEARL.DB:SaveToDatabaseFile(self.filepath, data, self.autocreate, self.encode)
+    local saved = PEARL.ModPersistance:SaveDataToFile(self.filepath, data, self.autocreate, self.encode)
     if not saved then
         return PEARL.error("Failed to save persistant table map file!")
     end

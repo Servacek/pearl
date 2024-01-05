@@ -13,7 +13,7 @@
 
 local CommandContext = PEARL.loadfile("models/commandcontext")
 
-local Colour = PEARL.loadfile("libraries/colour")
+local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 --- @static
 --- @singleton
@@ -348,11 +348,11 @@ function UserCommands.RunDiscordCommand(name, params, author, id)
 
     if author.discordid then
         -- Just in case it stays as a number.
-        author.userid = PEARL.DB:MapDiscordID(tostring(author.discordid))
+        author.userid = PEARL.AccountBindings:MapDiscordID(tostring(author.discordid))
     end
 
     if author.userid then
-        author.netid = PEARL.DB:MapUserIDToType(author.userid, PEARL.DB.BINDING_TYPE.STEAM)
+        author.netid = PEARL.AccountBindings:MapUserIDToType(author.userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
     end
 
     -- Colour has to be a table
@@ -478,10 +478,10 @@ function UserCommands.AddSlashCommand(name, command)
 
             author.name = caller.name
             author.userid = userid
-            author.discordid = PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.DISCORD)
+            author.discordid = PEARL.AccountBindings:MapUserIDToType(caller.userid, PEARL.AccountBindings.BINDING_TYPE.DISCORD)
             author.colour = client.colour or WHITE
             author.netid = (client and client.netid) or (
-                PEARL.DB:MapUserIDToType(caller.userid, PEARL.DB.BINDING_TYPE.STEAM)
+                PEARL.AccountBindings:MapUserIDToType(caller.userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
             )
             author.permission = UserCommands.CalculatePermissionFor(userid)
         end
@@ -574,7 +574,7 @@ end
 
 --- @return string userid The client's Klei ID or nil on failure.
 function UserCommands.InputToUserID(input)
-    return input and (UserToClientID(input) or PEARL.DB:MapToKleiID(input)) or input
+    return input and (UserToClientID(input) or PEARL.AccountBindings:MapToKleiID(input)) or input
 end
 
 --- @return table? client The client's table or nil on failure.

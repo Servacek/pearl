@@ -18,7 +18,7 @@ local Text = require("widgets/text")
 --- @type UserCommands
 local UserCommands = require("usercommands")
 
-local Colour = PEARL.loadfile("libraries/colour")
+local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 ---------------------------
 -- [[ Constants ]]

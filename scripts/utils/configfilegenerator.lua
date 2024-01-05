@@ -56,7 +56,7 @@ return function()
 
         local expression = tostring(option.name).." = "..tostring(option.default)
         if type(option.default) == "table" then
-            expression = PEARL.DataDumper(option.default, option.name, false)
+            expression = PEARL.DataDumper(option.default, option.name, false, 4)
         end
 
         if comment and comment ~= "" then

@@ -20,25 +20,45 @@ local Inventory = require("components/inventory")
 
 function Inventory:GetNumberOfItems()
     local num = 0
-    for _, item in pairs(self.itemslots) do
+    self:ForEachItem(function(item)
         num = num + PEARL.GetStackSize(item)
-    end
+    end)
 
     return num
 end
 
-function Inventory:GetSorted()
-    local length = 0
-    local result = {}
+function Inventory:CountItemPrefabs()
+    local num = 0
+    local prefabs = {}
     self:ForEachItem(function(item)
-        if not result[item.prefab] then
-            length = length + 1
+        if item and not prefabs[item.prefab] then
+            num = num + 1
+            prefabs[item.prefab] = true
         end
-
-        result[item.prefab] = (result[item.prefab] or 0) + PEARL.GetStackSize(item)
     end)
 
-    return result, length
+    return num
+end
+
+function Inventory:GetAllItems()
+    local items = {}
+    self:ForEachItem(function(item)
+        items[#items + 1] = item
+    end)
+
+    return items
+end
+
+function Inventory:ForEachItemSorted(fn, sortfn)
+    local items = self:GetAllItems()
+    table.sort(items, sortfn)
+
+    print("SORTED:")
+    table.foreach(items, print)
+
+    for _, item in ipairs(items) do
+        fn(item)
+    end
 end
 
 function Inventory:GetItemCount(prefab)

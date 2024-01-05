@@ -30,32 +30,12 @@ local SCREEN_BUTTON_SIZE = 40
 local SCREEN_BUTTON_SPACING = 5
 local SCREEN_BUTTON_OFFSET = -190
 
-local ATLAS = PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS
-
-local VIEWAG_BUTTON_OFFSET = 125
+local LAST_BUTTON_OFFSET_X = 125
+local FIRST_BUTTON_HOVER_OFFSET_X = 40
 
 local LINK_BUTTON_Y = 18
 
 local LINKS = PEARL.CONFIG.SOCIAL_LINKS or {}
-
-local SHOW_HOVER_BELOW = true
-
--- Default to discord if texture not found.
--- Weird but still better than just crashing...
-local DEFAULT_TEXTURE = PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD
-
----------------------------
--- [[ Local Functions ]]
----------------------------
-
-local function AddSocialButton(root, link, hover, normal, focus)
-    normal = normal or DEFAULT_TEXTURE
-    focus = focus or io.noext(normal).."_hover.tex"
-
-    return root:AddChild(TEMPLATES.LinkButton(
-        link, hover, ATLAS, normal, focus, SHOW_HOVER_BELOW
-    ))
-end
 
 ---------------------------
 -- [[ Init ]]
@@ -65,38 +45,25 @@ if table.empty(LINKS) and not PEARL.AgreementManager:IsAgreementScreenEnabled()t
     return -- Nothing to be displayed.
 end
 
+-- This one is always rebuilt so we do not have to worry about duplication.
 PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
     local root = self.player_list
     if not root then
         return
     end
 
-    -- Create the buttons for the freed space
+    if self._buttons == nil then
+        self._buttons = TEMPLATES.GetSocialLinkButtons(root, true)
 
-    root.site_buttons = {}
-    if LINKS.DISCORD then
-        root.site_buttons[#root.site_buttons+1] = AddSocialButton(root,
-            LINKS.DISCORD, STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.DISCORD,
-            PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD
-        )
-    end
-
-    if LINKS.YOUTUBE then
-        root.site_buttons[#root.site_buttons+1] = AddSocialButton(root,
-            LINKS.YOUTUBE, STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.YOUTUBE,
-            PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.YOUTUBE
-        )
-    end
-
-    if LINKS.TWITCH then
-        root.site_buttons[#root.site_buttons+1] = AddSocialButton(root,
-            LINKS.TWITCH, STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.TWITCH,
-            PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.TWITCH
-        )
+        local btn1 = self._buttons[1]
+        if btn1 ~= nil and btn1.hover_data then
+            -- So the hover is visible even in fullscreen.
+            btn1.hover_data.offset_x = btn1.hover_data.offset_x + FIRST_BUTTON_HOVER_OFFSET_X
+        end
     end
 
     -- Free up the space for the buttons
-    if #root.site_buttons > 0 and self.title then
+    if table.empty(self._buttons) == false and self.title then
         self.title:Hide() -- Use hide here instead of Kill to prevent stale reference
     end
 
@@ -104,20 +71,20 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
 
     -- Do not display the button if we are disabled.
     if PEARL.AgreementManager:IsAgreementScreenEnabled() then
-        local button = AddSocialButton(root,
+        local button = TEMPLATES.AddSocialButton(root,
             "", STRINGS.PEARL.UI.AGREEMENT_BUTTON_HOVER,
-            PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.AGREEMENT
+            PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.AGREEMENT, nil, true
         )
 
-        button.__special_offset_x = VIEWAG_BUTTON_OFFSET
-        root.site_buttons[#root.site_buttons+1] = button
+        button.__special_offset_x = LAST_BUTTON_OFFSET_X
+        self._buttons[#self._buttons+1] = button
 
         if self.players_number then
             self.players_number:Hide() -- Use hide here instead of Kill to prevent stale reference
         end
 
         -- Override the default callback
-        root.site_buttons[#root.site_buttons]:SetOnClick(function()
+        self._buttons[#self._buttons]:SetOnClick(function()
             -- Create a readonly agreement screen
             TheFrontEnd:PushScreen(AgreementScreen(true))
         end)
@@ -126,8 +93,8 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
     ----------------------------------------------------
 
     -- Dynamically calculate button postions.
-    for i = 1, #root.site_buttons do
-        local button = root.site_buttons[i]
+    for i = 1, #self._buttons do
+        local button = self._buttons[i]
 
         -- Apply special offset for the X axis for buttons that require it.
         local x = SCREEN_BUTTON_OFFSET + (SCREEN_BUTTON_SIZE + SCREEN_BUTTON_SPACING) * i
@@ -135,8 +102,6 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
             x = x + button.__special_offset_x
         end
 
-        button:SetPosition(
-            x, LINK_BUTTON_Y
-        )
+        button:SetPosition(x, LINK_BUTTON_Y)
     end
 end)

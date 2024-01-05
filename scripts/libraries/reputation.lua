@@ -46,7 +46,10 @@ local FIELD_NAME = "reputation"
 
 --- @class Reputation
 local Reputation = {
-    sync_rep_table = {},
+    sync_rep_table  = {},
+
+    --- @type table<string, table<any, integer>>
+    sources         = {},
 }
 
 --------------------------------------
@@ -61,6 +64,14 @@ Reputation.DEFAULT_REP_DATA = {
     monthgains = 0,
     daygains = 0,
     cyclegains = 0,
+}
+
+Reputation.LIMIT = {
+    NONE        = -1,
+    WORST       = 0,
+    VERY_BAD    = VERY_BAD_REP_THRESHOLD,
+    BAD         = BAD_REP_THRESHOLD,
+    NEUTRAL     = PEARL.CONSTS.STARTING_REPUTATION,
 }
 
 --------------------------------------
@@ -137,13 +148,13 @@ function Reputation:SetFieldFor(userid, field, value, sync)
     end
 
     local record = PEARL.DB:GetRecordFor(userid)
-    if not record or not PEARL.DB:IsRecordWriteable(record) then
+    if not record then
         return false
     end
 
     local modifable = record["reputation"]
     -- When modifable is not really modifable.
-    if not PEARL.DB:IsRecordWriteable(record) then
+    if record:IsReadOnly() then
         if sync ~= true then
             -- We will continue but this behaviour should not happen.
             PEARL.error("Attempted to modify player's reputation on a non-active shard!")
@@ -196,9 +207,17 @@ end
 -- [[ Public Methods ]]
 --------------------------------------
 
+--- @param userid string
+--- @param delta number
+--- @param limit number?
+--- @return number
 function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
     local rep = self:GetOf(userid)
+    if limit and rep <= limit then
+        return rep
+    end
+
     delta = math.max(math.min(delta, MAX_REP_EARN), MAX_REP_LOSE)
     local new_rep = math.floor(rep + delta)
     if limit then
@@ -210,12 +229,13 @@ function Reputation:DoDeltaTo(userid, delta, limit)
     return new_rep
 end
 
--- Players are earning reputation from their own in-game actions and behaviour.
 -- The more reputation they have the less they earn and vice versa.
--- This has no limits if marked as griefing, so the reputation can go below zero
--- which then causes the player to be banned.
-function Reputation:EarnFor(userid, amount, griefing)
-    if PEARL.CONFIG.PERMISSIVE_MODE == true then
+--- @param userid string
+--- @param amount number
+--- @param limit number?
+--- @param source any
+function Reputation:EarnFor(userid, amount, limit, source)
+    if PEARL.CONFIG.PERMISSIVE_MODE == true or amount == 0 then
         return
     end
 
@@ -235,8 +255,19 @@ function Reputation:EarnFor(userid, amount, griefing)
         mult = mult <= 0 and MAX_REP_MULTIPLIER or mult
     end
 
-    -- Stop right before warnings would start. Only push warning when doing really bad things.
-    local limit = not griefing and BAD_REP_THRESHOLD or nil
+    if source ~= nil then
+        if not self.sources[userid] then
+            self.sources[userid] = {}
+        -- Leave the mult on the first occurence of the source alone.
+        elseif self.sources[userid][source] then
+            local occurs = math.max(self.sources[userid][source], 1)
+            mult = amount > 0 and mult / occurs or mult * occurs
+        end
+
+        self.sources[userid][source] = (self.sources[userid][source] or 0) + 1
+    end
+
+    limit = limit or Reputation.LIMIT.BAD
     local new_rep = self:DoDeltaTo(userid, amount * mult, limit)
     if (new_rep - old_rep) <= REMEMBER_LOSE_THRESHOLD then
         self:SetFieldFor(userid, "lastlose", os.time())

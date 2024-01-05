@@ -126,7 +126,7 @@ function PEARL.AddDebugRecord(userid, name, reputation)
     PEARL.Reputation:InitializeFor(userid)
     PEARL.Reputation:SetFor(userid, reputation)
 
-    PEARL.DB:AddBinding(userid, userid, PEARL.DB.BINDING_TYPE.STEAM)
+    PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
     PEARL.DB:SaveRecordFor(userid, record)
 end
 
@@ -718,7 +718,7 @@ end
 -- [[ Queue ]]
 --------------------------------
 --- Maybe replace the Queue with a normal table instead of the userdata?
-local Queue = PEARL.loadfile("libraries/queue")
+local Queue = PEARL.loadfile("libraries/datastructures/queue")
 function PEARL.TESTS.Queue()
     local max = 5
     local queue = Queue(max)

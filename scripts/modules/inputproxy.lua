@@ -18,7 +18,7 @@ local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
 local ChatMessage = PEARL.loadfile("models/chatmessage")
 
-local Colour = PEARL.loadfile("libraries/colour")
+local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 ----------------------------------
 -- Constants

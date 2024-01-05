@@ -23,7 +23,7 @@
         - TheNet:GetBlacklist() always creates a new table.
 --]]
 
-local ClusterUserList = PEARL.loadlib("clusteruserlist")
+local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
 
 --------------------------------
 -- [[ Constants ]]

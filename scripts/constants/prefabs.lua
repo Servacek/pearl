@@ -18,7 +18,12 @@
 local PREFABS = {
 	ACTIVATABLE = {
 		["terrarium"] = true,
+        ["archive_lockbox"] = true,
 	},
+
+    DO_NOT_LEAVE_ACTIVATED = {
+        ["terrarium"] = true,
+    },
 
 	OFFENSIVE_BOOKS = {
         ["book_tentacles"] = true,
@@ -87,6 +92,7 @@ local PREFABS = {
         ["nightmarefuel"]       = .005,
         ["horrorfuel"]          = .6,
         ["livinglog"]           = .005,
+        ["honeycomb"]           = .005, -- Non-renewable
         ["purebrilliance"]      = .6,
 		["thulecite"] 			= .3,
 		["greenstaff"]			= .8,

@@ -57,18 +57,15 @@ local PREDICTION = {
     LEGAL   = 0,
 }
 
-local FEEDBACK_WEIGHT = 0.1
-local ILLEGALITY_THRESHOLD = 1
-local MAX_ILLEGALITY = 2 * ILLEGALITY_THRESHOLD
+local ILLEGALITY_THRESHOLD = 3
 local RARITY_THRESHOLD = 0.5
-local WEIGHT_FACTOR = 0.5
 local LEARNING_RATE = 0.1
 
 local ITEM_WEIGHT_BIAS = PEARL.CONSTS.ITEM_WEIGHT_BIAS
 
 -- Determines the maximal bias for players with age 1.
 local MAX_AGE_BIAS              = 0.2 -- Age bias for 100%
-local AGE_THRESHOLD             = 20 -- Age where the bias is 0
+local AGE_THRESHOLD             = 15 -- Age where the bias is 0
 
 local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
 local BIASES_FILE_PATH  = PEARL.MODROOT.."data/item_weight_biases.json"
@@ -289,12 +286,8 @@ local function DoLegalityPrediction(inventory, age)
         print("FINAL WEIGHT:", pd.weight)
     end
 
-    -- print(string.raw(table.max(_weights)))
-    -- local prefab, max_weight = table.max(pd.weights)
-    -- local itemcoutn = inventory:GetItemCount(prefab)
-    -- local occupied_slots = inventory:NumItems()
-    -- local worst_scenario = (occupied_slots - 1) * max_weight * 2
-    -- print(worst_scenario)
+    local unique_item_count = inventory:CountItemPrefabs()
+    pd.weight = pd.weight + pd.weight / math.max(unique_item_count, 1)^2
 
     -- Apply age bias
     local age_bias_percent = (-age + AGE_THRESHOLD) / AGE_THRESHOLD
@@ -304,13 +297,6 @@ local function DoLegalityPrediction(inventory, age)
 
     -- local wpercent = pd.weight / worst_scenario
     pd.prediction = pd.weight > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
-
-    -- local t_dist  = math.abs(ILLEGALITY_THRESHOLD - wpercent)
-    -- local dist_mx = math.abs(pd.prediction - ILLEGALITY_THRESHOLD)
-    -- print(t_dist, dist_mx, wpercent)
-    -- pd.confidence = t_dist > 0 and t_dist / dist_mx or 0
-
-    -- print("CONFIDENCE:", pd.confidence * 100)
     print("VALUE:", pd.weight)
     print("PREDICTION:", pd.prediction)
 
@@ -319,10 +305,9 @@ local function DoLegalityPrediction(inventory, age)
     return pd
 end
 
---- @TODO: Debug
 local function CheckPlayersInventory(world, player)
     local inventory = player.components.inventory
-    if not inventory then
+    if not inventory or inventory:IsEmpty() then
         return
     end
 
@@ -375,7 +360,7 @@ local function CheckPlayersInventory(world, player)
         end
 
         local message = Message():AddEmbed(embed)
-        if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI and PEARL.CONFIG.PROXY.ENABLED and PEARL.DiscordProxy:IsRunning() then
+        if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI and PEARL.DiscordProxy:IsRunning() then
             ReportInventoryWithFeedback(message, pd)
         else
             PEARL.DiscordReporter:SendRawReportMessage(message)

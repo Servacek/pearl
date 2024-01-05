@@ -20,7 +20,7 @@ local GetSkinDescription, GetSkinName, GetColorForItem, UserToName = GetSkinDesc
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
-local Colour = PEARL.loadfile("libraries/colour")
+local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 local UserCommands = require("usercommands")
 

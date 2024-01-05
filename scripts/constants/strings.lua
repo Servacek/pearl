@@ -471,8 +471,8 @@ local STRINGS = {
 
         SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
 
-        PLAYER_REPORT         = "%s [@here] `%s` **%s**: %s",
-        PLAYER_REPORT_EMPTY   = "%s [@here] `%s` **%s**",
+        PLAYER_REPORT         = "%s [@here] `%s` %s **%s**: %s",
+        PLAYER_REPORT_EMPTY   = "%s [@here] `%s` %s **%s**",
     },
 
     SHARD_STATE             = {
@@ -574,6 +574,7 @@ local STRINGS = {
 
         LOADING_VERIFICATION = "Verifying connection...",
         LOADING_ERROR = "Maybe it didn't work that well at the end...",
+        CONNECTION_FAILED = "Connection failed...",
 
         CMD_ERRORS = {
             EXECUTION = "Error while executing the command!",
@@ -1004,6 +1005,12 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_USER_INACTIVE",
     "You have been disconnected from the server for long inactivity.\nFeel free to reconnect when you get back."
 )
 
+--- Built in
+PEARL.AddNetworkDisconnectPopupStrings("ID_DST_IDLE_TIMEOUT",
+    "Disconnected",
+    "You have been disconnected from the server for long inactivity.\nFeel free to reconnect when you get back."
+)
+
 PEARL.AddNetworkDisconnectPopupStrings("ID_DST_USER_NOT_ALLOWED",
     "Not Whitelisted",
     "This server currently uses a whitelist you are not on."
@@ -1053,6 +1060,5 @@ PEARL.AddNetworkDisconnectPopupStrings("ID_DST_SERVER_CRASHED",
     "Server Crashed!",
     "Something went awry with the server... Sorry!\nWe will make sure to look into it."
 )
-
 
 return STRINGS

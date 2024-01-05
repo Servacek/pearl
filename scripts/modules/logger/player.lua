@@ -24,9 +24,9 @@ local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
 -- [[ Global Localization ]]
 ------------------------
 
-local TheSim = TheSim
-
 local removearrayvalue = table.removearrayvalue
+
+local Rep = PEARL.Reputation
 
 ------------------------
 -- [[ Constants ]]
@@ -151,7 +151,7 @@ end
 local function OnIgniteNear(doer, near, pos)
     pos = pos or doer:GetPosition()
     local mult = near and #near or 0 + 1
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITED_STRUCTURE * mult, true)
+    Rep:EarnFor(doer.userid, REPUTATIONS.IGNITED_STRUCTURE * mult, Rep.LIMIT.NONE)
 
     --- For now this is enough since griefing is not that big of a problem as it was.
     if doer.Transform and (
@@ -160,13 +160,15 @@ local function OnIgniteNear(doer, near, pos)
     ) and PEARL.CONFIG.PERMISSIVE_MODE ~= true then
         PEARL.info("Extinguishing the fires!")
 
+        Rep:EarnFor(
+            doer.userid, REPUTATIONS.IGNITING_AT_BASE, Rep.LIMIT.NONE, "pyromaniac"
+        )
+
         local doername = doer:GetDisplayName()
         -- Extinguish fires near the doer.
         -- Use WallScheduler in case the server gets paused after this.
         PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_EXTINGUISH, function()
-            if PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS) > 0 then
-                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.IGNITING_AT_BASE, true)
-            end
+            PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS)
 
             if type(doername) ~= "string" then
                 return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH)
@@ -258,12 +260,12 @@ RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
             if waste > MAX_WASTE_TOLERANCE then
                 atyp = PEARL.CONSTS.ANN_TYPE.SWALLOW
                 pt = STRINGS.PEARL.ACTIONS.EAT.FULL
-                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.WASTE_FOOD * waste)
+                Rep:EarnFor(doer.userid, REPUTATIONS.WASTE_FOOD * waste, Rep.LIMIT.VERY_BAD)
             end
         end
 
         if rarity > 0 then
-            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EAT_RARE * rarity)
+            Rep:EarnFor(doer.userid, REPUTATIONS.EAT_RARE * rarity, Rep.LIMIT.VERY_BAD)
         end
 
         AL:EntityAct(pt, doer)
@@ -275,7 +277,7 @@ end, nil, true, "ACTIONS.EAT")
 
 RegisterPlayerActionHandler(ACTIONS.HEAL, function(doer, target, item)
     if target and target:HasTag("player") and target.components.health and target.components.health:IsHurt() then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.PLAYER_HEALED)
+        Rep:EarnFor(doer.userid, REPUTATIONS.PLAYER_HEALED)
     end
 
     local pt = STRINGS.PEARL.ACTIONS.HEAL[target and "TARGET" or "USING"]
@@ -295,17 +297,18 @@ RegisterPlayerActionHandler(ACTIONS.SEW, function(doer, target, item)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
-    local rare = item.is_rare == true
+    local src  = item or target
+    local rare = src.is_rare == true
     if doer.components.age and not doer.components.age:IsTrustworthy() then
         local reputation = rare and REPUTATIONS.LEARNED_RAREPRINT or REPUTATIONS.LEARNED_BLUEPRINT
-        PEARL.Reputation:EarnFor(doer.userid, reputation)
+        Rep:EarnFor(doer.userid, reputation, Rep.LIMIT.VERY_BAD)
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.TEACH.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TEACH)
         :SetIsSilent(not rare)
         -- We need the exact name here.
-        :AddTarget(item:GetDisplayName())
+        :AddTarget(src:GetDisplayName())
 end)
 
 RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
@@ -317,14 +320,14 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         -- This makes sure we only log when a base structure get's hammered.
         if not workable:HasBuilder() or workable:IsBuildBy(doer.userid) then
             silent = true
-            mult = .5
+            mult = .8
         end
 
         -- Ignore burned structures
         if target:HasTag("burnt") then
             silent = true
         else
-            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, true)
+            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.NONE)
         end
 
         local action
@@ -350,7 +353,7 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
 
     local prohibited = PEARL.PREFABS.OFFENSIVE_BOOKS[item.prefab] == true
     if prohibited then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.READ_OFFENSIVE_BOOK)
+        Rep:EarnFor(doer.userid, REPUTATIONS.READ_OFFENSIVE_BOOK, Rep.LIMIT.VERY_BAD)
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.READ.GENERIC, doer)
@@ -359,9 +362,10 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
         :AddTarget(item, 1)
 end)
 
-RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target)
-    --- @WARNING: This is a Terrarium specific tag! @TODO
-    if target.is_on and PEARL.PREFABS.ACTIVATABLE[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
+RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target, item)
+    local thing = target or item
+    local activatable = thing and thing.components.activatable
+    if activatable and PEARL.PREFABS.ACTIVATABLE[target.prefab] and not target.components.activatable:IsLastPlayerActivator(doer) then
         target.components.activatable:SetLastPlayerActivator(doer)
 
         -- No point in queuing this action since it's so specific.
@@ -386,7 +390,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
     if rarity > 0 then
         prohibited = true
 
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.COOKED_RARE * rarity)
+        Rep:EarnFor(doer.userid, REPUTATIONS.COOKED_RARE * rarity)
     end
 
     local pattern = STRINGS.PEARL.ACTIONS.COOK.GENERIC
@@ -406,7 +410,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
 
             rarity = PEARL.GetRarityForPrefab(prefab)
             if rarity > 0 then
-                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.COOKED_RARE_INGRED * rarity)
+                Rep:EarnFor(doer.userid, REPUTATIONS.COOKED_RARE_INGRED * rarity)
 
                 prohibited = true
             end
@@ -422,9 +426,9 @@ end)
 RegisterPlayerActionHandler(ACTIONS.SMOTHER,
 RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, item)
     if target:HasTag("structure") then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
+        Rep:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
     else
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH)
+        Rep:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH)
     end
 
     return AL:EntityAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
@@ -446,7 +450,7 @@ RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
         return
     end
 
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CHOPPED_PROHIBITED)
+    Rep:EarnFor(doer.userid, REPUTATIONS.CHOPPED_PROHIBITED)
 
     -- Too spammy, announce only if prohibited.
     AL:EntityAct(STRINGS.PEARL.ACTIONS.CHOP.GENERIC, doer)
@@ -475,9 +479,9 @@ RegisterPlayerActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
         str = STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
         type = PEARL.CONSTS.ANN_TYPE.WASTE
 
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FUEL_WASTED * waste)
+        Rep:EarnFor(doer.userid, REPUTATIONS.FUEL_WASTED * waste)
     elseif target.components.wateryprotection then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FUEL_TO_PROTECTOR * (1 - waste))
+        Rep:EarnFor(doer.userid, REPUTATIONS.FUEL_TO_PROTECTOR * (1 - waste))
     end
 
     AL:EntityAct(str, doer, "source", target)
@@ -488,11 +492,11 @@ end, true) -- We have to do the calculations before the action actually happens.
 
 RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
     if PEARL.PREFABS.DO_DIGUP[target.prefab] == true then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.DUG_UP_GOODS)
+        Rep:EarnFor(doer.userid, REPUTATIONS.DUG_UP_GOODS)
     end
 
     if PEARL.PREFABS.DO_NOT_DIGUP_FOREST[target.prefab] == true and TheWorld:HasTag("forest") then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.DUG_UP_BAD)
+        Rep:EarnFor(doer.userid, REPUTATIONS.DUG_UP_BAD)
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
@@ -503,7 +507,7 @@ end)
 
 -- This is for planting in a farm plot or something like that.
 local OnPlant = RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target, item)
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.PLANT)
+    Rep:EarnFor(doer.userid, REPUTATIONS.PLANT)
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.PLANT[target and "IN" or "GENERIC"], doer,
         QueuedLogAction.FIELDS.SOURCE, target)
@@ -519,9 +523,9 @@ RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
     if item:HasTag("plant") then
         icon = PEARL.EMOTES.DISCORD.BERRY
         if item:HasTag("witherable") then
-            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.PLANT_WITHERABLE)
+            Rep:EarnFor(doer.userid, REPUTATIONS.PLANT_WITHERABLE)
         else
-            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.PLANT)
+            Rep:EarnFor(doer.userid, REPUTATIONS.PLANT)
         end
     end
 
@@ -539,7 +543,7 @@ RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
     local icon = PEARL.EMOTES.DISCORD.RMB
     local pt = STRINGS.PEARL.ACTIONS.USED[target and "ON" or "GENERIC"]
     if not item or item.components.fertilizer then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
+        Rep:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
 
         icon = PEARL.EMOTES.DISCORD.LMB
         pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD
@@ -772,7 +776,7 @@ local function onfirespreaderdeath(doer, target)
     )
 
     if doer.userid then
-        PEARL.Reputation:EarnFor(doer.userid, #near * REPUTATIONS.BURNABLE_NEAR_FIRE)
+        Rep:EarnFor(doer.userid, #near * REPUTATIONS.BURNABLE_NEAR_FIRE)
     end
 
     local prefix = doer and "" or "NODOER"
@@ -792,7 +796,7 @@ local function onmonitoreddeath(doer, target, threshold)
     local remaining = PEARL.CountPrefabs(target.prefab)
     local extinct = remaining <= 0
     if doer.userid and extinct  then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.POPULATION_EXINCT)
+        Rep:EarnFor(doer.userid, REPUTATIONS.POPULATION_EXTINCT)
     end
 
     local str = extinct and STRINGS.PEARL.ACTIONS.KILL.LAST or STRINGS.PEARL.ACTIONS.KILL.REMAINING
@@ -931,13 +935,13 @@ end)
 --- These are already announced by the game.
 local function onrespawnfromghost(inst, data)
     if data and data.user and data.user.userid then
-        PEARL.Reputation:EarnFor(data.user.userid, REPUTATIONS.REVIVE)
+        Rep:EarnFor(data.user.userid, REPUTATIONS.REVIVE)
     end
 end
 
 local function ondeath(inst)
     if inst and inst.userid then
-        PEARL.Reputation:EarnFor(inst.userid, REPUTATIONS.DIED)
+        Rep:EarnFor(inst.userid, REPUTATIONS.DIED)
     end
 end
 
@@ -958,7 +962,7 @@ local function onplayerhitepic(doer, target, dmg, mult)
     target.components.memory:Set(doer.userid, total_dmg)
     target.components.memory:SetLifetime(doer.userid, ttl)
 
-    PEARL.Reputation:EarnFor(
+    Rep:EarnFor(
         doer.userid, dmg * mult * REPUTATIONS.BOSS_DAMAGE
     )
 end
@@ -982,13 +986,13 @@ local function onplayerhitother(player, target, damage, follower)
     end
 
     if PEARL.PREFABS.MOBS.COMPANIONS[target.prefab] == true then
-        PEARL.Reputation:EarnFor(player.userid, mult * dmg * REPUTATIONS.COMPANION_DAMAGE)
+        Rep:EarnFor(player.userid, mult * dmg * REPUTATIONS.COMPANION_DAMAGE)
         return
     end
 
     local leader = target.components.follower and target.components.follower:GetLeader()
     if leader ~= nil and leader.userid ~= player.userid then
-        PEARL.Reputation:EarnFor(player.userid, mult * dmg * REPUTATIONS.FOLLOWER_DAMAGE)
+        Rep:EarnFor(player.userid, mult * dmg * REPUTATIONS.FOLLOWER_DAMAGE)
         return
     end
 end
@@ -1024,7 +1028,7 @@ local function onbuilditem(doer, data)
         return
     end
 
-    PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM)
+    Rep:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM)
 
     return AL:EntityAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.CRAFT)
@@ -1047,14 +1051,14 @@ local function onbuildstructure(doer, data)
 
         local near = target:GetPropagableBurnableEntities()
         if near and #near > 0 then
-            PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BURNABLE_NEAR_FIRE * #near)
+            Rep:EarnFor(doer.userid, REPUTATIONS.BURNABLE_NEAR_FIRE * #near)
 
             silent = not (#near > 2 or table.find(near, structuresearchfn))
             type = PEARL.CONSTS.ANN_TYPE.BURN
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
         end
     else
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BUILT_STRUCTURE)
+        Rep:EarnFor(doer.userid, REPUTATIONS.BUILT_STRUCTURE)
     end
 
     if not action then
@@ -1070,10 +1074,10 @@ end
 local function onplayerconstructed(doer, target)
     local pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.GENERIC
     if target:HasTag("structure") or target:HasTag("multiplayer_portal") then
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.CONSTRUCTED)
+        Rep:EarnFor(doer.userid, REPUTATIONS.CONSTRUCTED)
     else
         pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.QUEST
-        PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.QUEST_COMPLETED)
+        Rep:EarnFor(doer.userid, REPUTATIONS.QUEST_COMPLETED)
     end
 
     AL:EntityAct(pt, doer, QueuedLogAction.FIELDS.TARGET, target)

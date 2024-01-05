@@ -404,7 +404,7 @@ function EMBEDS.ClientProfile(userid, dbr)
     if gains > 0 then
         postfix = " "..PEARL.ICONS.ARROW_UP.." +"..tostring(gains)
     elseif gains < 0 then
-        postfix = " "..PEARL.ICONS.ARROW_DOWN.." -"..tostring(gains)
+        postfix = " "..PEARL.ICONS.ARROW_DOWN.." "..tostring(gains)
     end
     repvalue = repvalue..postfix
 
@@ -427,7 +427,7 @@ function EMBEDS.ClientProfile(userid, dbr)
         ), true)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid), P_STRINGS.FOOTER_ICON)
 
-    if dbr[PEARL.DB.BINDING_FIELD[PEARL.DB.BINDING_TYPE.DISCORD]] then
+    if dbr[PEARL.AccountBindings.BINDING_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORD]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
     end
 

@@ -43,8 +43,9 @@ PEARL.EventProcessor:AddSafeEventHandler("newday", function()
     ResetFieldForActivePlayers("daygains")
 end)
 
+--- @param record PlayerRecord
 PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, record)
-    if record and userid and PEARL.DB:IsRecordWriteable(record) then
+    if record and userid and record:IsWriteable() then
         local lastseentime = PEARL.DB:GetField(userid, "lastseentime")
         if lastseentime then
             local lastseentimetbl = PEARL.TimestampToTable(lastseentime)

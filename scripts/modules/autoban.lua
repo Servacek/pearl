@@ -11,13 +11,13 @@
 --]==]====================================================]]
 
 
+local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
 
 local CONFIG = PEARL.CONFIG.AUTOBAN
-
-local STARTING_REPUTATION = PEARL.Reputation.STARTING_VALUE
 
 local BAN_DELAY = 5
 local BAN_DELAY_OFFLINE = 0
@@ -27,8 +27,8 @@ local WARNING_ATTACK_TYPE = "electric"
 local WARNING_SANITY_PENALTY = TUNING.SANITY_MED
 
 local WARNING_THRESHOLDS = {
-    [1] = STARTING_REPUTATION / 2,
-    [2] = STARTING_REPUTATION / 8,
+    [1] = PEARL.Reputation.LIMIT.BAD,
+    [2] = PEARL.Reputation.LIMIT.VERY_BAD / 2,
 }
 
 --------------------------------------
@@ -46,13 +46,13 @@ end
 local function PreparePlayerForBan(player)
     player:DoTaskInTime(2, function()
         if player.components then
-            -- Drop the inventory before the ban
-            if player.components.inventory then
-                player.components.inventory:DropEverything()
-            end
-
             if player.components.talker then
                 player.components.talker:Say(STRINGS.PEARL.GRIEFER_WARNINGS.BAN)
+            end
+
+            if player.components.inventory then
+                -- Return the items to the base.
+                ItemDepositor:DepositAllItems(player.components.inventory)
             end
         end
 
@@ -107,7 +107,7 @@ end
 
 local function CheckForBanableRep(userid, rep)
     rep = rep or PEARL.Reputation:GetOf(userid)
-    if rep <= PEARL.CONFIG.AUTOBAN.THRESHOLD then
+    if rep < PEARL.CONFIG.AUTOBAN.THRESHOLD then
         -- Ban Time!
 
         local player = LookupPlayerInstByUserID(userid)
@@ -136,7 +136,8 @@ local function OnReputationEarned(userid, old, new)
 
     local warning_level = 0
     for i = 1, #WARNING_THRESHOLDS do
-        if WARNING_THRESHOLDS[i] < old and #WARNING_THRESHOLDS > new then
+        -- We have just crossed the threshold
+        if WARNING_THRESHOLDS[i] < old and WARNING_THRESHOLDS[i] > new then
             warning_level = i
         else
             break -- No other threshold will meet the criteria.

@@ -10,8 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
---- @TODO: Activator should be cleared after the object is deactivated by something else.
-
 --- @class Activatable
 local Activatable = require("components/activatable")
 
@@ -19,8 +17,8 @@ local Activatable = require("components/activatable")
 -- [[ Getters ]]
 --------------------------------
 
-function Activatable:IsLastPlayerActivator()
-    return self._last_player_ac
+function Activatable:IsLastPlayerActivator(player)
+    return self._last_player_ac == player
 end
 
 --------------------------------
@@ -30,3 +28,17 @@ end
 function Activatable:SetLastPlayerActivator(activator)
     self._last_player_ac = activator
 end
+
+
+PEARL.AddComponentPostInit("activatable", function(self)
+    PEARL.AddClassAttrPostSet("inactive", function(t, inactive, old)
+        if inactive == old or not self._last_player_ac then
+            return
+        end
+
+        if inactive == true then
+            self._last_player_ac = nil
+            return
+        end
+    end, self)
+end)

@@ -23,7 +23,12 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid, cfd)
     end
 
     PEARL.info("Client", userid, "localized as", cfd.locale)
+    local lastlocale = PEARL.DB:GetField(userid, "lastlocale")
     PEARL.DB:SafeSetField(userid, "lastlocale", locale)
+    if lastlocale ~= locale then
+        -- Maybe push this to discord as well?
+        PEARL.warn("Locale for", userid, "changed from", lastlocale, "to", locale)
+    end
 
     -- If the player was already loaded we do not care about localization.
     -- This happens for example during migration.

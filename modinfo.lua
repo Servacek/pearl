@@ -205,7 +205,6 @@ configuration_options = {
             ENABLED = false,
             URL = nil,
         },
-        public = "PROXY.ENABLED",
         type = "table",
     },
 
@@ -260,11 +259,10 @@ configuration_options = {
     },
 
     {
-        name = "FILTER_NEW_PROFILES",
-        default = true,
-        options = {
-            true,
-            false,
+        name = "PROFILE_FILTER",
+        default = {
+            ENABLED = true,
+            ENSURE_PROFILE = true,
         },
         type = "boolean",
     },
@@ -424,6 +422,16 @@ configuration_options = {
     --------------------
     -- Other Modules
     --------------------
+
+    {
+        name="HEALTH_INFO",
+        default = {
+            ENABLED = false,
+            TAGS = {},
+        },
+        type = "table",
+        public = true,
+    },
 
     {
         name="GLOBAL_BANLIST",
@@ -901,13 +909,12 @@ configuration_options = {
         implicit = true,
     },
 
+
     {
-        name="HEALTH_INFO",
-        default = {
-            ENABLED = false,
-            TAGS = {},
-        },
-        type = "table",
+        name="DISCORD_PROXY_ENABLED",
+        default = false,
+        type = "boolean",
         public = true,
+        implicit = true,
     },
 }

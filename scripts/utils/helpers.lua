@@ -217,6 +217,25 @@ function PEARL.GetSeasonFancyName()
     return (season_prefix or "").." "..season_name
 end
 
+function PEARL.GetFancyCharacterPrefabFor(userid)
+    local player = LookupPlayerInstByUserID(userid)
+    if player then
+        return player:GetFancyPrefabName()
+    end
+
+    local lastprefabfancy = PEARL.DB:GetField(userid, "lastprefabfancy")
+    if lastprefabfancy and not lastprefabfancy:blank() then
+        return lastprefabfancy
+    end
+
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    if client then
+        return client.prefab or ""
+    end
+
+    return PEARL.DB:GetField(userid, "lastprefab", "")
+end
+
 function PEARL.CheckForReedTrap()
     for _, v in pairs(Ents) do
         if v.prefab == "reeds" then

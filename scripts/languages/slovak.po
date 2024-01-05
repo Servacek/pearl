@@ -73,10 +73,10 @@ msgctxt "STRINGS.PEARL.LOGS.MIGRATING"
 msgid "%s is migrating to shard %s."
 msgstr "%s migruje do shardu %s."
 
-#. STRINGS.PEARL.UI.WHISPER_WARN_TEXT
-msgctxt "STRINGS.PEARL.UI.WHISPER_WARN_TEXT"
-msgid "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone."
-msgstr "Táto správa sa zobrazí len pre hráčov vo vašej blízkosti. Pre verejné správy použite klávesu %s"
+#. STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT
+msgctxt "STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT"
+msgid "%s got a new skin: "
+msgstr "%s získal/a nový skin: "
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED"
@@ -1008,10 +1008,10 @@ msgctxt "STRINGS.PEARL.LOGS.STAFF_CALLED"
 msgid "Admins and server moderators were notified."
 msgstr "Správcovia servera boli upozornení."
 
-#. STRINGS.PEARL.ACTIONS.SLEEP.GENERIC
-msgctxt "STRINGS.PEARL.ACTIONS.SLEEP.GENERIC"
-msgid "{doer} slept in {target}."
-msgstr "{doer} zaspal/a v {target}."
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
+msgid "vote"
+msgstr "Hlasovanie"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.ON_SUCCESS"
@@ -1038,10 +1038,10 @@ msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FD_NAMES.LOCALE"
 msgid "Locale"
 msgstr "Národnosť"
 
-#. STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR
-msgctxt "STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR"
-msgid "Internal proxy server error."
-msgstr "Interná chyba proxy servera."
+#. STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT
+msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT"
+msgid "The %s has passed."
+msgstr "%s prešlo."
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND"
@@ -1073,10 +1073,10 @@ msgctxt "STRINGS.PEARL.LOGS.AND"
 msgid "%s and %s"
 msgstr "%s a %s"
 
-#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1
-msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"
-msgid "Say welcome to %s! It's their first time on the server!"
-msgstr "Privítajme %s! Je tu po prvý krát!"
+#. STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR
+msgctxt "STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR"
+msgid "Internal proxy server error."
+msgstr "Interná chyba proxy servera."
 
 #. STRINGS.PEARL.ACTIONS.FEED.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.FEED.GENERIC"
@@ -1098,10 +1098,10 @@ msgctxt "STRINGS.PEARL.LOGS.STOP_VOTE"
 msgid "The vote was stopped."
 msgstr "Hlasovanie bolo zrušené."
 
-#. STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT
-msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTEPASSEDFMT"
-msgid "The %s has passed."
-msgstr "%s prešlo."
+#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.1"
+msgid "Say welcome to %s! It's their first time on the server!"
+msgstr "Privítajme %s! Je tu po prvý krát!"
 
 #. STRINGS.PEARL.ACTIONS.KILL.NEAR
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.NEAR"
@@ -1198,10 +1198,10 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ALREADY_BANNED"
 msgid "Player is already banned on this server."
 msgstr "Hráč sa už nachádza na zozname blokovaných."
 
-#. STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT
-msgctxt "STRINGS.UI.NOTIFICATION.NEW_SKIN_ANNOUNCEMENT"
-msgid "%s got a new skin: "
-msgstr "%s získal/a nový skin: "
+#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4
+msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4"
+msgid "Let's welcome %s!"
+msgstr "%s sa po prvý raz podarilo dostať sem! Vitaj!"
 
 #. STRINGS.PEARL.SEASON_PREFIX_EARLY.autumn
 msgctxt "STRINGS.PEARL.SEASON_PREFIX_EARLY.autumn"
@@ -1378,10 +1378,10 @@ msgctxt "STRINGS.PEARL.ACTIONS.FERTILIZE.WITH"
 msgid "{doer} fertilized {target} with {item}."
 msgstr "{doer} pohnojil/a {target} s {item}."
 
-#. STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4
-msgctxt "STRINGS.PEARL.NOVICE_ANNOUNCEMENTS.4"
-msgid "Let's welcome %s!"
-msgstr "%s sa po prvý raz podarilo dostať sem! Vitaj!"
+#. STRINGS.PEARL.UI.WHISPER_WARN_TEXT
+msgctxt "STRINGS.PEARL.UI.WHISPER_WARN_TEXT"
+msgid "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone."
+msgstr "Táto správa sa zobrazí len pre hráčov vo vašej blízkosti. Pre verejné správy použite klávesu %s"
 
 #. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_FINISH
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_FINISH"
@@ -1453,10 +1453,10 @@ msgctxt "STRINGS.PEARL.ACTIONS.DIG.GENERIC"
 msgid "{doer} dug up {target}."
 msgstr "{doer} vykopal/a {target}."
 
-#. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
-msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
-msgid "vote"
-msgstr "Hlasovanie"
+#. STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED
+msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED"
+msgid "World Seed"
+msgstr "Nový Seed Sveta"
 
 #. STRINGS.PEARL.ACTIONS.HAMMER.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.GENERIC"
@@ -1473,10 +1473,10 @@ msgctxt "STRINGS.PEARL.LOGS.REPAIR"
 msgid "Burnt structures were restored!"
 msgstr "Zhorené štruktúry boli obnovené!"
 
-#. STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED
-msgctxt "STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED"
-msgid "World Seed"
-msgstr "Nový Seed Sveta"
+#. STRINGS.PEARL.ACTIONS.SLEEP.GENERIC
+msgctxt "STRINGS.PEARL.ACTIONS.SLEEP.GENERIC"
+msgid "{doer} slept in {target}."
+msgstr "{doer} zaspal/a v {target}."
 
 #. STRINGS.PEARL.SEASON_UNKNOWN
 msgctxt "STRINGS.PEARL.SEASON_UNKNOWN"
@@ -1970,7 +1970,7 @@ msgstr ""
 
 #. STRINGS.PEARL.LOGS.PLAYER_REPORT_EMPTY
 msgctxt "STRINGS.PEARL.LOGS.PLAYER_REPORT_EMPTY"
-msgid "%s [@here] `%s` **%s**"
+msgid "%s [@here] `%s` %s **%s**"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.SAY_DM
@@ -2065,7 +2065,7 @@ msgstr ""
 
 #. STRINGS.PEARL.LOGS.PLAYER_REPORT
 msgctxt "STRINGS.PEARL.LOGS.PLAYER_REPORT"
-msgid "%s [@here] `%s` **%s**: %s"
+msgid "%s [@here] `%s` %s **%s**: %s"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.WAVE_WARNING
@@ -2218,6 +2218,11 @@ msgctxt "STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO"
 msgid "Auto-Banned for repeated violation of the rules."
 msgstr ""
 
+#. STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE"
+msgid "Server Agreement Update"
+msgstr ""
+
 #. STRINGS.PEARL.UI.AGREEMENT_BUTTON_HOVER
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_BUTTON_HOVER"
 msgid "View Agreement"
@@ -2258,79 +2263,14 @@ msgctxt "STRINGS.PEARL.UI.OFFLINE"
 msgid "Offline"
 msgstr ""
 
-#. STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE
-msgctxt "STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE"
-msgid "Server Agreement Update"
-msgstr ""
-
-#. STRINGS.PEARL.UI.PROXY_STATE
-msgctxt "STRINGS.PEARL.UI.PROXY_STATE"
-msgid "Proxy Server: %s"
-msgstr ""
-
 #. STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_SCREEN_BUTTON_CLOSE"
 msgid "Close"
 msgstr ""
 
-#. STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
-msgid "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua."
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK"
-msgid "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua."
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON"
-msgid "Invalid JSON data provided!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.JSON_DECODING_FAILED
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.JSON_DECODING_FAILED"
-msgid "Failed to decode the provided JSON data!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.VALIDATION_FAILED
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.VALIDATION_FAILED"
-msgid "Failed to validate command \"%s\"!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER"
-msgid "Unknown player!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM"
-msgid "Invalid parameter \"%s\"!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE"
-msgid "Invalid value provided for parameter \"%s\"!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER"
-msgid "Missing required parameter \"%s\"!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE"
-msgid "There was an error contacting Klei servers."
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID"
-msgid "Invalid prefab provided!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED"
-msgid "Standardization failed for command \"%s\"!"
+#. STRINGS.PEARL.UI.PROXY_STATE
+msgctxt "STRINGS.PEARL.UI.PROXY_STATE"
+msgid "Proxy Server: %s"
 msgstr ""
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SAVE.PRETTYNAME
@@ -2888,9 +2828,74 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.DESC"
 msgid "Sends a notification to the specified player."
 msgstr ""
 
+#. STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_RHOOK"
+msgid "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua."
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK"
+msgid "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua."
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON"
+msgid "Invalid JSON data provided!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.JSON_DECODING_FAILED
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.JSON_DECODING_FAILED"
+msgid "Failed to decode the provided JSON data!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.VALIDATION_FAILED
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.VALIDATION_FAILED"
+msgid "Failed to validate command \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER"
+msgid "Unknown player!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM"
+msgid "Invalid parameter \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE"
+msgid "Invalid value provided for parameter \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER"
+msgid "Missing required parameter \"%s\"!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE"
+msgid "There was an error contacting Klei servers."
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID"
+msgid "Invalid prefab provided!"
+msgstr ""
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED"
+msgid "Standardization failed for command \"%s\"!"
+msgstr ""
+
 #. STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
 msgctxt "STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED"
 msgid "In order for the changes to be correctly applied, you have to save the server."
+msgstr ""
+
+#. STRINGS.PEARL.UI.CONNECTION_FAILED
+msgctxt "STRINGS.PEARL.UI.CONNECTION_FAILED"
+msgid "Connection failed..."
 msgstr ""
 
 #. STRINGS.PEARL.UI.LOADING_ERROR

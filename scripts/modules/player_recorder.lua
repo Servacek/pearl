@@ -138,7 +138,7 @@ end
 
 local function OnClientDisconnected(world, data)
     -- No loading here! Also the userid can be nil or an empty string.
-    if PEARL.DB:IsRecordLoadedFor(data.userid) then
+    if PEARL.DB:IsRecordCachedFor(data.userid) then
         PEARL.DB:SafeSetField(data.userid, "lastseentime", os.time())
 
         PEARL.DB:SaveRecordFor(data.userid)
@@ -264,6 +264,10 @@ local function OnCyclesChanged()
     end
 end
 
+local function OnUserSessionSerialized(userid)
+    PEARL.DB:SaveRecordFor(userid)
+end
+
 --------------------------------------
 -- [[ Hooks ]]
 --------------------------------------
@@ -278,6 +282,8 @@ PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
 
 PEARL.EventProcessor:AddSafeEventHandler("savingrecordfor", OnSavingRecordFor)
+
+PEARL.EventProcessor:AddSafeEventHandler("seriliaze_user_session", OnUserSessionSerialized)
 
 PEARL.AddWorldPostInit(function(world)
     -- Using this instead of NotifyPlayerPresence because that is really inaccurate.
@@ -298,6 +304,18 @@ PEARL.AddWorldPostInit(function(world)
         OnWorldLoadedForClient(userid)
     end
 end)
+
+local function OnFlagsModified(self)
+    local userid = self:GetUserID()
+    local player = LookupPlayerInstByUserID(userid)
+    if player and TheWorld then
+        OnPlayerChanged(TheWorld, player)
+    end
+end
+
+-- These are not really "Classes" so just use the generic post-calls.
+PEARL.AddFunctionPostCall("AddUserFlag", OnFlagsModified, Network)
+PEARL.AddFunctionPostCall("RemoveUserFlag",OnFlagsModified, Network)
 
 PEARL.AddPlayerPostInit(function(player)
     player:SafeListenForEvent("death", OnPlayerDied)

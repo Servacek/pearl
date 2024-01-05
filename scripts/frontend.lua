@@ -153,11 +153,24 @@ PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 -- FrontEnd Debug Mode
 ----------------------------------
 
--- if PEARL.CONFIG.DEBUG_MODE then
+if PEARL.CONFIG.DEBUG_MODE then
+    -- So we can override these from the game.
+    PEARL.CLAN_ID = "1234"
+    PEARL.SERVER_NAME = TheNet:GetServerName()
+
+    -- For debugging the buttons in playerstatusscreen
+    PEARL.OverrideUserdataFnReturn(TheNet, "GetServerClanID", function()
+        return PEARL.CLAN_ID
+    end)
+
+    PEARL.OverrideUserdataFnReturn(TheNet, "GetServerName", function()
+        return PEARL.SERVER_NAME
+    end)
+
 --     PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)
--- end
+end
 
 ----------------------------------
 -- Assets
@@ -176,6 +189,9 @@ PEARL.ClientNetwork = PEARL.loadfile("clientnetwork")
 --- - the .TEX file it points do doesn't exist (make sure filename matches the actual name).
 ---
 --- - Most of the time the textures should not start X at 0 but something like 0.009685
+---
+--- - When hovering over a button make doubles it's size without restoring, the focus texture
+---   not set correctly.
 
 PEARL.info("Registering assets...")
 PEARL.ENV.Assets = {
@@ -205,8 +221,6 @@ PEARL.ENV.ReloadPreloadAssets()
 
 PEARL.info("Loading UI and strings...")
 
-PEARL.POPUPS = {}
-
 PEARL.loadfile("constants/strings")
 
 ----------------------------------
@@ -233,7 +247,7 @@ PEARL.AddFrontEndPostInit(function()
     if modnames and #modnames > 1 then
         PEARL.debug("Loading mod fixes...")
 
-        local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
+        local ExtensionManager = PEARL.loadfile("libraries/loaders/extensionmanager")
 
         -- Auto-Unequip mod fix
         ExtensionManager:FixMods("autounequip", {"1581892848"})
@@ -247,7 +261,7 @@ end)
 PEARL.info("Loading modules...")
 
 --- @type ModuleManager
-local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+local ModuleManager = PEARL.loadfile("libraries/loaders/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 

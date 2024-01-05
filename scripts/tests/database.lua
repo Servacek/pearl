@@ -23,7 +23,7 @@ function CheckAdding()
     assert(type(record) == "table")
     assert(PEARL.DB:GetTotalRecordCount() == count + 1)
     assert(PEARL.DB._records[userid] ~= nil)
-    assert(PEARL.DB:IsRecordLoadedFor(userid))
+    assert(PEARL.DB:IsRecordCachedFor(userid))
 
     PEARL.DB:UnloadRecord(userid)
 end

@@ -41,6 +41,22 @@ function EntityScript:IsResourcePlant()
         and self:HasOneOfTags(PEARL.CONSTS.RESOURCE_PLANT_TAGS)
 end
 
+function EntityScript:HasComponent(component)
+    return self.components[component] ~= nil
+end
+
+function EntityScript:HasAnyOfComponents(components)
+    if table.empty(self.components) == false then
+        for _, component in ipairs(components) do
+            if self:HasComponent(component) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 function EntityScript:IsFireProtected()
     return PEARL.IsPosFireProtected(self:GetPosition())
 end
@@ -92,19 +108,22 @@ function EntityScript:CalcValueOfNearbyBurnables(mustoneoftags, ...)
     return value
 end
 
---- @TODO:
-function EntityScript:GetValue()
+function EntityScript:GetRarity()
+    local rarity = PEARL.GetRarityForPrefab(self.prefab)
+
     local recipe = AllRecipes[self.prefab]
     if recipe then
-        local mult = 1
-        if self.components.workable and self.components.workable:HasBuilder() then
-            mult = 2
-        end
-
         for _, ingredient in ipairs(recipe.ingredients) do
-
+            rarity = rarity + PEARL.GetRarityForPrefab(ingredient.type) * (ingredient.amount or 1)
         end
     end
+
+    local mult = 1
+    if self.components.workable and self.components.workable:HasBuilder() then
+        mult = 2
+    end
+
+    return rarity * mult
 end
 
 function EntityScript:GetStandardizedName()
@@ -130,7 +149,9 @@ end
 
 function EntityScript:GetStateNumber()
     local userflags = self:GetUserFlags()
-    local states = { USERFLAGS.CHARACTER_STATE_1, USERFLAGS.CHARACTER_STATE_2, USERFLAGS.CHARACTER_STATE_3 }
+    local states = {
+        USERFLAGS.CHARACTER_STATE_1, USERFLAGS.CHARACTER_STATE_2, USERFLAGS.CHARACTER_STATE_3
+    }
 
     for i, state in ipairs(states) do
         if checkbit(userflags, state) then

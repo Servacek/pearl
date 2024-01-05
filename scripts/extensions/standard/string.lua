@@ -29,6 +29,12 @@ local rep = string.rep
 local utf8upper = string.utf8upper
 
 -------------------------------------
+-- [[ Constants ]]
+-------------------------------------
+
+local BLANK_PATTERN = "^[%s%c\t\n\r]*$"
+
+-------------------------------------
 -- [[ Public Functions ]]
 -------------------------------------
 
@@ -168,6 +174,14 @@ end
 
 function string:raw()
     return self.format("%q", self)
+end
+
+function string:empty()
+    return #self == 0
+end
+
+function string:blank()
+    return self:empty() or self:find(BLANK_PATTERN) ~= nil
 end
 
 --- If name is a table, all formattings in that table will be applied.

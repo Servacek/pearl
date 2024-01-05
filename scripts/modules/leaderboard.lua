@@ -14,7 +14,7 @@
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 --- @type Leaderboard
-local Leaderboard = PEARL.loadfile("models/leaderboard")
+local Leaderboard = PEARL.loadfile("libraries/database/models/leaderboard")
 
 --------------------------------------
 -- [[ Constants ]]

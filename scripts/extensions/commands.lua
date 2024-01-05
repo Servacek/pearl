@@ -31,7 +31,7 @@ local EMBEDS = PEARL.loadfile("utils/embeds")
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
-local Leaderboard = PEARL.loadfile("models/leaderboard")
+local Leaderboard = PEARL.loadfile("libraries/database/models/leaderboard")
 
 local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
 
@@ -1149,7 +1149,7 @@ AddCommand("pair", {
 
     --- @param ctx CommandContext
     fn = function(ctx, id)
-        local bindtype = PEARL.DB.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
         local userid = ctx.author.userid or id
         local discordid = ctx.author.discordid or id
 
@@ -1157,7 +1157,7 @@ AddCommand("pair", {
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.NOT_PLAYED)
         end
 
-        if PEARL.DB:BindingExists(userid, discordid, bindtype) then
+        if PEARL.AccountBindings:Exists(userid, discordid, bindtype) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ALREADY_PAIRED)
         end
 
@@ -1182,7 +1182,7 @@ AddCommand("pair", {
             end
 
             if data.Linked then
-                PEARL.DB:AddBinding(userid, discordid, bindtype)
+                PEARL.AccountBindings:AddBinding(userid, discordid, bindtype)
                 return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ON_SUCCESS, PEARL.ICONS.SYNC)
             end
 
@@ -1200,20 +1200,20 @@ AddCommand("unpair", {
 
     --- @param ctx CommandContext
     fn = function(ctx)
-        local bindtype = PEARL.DB.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
         local userid = ctx.author.userid
         local discordid = ctx.author.discordid
         if userid and not discordid then
-            discordid = PEARL.DB:MapUserIDToType(userid, bindtype)
+            discordid = PEARL.AccountBindings:MapUserIDToType(userid, bindtype)
         elseif discordid and not userid then
-            userid = PEARL.DB:MapDiscordID(discordid)
+            userid = PEARL.AccountBindings:MapDiscordID(discordid)
         end
 
-        if not userid or not discordid or not PEARL.DB:BindingExists(userid, discordid, bindtype) then
+        if not userid or not discordid or not PEARL.AccountBindings:Exists(userid, discordid, bindtype) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.NOT_PAIRED)
         end
 
-        PEARL.DB:RemoveBinding(userid, discordid, bindtype)
+        PEARL.AccountBindings:RemoveBinding(userid, discordid, bindtype)
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.UNPAIR.ON_SUCCESS, PEARL.ICONS.UNSYNC)
     end,
 })
@@ -1358,7 +1358,7 @@ AddCommand("ls", {
     --- @param ctx CommandContext
     fn = function(ctx)
         -- Everyone has a binding with steam!
-        local ids = PEARL.DB:GetBindings(PEARL.DB.BINDING_TYPE.STEAM)
+        local ids = PEARL.DB:GetBindings(PEARL.AccountBindings.BINDING_TYPE.STEAM)
         table.dump(ids)
     end
 })

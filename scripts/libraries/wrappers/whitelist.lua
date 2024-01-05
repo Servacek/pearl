@@ -15,7 +15,7 @@
     Wrapper for the wonkey built in whitelisting system.
 --]]
 
-local ClusterUserList = PEARL.loadlib("clusteruserlist")
+local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
 
 --------------------------------------
 -- [[ Constants ]]

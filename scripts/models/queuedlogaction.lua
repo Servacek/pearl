@@ -178,7 +178,7 @@ end
 --- @return QueuedLogAction
 function QueuedLogAction:AddToStackableField(field, key, stacksize, noprefix)
     -- Ensure that the field exists
-    if not self:HasDynamicField(field) then
+    if not self:HasStackableField(field) then
         self:SetStackableField(field, {})
     end
 
@@ -193,6 +193,7 @@ function QueuedLogAction:AddToStackableField(field, key, stacksize, noprefix)
         return self
     end
 
+    table.dump(self.stackable)
     stacksize = tonumber(stacksize) or PEARL.GetStackSize(key) or 1
     self.stackable[field][name] = (self.stackable[field][name] or 0) + stacksize
 
@@ -234,7 +235,7 @@ end
 -- [[ Getters ]]
 --------------------------------
 
-function QueuedLogAction:HasDynamicField(field)
+function QueuedLogAction:HasStackableField(field)
     return self.stackable and self.stackable[field] ~= nil or false
 end
 

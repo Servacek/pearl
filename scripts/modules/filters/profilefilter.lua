@@ -24,12 +24,10 @@ local MIN_PROFILE_REP = 1
 local function RunAsyncProfileFilter(data, filtercb)
     -- Check both because if we have only one set then the query most likely just failed.
     if type(data.communityprofile) ~= "boolean" or type(data.profilerep) ~= "number" then
-        print("MISSNG DATA")
         return false -- There is still some data to be catched up
     end
 
-    print("COMMUNITYPROFILE:", tostring(data.communityprofile))
-    if data.communityprofile == false then
+    if data.communityprofile == false and PEARL.CONFIG.PROFILE_FILTER.ENSURE_PROFILE == true then
         filtercb(false, "ID_DST_NO_COMMUNITY_PROFILE")
         return true
     end
@@ -39,8 +37,6 @@ local function RunAsyncProfileFilter(data, filtercb)
         return true
     end
 
-    print("SUCCESS")
-    table.dump(data)
     filtercb(true)
     return true
 end

@@ -30,10 +30,10 @@ local PlayerStatusScreen = require("screens/playerstatusscreen")
 -- [[ Constants ]]
 -------------------------------
 
-local DISCORD_BUTTON_X = -329
-local DISCORD_BUTTON_Y = 200
+local LINK_BUTTON_X = -420
+local LINK_BUTTON_Y = 200
 
-local SCREEN_BUTTONS_OFFSET = 24
+local SCREEN_BUTTONS_OFFSET = 48
 
 local UNDERLINE_CHAR = "_"
 local UNDERLINE_PADDING_Y = -4
@@ -48,6 +48,10 @@ local DEFAULT_COLOUR = WHITE
 local HOST_INDEX = 1
 local HOST_NAME = PEARL.CONFIG.HOST.NAME
 local HOST_URL = PEARL.CONFIG.HOST.URL
+
+local BLOCKED_BUTTONS = {
+    ["toggleservertext_button"] = true, -- Useless, and doesn't fit with the other buttons
+}
 
 --- booleans
 local CUSTOM_HOST_BUTTON = not TheNet:GetServerIsClientHosted() and type(HOST_NAME) == "string"
@@ -68,7 +72,7 @@ local function OnProxyStateChanged(new)
     end
 end
 
-if PEARL.CONFIG.PROXY.ENABLED then
+if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
     PEARL.AddPlayerPostInit(function(inst)
         proxy_state = net_bool(inst.GUID, "proxy_state", "proxy_state_changed")
         proxy_state:set_local(false)
@@ -98,28 +102,38 @@ end
 -- [[ Function Extensions ]]
 -------------------------------
 
-if PEARL.CONFIG.SOCIAL_LINKS and type(PEARL.CONFIG.SOCIAL_LINKS.DISCORD) == "string" and #PEARL.CONFIG.SOCIAL_LINKS.DISCORD > 3 then
-
 -- We have to use DoInit instead of PostConstruct because
 -- root is constructed there too.
 PEARL.AddClassFunctionPostCall("DoInit", function(self)
-    -- This button already exists and was added by something...strange
-    if self.viewdiscord_button ~= nil or not self.root then
-        return
+    self.servermenunumbtns = tonumber(self.servermenunumbtns) or 0
+
+    self._index = self._index or 0
+    if self._buttons == nil then
+        -- Assigned to the instance to prevent duplication
+        self._buttons = TEMPLATES.GetSocialLinkButtons(self.root)
+
+        self._index = #self._buttons
+        self.servermenunumbtns = self.servermenunumbtns + self._index
     end
 
-    self.servermenunumbtns = tonumber(self.servermenunumbtns) or 0
-    self.servermenunumbtns = self.servermenunumbtns + 1
+    local cur_index = self._index
+    for name, value in pairs(self) do
+        if BLOCKED_BUTTONS[name] ~= nil then
+            self[name]:Hide()
+        elseif name:endswith("_button") then
+            cur_index = cur_index + 1
+            self._buttons[cur_index] = value
+        end
+    end
 
-    self.viewdiscord_button = self.root:AddChild(TEMPLATES.LinkButton(
-        PEARL.CONFIG.SOCIAL_LINKS.DISCORD, STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.DISCORD,
-        PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS,
-        PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD,
-        PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.DISCORD_FOCUS
-    ))
-    self.viewdiscord_button:SetPosition(DISCORD_BUTTON_X + (self.servermenunumbtns > 1 and self.servermenunumbtns * SCREEN_BUTTONS_OFFSET or 0), DISCORD_BUTTON_Y)
+    -- Always recalculate the position in case some of the buttons were removed.
+    for i = 1, #self._buttons do
+        self._buttons[i]:SetPosition(
+            LINK_BUTTON_X + (i * SCREEN_BUTTONS_OFFSET), LINK_BUTTON_Y
+        )
+    end
 
-    if PEARL.CONFIG.PROXY.ENABLED then
+    if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
         if not proxy_state_label then
             proxy_state_label = Text(TALKINGFONT, 24)
             proxy_state_label:SetHAlign(ANCHOR_MIDDLE)
@@ -163,5 +177,3 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
         end
     end
 end, PlayerStatusScreen)
-
-end

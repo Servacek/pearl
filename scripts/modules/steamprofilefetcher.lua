@@ -20,7 +20,6 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local QUERIES = PEARL.SteamAPI.QUERIES
 
 local MAX_PROFILE_REP = 100
-local BAD_PROFILE_REP = 25
 
 local MAX_COMMENT_REP = 50
 local MIN_COMMENT_REP = 0
@@ -29,8 +28,8 @@ local MIN_REP_PROFILE_AGE = 3 -- Players start to get reputation for older accou
 
 local REP_PER_TOXIC_NAME        = -10
 local REP_PER_BANNED_FRIEND     = -25
-local REP_PER_POSITIVE_COMMENT  = 20
-local REP_PER_NEGATIVE_COMMENT  = -20
+local REP_PER_POSITIVE_COMMENT  = 10
+local REP_PER_NEGATIVE_COMMENT  = -10
 local REP_PER_UNMATCHED_LOCALE = -10
 
 local REP_PER_ACCOUNT_YEAR  = 5
@@ -42,13 +41,15 @@ local REP_PER_COMMUNITY_BAN = -15
 local REP_PER_ECONOMY_BAN   = -10
 
 local MAX_COMMENTS_CHECK_COUNT = 25
-local MAX_NEGATIVE_COMMENTS_PERCENT = .6
 
 local COMMENT_PATTERN = "<bdi>(.-)<\\/bdi>.-<div class=\\\"commentthread_comment_text\\\" id=\\\"comment_content_%d+\\\">(.-)<\\/div>"
 
---- @TODO: Add more words here.
-local POSITIVE_COMMENT_PATTERN = "+rep"
-local NEGATIVE_COMMENT_PATTERN = "-rep"
+local POSITIVE_COMMENT_PATTERNS = {
+    "+rep",
+}
+local NEGATIVE_COMMENT_PATTERNS = {
+    "-rep", "griefer", "hacker", "troll",
+}
 
 -- Keep these in sync with the names in the DB.
 local PROFILE_DATA = {
@@ -62,6 +63,12 @@ local PROFILE_DATA = {
     profilecountrycode  = nil,
     profiletimecreated  = nil,
     avatar              = nil,
+}
+
+local COMMENT_TYPE = {
+    NEUTRAL     = nil,
+    POSITIVE    = true,
+    NEGATIVE    = false,
 }
 
 -------------------------------------
@@ -88,12 +95,31 @@ end
 -- [[ Local Functions ]]
 -------------------------------------
 
-local function IsCommentNegative(comment)
-    return comment:lower():find(NEGATIVE_COMMENT_PATTERN) or ProfanityFilter:Detect(comment)
-end
+--- @param comment string
+local function GetCommentType(comment)
+    if ProfanityFilter:Detect(comment) then
+        return COMMENT_TYPE.NEGATIVE
+    end
 
-local function IsCommentPositive(comment)
-    return comment:lower():find(POSITIVE_COMMENT_PATTERN)
+    local negativity = 0
+    for pt in ipairs(NEGATIVE_COMMENT_PATTERNS) do
+        if comment:find(pt) then
+            negativity = negativity + 1
+        end
+    end
+
+    local positivity = 0
+    for pt in ipairs(POSITIVE_COMMENT_PATTERNS) do
+        if comment:find(pt) then
+            positivity = positivity + 1
+        end
+    end
+
+    if positivity == 0 and negativity == 0 then
+        return COMMENT_TYPE.NEUTRAL
+    end
+
+    return positivity > negativity
 end
 
 local function CalculateRepInComments(comments_html, profileusername)
@@ -112,9 +138,10 @@ local function CalculateRepInComments(comments_html, profileusername)
         if not ignore[author] then
             ignore[author] = true
 
-            if IsCommentNegative(comment) then
+            local cmt_type = GetCommentType(comment:lower())
+            if cmt_type == COMMENT_TYPE.NEGATIVE then
                 neg_count = neg_count + 1
-            elseif IsCommentPositive(comment) then
+            elseif cmt_type == COMMENT_TYPE.POSITIVE then
                 pos_count = pos_count + 1
             else -- For Neutral Comments
                 ignore[author] = false
@@ -122,21 +149,9 @@ local function CalculateRepInComments(comments_html, profileusername)
         end
     end
 
-    if tot_count <= 0 then
-        return 0
-    end
-
-    -- Handle Special Cases
-    local neg_percent = neg_count / tot_count
-    if neg_percent > MAX_NEGATIVE_COMMENTS_PERCENT then
-        return -1
-    end
-
-    if neg_count == 0 and pos_count > 2 then
-        return MAX_COMMENT_REP
-    end
-
-    return math.min((pos_count * REP_PER_POSITIVE_COMMENT) + (neg_count * REP_PER_NEGATIVE_COMMENT), MAX_COMMENT_REP)
+    return math.min(
+        (pos_count * REP_PER_POSITIVE_COMMENT) + (neg_count * REP_PER_NEGATIVE_COMMENT), MAX_COMMENT_REP
+    )
 end
 
 local function HasAllRequiredProfileData(record)
@@ -151,18 +166,16 @@ local function HasAllRequiredProfileData(record)
     return true
 end
 
-local function CalculateProfileData(userid, cfd, cb)
-    local steamid = userid and --[[TheNet:GetNetIdForUser(userid)]] "76561198050735090"
+local function CalculateProfileData(profile_userid, cfd, cb)
+    local steamid = profile_userid and TheNet:GetNetIdForUser(profile_userid)
     if not steamid then
-        return PEARL.error("Failed to get steam ID for", userid)
+        return PEARL.error("Failed to get steam ID for", profile_userid)
     end
 
     local data = shallowcopy(PROFILE_DATA)
 
     -- VAC - Valve Anti-Cheat
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_BANS, function(query)
-        PEARL.debug("P_BANS:", data.profilerep)
-
         local player = query and query.players and query.players[1]
         if not player then
             PEARL.error("Invalid query response received!")
@@ -188,8 +201,6 @@ local function CalculateProfileData(userid, cfd, cb)
 
     -- This will also check the currently used name.
     PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_NAMEHISTORY, function(str)
-        PEARL.debug("P_NAMEHISTORY:", str, data.profilerep)
-
         local toxicity_count = ProfanityFilter:CountSwears(str)
         if toxicity_count > 0 then
             data.profilerep = data.profilerep + (toxicity_count * REP_PER_TOXIC_NAME)
@@ -197,8 +208,6 @@ local function CalculateProfileData(userid, cfd, cb)
     end)
 
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_FRIENDLIST, function(query)
-        PEARL.debug("P_FRIENDLIST:", data.profilerep)
-
         if not (query.friendslist and query.friendslist.friends) then
             return -- no friends or profile is private
         end
@@ -208,7 +217,7 @@ local function CalculateProfileData(userid, cfd, cb)
         local friends = query.friendslist.friends
         for _, friend in pairs(friends) do
             -- Attempt to conver the Steam ID to Klei ID since its used more frequently for banning.
-            local userid = PEARL.DB:MapSteamID(friend.steamid) or friend.steamid
+            local userid = PEARL.AccountBindings:MapSteamID(friend.steamid) or friend.steamid
             if PEARL.BlackList:Contains(userid) then
                 banned_count = banned_count + 1
             end
@@ -225,8 +234,6 @@ local function CalculateProfileData(userid, cfd, cb)
     end)
 
     PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_COMMENTS, function(str)
-        PEARL.debug("P_COMMENTS", data.profilerep)
-
         if type(str) ~= "string" then
             return
         end
@@ -240,8 +247,6 @@ local function CalculateProfileData(userid, cfd, cb)
     end, MAX_COMMENTS_CHECK_COUNT)
 
     PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_SUMMARIES, function(query)
-        PEARL.debug("P_SUMMARIES", data.profilerep)
-
         local player = query and query.response and query.response.players and query.response.players[1]
         if not player then
             PEARL.error("Invalid query response received!")
@@ -284,12 +289,10 @@ local function CalculateProfileData(userid, cfd, cb)
             end
         end
 
-        print("COMMUNITYPROFILE:", tostring(player.profilestate))
         if tostring(player.profilestate) ~= PEARL.SteamAPI.PROFILE_CONFIGURED then
             data.communityprofile = false
         end
 
-        print("PROFILE_VISIBILITY:", tostring(player.communityvisibilitystate))
         if tostring(player.communityvisibilitystate) ~= PEARL.SteamAPI.PROFILE_VISIBILITY.PUBLIC then
             data.privateprofile = true
         end

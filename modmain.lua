@@ -350,7 +350,7 @@ PEARL.CONSTS = {
 -- [[ FileLoader ]]
 --------------------------------
 
-local loaders = require("libraries/fileloaders")
+local loaders = require("libraries/loaders/fileloaders")
 
 --- Check the validity of the loaders
 for name, loader in pairs(loaders) do
@@ -389,12 +389,15 @@ PEARL.loadfile("extensions/json")
 PEARL.loadfile("extensions/logging")
 
 --------------------------------
--- [[ Cluster Persistance Lib ]]
+-- [[ Persistance Libs ]]
 --------------------------------
 
 --- This has to load this soon because some of the following files use it.
 --- @class ClusterPersistance
-PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance")
+PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance/clusterio")
+
+--- @class ModPersistance
+PEARL.ModPersistance = PEARL.loadlib("wrappers/persistance/modio")
 
 --------------------------------
 -- [[ Common Config ]]
@@ -650,7 +653,7 @@ end
 --------------------------------
 -- Modules loaded on both, Fronted and Backend.
 
--- local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+-- local ModuleManager = PEARL.loadfile("libraries/loaders/modulemanager")
 -- ModuleManager:SetLoader(PEARL.loadfile)
 
 --------------------------------

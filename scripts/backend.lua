@@ -106,7 +106,7 @@ PEARL.SafeModTableExtend("CONSTS", {
         COMPANION_DAMAGE    = -0.07, -- Companions have less HP
         FOLLOWER_DAMAGE     = -0.1,
         BURNABLE_NEAR_FIRE  = -3,
-        POPULATION_EXINCT   = -10,
+        POPULATION_EXTINCT  = -10,
         STRUCT_NEAR_FIRE    = -6,
         BUILT_STRUCTURE     = 4,
         FERTILIZED          = 1,
@@ -328,6 +328,13 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA = data
 end end
 
+----------------------------------------------------------------
+-- [[ Proxy Server Implcit Config ]]
+----------------------------------------------------------------
+
+--- Available to clients.
+PEARL.CONFIG.DISCORD_PROXY_ENABLED = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED
+
 --------------------------------
 -- [[ Simulation Handlers ]]
 --------------------------------
@@ -476,10 +483,13 @@ end
 
 --- Has to be laaded before LeaderboardService
 --- @type DB
-PEARL.DB = PEARL.loadfile("libraries/database")
+PEARL.DB = PEARL.loadfile("libraries/database/database")
 PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
+
+--- @type AccountBindings
+PEARL.AccountBindings = PEARL.loadfile("libraries/database/accountbindings")
 if PEARL.DB:IsEnabled() then
-    PEARL.DB:LoadBindingFiles()
+    PEARL.AccountBindings:Load()
 end
 
 --- @type Reputation
@@ -490,7 +500,7 @@ PEARL.Reputation = PEARL.loadfile("libraries/reputation")
 --------------------------------
 
 --- @type LeaderboardService
-PEARL.LeaderboardService = PEARL.loadfile("libraries/leaderboardservice")
+PEARL.LeaderboardService = PEARL.loadfile("libraries/database/leaderboardservice")
 -- Leaderboarding is centralized.
 if TheShard:IsMaster() then
     PEARL.LeaderboardService:SetIsEnabled(PEARL.CONFIG.LEADERBOARD.ENABLED and PEARL.CONFIG.DATABASE.ENABLED)
@@ -532,7 +542,7 @@ local function LoadExtensions()
     PEARL.loadfile("extensions/scripts/playercommon")
 
     --- @type ExtensionManager
-    local ExtensionManager = PEARL.loadfile("libraries/extensionmanager")
+    local ExtensionManager = PEARL.loadfile("libraries/loaders/extensionmanager")
     PEARL.info("Loading prefab extensions...")
     for _, prefab in ipairs(PEARL.CONFIG.PREFAB_EXTENSIONS) do
         ExtensionManager:ExtendPrefab(prefab)
@@ -625,7 +635,7 @@ end
 PEARL.info("Loading modules...")
 
 --- @type ModuleManager
-local ModuleManager = PEARL.loadfile("libraries/modulemanager")
+local ModuleManager = PEARL.loadfile("libraries/loaders/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
@@ -654,12 +664,12 @@ ModuleManager:AddModule("autoban", PEARL.CONFIG.AUTOBAN.ENABLED)
 ModuleManager:AddModule("filters/usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)
 ModuleManager:AddModule("filters/platformfilter", PEARL.CONFIG.SUPPORTED_CLIENT_PLATFORMS)
 ModuleManager:AddModule("filters/customfilters.lua", PEARL.CONFIG.CUSTOM_CONNECTION_FILTERS)
-ModuleManager:AddModule("filters/profilefilter", PEARL.CONFIG.FILTER_NEW_PROFILES)
+ModuleManager:AddModule("filters/profilefilter", PEARL.CONFIG.PROFILE_FILTER.ENABLED)
 
 --- Master-only Modules
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
-    ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED)
+    ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD_PROXY_ENABLED)
     ModuleManager:AddModule("leaderboard", PEARL.LeaderboardService:IsEnabled())
 end
 

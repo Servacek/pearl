@@ -14,10 +14,10 @@
 local Library = PEARL.loadfile("models/library")
 
 --- @type PersistentMap
-local PersistentMap = PEARL.loadfile("models/persistentmap")
+local PersistentMap = PEARL.loadfile("libraries/datastructures/persistentmap")
 
 --- @type Leaderboard
-local Leaderboard = PEARL.loadfile("models/leaderboard")
+local Leaderboard = PEARL.loadfile("libraries/database/models/leaderboard")
 
 --------------------------------------
 -- [[ Constants ]]
@@ -83,7 +83,7 @@ function LeaderboardService:GetAllLeaderboards()
 end
 
 function LeaderboardService:IsLeaderboardingAllowedFor(userid)
-    return PEARL.DB:IsRecordLoadedFor(userid) and
+    return PEARL.DB:IsRecordCachedFor(userid) and
             not PEARL.ServerNetwork:IsClientBanned(userid) and
            (not PEARL.ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.DEBUG_MODE)
 end
