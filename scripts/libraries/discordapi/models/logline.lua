@@ -55,9 +55,7 @@ local LogLine = Class(function(self, content)
     self._tag = nil
     self._size = self.SIZES.DEFAULT
 
-    -- Timestamp should refer to the creation time of this object
-    -- This should not change.
-    self._timestamp = os.time()
+    self:SetTimestamp(os.time())
 
     --- A boolean representing whether this logline should have a default
     --- timestamp header or if it should be just the content and icon.
@@ -136,6 +134,12 @@ end
 
 function LogLine:SetSize(size)
     self._size = size
+
+    return self
+end
+
+function LogLine:SetTimestamp(timestamp)
+    self._timestamp = timestamp
 
     return self
 end

@@ -17,6 +17,8 @@
     an extension to modindex.lua's environment functions.
 --]]
 
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+
 ----------------------------------
 -- Global Localization
 ----------------------------------
@@ -541,7 +543,7 @@ end
 ---@param entity? unknown The entity the announcement is about.
 ---@param silent? boolean Whether the announcement should be sent to game or not.
 ---@param icon? string The specific icon for silent announcements.
-function PEARL.AnnounceWithType(str, tp, entity, silent, icon)
+function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
     tp = tp and string.lower(tp) or "default"
 
     local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
@@ -567,7 +569,9 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, icon)
     end
 
     icon = icon or PEARL.ICONS.ANNOUNCEMENTS[tp] or PEARL.ICONS.ANNOUNCEMENTS.default
-    PEARL.DiscordLogger:LogString(str, icon)
+    --- @type LogLine
+    local logline = LogLine()
+    PEARL.DiscordLogger:LogLine(str, icon)
 end
 
 --------------------------------

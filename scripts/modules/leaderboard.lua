@@ -98,7 +98,7 @@ end
 local function SaveChanges()
     -- Check if any of the leaderboards needs an update or needs to be saved.
     for _, leaderboard in pairs(leaderboards) do
-        table.dump(leaderboard)
+        --table.dump(leaderboard)
         if leaderboard:HasAnyUnsavedChanges() then
             if leaderboard:HasEnoughPlayers() then
                 UpdateLeaderboards()
@@ -155,7 +155,7 @@ local function OnBufferDone()
         end
 
         for _, leaderboard in pairs(leaderboards) do
-            table.dump(leaderboard)
+            --table.dump(leaderboard)
             leaderboard:OnReputationChanged(userid)
         end
     end

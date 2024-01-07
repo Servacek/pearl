@@ -124,7 +124,7 @@ function PEARL.AddDebugRecord(userid, name, reputation)
     record.username = name or "UNKNOWN"
 
     PEARL.Reputation:InitializeFor(userid)
-    PEARL.Reputation:SetFor(userid, reputation)
+    PEARL.Reputation:SetFor(userid, reputation or 100)
 
     PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
     PEARL.DB:SaveRecordFor(userid, record)

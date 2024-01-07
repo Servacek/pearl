@@ -154,7 +154,7 @@ end
 --- @param bindid string
 --- @param bindtype string
 function AccountBindings:AddBinding(userid, bindid, bindtype)
-    if self:BindingExists(userid, bindid, bindtype) then
+    if self:Exists(userid, bindid, bindtype) then
         return PEARL.error("Binding", bindid, "->", userid, "already exists!")
     end
 

@@ -44,13 +44,11 @@ local PlayerRecord = Class(function(self, userid)
     PEARL.debug("PlayerRecord", userid)
     assert(type(userid) == "string", "Invalid userid provided!")
 
-    self._data = deepcopy(DEFAULT_FIELDS)
-    print("INIT")
+    rawset(self, "_data", deepcopy(DEFAULT_FIELDS))
     self._data.joinedtime = os.time()
     self._data.userid = userid
 
-    self._uptodate = true
-    print("DONE")
+    rawset(self, "_uptodate", false)
 end)
 
 ------------------------------------------
@@ -63,19 +61,19 @@ PlayerRecord.TEMPLATE = DEFAULT_FIELDS
 -- [[ Meta Methods ]]
 ------------------------------------------
 
--- function PlayerRecord:__newindex(field, value, ...)
---     print("PlayerRecord.__newindex", self, field, value, ...)
+function PlayerRecord:__newindex(field, value, ...)
+    print("PlayerRecord.__newindex", self, field, value, ...)
 
---     if not self:IsWriteable() then
---         return PEARL.error("Attempted to modify a read-only record!")
---     end
+    if not self:IsWriteable() then
+        return PEARL.error("Attempted to modify a read-only record!")
+    end
 
---     if rawget(self._data, field) ~= value then
---         rawset(self._data, field, value)
+    if rawget(self._data, field) ~= value then
+        rawset(self._data, field, value)
 
---         self._uptodate = false
---     end
--- end
+        self:SetIsUpToDate(false)
+    end
+end
 
 function PlayerRecord:__index(field, ...)
     print("PlayerRecord.__index", self, field, ...)
@@ -84,7 +82,7 @@ function PlayerRecord:__index(field, ...)
         return self._data[field]
     end
 
-    local fn = rawget(self, field)
+    local fn = rawget(PlayerRecord, field)
     if type(fn) == "function" then
         return fn
     end

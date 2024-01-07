@@ -202,6 +202,17 @@ function Logger:LogMessage(message)
     self._webhook:PostMessage(message)
 end
 
+--- @return LogLine
+function Logger:RawLogLine(str, icon)
+    --- @type LogLine
+    local logline = LogLine(str)
+    if type(icon) == "string" then
+        logline:SetHeader(nil, icon)
+    end
+
+    return logline
+end
+
 --- @param str string The string to be logged.
 --- @param icon string? The icon of the logline to be logged.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.
@@ -210,16 +221,22 @@ function Logger:LogStringRaw(str, icon, ...)
         return
     end
 
-    local logline = LogLine(str)
-    if icon then
-        logline:SetHeader(nil, icon)
-    end
-
-    return self:LogLine(logline, ...)
+    return self:LogLine(self:RawLogLine(str, icon), ...)
 end
 
 function Logger:LogString(str, icon, ...)
     return self:LogStringRaw(MARKDOWN.codeline(str), icon, ...)
+end
+
+--- @TODO?
+function Logger:LogStringAt(str, icon, timestamp)
+    if self:IsDisabled() then
+        return
+    end
+
+    return self:LogLine(self:RawLogLine(str, icon)
+        :SetTimestamp(timestamp)
+    )
 end
 
 function Logger:LogStringHighlighted(str, icon, ...)

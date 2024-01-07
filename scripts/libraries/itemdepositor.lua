@@ -308,6 +308,7 @@ for depo_prefab, _ in pairs(DROP_DEPOS) do
             end
 
             inst:SafeListenForEvent("onremove", OnDepoRemove)
+            inst:SafeListenForEvent("onburntup", OnDepoRemove)
             OnDepoInit(inst)
         end)
     end)
@@ -320,7 +321,8 @@ for sign, _ in pairs(SIGNS) do
                 return
             end
 
-            inst:SafeListenForEvent("onremove", OnDepoRemove)
+            inst:SafeListenForEvent("onremove", OnSignRemove)
+            inst:SafeListenForEvent("onburntup", OnSignRemove)
             OnSignInit(inst)
         end)
     end)

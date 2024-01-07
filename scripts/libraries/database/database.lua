@@ -247,6 +247,10 @@ function DB:CreateRecordFile(userid)
         return PEARL.error("Invalid Klei ID provided!")
     end
 
+    if self:HasRecordFile(userid) then
+        return PEARL.error("Record file for", userid, "already exists...")
+    end
+
     PEARL.debug("Creating database record for", userid)
 
     local record = Record(userid)
