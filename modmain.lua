@@ -618,6 +618,7 @@ if not PEARL.INIT then
 
     PEARL.info("Loading HTTP client...")
 
+    --- Even the client needs to use some requests from time to time
     --- @type HTTPClient
     PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
 end

@@ -237,6 +237,8 @@ local ICONS = {
         ["activate"]=   PEARL.EMOTES.DISCORD.LIGHTBULB,
         ["teach"]=      PEARL.EMOTES.DISCORD.SANITY,
         ["extinct"]=    PEARL.EMOTES.DISCORD.BEEFALO,
+        ["catch"]=      "<:catch:1195066050442694726>",
+        ["broke"]=      "<:broke:1195062001488105613>",
     },
 }
 

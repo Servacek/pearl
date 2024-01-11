@@ -193,7 +193,6 @@ function QueuedLogAction:AddToStackableField(field, key, stacksize, noprefix)
         return self
     end
 
-    table.dump(self.stackable)
     stacksize = tonumber(stacksize) or PEARL.GetStackSize(key) or 1
     self.stackable[field][name] = (self.stackable[field][name] or 0) + stacksize
 
@@ -240,20 +239,17 @@ function QueuedLogAction:HasStackableField(field)
 end
 
 function QueuedLogAction:GetString()
-    self.stackable = self.stackable or {}
-    if type(self.datafn) == "function" then
-        self.datafn(self.stackable)
+    if table.empty(self.stackable) ~= false then
+        return self.pattern -- No changes
     end
 
+    local str = self.pattern
     for name, value in pairs(self.stackable) do
-        if type(value) == "table" then
-            self.stackable[name] = _GetStringFromStackableData(value)
-        else
-            self.stackable[name] = value
-        end
+        value = type(value) == "table" and _GetStringFromStackableData(value) or value
+        str = self.pattern:nformat(name, value)
     end
 
-    return self.pattern:nformat(self.stackable)
+    return str
 end
 
 --- @return boolean

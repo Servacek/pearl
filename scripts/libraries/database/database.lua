@@ -293,11 +293,14 @@ function DB:LoadRecordFor(userid, validate)
     end
 
     PEARL.info("Loading record for ", userid)
-    local record = PEARL.ModPersistance:LoadDataFromFile(self:GetRecordFilePathFor(userid))
-    if type(record) ~= "table" then
+    local data = PEARL.ModPersistance:LoadDataFromFile(self:GetRecordFilePathFor(userid))
+    if type(data) ~= "table" then
         PEARL.error("Failed to load record for", userid, PEARL.CalledFrom(4))
         return
     end
+
+    local record = Record(userid)
+    record:SetData(data)
 
     if validate == true then
         self:ValidateRecord(record)

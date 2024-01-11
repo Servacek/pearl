@@ -130,6 +130,10 @@ end
 -- [[ Setters ]]
 ------------------------------------------
 
+function PlayerRecord:SetData(data)
+    self._data = data
+end
+
 function PlayerRecord:SetIsUpToDate(uptodate)
     self._uptodate = uptodate
 end

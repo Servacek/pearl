@@ -27,12 +27,25 @@ end
 local CONTAINER_SIGN_RADIUS = 0.5
 
 local NEARBY_CHEST_RADIUS = 5
+local SIGN_CHEST_RADIUS = 1
 
 --- <item_name>: <priority>
 local DROP_DEPOS = {
-    ["firepit"]         = 1,
-    ["treasurechest"]   = 2,
-    ["dragonflychest"]  = 3, -- More space (also not burnable)
+    ["multiplayer_portal"] = .1, -- We should not get this far.
+    ["firepit"]         = 1,   -- Usually the center of a base.
+    ["coldfirepit"]     = 1.1, -- Can potentially keep perishables more fresh
+    ["chester"]         = 1.3, -- Better than on the ground I guess.
+    ["backpack"]        = 1.5,
+    ["piggyback"]       = 1.6, -- More storage potentially and not burnable
+    ["treasurechest"]   = 1.64, -- Burnable but more accessible and common
+    ["krampus_sack"]    = 1.65, -- Not burnable + much more storage
+    ["spicepack"]       = 1.67, -- This one can hold even non-perishable items.
+    ["dragonflychest"]  = 1.69, -- More space (also not burnable) Ideal for rare items
+    ["bookstation"]     = 1.699, -- Filter out magic books
+    ["seedpouch"]       = 1.7, -- Filter out the seeds
+    ["candybag"]        = 1.8, -- Filter out the candies
+    ["icepack"]         = 1.9, -- Filter out the food
+    ["beargerfur_sack"] = 2, -- Filter out the dishes
 
     --- Perishable food storage (not burnable as well)
     ["icebox"]          = 4,
@@ -120,10 +133,18 @@ end
 -- [[ Local Functions ]]
 -------------------------------
 
-local function GetSignForContainer(container)
-    if container.Transform then
-        return GetClosestInstWithTag({"sign", "drawable"}, container, CONTAINER_SIGN_RADIUS)
-    end
+local function GetParentContainerForSign(sign)
+    local nearby_chests = sign:GetNearbyEntites(
+        SIGN_CHEST_RADIUS, {"chest", "structure"}, {"burnt", "INLIMBO", "FX"}
+    )
+
+    return nearby_chests[1] ~= sign and nearby_chests[1] or nearby_chests[2]
+end
+
+local function GetNearbyContainers(container)
+    return container:GetNearbyEntities(
+        NEARBY_CHEST_RADIUS, {"chest", "structure"}, {"burnt", "INLIMBO", "FX"}
+    )
 end
 
 -------------------------------
@@ -155,18 +176,10 @@ function ItemDepositor:GetDepoForItem(item)
             local container = depo.components.container
             if not used[depo] and not (container and container:IsFull()) then
                 local amount = container and container:CountItem(item.prefab) or 0
-                -- if amount <= 0 and SIGNABLE[depo.prefab] == true then
-                --     local sign = GetSignForContainer(depo)
-                --     if sign and sign.components.drawable then
-                --         local prefab = sign.components.drawable.imagename
-                --         print("SIGN IMAGE PREFAB", prefab)
-                --         if prefab == item.prefab then
-                --             amount = 1
-                --         end
-                --     else
-                --         print("NO SIGN ")
-                --     end
-                -- end
+                if amount <= 0 and depo.__sign_prefab ~= nil then
+                    print("SIGNED WITH", item.prefab)
+                    amount = 1
+                end
 
                 if amount > optimal_amount then
                     optimal_amount = amount
@@ -224,6 +237,11 @@ function ItemDepositor:DepositItem(inventory, item)
         end
     end
 
+    -- local pos -- Let the function handle the position by default.
+    -- local owner = inventory.inst
+    -- if not owner or not owner:HasValidWorldPosition() then
+    --     pos = owner:GetPosition()
+    -- end
     print("Dropping on the ground...")
     -- If no depo existed for this item.
     inventory:DropItem(item, true, true)
@@ -260,14 +278,23 @@ local function OnDepoRemove(inst)
         if _depos[i].GUID == inst.GUID then
             -- Keeps them sorted
             table.remove(_depos, i)
+
+            local nearby_chests = GetNearbyContainers(inst)
+            if table.empty(nearby_chests) == false then
+                for _, chest in ipairs(nearby_chests) do
+                    inst.__nerby_chest_count = (inst.__nerby_chest_count or 0) - 1
+                    chest.__nerby_chest_count = (chest.__nerby_chest_count or 0) - 1
+                end
+
+                -- Make sure also the nearby chests are being sorted accordingly.
+                table.sort(_depos, sort_depo_by_priority)
+            end
         end
     end
 end
 
 local function OnDepoInit(inst)
-    local nearby_chests = inst:GetNearbyEntities(
-        NEARBY_CHEST_RADIUS, {"chest", "structure"}, {"burnt", "INLIMBO", "FX"}
-    )
+    local nearby_chests = GetNearbyContainers(inst)
     if table.empty(nearby_chests) == false then
         for _, chest in ipairs(nearby_chests) do
             inst.__nerby_chest_count = (inst.__nerby_chest_count or 0) + 1
@@ -275,6 +302,7 @@ local function OnDepoInit(inst)
         end
 
         _depos[#_depos+1] = inst
+        -- Make sure also the nearby chests are being sorted accordingly.
         table.sort(_depos, sort_depo_by_priority)
     else
         table.insort(_depos, inst, sort_depo_by_priority)
@@ -284,12 +312,34 @@ local function OnDepoInit(inst)
     table.foreach(_depos, print)
 end
 
-local function OnSignRemove(inst)
+local function OnSignRemove(sign)
+    local parent_chest = GetParentContainerForSign(sign)
+    if parent_chest ~= nil then
+        parent_chest.__sign_prefab = nil
+    end
+end
 
+local function OnSignDrawn(sign, drawning_prefab)
+    if not PEARL.PrefabExists(drawning_prefab) then
+        return -- Drawn some weird image or wrong sign?
+    end
+
+    local parent_chest = GetParentContainerForSign(sign)
+    if parent_chest ~= nil then
+        parent_chest.__sign_prefab = drawning_prefab
+    end
 end
 
 local function OnSignInit(inst)
-    --- @TODO: Handle minisign spawning.
+    -- Handle already loaded drawnings
+    if inst.components.drawable.imagename then
+        OnSignDrawn(inst, inst.components.drawable.imagename)
+    end
+
+    -- Handle new drawnings
+    PEARL.AddClassFunctionPreCall("OnDrawn", function(imagename, src)
+        OnSignDrawn(inst, (src and src.prefab) or imagename)
+    end, inst.components.drawable)
 end
 
 -------------------------------
@@ -307,6 +357,10 @@ for depo_prefab, _ in pairs(DROP_DEPOS) do
                 return -- Special case for naturaly generated chests for example.
             end
 
+            if inst.components.inventoryitem and inst.components.inventoryitem:IsHeld() then
+                return -- Special case for item depos being held by someone.
+            end
+
             inst:SafeListenForEvent("onremove", OnDepoRemove)
             inst:SafeListenForEvent("onburntup", OnDepoRemove)
             OnDepoInit(inst)
@@ -318,6 +372,10 @@ for sign, _ in pairs(SIGNS) do
     PEARL.AddPrefabPostInit(sign, function(inst)
         PEARL.WallScheduler:ExecuteInTime(0, function()
             if not inst:IsValid() then
+                return
+            end
+
+            if not inst.components.drawable then
                 return
             end
 

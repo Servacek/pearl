@@ -17,8 +17,6 @@
     an extension to modindex.lua's environment functions.
 --]]
 
-local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
-
 ----------------------------------
 -- Global Localization
 ----------------------------------
@@ -569,9 +567,7 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
     end
 
     icon = icon or PEARL.ICONS.ANNOUNCEMENTS[tp] or PEARL.ICONS.ANNOUNCEMENTS.default
-    --- @type LogLine
-    local logline = LogLine()
-    PEARL.DiscordLogger:LogLine(str, icon)
+    PEARL.DiscordLogger:LogString(str, icon)
 end
 
 --------------------------------

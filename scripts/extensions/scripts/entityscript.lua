@@ -57,6 +57,10 @@ function EntityScript:HasAnyOfComponents(components)
     return false
 end
 
+function EntityScript:HasValidWorldPosition()
+    return self.__simulated ~= true and self.Transform ~= nil or false
+end
+
 function EntityScript:IsFireProtected()
     return PEARL.IsPosFireProtected(self:GetPosition())
 end

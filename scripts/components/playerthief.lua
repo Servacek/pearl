@@ -191,6 +191,8 @@ return Class(function(self, inst)
         inst.components.inventory:ForEachItem(function(item)
             if item.components.inventoryitem then
                 item.components.inventoryitem:SetLastPicker(inst)
+                item.components.inventoryitem:SetLastPlayerOwner(inst)
+                item.components.inventoryitem:SetLastOwner(inst)
             end
         end)
     end

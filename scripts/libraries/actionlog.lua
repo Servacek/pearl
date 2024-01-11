@@ -19,8 +19,9 @@ local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
 
 --- @class ActionLog
 local ActionLog = {
-    --- @type table<userid, table<string, any>>
+    --- @type table<string, table<string, any>>
     _queue = {},
+    _queueindex = {},
 }
 
 --------------------------------
@@ -36,16 +37,12 @@ local function _OnActionInitialized(action)
     -- The action did not manage to become stackable during its construction,
     -- so it won't be added to the queue but logged right away.
     if not action:IsStackable() then
-        print("NON STACKABLE")
-        action:CancelQueueTask()
         ActionLog:LogAction(action)
         return
     end
 
     ActionLog:QueueAction(action)
     action:StartQueueTask(function()
-        print("QUEUE DONE")
-        ActionLog:DequeueAction(action.pattern)
         ActionLog:LogAction(action)
     end)
 end
@@ -73,14 +70,22 @@ function ActionLog:GetQueuedAction(pattern)
     return self._queue[pattern]
 end
 
+--- @param pattern string Retrive the specific actions index.
+--- @return integer?
+function ActionLog:GetQueuedActionIndex(pattern)
+    return table.index(self._queueindex, pattern)
+end
+
 --- @param pattern string Removes from the queue action with the provided pattern.
 function ActionLog:DequeueAction(pattern)
     self._queue[pattern] = nil
+    table.remove(self._queueindex, self:GetQueuedActionIndex(pattern))
 end
 
 --- @param action QueuedLogAction
 function ActionLog:QueueAction(action)
     self._queue[action.pattern] = action
+    self._queueindex[#self._queueindex+1] = action.pattern
 end
 
 function ActionLog:Log(ent, tp, str, slt, icon)
@@ -91,12 +96,19 @@ end
 
 --- @param action QueuedLogAction
 function ActionLog:LogAction(action)
-    -- Prevent the action from being logged twice.
-    action:CancelQueueTask()
+    PEARL.debug("ActionLog:LogAction")
+    local index = self:GetQueuedActionIndex(action.pattern) or 1
+    for i = 1, index do
+        local queued = self._queue[self._queueindex[i]]
+        self:DequeueAction(queued.pattern)
 
-    return self:Log(
-        action.colorentity, action.logtype, action:GetString(), action.silent, action.icon
-    )
+        -- Prevent the action from being logged twice.
+        queued:CancelQueueTask()
+
+        self:Log(
+            queued.colorentity, queued.logtype, queued:GetString(), queued.silent, queued.icon
+        )
+    end
 end
 
 --- @param p string The initial pattern of the action.

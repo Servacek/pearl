@@ -296,6 +296,14 @@ RegisterPlayerActionHandler(ACTIONS.SEW, function(doer, target, item)
         :AddTarget(target, 1)
 end)
 
+RegisterPlayerActionHandler(ACTIONS.NET, function(doer, target, item)
+    local pt = STRINGS.PEARL.ACTIONS.CATCH[item and "DOER_WITH" or "DOER"]
+    AL:EntityAct(pt, doer, "tool", item)
+        :SetIcon(PEARL.ICONS.ANNOUNCEMENTS["catch"])
+        :SetIsSilent(true)
+        :AddTarget(target, 1)
+end)
+
 RegisterPlayerActionHandler(ACTIONS.TEACH, function(doer, target, item)
     local src  = item or target
     local rare = src.is_rare == true
@@ -1160,14 +1168,14 @@ local function ontookrareitem(doer, item)
     end
 
     local veryrare = item.components.inventoryitem:IsVeryRare()
-    if veryrare and (item.components.inventoryitem:IsLastPlayerOwner(doer) or item.components.inventoryitem:IsLastPicker(doer)) then
+    if not veryrare or (item.components.inventoryitem:IsLastPlayerOwner(doer) or item.components.inventoryitem:IsLastPicker(doer)) then
         return
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TAKE)
         :SetIsSilent(not veryrare)
-        :AddTarget(item)
+        :AddTarget(item:GetDisplayName())
 end
 
 local function ontookrarecontainer(doer, data)
@@ -1239,6 +1247,28 @@ PEARL.AddComponentPostInit("combat", function(self)
         end
 
         self.inst:SafeListenForEvent("onhitother", onhitother)
+    end)
+end)
+
+PEARL.AddComponentPostInit("finiteuses", function(self)
+    self.inst:SafeListenForEvent("percentusedchange", function()
+        if not self.inst.components.inventoryitem then
+            return
+        end
+
+        -- A repairable item was broken.
+        if self.current <= 0 then --and self.inst.components.repairable then
+            local doer = self.inst.components.inventoryitem.owner
+            if not doer or not doer:HasTag("player") then
+                doer = nil
+            end
+
+            local pt = STRINGS.PEARL.ACTIONS.WOREOUT[doer and "DOER" or "GENERIC"]
+            AL:EntityAct(pt, doer)
+                :SetIcon(PEARL.ICONS.ANNOUNCEMENTS["broke"])
+                :SetIsSilent(true)
+                :AddTarget(self.inst, 1)
+        end
     end)
 end)
 

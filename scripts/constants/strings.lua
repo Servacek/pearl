@@ -61,6 +61,17 @@ local STRINGS = {
             TARGET      = "{doer} healed {target} using {tool}.",
         },
 
+        WOREOUT = {
+            GENERIC     = "{target} broke due to low durability.",
+            DOER        = "{doer} worn out {target}.",
+        },
+
+        CATCH = {
+            GENERIC     = "{target} was catched.",
+            DOER        = "{doer} catched {target}.",
+            DOER_WITH   = "{doer} catched {target} with {tool}.",
+        },
+
         CONSTRUCT = {
             GENERIC     = "{doer} constructed {target}.",
             QUEST       = "{doer} completed quest from {target}.",

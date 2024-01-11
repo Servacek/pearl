@@ -12,10 +12,6 @@
 
 --- @TODOS: Add support for non-waiting requests (these will return 201)
 
-
---- @type Request
-local Request = PEARL.loadfile("libraries/http/models/request")
-
 --------------------------------
 -- [[ Constants ]]
 --------------------------------

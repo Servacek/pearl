@@ -11,9 +11,6 @@
 --]==]====================================================]]
 
 
-
---- @TODO: Sort this a bit (v2.1)
-
 -- This is really required!
 require("stacktrace")
 
@@ -397,6 +394,10 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
     end
 
     local name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
+    if entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
+        name = entity.name
+    end
+
     if entity.components.spellbook then
         name = entity.components.spellbook:GetSpellName() or name
     end

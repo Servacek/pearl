@@ -44,7 +44,7 @@ local HTTPClient = {
     proxy = HTTPClientProxy,
 }
 
-if HTTPClient.proxy and PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
+if TheNet:IsDedicated() and HTTPClient.proxy and PEARL.CONFIG.PROXY.ENABLED and type(PEARL.CONFIG.PROXY.URL) == "string" then
     PEARL.info("Setting up the proxy...")
 
     HTTPClient.proxy:SetEnabled(true)
