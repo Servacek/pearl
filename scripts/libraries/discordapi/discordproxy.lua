@@ -13,16 +13,11 @@
 
 local Library = PEARL.loadfile("models/library")
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
-
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
 
-local BASE_URL = PEARL.CONFIG.DISCORD.PROXY.URL
-if type(BASE_URL) ~= "string" then
-    return error("Discord proxy is enabled but invalid url was provided!")
-end
+local BASE_URL = PEARL.CONFIG.DISCORD.PROXY.URL or ""
 
 local MAX_RETRIES = 3
 
@@ -30,12 +25,14 @@ local STATE = {
     FAILED      = -1,
     STOPPED     = 0,
     RUNNING     = 1,
+    CONNECTING  = 2,
 }
 
 local URL = {
-    INPUT = BASE_URL.."/input",
-    OUTPUT = BASE_URL.."/output",
+    INPUT   = BASE_URL.."/input",
+    OUTPUT  = BASE_URL.."/output",
     SESSION = BASE_URL.."/session",
+    MESSAGE = BASE_URL.."/message",
 }
 
 local FETCH_REQUEST_TIMEOUT = 5
@@ -178,6 +175,10 @@ local function OnProxyUnreachable()
 end
 
 local function OnInputFetchingDone(data)
+    if not DiscordProxy:IsRunning() then
+        DiscordProxy:SetState(DiscordProxy.STATE.RUNNING)
+    end
+
     if type(data) ~= "table" then
         return
     end
@@ -186,14 +187,16 @@ local function OnInputFetchingDone(data)
 end
 
 local function OnFetchingFailed(response, code, request)
-    if not request:IsRetryable() then
-        OnProxyUnreachable()
-    end
-
     if DiscordProxy:IsFetching() then
         PEARL.info("Fetching failed! Stopping the fetching task...")
         DiscordProxy.fetch_task:stop()
     end
+
+    if not request:IsRetryable() then
+        return OnProxyUnreachable()
+    end
+
+    DiscordProxy:SetState(DiscordProxy.STATE.CONNECTING)
 end
 
 local function OnProxyInternalError()
@@ -254,6 +257,14 @@ end
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
+
+--- @param message Message
+function DiscordProxy:PostMessage(message, channelid)
+    return PEARL.HTTPClient:POST(URL.MESSAGE, nil, {
+        message = message:ToTable(),
+        channel = channelid,
+    }):SetDecodeResponse(false):Send()
+end
 
 function DiscordProxy:StartProcessingData(type)
     PEARL.debug("DiscordProxy:StartProcessingData", type)
@@ -319,7 +330,7 @@ function DiscordProxy:StartSession(retries)
         players = DiscordProxy:GetPlayerAutocompleteData(),
         shards  = DiscordProxy:GetShardAutocompleteData(),
     })
-    :SetIsRaw(true)
+    :SetDecodeResponse(false)
     :SetOnError(retries ~= 0 and OnSessionStartFailed or nil)
     :SetMaxRetries(retries or START_SESSION_RETRIES)
     :Send()
@@ -338,7 +349,7 @@ function DiscordProxy:StopSession()
     PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, nil, {
         running = false
     })
-    :SetIsRaw(true)
+    :SetDecodeResponse(false)
     :SetMaxRetries(0)
     :Send()
 end
@@ -355,7 +366,7 @@ end
 function DiscordProxy:SendCachedCommandResponses()
     PEARL.info("Sending command response to server.")
     PEARL.HTTPClient:POST(DiscordProxy.URL.OUTPUT, OnProxyReceviedResponse, self.response_cache)
-        :SetIsRaw(true)
+        :SetDecodeResponse(false)
         :SetOnError(OnProxyResponseFailed)
         :Send()
 

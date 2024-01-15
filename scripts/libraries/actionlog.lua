@@ -37,12 +37,14 @@ local function _OnActionInitialized(action)
     -- The action did not manage to become stackable during its construction,
     -- so it won't be added to the queue but logged right away.
     if not action:IsStackable() then
+        print("NON STACKABLE")
         ActionLog:LogAction(action)
         return
     end
 
     ActionLog:QueueAction(action)
     action:StartQueueTask(function()
+        print("DONE!")
         ActionLog:LogAction(action)
     end)
 end
@@ -99,6 +101,9 @@ function ActionLog:LogAction(action)
     PEARL.debug("ActionLog:LogAction")
     local index = self:GetQueuedActionIndex(action.pattern) or 1
     for i = 1, index do
+        if i ~= index then
+            print("LOGGING PREVIOUS ACTION", i)
+        end
         local queued = self._queue[self._queueindex[i]]
         self:DequeueAction(queued.pattern)
 

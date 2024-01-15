@@ -58,7 +58,7 @@ function ServerListing:GetData(cb, raw)
     }
 
     PEARL.HTTPClient:POST(LOBBY_BASE_URL..LOBBY_ENDPOINTS.READ, cb, data)
-        :SetIsRaw(raw)
+        :SetDecodeResponse(not raw)
         :Send()
 end
 
@@ -73,7 +73,7 @@ function ServerListing:SetDataField(name, value)
     PEARL.HTTPClient:POST(LOBBY_BASE_URL..LOBBY_ENDPOINTS.UPDATE, function(data)
         PEARL.info(data)
     end, data)
-        :SetIsRaw(true)
+        :SetDecodeResponse(false)
         :Send()
 end
 

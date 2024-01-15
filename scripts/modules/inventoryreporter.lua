@@ -70,9 +70,6 @@ local AGE_THRESHOLD             = 15 -- Age where the bias is 0
 local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
 local BIASES_FILE_PATH  = PEARL.MODROOT.."data/item_weight_biases.json"
 
---- @TODO: FOR DEBUGGING
-local MESSAGE_QUERY_URL = "http://localhost:10997/dst/proxy/message"
-
 --- @type REPUTATION_TABLES
 local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
@@ -99,11 +96,21 @@ local function SavePredictionData()
     json.dump(_biases, BIASES_FILE_PATH)
 end
 
+local function ValidateLoadedWeightsData(weights)
+    for prefab, weight in pairs(PEARL.PREFABS.RARE_ITEMS) do
+        if weights[prefab] == nil then
+            weights[prefab] = weight
+        end
+    end
+end
+
 local function LoadSavedPredictionData()
     local requires_saving = false
     local weights = json.load(WEIGHTS_FILE_PATH)
     if type(weights) == "table" then
         _weights = weights
+
+        ValidateLoadedWeightsData(_weights)
     else
         _weights = shallowcopy(PEARL.PREFABS.RARE_ITEMS)
         requires_saving = true
@@ -156,37 +163,33 @@ local function RemovePrediction(id)
 end
 
 local function SendProxyFeedbackMessage(channel_id, message)
-    local messagedata = message:ToTable()
-    messagedata.components = {
-        BUTTONS_DATA[BUTTONS.FEEDBACK_POSTIVE],
-        BUTTONS_DATA[BUTTONS.FEEDBACK_NEGATIVE],
-    }
-
-    local data = {
-        message = messagedata,
-        channel = channel_id,
-    }
-
-    return PEARL.HTTPClient:POST(
-        MESSAGE_QUERY_URL, nil, data
-    ):SetIsRaw(true):Send()
+    PEARL.DiscordProxy:PostMessage(message, channel_id)
 end
 
+local function CreateFeedbackMessage(message)
+    return message
+        :AddComponent(BUTTONS_DATA[BUTTONS.FEEDBACK_POSTIVE])
+        :AddComponent(BUTTONS_DATA[BUTTONS.FEEDBACK_NEGATIVE])
+end
+
+--- @return boolean success
 local function ReportInventoryWithFeedback(message, pd)
     PEARL.debug("ReportInventoryWithFeedback")
 
     local channel_id = PEARL.DiscordReporter._webhook.channel_id or PEARL.CONFIG.INVENTORY_REPORTER.REPORT_CHANNEL
     if channel_id ~= nil then
-        local request = SendProxyFeedbackMessage(channel_id, message)
+        local request = SendProxyFeedbackMessage(channel_id, CreateFeedbackMessage(message))
         if request ~= nil then
             request:SetOnSuccess(OnPredictionMessageReceived, pd)
-            return
+            return true
         end
 
         PEARL.error("Failed to send the feedback proxy report message! Sending a normal one.")
     else
         PEARL.error("No report channel set for Inventory Reporter, using default prediction...")
     end
+
+    return false
 end
 
 -- Returns the total predicted weight for the item with all the biases applied.
@@ -305,6 +308,47 @@ local function DoLegalityPrediction(inventory, age)
     return pd
 end
 
+--- @param player_meta PlayerMetadata
+local function ReportPlayerInventory(player_meta, pd, drop_type, sorted_items)
+    player_meta:SetInventoryIterator(function(inventory)
+        local i
+        local used = {}
+        return function()
+            local item
+            while item == nil or used[item.prefab] == true or not inventory[item.prefab] do
+                i, item = next(sorted_items, i)
+                if i == nil or item == nil then
+                    return
+                end
+            end
+
+            used[item.prefab] = true
+            return item.prefab, inventory[item.prefab]
+        end
+    end)
+
+    local embed = EMBEDS.SuspiciousInventory(player_meta)
+    if drop_type ~= DROP_TYPE.NONE then
+        embed:AddField("", PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..(
+            drop_type == DROP_TYPE.ALL and STRINGS.PEARL.LOGS.INV_REPORT_DROPPED or STRINGS.PEARL.LOGS.INV_RARE_ITEMS_DROPPED
+        ))
+        -- embed:SetDescription(embed.description..(
+        --     "\n\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..(
+        --         drop_type == DROP_TYPE.ALL and STRINGS.PEARL.LOGS.INV_REPORT_DROPPED or STRINGS.PEARL.LOGS.INV_RARE_ITEMS_DROPPED
+        --     )
+        -- ))
+    end
+
+    local message = Message():AddEmbed(embed)
+    if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI and PEARL.DiscordProxy:IsRunning() then
+        if ReportInventoryWithFeedback(message, pd) == true then
+            return
+        end
+    end
+
+    PEARL.DiscordReporter:SendRawReportMessage(message)
+end
+
 local function CheckPlayersInventory(world, player)
     local inventory = player.components.inventory
     if not inventory or inventory:IsEmpty() then
@@ -313,32 +357,24 @@ local function CheckPlayersInventory(world, player)
 
     local age = player.components.age and player.components.age:GetAgeInDays() or 1
     local pd = DoLegalityPrediction(inventory, age)
-    table.dump(pd)
     if pd.prediction == PREDICTION.LEGAL then
-        print("INVENTORY IS LEGAL")
         return -- This inventory is not flagged.
     end
 
     PEARL.Reputation:EarnFor(player.userid, REPUTATIONS.LEFT_WITH_BAD_INV)
 
-    print("SENDING REPORT TO THE SERVER:")
-
     -- Initialize the meta data here so it uses the old untouched inventory for reference.
     local player_meta = PEARL.GetPlayerMetadataFor(player.userid)
 
+    local sorted_items
     local drop_type = DROP_TYPE.NONE
     if world.state.cycles > PEARL.CONFIG.INVENTORY_REPORTER.DROP_AFTER_CYCLE or PEARL.CONFIG.DEBUG_MODE then
         local reputation = PEARL.Reputation:GetOf(player.userid)
-        print("REP", reputation)
         if reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
-            ItemDepositor:DepositAllItems(inventory)
-            print("IS EMPTY AFTER DEPOSIT?", inventory:IsEmpty())
-            print(inventory:GetDebugString())
-
+            sorted_items = ItemDepositor:DepositAllItems(inventory)
             drop_type = DROP_TYPE.ALL
         elseif reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_REP then
-            ItemDepositor:DepositRareItems(inventory, RARITY_THRESHOLD)
-
+            sorted_items = ItemDepositor:DepositRareItems(inventory, RARITY_THRESHOLD)
             drop_type = DROP_TYPE.RARE
         end
 
@@ -348,23 +384,13 @@ local function CheckPlayersInventory(world, player)
         end
     end
 
+    -- Anounce this after dropping so we have the info
     if PEARL.CONFIG.INVENTORY_REPORTER.SEND_REPORT and PEARL.DiscordReporter:IsEnabled() then
-        print("SENDING THE REPORT TO DISCORD")
-        local embed = EMBEDS.SuspiciousInventory(player_meta)
-        if drop_type ~= DROP_TYPE.NONE then
-            embed:SetDescription(embed.description..(
-                "\n"..PEARL.ICONS.PLAYER_STATE.DROP_ITEMS.." "..(
-                    drop_type == DROP_TYPE.ALL and STRINGS.PEARL.LOGS.INV_REPORT_DROPPED or STRINGS.PEARL.LOGS.INV_RARE_ITEMS_DROPPED
-                )
-            ))
-        end
-
-        local message = Message():AddEmbed(embed)
-        if PEARL.CONFIG.INVENTORY_REPORTER.USE_AI and PEARL.DiscordProxy:IsRunning() then
-            ReportInventoryWithFeedback(message, pd)
-        else
-            PEARL.DiscordReporter:SendRawReportMessage(message)
-        end
+        ReportPlayerInventory(
+            player_meta, pd, drop_type, sorted_items or inventory:GetAllItemsSorted(
+                ItemDepositor.SORTBY.PRIORITY
+            )
+        )
     end
 end
 

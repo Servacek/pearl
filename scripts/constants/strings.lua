@@ -267,10 +267,11 @@ local STRINGS = {
         },
 
         INV = {
-            TITLE = "%s %s",
+            TITLE = "%s's Inventory",
             INVENTORY = MARKDOWN.bold("Inventory"),
             INVENTORY_EMPTY = MARKDOWN.italic("*Inventory Empty*"),
             SURVIVED = "`%s/%s`",
+            THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1196480952105439302/backpack.png?ex=65b7c8b8&is=65a553b8&hm=ed2083f11b69c8dff56e33f1fecd056fdb47a6cbc027fcd7a5bce1f712a83ef0&",
             FD_NAMES = {
                 SURVIVED        = "Days Survived",
                 SUSPICIOUSNESS  = "Suspiciousness",
@@ -281,6 +282,7 @@ local STRINGS = {
             LOC_MODS = "Local Mods",
             PUB_MODS = "Steam Workshop Mods",
             TITLE = "%s's Enabled Mods",
+            THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1093953980482211862/wrench.png",
             FOOTER = "%s/%s",
             ALLOWLIST = "Allowlist is enabled.",
         },
@@ -290,7 +292,9 @@ local STRINGS = {
             TITLE = "%s %s",
             FOOTER = "Klei ID: %s • Steam ID: %s",
             PLAYING = "Playing Now!",
+            UNKNOWN = "No Information",
             PRIVATE = "Profile is set as private, therefore some data may be inaccurate or not provided.",
+            NOT_SETUPED = "User has not setuped their community profile yet.",
             SYSTEM_BAN = "System Ban",
             NO_REASON  = "No Reason Provided",
             FOOTER_ICON = "https://cdn.discordapp.com/attachments/1066442901380403333/1190652981864042556/authentication.png",
@@ -560,8 +564,10 @@ local STRINGS = {
         },
 
         PROXY_STATE = "Proxy Server: %s",
+        UNREACHABLE = "Unreachable",
         ONLINE = "Online",
         OFFLINE = "Offline",
+        STARTING = "Starting",
 
         ALLOWED = "Allowed",
         BLOCKED = "Blocked",

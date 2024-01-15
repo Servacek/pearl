@@ -24,10 +24,15 @@
 local unpack = unpack
 
 ----------------------------------
+-- Constants
+----------------------------------
+
+local MOD_PREFAB_PT = PEARL.MODNAME.."_%s"
+
+----------------------------------
 -- Locals
 ----------------------------------
 
-local mod_post_inits = {}
 local file_pre_loads = {}
 local frontend_preinits = {}
 local prefab_post_registers = {}
@@ -115,7 +120,7 @@ end
 --- @param overridefn fun(old_ret: any, ...: any): any
 --- @return function? origin
 function PEARL.OverrideMethodReturnValue(class, methodname, overridefn, optional)
-    return PEARL.OverrideReturnValue(class, methodname, overridefn, true)
+    return PEARL.OverrideReturnValue(class, methodname, overridefn, true, optional)
 end
 
 function PEARL.OverrideUserdataFnReturn(userdata, funcname, overridefn, noraw, optional)
@@ -303,8 +308,15 @@ function PEARL.AddWorldPostInit(fn, ...)
     return PEARL.AddPrefabPostInit("world", fn, ...)
 end
 
+--- For networking between servers
 function PEARL.AddShardNetworkPostInit(fn, ...)
     return PEARL.AddPrefabPostInit("shard_network", fn, ...)
+end
+
+--- For networking between server and client.
+function PEARL.AddWorldNetworkPostInit(fn, ...)
+    PEARL.AddPrefabPostInit("cave_network", fn, ...)
+    PEARL.AddPrefabPostInit("forest_network", fn, ...)
 end
 
 -- TheFrontEnd is avaible when this is being called.
@@ -317,7 +329,6 @@ function PEARL.AddFrontEndPostInit(postfn, ...)
         postfn(FE, ...)
     end, ...)
 end
-
 
 function PEARL.AddFrontEndPreInit(precb)
     if KnownModIndex:IsModInitPrintEnabled() then
@@ -405,6 +416,14 @@ function PEARL.SafeModTableExtend(name, init_val, replace)
     end
 end
 
+function PEARL.ModPrefab(prefab, ...)
+    return Prefab(MOD_PREFAB_PT:format(prefab), ...)
+end
+
+function PEARL.SpawnModPrefab(prefab, ...)
+    return SpawnPrefab(MOD_PREFAB_PT:format(prefab), ...)
+end
+
 ----------------------------------
 -- UI
 ----------------------------------
@@ -431,12 +450,6 @@ PEARL.AddSimPostInit = function(...) PEARL.SafeRun(PEARL.ENV.AddSimPostInit, ...
 ----------------------------------
 -- API Handlers
 ----------------------------------
-
-function PEARL.OnModPostInit(...)
-    for _, fn in ipairs(mod_post_inits) do
-        fn(...)
-    end
-end
 
 PEARL.AddGlobalFunctionPreCall("AddUserCommand", function(name, ...)
     if not usercommand_pre_inits[name] then

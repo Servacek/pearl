@@ -150,7 +150,7 @@ end
 
 local function OnProxyStateChanged(state)
     if proxy_state then
-        proxy_state:set(state == PEARL.DiscordProxy.STATE.RUNNING)
+        proxy_state:set(PEARL.DiscordProxy:GetState())
     end
 end
 
@@ -223,10 +223,10 @@ PEARL.AddSimPostInit(function()
     PEARL.DiscordProxy:StartSession()
 end)
 
--- PEARL.AddPlayerPostInit(function(inst)
---     proxy_state = net_bool(inst.GUID, "proxy_state")
---     proxy_state:set(PEARL.DiscordProxy:IsRunning())
--- end)
+PEARL.AddWorldNetworkPostInit(function(inst)
+    proxy_state = net_tinybyte(inst.GUID, "proxy_state")
+    proxy_state:set(PEARL.DiscordProxy:GetState())
+end)
 
 ----------------------------------
 -- Event Listeners

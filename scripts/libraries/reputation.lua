@@ -130,6 +130,7 @@ function Reputation:GetGamePlayTime(userid)
 end
 
 -- Returns time in minutes spent actively playing on the server.
+--- @return number
 function Reputation:GetLocalGamePlayTime(userid)
     local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
     return (totaldays * TUNING.TOTAL_DAY_TIME) / 60

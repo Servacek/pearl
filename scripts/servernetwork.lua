@@ -38,11 +38,11 @@ local DEFAULT_RPC_TIMEOUT = 5
 -- Netvars
 ----------------------------------
 
--- local _server_slots
--- PEARL.AddWorldPostInit(function(inst)
---     _server_slots = net_byte(inst.GUID, "_server_slots")
---     _server_slots:set(TheNet:GetDefaultMaxPlayers())
--- end)
+local _server_slots
+PEARL.AddWorldNetworkPostInit(function(inst)
+    _server_slots = net_byte(inst.GUID, "_server_slots")
+    _server_slots:set(TheNet:GetDefaultMaxPlayers())
+end)
 
 ----------------------------------
 -- Locals
@@ -643,12 +643,12 @@ function ServerNetwork:AddJoinServerFilter(filter)
     return table.insert(join_filters, filter)
 end
 
--- --- @param slots integer
--- function ServerNetwork:SetClientSlots(slots)
---     if _server_slots then
---         _server_slots:set(slots)
---     end
--- end
+--- @param slots integer
+function ServerNetwork:SetClientSlots(slots)
+    if _server_slots then
+        _server_slots:set(slots)
+    end
+end
 
 function ServerNetwork:CacheClientTableFor(userid)
     if type(userid) == "string" then

@@ -171,7 +171,7 @@ local function DoVersionCheckTask()
     if target_version == 0 or CheckAppVersion() then
         PEARL.HTTPClient:GET(
             PEARL.CONSTS.DST_BUILDS, OnVersionCheckQueryComplete, VERSION_QUERY_TIMEOUT
-        ):SetIsRaw(true):Send()
+        ):SetDecodeResponse(false):Send()
     end
 end
 

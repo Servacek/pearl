@@ -163,6 +163,14 @@ function PlayerMetadata:GetInstance()
     return player
 end
 
+function PlayerMetadata:SetInventoryIterator(__pairs)
+    if type(__pairs) == "function" then
+        return setmetatable(self._inventory, {
+            __pairs = __pairs
+        })
+    end
+end
+
 --- FLAT version of the inventory for embed building.
 function PlayerMetadata:GetInventory()
     return self._inventory

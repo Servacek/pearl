@@ -23,6 +23,9 @@ local Text = require("widgets/text")
 
 local TEMPLATES = require("widgets/redux/templates")
 
+--- @class DiscordProxy
+local DiscordProxy = PEARL.loadfile("libraries/discordapi/discordproxy")
+
 --- @class PlayerStatusScreen
 local PlayerStatusScreen = require("screens/playerstatusscreen")
 
@@ -57,25 +60,59 @@ local BLOCKED_BUTTONS = {
 local CUSTOM_HOST_BUTTON = not TheNet:GetServerIsClientHosted() and type(HOST_NAME) == "string"
 local VALID_HOST_URL = type(HOST_URL) == "string" and #HOST_URL > 1
 
+local SPINNER_CHAR = "."
+local SPINNER_SPACE = " "
+local MAX_SPINNER_CHARS = 3
+
+local STATE_LABEL_DATA = {
+    [DiscordProxy.STATE.FAILED] = {
+        text = STRINGS.PEARL.UI.UNREACHABLE, colour = WEBCOLOURS.DARKRED
+    },
+    [DiscordProxy.STATE.STOPPED] = {
+        text = STRINGS.PEARL.UI.OFFLINE, colour = WEBCOLOURS.RED
+    },
+    [DiscordProxy.STATE.RUNNING] = {
+        text = STRINGS.PEARL.UI.ONLINE, colour = WEBCOLOURS.GREEN
+    },
+    [DiscordProxy.STATE.CONNECTING] = {
+        text = STRINGS.PEARL.UI.STARTING, colour = WEBCOLOURS.YELLOW
+    }
+}
+
+local DEFAULT_STATE_LABEL_DATA = {
+    text = STRINGS.PEARL.LOGS.UNKNOWN, colour = WEBCOLOURS.DARKER_GREY
+}
+
 ---------------------------
 -- [[ Locals ]]
 ---------------------------
+
+local function GetProxyStateLabelSpinnerPostfix(elipse_state)
+    return string.rep(SPINNER_CHAR, math.max(math.min(elipse_state + 1, MAX_SPINNER_CHARS), 1))
+end
+
+local function GetProxyStateLabelData(state)
+    return STATE_LABEL_DATA[state] or DEFAULT_STATE_LABEL_DATA
+end
+
+local function GetProxyStateLabelText(state_text)
+    return STRINGS.PEARL.UI.PROXY_STATE:format(state_text)
+end
 
 -- Show the label only if proxy is enabled.
 local proxy_state_label, proxy_state
 local function OnProxyStateChanged(new)
     if proxy_state_label then
-        proxy_state_label:SetColour(new and WEBCOLOURS.GREEN or WEBCOLOURS.RED)
-        proxy_state_label:SetString(STRINGS.PEARL.UI.PROXY_STATE:format(
-            new == true and STRINGS.PEARL.UI.ONLINE or STRINGS.PEARL.UI.OFFLINE
-        ))
+        local data = STATE_LABEL_DATA[new] or DEFAULT_STATE_LABEL_DATA
+        proxy_state_label:SetColour(data.colour)
+        proxy_state_label:SetString(GetProxyStateLabelText(data.text))
     end
 end
 
 if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
-    PEARL.AddPlayerPostInit(function(inst)
-        proxy_state = net_bool(inst.GUID, "proxy_state", "proxy_state_changed")
-        proxy_state:set_local(false)
+    PEARL.AddWorldNetworkPostInit(function(inst)
+        proxy_state = net_tinybyte(inst.GUID, "proxy_state", "proxy_state_changed")
+        proxy_state:set_local(DiscordProxy.STATE.STOPPED)
 
         inst:ListenForEvent("proxy_state_changed", function()
             OnProxyStateChanged(proxy_state:value())
@@ -135,11 +172,38 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
 
     if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
         if not proxy_state_label then
+            self.step_time = GetStaticTime()
+
             proxy_state_label = Text(TALKINGFONT, 24)
-            proxy_state_label:SetHAlign(ANCHOR_MIDDLE)
-            proxy_state_label:SetVAlign(ANCHOR_MIDDLE)
 
             OnProxyStateChanged(proxy_state and proxy_state:value() or false)
+
+            print(proxy_state_label:GetPositionXYZ())
+
+            PEARL.AddClassFunctionPreCall("OnUpdate", function()
+                local state = proxy_state:value()
+                if state ~= DiscordProxy.STATE.CONNECTING then
+                    return
+                end
+
+                local time = GetStaticTime()
+                local time_delta = time - self.step_time
+                local NEXT_STATE = 1.0
+                if time_delta > NEXT_STATE then
+                    local data = GetProxyStateLabelData(state)
+                    local text = GetProxyStateLabelText(data.text)
+                    if self.elipse_state == nil then
+                        self.elipse_state = 0
+                    end
+
+                    proxy_state_label:SetString(
+                        text..GetProxyStateLabelSpinnerPostfix(self.elipse_state)
+                    )
+
+                    self.elipse_state = self.elipse_state > 1 and 0 or self.elipse_state + 1
+                    self.step_time = time
+                end
+            end, self)
         end
 
         local host_widget = type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]

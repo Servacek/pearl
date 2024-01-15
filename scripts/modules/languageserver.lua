@@ -74,7 +74,7 @@ if (IS_JOINING and PEARL.CONFIG.LANGUAGE_SERVER.AUTOUPDATE) or not io.exists(FIL
     PEARL.HTTPClient:GET(URL, OnTranslationDownloaded)
         :SetOnComplete(OnDownloadQueryCompleted)
         :SetOnError(OnDownloadQueryFailed)
-        :SetIsRaw(true)
+        :SetDecodeResponse(false)
         :Send()
 
     PEARL.ClientLoader:AddPreLoadHandler(function()

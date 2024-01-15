@@ -90,7 +90,7 @@ local Request = Class(function(self, url, method, proxy)
     self.maxretries = PEARL.CONSTS.MAX_REQUEST_RETRIES
 
     --- @type boolean
-    self.raw = false
+    self.decode_response = true
 
     --- @type boolean
     self.proxy = proxy or false
@@ -229,10 +229,11 @@ function Request:SetOnError(errfn, ...)
     return self
 end
 
---- @param raw boolean
+--- Whether the response should be decoded or not (defaults to true)
+--- @param decode boolean
 --- @return Request
-function Request:SetIsRaw(raw)
-    return self:_SetField("raw", raw or false, "boolean", false, true)
+function Request:SetDecodeResponse(decode)
+    return self:_SetField("decode_response", decode or false, "boolean", false, true)
 end
 
 --- @param maxretries integer
@@ -427,10 +428,10 @@ function Request:OnCompleted(datastr, success, code)
     --- @type string|table?
     local response = datastr
     if type(datastr) ~= "string" or datastr == "" then
-        response = self.raw and "" or {}
+        response = self.decode_response and {} or ""
     end
 
-    if not self.raw and type(response) ~= "table" then
+    if self.decode_response and type(response) ~= "table" then
         local decoded, datatbl = pcall(json.decode, datastr)
         if not decoded then
             PEARL.error("Failed to decode the request's response!", datastr)

@@ -23,6 +23,12 @@
 --]]
 
 --------------------------------------------------------------------------
+--[[ Constants ]]
+--------------------------------------------------------------------------
+
+local RARITY_THRESHOLD = .49
+
+--------------------------------------------------------------------------
 --[[ Class Declaration - PlayerThief ]]
 --------------------------------------------------------------------------
 
@@ -38,6 +44,10 @@ return Class(function(self, inst)
     --------------------------------------------------------------------------
 
     local ClearActiveContainerCache, CacheActiveContainerItems, GetStolenItems
+
+    local function isitemconsideredrare(item)
+        return item.components.inventoryitem:GetRarityPercent() > RARITY_THRESHOLD
+    end
 
     local function onclosecontainer(doer, container)
         -- Only clean up if we have closed the active container
@@ -91,7 +101,7 @@ return Class(function(self, inst)
             end
         end
 
-        if not data.item.components.inventoryitem:IsRare() then
+        if not isitemconsideredrare(data.item) then
             return
         end
 
@@ -139,7 +149,7 @@ return Class(function(self, inst)
         _ac_container = container
 
         container.components.container:ForEachItem(function(item)
-            if item.components.inventoryitem:IsRare() then
+            if isitemconsideredrare(item) then
                 _ac_items_cache[#_ac_items_cache + 1] = item
             end
         end)
@@ -149,9 +159,7 @@ return Class(function(self, inst)
         _ac_container = nil
 
         if _ac_items_cache then
-            for i, _ in ipairs(_ac_items_cache) do
-                _ac_items_cache[i] = nil
-            end
+            table.iclear(_ac_items_cache)
         end
     end
 

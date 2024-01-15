@@ -10,9 +10,11 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-local PEARL = PEARL
-
+--- @class Inventory
 local Inventory = require("components/inventory")
+
+--- @class InventoryReplica
+local InventoryReplica = require("components/inventory_replica")
 
 -----------------------------------
 -- [[ Extension Functions ]]
@@ -49,16 +51,20 @@ function Inventory:GetAllItems()
     return items
 end
 
-function Inventory:ForEachItemSorted(fn, sortfn)
+function Inventory:GetAllItemsSorted(sortfn)
     local items = self:GetAllItems()
     table.sort(items, sortfn)
 
-    print("SORTED:")
-    table.foreach(items, print)
+    return items
+end
 
-    for _, item in ipairs(items) do
+function Inventory:ForEachItemSorted(fn, sortfn)
+    local sorted = self:GetAllItemsSorted(sortfn)
+    for _, item in ipairs(sorted) do
         fn(item)
     end
+
+    return sorted
 end
 
 function Inventory:GetItemCount(prefab)
@@ -157,3 +163,11 @@ function Inventory:GiveItemPrefabs(items, nodrop)
 
     return added, total - added
 end
+
+------------------------------
+
+-- PEARL.AddClassFunctionPreCall("SetPickupPos", function(self)
+--     if not self.classified then
+--         return false
+--     end
+-- end, InventoryReplica)

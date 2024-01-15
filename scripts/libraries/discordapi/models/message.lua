@@ -77,6 +77,9 @@ local Message = PEARL.Class(function(self, content)
     --- @type boolean
     self._silent = false
 
+    --- @type table?
+    self._components = nil
+
     -- Setting parse to an empty array disables all mentions in the message.
     -- That's what we want by default.
     --- @type table<string, table>
@@ -283,12 +286,24 @@ function Message:AddLogLine(logline)
     return true
 end
 
+--- @param flag integer
 function Message:AddFlag(flag)
     if not self._flags then
         self._flags = flag
     else
         self._flags = bit.bor(self._flags, flag)
     end
+
+    return self
+end
+
+--- @param data table
+function Message:AddComponent(data)
+    if type(self._components) ~= "table" then
+        self._components = {}
+    end
+
+    table.insert(self._components, data)
 
     return self
 end
@@ -354,9 +369,10 @@ function Message:ToTable()
     -- character we need to send one byte of data.
     return {
         content = utf8.decode_string(self:GetContent()),
-        embeds = self._embeds and not table.empty(self._embeds) and self._embeds or nil,
+        embeds = table.empty(self._embeds) == false and self._embeds or nil,
         flags = self._flags,
-        allowed_mentions = self._allowed_mentions and not table.empty(self._allowed_mentions) and self._allowed_mentions or nil,
+        allowed_mentions = table.empty(self._allowed_mentions) == false and self._allowed_mentions or nil,
+        components = table.empty(self._components) == false and self._components or nil
     }
 end
 

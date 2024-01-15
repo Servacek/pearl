@@ -26,13 +26,20 @@ end
 
 local CONTAINER_SIGN_RADIUS = 0.5
 
+local SIGN_MUST_TAGS = {"sign", "drawable"}
+local CHEST_MUST_TAGS = {"chest", "structure"}
+local CHEST_CANT_TAGS = {"burnt", "INLIMBO", "FX"}
+
 local NEARBY_CHEST_RADIUS = 5
 local SIGN_CHEST_RADIUS = 1
 
 --- <item_name>: <priority>
 local DROP_DEPOS = {
-    ["multiplayer_portal"] = .1, -- We should not get this far.
-    ["firepit"]         = 1,   -- Usually the center of a base.
+    -- We should not get this far.
+    ["multiplayer_portal"] = -1,
+    ["cave_exit"]       = 0,
+
+    ["firepit"]         = 1.01,   -- Usually the center of a base.
     ["coldfirepit"]     = 1.1, -- Can potentially keep perishables more fresh
     ["chester"]         = 1.3, -- Better than on the ground I guess.
     ["backpack"]        = 1.5,
@@ -67,7 +74,9 @@ local ITEM_TAG_PRIORITY = {
 }
 
 local ITEM_COMPONENT_PRIORITY = {
-    [1] = {"finituses", "heater", "equippable", "fueled"}
+    [1] = {"fueled", "waterproofer", "armor"},
+    [2] = {"insulator"},
+    [3] = {"finituses", "heater", "equippable"},
 }
 
 -------------------------------
@@ -83,15 +92,13 @@ local ItemDepositor = {}
 
 local _depos = {}
 
-local _sorted = false
-
 -------------------------------
 -- [[ Sorters ]]
 -------------------------------
 
 local function sort_depo_by_priority(a, b)
     local priority_a, priority_b = DROP_DEPOS[a.prefab] or 0, DROP_DEPOS[b.prefab] or 0
-    if (priority_a > 0 or priority_b > 0) and priority_a ~= priority_b then
+    if (priority_a ~= 0 or priority_b ~= 0) and priority_a ~= priority_b then
         return priority_a > priority_b
     end
 
@@ -130,15 +137,32 @@ local function sort_item_by_priority(a, b)
 end
 
 -------------------------------
+-- [[ Static ]]
+-------------------------------
+
+ItemDepositor.SORTBY = {
+    PRIORITY = sort_item_by_priority,
+    RARITY   = sort_item_by_rarity,
+}
+
+-------------------------------
 -- [[ Local Functions ]]
 -------------------------------
 
-local function GetParentContainerForSign(sign)
-    local nearby_chests = sign:GetNearbyEntites(
-        SIGN_CHEST_RADIUS, {"chest", "structure"}, {"burnt", "INLIMBO", "FX"}
-    )
+-- local function GetSignForContainer(container)
+--     return GetClosestInstWithTag(SIGN_MUST_TAGS, container, SIGN_CHEST_RADIUS)
+-- end
 
-    return nearby_chests[1] ~= sign and nearby_chests[1] or nearby_chests[2]
+local function GetParentContainerForSign(sign)
+    return GetClosestInstWithTag(CHEST_MUST_TAGS, sign, SIGN_CHEST_RADIUS)
+    -- local nearby_chests = sign:GetNearbyEntities(
+    --     SIGN_CHEST_RADIUS, CHEST_MUST_TAGS, CHEST_CANT_TAGS, nil, function(inst)
+    --         -- Find an unsigned container
+    --         return inst:IsValid() and inst.__sign_prefab == nil
+    --     end
+    -- )
+
+    -- return nearby_chests[1] ~= sign and nearby_chests[1] or nearby_chests[2]
 end
 
 local function GetNearbyContainers(container)
@@ -174,11 +198,10 @@ function ItemDepositor:GetDepoForItem(item)
             end
 
             local container = depo.components.container
-            if not used[depo] and not (container and container:IsFull()) then
+            if not used[depo] then -- Do not check if we are full here since we may still stack.
                 local amount = container and container:CountItem(item.prefab) or 0
-                if amount <= 0 and depo.__sign_prefab ~= nil then
-                    print("SIGNED WITH", item.prefab)
-                    amount = 1
+                if depo.__sign_prefab == item.prefab then
+                    amount = math.huge -- Prioritize signed chests
                 end
 
                 if amount > optimal_amount then
@@ -248,7 +271,7 @@ function ItemDepositor:DepositItem(inventory, item)
 end
 
 function ItemDepositor:DepositAllItems(inventory)
-    inventory:ForEachItemSorted(function(item)
+    return inventory:ForEachItemSorted(function(item)
         if self:IsItemDepositable(item) then
             self:DepositItem(inventory, item)
         end
@@ -258,15 +281,19 @@ end
 function ItemDepositor:DepositRareItems(inventory, rarity_threshold)
     rarity_threshold = tonumber(rarity_threshold) or 0
 
-    inventory:ForEachItemSorted(function(item)
-        if not self:IsItemDepositable(item) then
-            return
-        end
-
-        if item:GetRarity() > rarity_threshold then
+    return inventory:ForEachItemSorted(function(item)
+        if item:GetRarity() > rarity_threshold and self:IsItemDepositable(item) then
             self:DepositItem(inventory, item)
         end
     end, sort_item_by_rarity)
+end
+
+function ItemDepositor:DepostItemsFromArray(inventory, arr)
+    for _, item in ipairs(arr) do
+        if self:IsItemDepositable(item) then
+            self:DepositItem(inventory, item)
+        end
+    end
 end
 
 -------------------------------
@@ -282,7 +309,6 @@ local function OnDepoRemove(inst)
             local nearby_chests = GetNearbyContainers(inst)
             if table.empty(nearby_chests) == false then
                 for _, chest in ipairs(nearby_chests) do
-                    inst.__nerby_chest_count = (inst.__nerby_chest_count or 0) - 1
                     chest.__nerby_chest_count = (chest.__nerby_chest_count or 0) - 1
                 end
 
@@ -291,9 +317,16 @@ local function OnDepoRemove(inst)
             end
         end
     end
+
+    inst.__sign_prefab = nil
+    inst.__nerby_chest_count = nil
+
+    table.foreach(_depos, print)
 end
 
 local function OnDepoInit(inst)
+    print("ADD DEPO", inst)
+
     local nearby_chests = GetNearbyContainers(inst)
     if table.empty(nearby_chests) == false then
         for _, chest in ipairs(nearby_chests) do
@@ -308,25 +341,28 @@ local function OnDepoInit(inst)
         table.insort(_depos, inst, sort_depo_by_priority)
     end
 
-    --ItemDepositor:SortDepos()
     table.foreach(_depos, print)
 end
 
 local function OnSignRemove(sign)
-    local parent_chest = GetParentContainerForSign(sign)
+    local parent_chest = sign.__parent_GUID
     if parent_chest ~= nil then
         parent_chest.__sign_prefab = nil
+        sign.__parent_GUID = nil
     end
 end
 
 local function OnSignDrawn(sign, drawning_prefab)
+    print("OnSignDrawn", sign, drawning_prefab)
+    --table.foreach(drawning_prefab, print)
     if not PEARL.PrefabExists(drawning_prefab) then
         return -- Drawn some weird image or wrong sign?
     end
 
     local parent_chest = GetParentContainerForSign(sign)
-    if parent_chest ~= nil then
+    if parent_chest ~= nil and parent_chest:IsValid() and parent_chest.__sign_prefab == nil then
         parent_chest.__sign_prefab = drawning_prefab
+        sign.__parent_GUID = parent_chest.GUID
     end
 end
 
@@ -337,7 +373,7 @@ local function OnSignInit(inst)
     end
 
     -- Handle new drawnings
-    PEARL.AddClassFunctionPreCall("OnDrawn", function(imagename, src)
+    PEARL.AddClassFunctionPreCall("OnDrawn", function(self, imagename, src)
         OnSignDrawn(inst, (src and src.prefab) or imagename)
     end, inst.components.drawable)
 end
@@ -362,7 +398,7 @@ for depo_prefab, _ in pairs(DROP_DEPOS) do
             end
 
             inst:SafeListenForEvent("onremove", OnDepoRemove)
-            inst:SafeListenForEvent("onburntup", OnDepoRemove)
+            inst:SafeListenForEvent("onburnt", OnDepoRemove)
             OnDepoInit(inst)
         end)
     end)
@@ -380,7 +416,7 @@ for sign, _ in pairs(SIGNS) do
             end
 
             inst:SafeListenForEvent("onremove", OnSignRemove)
-            inst:SafeListenForEvent("onburntup", OnSignRemove)
+            inst:SafeListenForEvent("onburnt", OnSignRemove)
             OnSignInit(inst)
         end)
     end)

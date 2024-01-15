@@ -551,7 +551,7 @@ PEARL.AddAnnouncementIcon("mine")
 end
 
 --------------------------------
--- [[ Instance Param Manager]]
+-- [[ Instance Param Manager ]]
 --------------------------------
 
 PEARL.info("Loading game instance parameters manager...")
@@ -661,7 +661,6 @@ end
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.OnModPostInit()
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version,
     PEARL.IS_BACKUP == true and "[Backup]" or ""
 )

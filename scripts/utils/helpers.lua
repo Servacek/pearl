@@ -18,6 +18,8 @@ require("stacktrace")
 local EncodeBase64 = PEARL.loadfile('utils/base64encoder')
 local PlayerMetadata = PEARL.loadfile("models/playermetadata")
 
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+
 --------------------------------
 
 local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
@@ -379,6 +381,12 @@ end
 
 function PEARL.BuildFancyStringForEntities(entities)
     return PEARL.BuildFancyStringFor(PEARL.GroupEntitiesByPrefab(entities))
+end
+
+function PEARL.NetProfileLink(username, netid)
+    return MARKDOWN.hlink(username, MARKDOWN.escape_link_embeds(
+        PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
+    ))
 end
 
 --- @param entity string|EntityScript

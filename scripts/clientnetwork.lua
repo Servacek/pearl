@@ -35,12 +35,11 @@ local DISCONNECT_REASON_PRIORITIES = {
 -- Netvars
 ----------------------------------
 
---- @TODO:
--- local _server_slots
--- PEARL.AddWorldPostInit(function(inst)
---     _server_slots = net_byte(inst.GUID, "_server_slots")
---     _server_slots:set_local(TheNet:GetServerMaxPlayers())
--- end)
+local _server_slots
+PEARL.AddWorldNetworkPostInit(function(inst)
+    _server_slots = net_byte(inst.GUID, "_server_slots")
+    _server_slots:set_local(TheNet:GetServerMaxPlayers())
+end)
 
 ----------------------------------
 -- Locals
@@ -364,14 +363,14 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     PEARL.debug("Deffering OnNetworkDisconnect")
 end)
 
--- PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
---     local count =  tonumber(_server_slots and _server_slots:value())
---     if type(count) == "number" and count > 0 then
---         return count
---     end
+PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
+    local count =  tonumber(_server_slots and _server_slots:value())
+    if type(count) == "number" and count > 0 then
+        return count
+    end
 
---     -- Fallback to default if nil.
--- end, false, true)
+    -- Fallback to default if nil.
+end, false, true)
 
 ----------------------------------
 -- RPCs

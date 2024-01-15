@@ -184,14 +184,18 @@ function table.keys(t)
     return keys
 end
 
+--- --->
+--- 1 2 3 4
+--- @param cmp? fun(a: any, b: any): boolean a < b (similiar to table.sort - descending order)
 --- @return integer position The updated position of the item at t[i]. This can be unchanged.
 function table.reorder(t, i, cmp)
     cmp = cmp or default_cmp
-    local lstep = (t[i+1] ~= nil and cmp(t[i], t[i+1]) and 1) or 0
-    local rstep = (lstep == 0 and t[i-1] ~= nil and cmp(t[i-1], t[i]) and -1) or 0
+    local lstep = (t[i-1] ~= nil and cmp(t[i], t[i-1]) and -1) or 0
+    local rstep = (lstep == 0 and t[i+1] ~= nil and cmp(t[i+1], t[i]) and 1) or 0
     local step = lstep + rstep
-    while t[i+step] ~= nil and cmp(t[i+rstep], t[i+lstep]) do
-        t[i+rstep], t[i+lstep] = t[i+lstep], t[i+rstep]
+    -- In sorted array left < right, so loop until this is met.
+    while t[i + step] ~= nil and cmp(t[i + rstep], t[i + lstep]) do
+        t[i + lstep], t[i + rstep] = t[i + rstep], t[i + lstep]
         i = i + step
     end
 

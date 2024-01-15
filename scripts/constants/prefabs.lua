@@ -62,14 +62,13 @@ local PREFABS = {
 		["dragon_scales"]		= 1,
 		["bearger_fur"] 		= 1,
 		["minotaurhorn"]	 	= 1,
-		["atrium_key"] 			= 1,
 		["shroom_skin"] 		= 1,
 		["skeletonhat"] 		= .9,
 		["armorskeleton"] 		= .9,
 		["krampus_sack"] 		= .9,
 		["eyeturret_item"] 		= 1,
 
-        ["gears"]               = .5, -- Highly renewable
+        ["gears"]               = .3, -- Highly renewable
         ["fossil_piece"]        = .9, -- Non-renewable currently. Required for the final boss.
 
 		["moonrockseed"] 		= 0,
@@ -90,21 +89,50 @@ local PREFABS = {
 		["ruins_bat"] 			= .8,
 		["armorruins"] 			= .8,
         ["nightmarefuel"]       = .005,
+        ["moonglass"]           = .005,
         ["horrorfuel"]          = .6,
         ["livinglog"]           = .005,
         ["honeycomb"]           = .005, -- Non-renewable
+        ["slurper_pelt"]        = .005,
         ["purebrilliance"]      = .6,
 		["thulecite"] 			= .3,
 		["greenstaff"]			= .8,
 		["orangestaff"]			= .8,
 		["walrushat"]			= .4,
 		["walrus_tusk"]			= .3,
+        ["jellybean"]           = .2, -- Boss loot
+        ["townportaltalisman"]  = .1, -- Boss loot
+        ["bundlewrap"]          = .2,
+
+        -- Common Gems
+        ["redgem"]              = .02,
+        ["bluegem"]             = .02,
+        ["purplegem"]           = .04,
+
+        -- Uncommon Gems
+        ["yellowgem"]           = .35,
+        ["orangegem"]           = .35,
+        ["greengem"]            = .35,
+
+        -- Createred Moonrocks with gems socket in them
+        ["bluemooneye"]         = .02,
+        ["greenmooneye"]        = .35,
+        ["redmooneye"]          = .02,
+        ["orangemooneye"]       = .35,
+        ["purplemooneye"]       = .04,
+        ["yellowmooneye"]       = .35,
+
+        -- Very rare gems
+        ["opalpreciousgem"]     = .7,
+
+        ["pigskin"]             = .001, -- Non-renewable
 
         -- New staff
-        ["alterguardianhat"]    = .9,
-        ["sword_lunarplant"]    = .9,
-        ["armor_lunarplant"]    = .9,
-        ["thurible"]            = .9,
+        ["alterguardianhatshard"]   = 1,
+        ["alterguardianhat"]        = 1,
+        ["sword_lunarplant"]        = .9,
+        ["armor_lunarplant"]        = .9,
+        ["thurible"]                = .9,
 	},
 
 	--- table<prefab, radius>

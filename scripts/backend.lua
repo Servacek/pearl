@@ -141,6 +141,7 @@ PEARL.SafeModTableExtend("CONSTS", {
         SEGMENT_SURVIVED    = 0.4, -- * 16 per day
         SEGMENT_DEAD        = -0.4,
         SEGMENT_AFK         = -0.3, -- Stacks with SEGMENT_DEATH
+        BROKE_REPAIRABLE    = -3, -- For 0% rarity
     },
 
     ITEM_WEIGHT_BIAS       = {
@@ -528,6 +529,8 @@ local function LoadExtensions()
     PEARL.loadfile("extensions/components/edible")
     PEARL.loadfile("extensions/components/activable")
     PEARL.loadfile("extensions/components/constructionsite")
+    PEARL.loadfile("extensions/components/burnable")
+    PEARL.loadfile("extensions/components/deployable")
 
     -- Performance testing
     if PEARL.CONFIG.PERFORMANCE_MODE then
@@ -540,6 +543,9 @@ local function LoadExtensions()
     PEARL.info("Loading game script extensions...")
     PEARL.loadfile("extensions/scripts/entityscript")
     PEARL.loadfile("extensions/scripts/playercommon")
+
+    -- Extension for all prefabs
+    PEARL.loadfile("extensions/prefabs/global")
 
     --- @type ExtensionManager
     local ExtensionManager = PEARL.loadfile("libraries/loaders/extensionmanager")

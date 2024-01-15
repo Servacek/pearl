@@ -15,7 +15,7 @@
 -- [[ Constants ]]
 --------------------------------
 
-local QUEUE_TIME               = 3
+local QUEUE_TIME               = 4
 local QUEUE_REPEAT_MULT        = 1.5
 
 local MAX_DELAY                = 9

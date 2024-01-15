@@ -644,14 +644,11 @@ local function OnCast(doer, item, target, tp)
          pt = has_owner and STRINGS.PEARL.ACTIONS.CAST.ON_OWNERED or STRINGS.PEARL.ACTIONS.CAST.ON
     end
 
-    pt = pt:nformat({
-        doer = doer:GetStandardizedName(),
-        item = item and item:GetStandardizedName(),
-        owner = owner,
-        target = target and target:GetStandardizedName()
-    })
-
-    return AL:Log(doer, tp, pt, not tp or not prohibited, PEARL.EMOTES.DISCORD.ARCANE)
+    AL:EntityAct(pt, doer,
+        {item = item and item:GetStandardizedName(), owner = owner})
+        :AddTarget(target)
+        :SetIsSilent(not tp or not prohibited)
+        :SetIcon(PEARL.EMOTES.DISCORD.ARCANE)
 end
 
 local function OnCastFire(doer, item, target, pos, radius)
@@ -908,6 +905,11 @@ onburntup = function(target)
         return
     end
 
+    local cmps = target.components
+    if not (cmps.built or (cmps.deployable and cmps.deployable.doer)) then
+        return
+    end
+
     -- We will not need this callback anymore.
     target:RemoveEventCallback("burntup", onburntup)
 
@@ -929,12 +931,7 @@ end
 
 --- @param inst EntityScript
 PEARL.AddComponentPostInit("burnable", function(self, inst)
-    -- if not (inst and inst:HasTag("structure")) then
-    --     return
-    -- end
-
-    -- Announce when a structure burnts up
-    inst:SafeListenForEvent("burntup", onburntup)
+    inst:SafeListenForEvent("onburnt", onburntup)
 end)
 
 -------------------
@@ -1036,7 +1033,7 @@ local function onbuilditem(doer, data)
         return
     end
 
-    Rep:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM)
+    Rep:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM, nil, data.item.prefab)
 
     return AL:EntityAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.CRAFT)
@@ -1066,7 +1063,7 @@ local function onbuildstructure(doer, data)
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
         end
     else
-        Rep:EarnFor(doer.userid, REPUTATIONS.BUILT_STRUCTURE)
+        Rep:EarnFor(doer.userid, REPUTATIONS.BUILT_STRUCTURE, nil, target.prefab)
     end
 
     if not action then
@@ -1082,10 +1079,10 @@ end
 local function onplayerconstructed(doer, target)
     local pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.GENERIC
     if target:HasTag("structure") or target:HasTag("multiplayer_portal") then
-        Rep:EarnFor(doer.userid, REPUTATIONS.CONSTRUCTED)
+        Rep:EarnFor(doer.userid, REPUTATIONS.CONSTRUCTED, nil, target.prefab)
     else
         pt = STRINGS.PEARL.ACTIONS.CONSTRUCT.QUEST
-        Rep:EarnFor(doer.userid, REPUTATIONS.QUEST_COMPLETED)
+        Rep:EarnFor(doer.userid, REPUTATIONS.QUEST_COMPLETED, nil, target.prefab)
     end
 
     AL:EntityAct(pt, doer, QueuedLogAction.FIELDS.TARGET, target)
@@ -1261,6 +1258,11 @@ PEARL.AddComponentPostInit("finiteuses", function(self)
             local doer = self.inst.components.inventoryitem.owner
             if not doer or not doer:HasTag("player") then
                 doer = nil
+            end
+
+            if doer and doer.userid then
+                local rarity = math.min(self.inst:GetRarity() + 1, 2)
+                PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BROKE_REPAIRABLE * rarity)
             end
 
             local pt = STRINGS.PEARL.ACTIONS.WOREOUT[doer and "DOER" or "GENERIC"]

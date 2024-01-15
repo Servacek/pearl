@@ -115,6 +115,7 @@ end
 function EntityScript:GetRarity()
     local rarity = PEARL.GetRarityForPrefab(self.prefab)
 
+    print(self.components.built and self.components.built.recipe)
     local recipe = AllRecipes[self.prefab]
     if recipe then
         for _, ingredient in ipairs(recipe.ingredients) do
@@ -240,7 +241,7 @@ end
 
 if PEARL.CONFIG.PERFORMANCE_MODE then
     --- Do not do this for DoTaskInTime since that's used for growable component.
-    --- @TODO: A better aproach to this would be to make tasks sleepable.
+    --- A better aproach to this would be to make tasks sleepable.
     local _DoPeriodicTask = EntityScript.DoPeriodicTask
     function EntityScript:DoPeriodicTask(time, fn, ...)
         return _DoPeriodicTask(self, time, function(...)
@@ -250,3 +251,18 @@ if PEARL.CONFIG.PERFORMANCE_MODE then
         end, ...)
     end
 end
+
+-----------------------------------
+-- [[ Hooks ]]
+-----------------------------------
+
+-- PEARL.AddClassFunctionPreCall("OnBuilt", function(self, builder)
+--     PEARL.debug("OnBuilt", builder, self)
+--     if builder and builder.userid and builder.name then
+--         if not self.components.built then
+--             self:AddComponent("built")
+--         end
+
+--         self.components.built:SetBuilder(builder.userid, builder.name)
+--     end
+-- end, EntityScript)

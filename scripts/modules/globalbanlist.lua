@@ -89,7 +89,7 @@ local function FetchBanlistFromURL(url)
     PEARL.info("Fetching known banned userids from coonfigured global banlist...")
 
     return PEARL.HTTPClient:GET(url, OnBanlistFetched)
-        :SetIsRaw(true)
+        :SetDecodeResponse(false)
         :SetOnError(LoadBanlistFromFile)
         :Send()
 end

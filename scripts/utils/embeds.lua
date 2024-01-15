@@ -37,22 +37,27 @@ local EMBEDS = {}
 -- [[ Embed Builders ]]
 -------------------------------------
 
---- @TODO: Make the inventory embed a bit nicer.
 --- @param pmd PlayerMetadata
 --- @return Embed
 function EMBEDS.Inventory(pmd, highlighted)
-    local userid    = pmd:GetUserID()
-    local name      = PEARL.DB:GetField(userid, "username", pmd:GetName()) or ""
-    local inventory = pmd:GetInventory()
-    local prefab    = PEARL.DB:GetField(userid, "fancyprefab", pmd:GetPrefab())
-    local age       = pmd:GetAge()
-    local netid     = PEARL.DB:GetField(userid, "netid", pmd:GetNetID())
-    local url       = netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
+    local userid     = pmd:GetUserID()
+    local owner_name = PEARL.DB:GetField(userid, "username", pmd:GetName()) or ""
+    local inventory  = pmd:GetInventory()
+    local prefab     = PEARL.DB:GetField(userid, "fancyprefab", pmd:GetPrefab())
+    -- local age        = pmd:GetAge()
+    local netid      = PEARL.DB:GetField(userid, "netid", pmd:GetNetID())
+    local url        = netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid)
 
     local description = ""
-    local max_count_size, max_prefab_size
+    local max_count_size, max_prefab_size, line_spacing
 
-    for iprefab, icount in pairs(inventory) do
+    -- local i = 1
+    local lines = {}
+    local inv_l = table.size(inventory)
+    -- local inlining = inv_l > 4
+    local inv_l_half = math.ceil(inv_l / 2)
+    -- local max_name_size = 0
+    for iprefab, icount in metapairs(inventory) do
         icount = tostring(icount)
         max_count_size = max_count_size or PEARL.GetMaxStringSize(inventory)
         local line = MARKDOWN.codeline(string.rep(" ", max_count_size - #icount)..icount.."x").." "
@@ -68,37 +73,81 @@ function EMBEDS.Inventory(pmd, highlighted)
             line = line..MARKDOWN.codeline(iprefab..string.rep(" ", max_prefab_size - #iprefab))
         end
 
-        line = line.." "..PEARL.PrefabToName(iprefab)
+        local highlight = type(highlighted) == "table" and type(highlighted[iprefab]) == "number" and highlighted[iprefab] >= 1
+        local name = PEARL.PrefabToName(iprefab)
+        -- local name_size = string.utf8len(name)
+        if highlight then
+            name = MARKDOWN.bold(name)
+        end
+
+        line = line.." "..name
+
+        -- if inlining then
+        --     if i > inv_l_half then
+        --         line_spacing = line_spacing or string.rep(" ", max_name_size - name_size)
+        --         print("LINE SPACING...", string.raw(line_spacing))
+        --     elseif name_size > max_name_size then
+        --         max_name_size = name_size
+        --     end
+        -- end
 
         -- Keep the highlighted items on top.
-        if type(highlighted) == "table" and type(highlighted[iprefab]) == "number" and highlighted[iprefab] >= 1 then
-            description = MARKDOWN.bold(line).."\n"..description
+        if highlight then
+            -- if i >= inv_l_half and inlining then
+            --     line = line..line_spacing..lines[inv_l_half]
+            --     table.remove(lines, inv_l_half)
+            -- end
+
+            table.insert(lines, 1, line)
         else
-            description = description..line.."\n"
+            -- if i > inv_l_half and inlining then
+            --     local line_index = i - inv_l_half
+            --     table.dump(lines[line_index]:strip():split(" "))
+            --     print("NAME:", lines[line_index]:split(" ")[3], string.utf8len(lines[line_index]:split(" ")[3]), max_name_size)
+            --     local spacing = string.rep(" ", max_name_size - name_size)
+            --     print("SPACING", string.raw(spacing))
+            --     lines[line_index] = lines[line_index]..spacing..line
+            -- else
+                lines[#lines+1] = line
+            --end
+        end
+
+        -- i = i + 1
+    end
+
+    local col1, col2 = "", ""
+    for j = 1, inv_l_half do
+        col1 = col1.."\n"..lines[j]
+
+        local line2 = lines[j + inv_l_half]
+        if line2 then
+            col2 = col2.."\n"..line2
         end
     end
+    --description = table.concat(lines, "\n")
 
-    if #description <= 0 then
-        description = STRINGS.PEARL.EMBEDS.INV.INVENTORY_EMPTY
-    else
-        description = STRINGS.PEARL.EMBEDS.INV.INVENTORY.."\n"..description
+    if col1:blank() then
+        col1 = STRINGS.PEARL.EMBEDS.INV.INVENTORY_EMPTY
     end
 
-    local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or PEARL.ICONS.PLAYER_PREFABS[""]
+    --local icon = PEARL.ICONS.PLAYER_PREFABS[prefab] or PEARL.ICONS.PLAYER_PREFABS[""]
 
     --- @type Embed
     local embed = Embed()
-    embed:SetTitle(STRINGS.PEARL.EMBEDS.INV.TITLE:format(
-        icon, name
-    ), url)
+    embed:SetTitle(STRINGS.PEARL.EMBEDS.INV.TITLE:format(MARKDOWN.codeline(owner_name)), url)
     embed:SetDescription(description)
     embed:SetTimestamp(os.time())
     embed:SetFooter(userid)
+    embed:SetThumbnail(STRINGS.PEARL.EMBEDS.INV.THMB_URL)
+    embed:AddField("", col1, true)
+    if not col2:blank() then
+        embed:AddField("", col2, true)
+    end
 
     -- The age field seems to be a bit weird here...
-    embed:AddField(STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SURVIVED, STRINGS.PEARL.EMBEDS.INV.SURVIVED:format(
-        age and age or "?", TheWorld and TheWorld.state.cycles + 1 or "?"
-    ))
+    -- embed:AddField(STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SURVIVED, STRINGS.PEARL.EMBEDS.INV.SURVIVED:format(
+    --     age and age or "?", TheWorld and TheWorld.state.cycles + 1 or "?"
+    -- ))
 
     return embed
 end
@@ -364,6 +413,7 @@ function EMBEDS.ClientMods(enabled_mods, userid)
         :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE:format(MARKDOWN.codeline(owner_name)))
         :SetColor(Embed.COLORS.RED)
         :SetTimestamp(os.time())
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.MODS.THMB_URL)
         :SetDescription(description)
         :SetFooter(footer)
 end
@@ -385,9 +435,13 @@ function EMBEDS.ClientProfile(userid, dbr)
         STRINGS.PEARL.UI[loc_allowed and "ALLOWED" or "BLOCKED"]
     )
 
-    local last_seen_time = MARKDOWN.timestamp(dbr.lastseentime)
+    local last_seen_time
     if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
         last_seen_time = PEARL.ICONS.ONLINE.." "..P_STRINGS.PLAYING
+    elseif dbr.lastseentime ~= nil then
+        last_seen_time = MARKDOWN.timestamp(dbr.lastseentime)
+    else
+        last_seen_time = P_STRINGS.UNKNOWN
     end
 
     local gametime = PEARL.Reputation:GetGamePlayTime(userid) or PEARL.Reputation:GetLocalGamePlayTime(userid)
@@ -398,34 +452,45 @@ function EMBEDS.ClientProfile(userid, dbr)
     local totaldays = PEARL.DB:GetField(userid, "totaldays")
     local deathscount = PEARL.DB:GetField(userid, "deathscount")
 
-    local repvalue = MARKDOWN.codeline(PEARL.Reputation:GetOf(userid))
+    local repvalue = PEARL.Reputation:GetOf(userid)
+    local repstring = MARKDOWN.codeline(repvalue)
     local gains = math.floor(PEARL.Reputation:GetTodayGainsOf(userid))
     local postfix = " "
     if gains > 0 then
         postfix = " "..PEARL.ICONS.ARROW_UP.." +"..tostring(gains)
     elseif gains < 0 then
         postfix = " "..PEARL.ICONS.ARROW_DOWN.." "..tostring(gains)
+    elseif repvalue < PEARL.Reputation.STARTING_VALUE then
+        postfix = " "..PEARL.ICONS.WARN
     end
-    repvalue = repvalue..postfix
+    repstring = repstring..postfix
 
     local netprofiletimecreated = PEARL.DB:GetField(userid, "profiletimecreated")
+    local gameplayed = P_STRINGS.UNKNOWN
+    if hours > 0 and minutes > 0 then
+        gameplayed = MARKDOWN.codeline(STRINGS.PEARL.GAMEPLAYTIME:format(
+            hours, minutes
+        ))
+    end
 
     local embed = Embed()
         :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
-        :SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
         :SetColor(Embed.COLORS.BLUE)
         :SetThumbnail(dbr.avatar)
+        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid or "???"), P_STRINGS.FOOTER_ICON)
         :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(STRINGS.PEARL.PROPORTION:format(
             daysalive, totaldays
         )), true)
         :AddField(P_STRINGS.FD_NAMES.DEATHS, MARKDOWN.codeline(deathscount), true)
-        :AddField(P_STRINGS.FD_NAMES.REP, repvalue, true)
+        :AddField(P_STRINGS.FD_NAMES.REP, repstring, true)
         :AddField(P_STRINGS.FD_NAMES.SEEN, last_seen_time, true)
-        :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon and loc_icon.." "..loc_str or "UNKNOWN", true)
-        :AddField(P_STRINGS.FD_NAMES.GAMEPLAYTIME, STRINGS.PEARL.HM_TIME_FORMAT:format(
-            hours, minutes
-        ), true)
-        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid), P_STRINGS.FOOTER_ICON)
+        :AddField(P_STRINGS.FD_NAMES.LOCALE, loc_icon and loc_icon.." "..loc_str or P_STRINGS.UNKNOWN, true)
+        :AddField(P_STRINGS.FD_NAMES.GAMEPLAYTIME, gameplayed, true)
+        :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid or "???"), P_STRINGS.FOOTER_ICON)
+
+    if dbr.netid then
+        embed:SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
+    end
 
     if dbr[PEARL.AccountBindings.BINDING_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORD]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
@@ -451,8 +516,10 @@ function EMBEDS.ClientProfile(userid, dbr)
     end
 
     -- Check for explicity true since this is false by default.
-    if dbr.privateprofile == true then
-        embed:SetDescription(MARKDOWN.italic(P_STRINGS.PRIVATE))
+    if dbr.communityprofile == false then
+        embed:SetDescription(PEARL.ICONS.WARN.." "..MARKDOWN.italic(P_STRINGS.NOT_SETUPED))
+    elseif dbr.privateprofile == true then
+        embed:SetDescription(PEARL.ICONS.INFO.." "..MARKDOWN.italic(P_STRINGS.PRIVATE))
     end
 
     return embed

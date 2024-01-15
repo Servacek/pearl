@@ -107,7 +107,7 @@ end
 --- @return Request query The query that was added to the sequence, or nil when it fails.
 function SteamAPI:AddRawQueryToSequence(steamid, url, cb, ...)
     return self:AddQueryToSequence(steamid, url, cb, ...)
-        :SetIsRaw(true)
+        :SetDecodeResponse(false)
 end
 
 --- @param finishcb fun()
