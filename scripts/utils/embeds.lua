@@ -27,6 +27,8 @@ local Customize = require("map/customize")
 local MAX_MODNAME_LEN = 32
 local MAX_MODID_LEN = 16
 
+local SPACE = " "
+
 -------------------------------------
 -- [[ Declaration ]]
 -------------------------------------
@@ -275,14 +277,92 @@ function EMBEDS.ServerInfo(boot)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
 end
 
-
 --- @return Embed
 function EMBEDS.PlayerInfo()
+    if TheShard:IsSecondary() then
+        PEARL.warn("Created Player Info Embed on a secondary shard!")
+    end
+
+    local shardids = PEARL.ServerNetwork:GetConnectedShardIDs()
+    local max_index_size, max_name_size, max_rep_size, max_tdays_size, max_cdays_size, max_ping_size
+    local description = ""
+    local clients = PEARL.ServerNetwork:GetConnectedClients()
+    local shard_player_map = {}
+    for i, client in pairs(clients) do
+        local userid = client.userid
+        local shardid = PEARL.DB:GetField(userid, "lastshardid", (
+            (PEARL.ServerNetwork:IsClientConnected(userid) and not PEARL.ServerNetwork:IsClientJoining(userid) and shardids[1])
+            or SHARDID.MASTER
+        ))
+        if not (shardid == SHARDID.MASTER or PEARL.ServerNetwork:IsShardConnected(shardid)) then
+            shardid = SHARDID.MASTER
+        end
+
+        local prefab = PEARL.DB:GetField(client.userid, "fancyprefab", client.prefab)
+        local name = client.name
+        local netid = client.netid
+        local cur_days = tostring(client.playerage)
+        local tot_days = PEARL.DB:IsEnabled() and tostring(PEARL.DB:GetField(client.userid, "totaldays")) or "???"
+        local ping = tostring(client.netscore)
+        local rep = PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(userid)
+
+        max_index_size = max_index_size or PEARL.GetMaxStringSize(clients, true)
+        max_name_size = max_name_size or PEARL.GetMaxStringSize(clients, nil, "name")
+        max_ping_size = max_ping_size or PEARL.GetMaxStringSize(clients, nil, "netscore")
+        max_cdays_size = max_cdays_size or PEARL.GetMaxStringSize(clients, nil, "playerage")
+        max_tdays_size = max_tdays_size or PEARL.GetMaxStringSize(clients, nil, nil, function(k, v)
+            return PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "totaldays") or ""
+        end)
+        max_rep_size = max_rep_size or PEARL.GetMaxStringSize(clients, nil, nil, function(k, v)
+            return PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(v.userid) or ""
+        end)
+
+        local istr = tostring(i)
+        local index_str = MARKDOWN.codeline(
+            STRINGS.PEARL.POSITION:format(string.rep(" ", max_index_size - #istr)..istr)
+        )
+
+        --- @NOTE: The spaces are only visible in codelines!
+        shard_player_map[shardid] = (shard_player_map[shardid] and shard_player_map[shardid].."\n" or "")
+            .."> "..index_str
+            .." "..(PEARL.ICONS.PLAYER_PREFABS[prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+            .." "..PEARL.NetProfileLink(MARKDOWN.codeline(name..string.rep(" ", max_name_size - #name)), netid)
+            .." "..MARKDOWN.codeline(userid) -- userids are all the same length
+            .." "..MARKDOWN.codeline(STRINGS.PEARL.PROPORTION:format(
+                SPACE:rep(max_cdays_size - #cur_days)..cur_days, tot_days..SPACE:rep(max_tdays_size - #tot_days)
+            ))
+            .." "..MARKDOWN.codeline(SPACE:rep(max_ping_size - #ping)..ping.." ms")
+            .." "..(rep and MARKDOWN.codeline(SPACE:rep(max_rep_size - #tostring(rep))..tostring(rep).." rep") or "")
+    end
+
+    table.insert(shardids, PEARL.SHARDID)
+    table.sort(shardids, function(a, b)
+        return (tonumber(a) or 0) > (tonumber(b) or 0)
+    end)
+
+    for _, shardid in ipairs(shardids) do
+        local players_str = shard_player_map[tostring(shardid)]
+        if players_str and not players_str:blank() then
+            local shardname = STRINGS.PEARL.EMBEDS.PLAYERS.SHARD_NAME:format(
+                PEARL.GetShardFancyNameByID(shardid), MARKDOWN.codeline(shardid)
+            )
+            description = description.."\n\n"..MARKDOWN.bold(shardname).."\n"..players_str
+        end
+    end
+
+    if description:blank() then
+        description = STRINGS.PEARL.EMBEDS.PLAYERS.EMPTY
+    end
+
     return Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.PLAYERS.TITLE)
-        :SetColor(Embed.COLORS.YELLOW)
-        :SetThumbnail(STRINGS.PEARL.EMBEDS.PLAYERS.THMB_URL)
+        --:SetColor(Embed.COLORS.YELLOW)
+        --:SetThumbnail(STRINGS.PEARL.EMBEDS.PLAYERS.THMB_URL)
+        :SetDescription(description)
         :SetTimestamp(os.time())
+        :SetFooter(STRINGS.PEARL.PROPORTION:format(
+            #clients, TheNet:GetDefaultMaxPlayers()
+        ))
 end
 
 --- @return Embed

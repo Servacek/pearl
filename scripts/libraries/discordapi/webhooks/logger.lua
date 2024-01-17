@@ -47,7 +47,11 @@ local Logger = Class(function(self)
     --- @type BufferedMessage
     self._buffered = BufferedMessage()
     self._buffered:SetTimeout(PEARL.CONFIG.DISCORD.LHOOK.BUFFER_TIMEOUT)
-    self._buffered:SetOnTimeout(self._LogBufferedMessage, self)
+    self._buffered:SetOnTimeout(function(...)
+        if self._buffered:IsValid() then
+            self:_LogBufferedMessage(...)
+        end
+    end)
 
     self._shutting_down = false
 
@@ -67,8 +71,10 @@ end)
 -------------------------------------
 
 function Logger:_LogBufferedMessage(force)
+    PEARL.debug("Logger:_LogBufferedMessage")
+
     if not self._buffered or not self._buffered:IsValid() then
-        return PEARL.error("Attempted to send an invalid or non-existent buffered message!")
+        return PEARL.error("Attempted to send an invalid or non-existent buffered message!", self._buffered)
     end
 
     return self._webhook:PostMessage(self._buffered, force)

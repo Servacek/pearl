@@ -59,13 +59,18 @@ function PEARL.GetPlayerMetadataFor(userid, noload)
     return metadata
 end
 
-function PEARL.GetMaxStringSize(string_list, key, keyname)
+function PEARL.GetMaxStringSize(string_list, key, keyname, fn)
+    if keyname ~= nil then
+        key = false
+    end
+
     local max_size = 0
     local size
     for k, v in pairs(string_list) do
+        v = type(fn) == "function" and fn(k, v) or v
         if not keyname or k == keyname or (type(v) == "table" and v[keyname]) ~= nil then
             size = key and string.utf8len(tostring(k)) or (
-                type(v) == "table" and type(v[keyname]) == "string" and string.utf8len(v[keyname])
+                type(v) == "table" and v[keyname] ~= nil and string.utf8len(tostring(v[keyname]))
             ) or string.utf8len(tostring(v)) or 0
             if size > max_size then
                 max_size = size

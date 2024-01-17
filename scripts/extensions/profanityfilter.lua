@@ -91,7 +91,7 @@ function ProfanityFilter:Apply(text, repl, pattern)
         return text, 0, 0
     end
 
-    local words, slurs
+    local words, slurs = nil, 0
     repl = repl or DEFAULT_REPL_CHAR
     text, words = text:gsub(WORD_PATTERN, function(word)
         -- No lowering or other changes here. Keep the word as is.

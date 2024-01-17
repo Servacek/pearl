@@ -425,7 +425,7 @@ function ServerNetwork:GetCachedClientTableFor(userid)
 end
 
 -- All clients connected from each shard!
---- @return table<integer, table>
+--- @return table<integer, table> player_array
 function ServerNetwork:GetConnectedClients()
     return GetPlayerClientTable()
 end

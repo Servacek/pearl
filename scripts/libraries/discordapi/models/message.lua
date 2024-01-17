@@ -50,6 +50,8 @@ local DEFAULT_ALLOWED_MENTIONS = {
     parse = {}
 }
 
+local TOSTRING_PT = "<DiscordMessage[content=%s,embeds=%s,components=%s]>"
+
 -------------------------------------
 -- [[ Class Declarations ]]
 -------------------------------------
@@ -119,6 +121,16 @@ Message.SILENT_PATTERN = Message.SILENT_PREFIX.." %s"
 Message.SEPARATOR      = "__\n__\n"
 
 ------------------------------------------
+-- [[ Meta Methods ]]
+------------------------------------------
+
+function Message:__tostring()
+    return TOSTRING_PT:format(
+        tostring(self:HasContent()), tostring(self:HasEmbed()), tostring(self:HasComponents())
+    )
+end
+
+------------------------------------------
 -- [[ Getters ]]
 ------------------------------------------
 
@@ -177,6 +189,10 @@ end
 function Message:HasContent()
     -- Maybe just blank characters are not counted as a content?
     return self._content ~= nil and #self._content:strip() > 0
+end
+
+function Message:HasComponents()
+    return self._components ~= nil and #self._components > 0
 end
 
 function Message:GetFreeCharCount()

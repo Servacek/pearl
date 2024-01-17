@@ -61,7 +61,7 @@ local MARKDOWN = {
         HYPERLINK           = "[%s](%s)",
         UNDERLINE           = "__%s__",
         STRYKETHROUGH       = "~~%s~~",
-        QUOTE               = ">%s",
+        QUOTE               = "> %s",
         HEADER_BIG          = "# %s",
         HEADER_MED          = "## %s",
         HEADER_SML          = "### %s",
@@ -149,6 +149,12 @@ end
 --- @return string result The formatted string
 function MARKDOWN.italic(s)
     return MARKDOWN.PATTERNS.ITALIC:format(s)
+end
+
+--- @param s string
+--- @return string result The formatted string
+function MARKDOWN.quote(s)
+    return MARKDOWN.PATTERNS.QUOTE:format(s)
 end
 
 --- Formats a string to the bold format using the discord markdown characters

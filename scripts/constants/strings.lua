@@ -209,8 +209,10 @@ local STRINGS = {
 
     EMBEDS = {
         PLAYERS = {
+            SHARD_NAME = "%s (%s)",
             TITLE = "Player List",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1187075388187357294/player.png",
+            EMPTY = "Nobody is playing..."
         },
 
         SERVER = {
@@ -521,6 +523,7 @@ local STRINGS = {
     HM_TIME_FORMAT = "%dh %dm",
     FULL_MONTH_NAME = "%s %s", -- First is fancy month name and then the year number
     PROPORTION = "%s/%s",
+    POSITION = "%s.",
 
     TAG_PREFIXES = {
         ["burnt"] = "burnt",

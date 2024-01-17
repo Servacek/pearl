@@ -450,18 +450,17 @@ AddCommand("server", {
     end
 })
 
---- @TODO:?
--- AddCommand("players", {
---     permission = COMMAND_PERMISSION.USER,
---     discord = false,
---     console = false,
---     slash = false,
+AddCommand("players", {
+    permission = COMMAND_PERMISSION.USER,
+    discord = true,
+    console = true,
+    slash = false,
 
---     --- @param ctx CommandContext
---     fn = function(ctx)
---         ctx:ReplyDiscordEmbed(EMBEDS.PlayerInfo())
---     end,
--- })
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        ctx:ReplyDiscordEmbed(EMBEDS.PlayerInfo())
+    end,
+})
 
 AddCommand("world", {
     permission = COMMAND_PERMISSION.USER,
