@@ -323,8 +323,6 @@ local function OnDepoRemove(inst)
 end
 
 local function OnDepoInit(inst)
-    print("ADD DEPO", inst)
-
     local nearby_chests = GetNearbyContainers(inst)
     if table.empty(nearby_chests) == false then
         for _, chest in ipairs(nearby_chests) do
@@ -349,7 +347,6 @@ local function OnSignRemove(sign)
 end
 
 local function OnSignDrawn(sign, drawning_prefab)
-    print("OnSignDrawn", sign, drawning_prefab)
     --table.foreach(drawning_prefab, print)
     if not PEARL.PrefabExists(drawning_prefab) then
         return -- Drawn some weird image or wrong sign?
