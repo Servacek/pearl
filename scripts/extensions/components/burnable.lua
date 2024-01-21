@@ -21,19 +21,6 @@ local Doer = PEARL.loadfile("models/doer")
 local Burnable = require("components/burnable")
 
 ---------------------------------
--- [[ Local Functions ]]
----------------------------------
-
-local onburnt
-onburnt = function(inst)
-    if inst.components.burnable and inst.components.burnable.doer then
-        inst.components.burnable.doer:SetData(nil)
-    end
-
-    inst:RemoveEventCallback("onburnt", onburnt)
-end
-
----------------------------------
 -- [[ Public Methods Overrides ]]
 ---------------------------------
 
@@ -44,19 +31,7 @@ PEARL.AddClassFunctionPreCall("Ignite", function(self, immediate, source, doer)
             self.doer = Doer()
         end
 
-        print("ADDING IGNITOR")
         self.doer:Set(ignitor.userid, ignitor.name)
-
-        self.inst:SafeListenForEvent("onburnt", onburnt)
-    end
-    print("BURNABLE IGNITE", source, doer)
-end, Burnable)
-
-PEARL.AddClassFunctionPreCall("Extinguish", function(self)
-    if self.doer then
-        print("REMOVING IGNITOR")
-        self.doer:SetData(nil)
-        self.inst:RemoveEventCallback("onburnt", onburnt)
     end
 end, Burnable)
 
@@ -69,13 +44,11 @@ PEARL.OverrideMethodReturnValue(Burnable, "OnSave", function(data, self)
         data = {}
     end
 
-    print("BURNABLE SAVE")
     data.ignitor = self.doer:GetData()
 
     return data
 end, true)
 
 PEARL.AddClassFunctionPreCall("OnLoad", function(self, data)
-    print("BURNABLE LOAD")
     self.doer = Doer(data.ignitor)
 end, Burnable)

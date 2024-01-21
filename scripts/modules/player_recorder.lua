@@ -265,7 +265,9 @@ local function OnCyclesChanged()
 end
 
 local function OnUserSessionSerialized(userid)
-    PEARL.DB:SaveRecordFor(userid)
+    if PEARL.DB:IsRecordCachedFor(userid) then
+        PEARL.DB:SaveRecordFor(userid)
+    end
 end
 
 --------------------------------------

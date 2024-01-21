@@ -15,7 +15,6 @@
 
 local tests = {}
 
---- @TODO: Debug
 function tests.test_all()
     if not PEARL.CONFIG.BAN_ALT_ACCOUNTS then
         return PEARL.warn("Altdentifier is disabled!")

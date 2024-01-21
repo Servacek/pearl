@@ -17,7 +17,14 @@
 
 local FILE_PATH = PEARL.ROOTDIR.."data/timestamp"
 
-local UPDATE_FREQUENCY = 1
+local UPDATE_FREQUENCY = 60 * 60
+local INITIAL_DELAY    = 1
+
+-------------------------------------
+-- [[ Local Variables ]]
+-------------------------------------
+
+local _timesaved
 
 -------------------------------------
 -- [[ Local Functions ]]
@@ -48,7 +55,13 @@ local function SaveTimestamp(timestamp)
     end
 
     wf:write(tostring(timestamp))
+    _timesaved = timestamp
     return wf:close()
+end
+
+local function GetSavedTimestamp()
+    _timesaved = _timesaved or LoadTimestamp()
+    return _timesaved
 end
 
 -- Returns true when the current timestamp differs from
@@ -63,7 +76,6 @@ local function CheckForTimeChanges(timenow, timesaved)
 
     -- Years are always unique so start with them.
     if changes or ctb.year ~= stb.year then
-        PEARL.debug("NEW YEAR", ctb.year)
         PEARL.EventProcessor:HandleEvent("newyear", stb, ctb)
         changes = true
     end
@@ -71,15 +83,11 @@ local function CheckForTimeChanges(timenow, timesaved)
     -- After the year has changed we have guaranteed to have a new month
     -- even when the month numbers are equal.
     if changes or ctb.month ~= stb.month then
-        PEARL.debug("NEW MONTH", ctb.month)
-
         PEARL.EventProcessor:HandleEvent("newmonth", stb, ctb)
         changes = true
     end
 
     if changes or ctb.day ~= stb.day then
-        PEARL.debug("NEW DAY", ctb.day)
-
         PEARL.EventProcessor:HandleEvent("newday", stb, ctb)
         changes = true
     end
@@ -89,7 +97,7 @@ end
 
 local function OnUpdate()
     local timenow = os.time()
-    local timesaved = LoadTimestamp()
+    local timesaved = GetSavedTimestamp()
     local changes = true
     if timesaved ~= nil then
         changes = CheckForTimeChanges(timenow, timesaved)
@@ -98,7 +106,6 @@ local function OnUpdate()
     if changes == true then
         SaveTimestamp(timenow)
 
-        --- @TODO: Verify if this is really needed.
         PEARL.EventProcessor:HandleEvent("timeupdatedone")
     end
 end
@@ -107,8 +114,8 @@ end
 -- [[ Setup ]]
 -------------------------------------
 
---- @TODO: Add support for servers that do not restart every day.
 PEARL.AddGamePostInit(function()
-    -- Make sure everything is loaded and listening!
-    PEARL.WallScheduler:ExecuteInTime(UPDATE_FREQUENCY, OnUpdate)
+    PEARL.WallScheduler:ExecutePeriodic(
+        UPDATE_FREQUENCY, OnUpdate, nil, INITIAL_DELAY
+    )
 end)

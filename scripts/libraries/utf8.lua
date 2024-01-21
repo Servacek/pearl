@@ -53,7 +53,6 @@ function utf8.ascii(char)
     return sbyte(char) >= ASCII_FIRST and sbyte(char) <= ASCII_LAST
 end
 
---- @TODO: Rethink this a bit.
 -- https://github.com/kikito/utf8_validator.lua/blob/master/utf8_validator.lua
 function utf8.validate(s)
     local i = 1

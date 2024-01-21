@@ -93,7 +93,7 @@ PEARL.SafeModTableExtend("CONSTS", {
     EXTINGUISH_AFTER            = 5,
     MONITORED_POPULATION_LIMIT  = 5,
 
-    LEADERBOARD_MAX_LEN         = 5,
+    LEADERBOARD_DISPLAY_COUNT   = 5,
     STARTING_REPUTATION         = 100,
 
     --- @class REPUTATION_TABLES
@@ -495,6 +495,7 @@ end
 
 --- @type Reputation
 PEARL.Reputation = PEARL.loadfile("libraries/reputation")
+PEARL.Reputation:LoadReputationTables()
 
 --------------------------------
 -- [[ Leaderboard Service ]]
@@ -530,7 +531,6 @@ local function LoadExtensions()
     PEARL.loadfile("extensions/components/activable")
     PEARL.loadfile("extensions/components/constructionsite")
     PEARL.loadfile("extensions/components/burnable")
-    PEARL.loadfile("extensions/components/deployable")
 
     -- Performance testing
     if PEARL.CONFIG.PERFORMANCE_MODE then

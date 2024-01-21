@@ -18,16 +18,6 @@
 setfenv(1, PEARL.ENV)
 
 -------------------------------------
--- [[ Constants ]]
--------------------------------------
-
---- @TODO: Implement some warning system if this field is being overriden in file other than commonconfig.lua
---- and commonconfig.lua is enabled.
-local SECRETS = {
-    "TOKEN"
-}
-
--------------------------------------
 -- [[ Class Declaration ]]
 -------------------------------------
 

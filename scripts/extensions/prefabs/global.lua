@@ -10,32 +10,47 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
---------------------------------
--- [[ Localization ]]
---------------------------------
-
-local AllRecipes = AllRecipes
 
 --------------------------------
 -- [[ Global Prefab Post Init ]]
 --------------------------------
 
-PEARL.AddPrefabPostInitAny(function(inst)
-    if POPULATING then
+local function GetAllIngredientsForRecipe(recipe)
+    local ingredients = {}
+    for k, v in pairs(recipe) do
+        if tostring(k):endswith("ingredients") and table.isarray(v) then
+            for _, ingredient in ipairs(v) do
+                if type(ingredient) ~= "table" then
+                    break
+                end
+
+                table.insert(ingredients, shallowcopy(ingredient))
+            end
+        end
+    end
+
+    return ingredients
+end
+
+local function OnBuilt(builder, data)
+    local inst = data.item
+    if not inst then
         return
     end
 
-    -- An recipe exists for this prefab so its buildable by a player.
-    if inst and inst.prefab and AllRecipes[inst.prefab] ~= nil then
-        PEARL.AddClassFunctionPreCall("onPreBuilt", function(self, builder, materials, recipe)
-            if builder and builder.userid and builder.name then
-                if not self.components.built then
-                    self:AddComponent("built")
-                end
+    if not inst.components.built then
+        inst:AddComponent("built")
+    end
 
-                self.components.built:SetBuilder(builder.userid, builder.name)
-                self.components.built:SetRecipe(recipe)
-            end
-        end, inst)
+    inst.components.built:SetBuilder(builder.userid, builder.name)
+    if data.recipe then
+        inst.components.built:SetIngredients(GetAllIngredientsForRecipe(data.recipe))
+    end
+end
+
+PEARL.AddPrefabPostInitAny(function(inst)
+    if inst and inst.userid then
+        inst:SafeListenForEvent("builditem", OnBuilt)
+        inst:SafeListenForEvent("buildstructure", OnBuilt)
     end
 end)

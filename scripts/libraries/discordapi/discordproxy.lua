@@ -22,10 +22,10 @@ local BASE_URL = PEARL.CONFIG.DISCORD.PROXY.URL or ""
 local MAX_RETRIES = 3
 
 local STATE = {
-    FAILED      = -1,
-    STOPPED     = 0,
-    RUNNING     = 1,
-    CONNECTING  = 2,
+    FAILED      = 0,
+    STOPPED     = 1,
+    RUNNING     = 2,
+    CONNECTING  = 3,
 }
 
 local URL = {

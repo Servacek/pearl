@@ -22,11 +22,17 @@ local Built = PEARL.Class(function(self)
     --- @type Doer?
     self.doer = nil
 
-    --- @type table
-    self.recipe = nil
+    --- @type table?
+    self.ingredients = nil
 end)
 
+--------------------------------
+-- [[ Setters ]]
+--------------------------------
+
 function Built:SetBuilder(userid, name)
+    PEARL.debug("Built:SetBuilder", userid, name)
+
     if not self.doer then
         self.doer = Doer()
     end
@@ -34,16 +40,28 @@ function Built:SetBuilder(userid, name)
     self.doer:Set(userid, name)
 end
 
-function Built:SetRecipe(recipe)
-    self.recipe = recipe
+function Built:SetIngredients(ingredients)
+    self.ingredients = ingredients
 end
+
+--------------------------------
+-- [[ Getters ]]
+--------------------------------
+
+function Built:GetIngredients()
+    return self.ingredients
+end
+
+--------------------------------
+-- [[ Save/Load ]]
+--------------------------------
 
 function Built:OnSave()
     PEARL.debug("Built:OnSave", self.doer)
 
     return {
         doer = self.doer:GetData(),
-        materials = self.recipe,
+        ingredients = self.ingredients,
     }
 end
 
@@ -51,7 +69,7 @@ function Built:OnLoad(data)
     PEARL.debug("Built:OnLoad", self.doer)
 
     self.doer = data.doer and Doer(data.doer) or nil
-    self.recipe = data.recipe
+    self.ingredients = data.ingredients
 end
 
 --------------------------------

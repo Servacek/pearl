@@ -35,6 +35,8 @@ local DEFAULT_FIELDS = {
 
 local TOSTRING_PT = "<DatabaseRecord %s>[uptodate=%s]"
 
+local DAY_IN_SECONDS = 24 * 60 * 60
+
 ------------------------------------------
 -- [[ Class Declaration ]]
 ------------------------------------------
@@ -62,8 +64,6 @@ PlayerRecord.TEMPLATE = DEFAULT_FIELDS
 ------------------------------------------
 
 function PlayerRecord:__newindex(field, value, ...)
-    print("PlayerRecord.__newindex", self, field, value, ...)
-
     if not self:IsWriteable() then
         return PEARL.error("Attempted to modify a read-only record!")
     end
@@ -76,8 +76,6 @@ function PlayerRecord:__newindex(field, value, ...)
 end
 
 function PlayerRecord:__index(field, ...)
-    print("PlayerRecord.__index", self, field, ...)
-
     if self._data[field] ~= nil then
         return self._data[field]
     end
@@ -114,7 +112,24 @@ end
 function PlayerRecord:IsWriteable()
     return self._data.lastshardid == nil or self._data.lastshardid == PEARL.SHARDID or
         not PEARL.ServerNetwork:IsClientConnectedAny(self._data.userid) or
-        self:IsRecordActive(self._data.userid)
+        self:IsActive()
+end
+
+--- @return boolean
+function PlayerRecord:IsNovice()
+    if not self._data.joinedtime then
+        return false
+    end
+
+    local currenttime = os.time()
+    local joinedday = tonumber(PEARL.GetFieldFromTimestamp(self._data.joinedtime, "%d"))
+    local currentday = tonumber(PEARL.GetFieldFromTimestamp(currenttime, "%d"))
+    local timediff = os.difftime(currenttime, self._data.joinedtime)
+    if timediff > DAY_IN_SECONDS then
+        return false
+    end
+
+    return joinedday == currentday
 end
 
 --- @return boolean

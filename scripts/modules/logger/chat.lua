@@ -128,7 +128,7 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
     -- Skip emote commands
     local command = UserCommands.GetCommandFromName(name) or UserCommands.GetCustomCommand(name)
     if not command or command.emote or command.remote == false then
-        return -- @TODO: Send a report to the server that someone attempted to run an invalid command?
+        return
     end
 
     PEARL.DiscordLogger:LogStringRaw(

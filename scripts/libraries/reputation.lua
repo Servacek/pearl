@@ -293,6 +293,18 @@ function Reputation:InitializeFor(userid, value)
     end
 end
 
+function Reputation:LoadReputationTables()
+    local ROOT_DIR = PEARL.ModPersistance:GetRootDirectoryPath()
+    local REP_TABLES_PATH = ROOT_DIR.."/reputation_tables.json"
+    local data = PEARL.ModPersistance:LoadDataFromFile(REP_TABLES_PATH, true)
+    if data then
+        for k, v in pairs(data) do
+            PEARL.CONSTS.REPUTATION_TABLES[k] = v
+        end
+    end
+    PEARL.ModPersistance:SaveDataToFile(REP_TABLES_PATH, PEARL.CONSTS.REPUTATION_TABLES, true, false)
+end
+
 --------------------------------------
 -- [[ RPCs ]]
 --------------------------------------

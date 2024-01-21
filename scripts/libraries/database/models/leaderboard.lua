@@ -26,7 +26,7 @@ local function CreateValidDataFrom(data)
 
     -- Validate the provided table.
     data.players     = type(data.players) == "table" and data.players or {}
-    data.records     = type(data.records) == "number" and data.records or 0
+    --data.records     = type(data.records) == "number" and data.records or 0
     data.timecreated = type(data.timecreated) == "number" and data.timecreated or os.time()
     data.dayleader   = type(data.dayleader) == "string" and data.dayleader or nil
 
@@ -71,7 +71,7 @@ Leaderboard = Class(function(self, typ, data)
     --- @type integer
     self.minplayers = 1
     --- @type integer
-    self.maxplayers = PEARL.CONSTS.LEADERBOARD_MAX_LEN
+    self.displaycount = PEARL.CONSTS.LEADERBOARD_DISPLAY_COUNT
     --- @type table
     self.data = CreateValidDataFrom(data)
 
@@ -109,6 +109,7 @@ function Leaderboard:IsValid(userid)
 end
 
 function Leaderboard:HasAnyUnsavedChanges()
+    print(self.changed)
     return self.changed == true
 end
 
@@ -116,8 +117,8 @@ function Leaderboard:GetIndex()
     return self.index
 end
 
-function Leaderboard:GetMinRecords()
-    return self.minplayers
+function Leaderboard:GetPlayerOnPosition(position)
+    return self.players[position]
 end
 
 function Leaderboard:GetLeaderUserID()
@@ -137,6 +138,7 @@ function Leaderboard:GetPositionFor(userid)
     return table.index(self.data.players, userid)
 end
 
+--- @return table
 function Leaderboard:GetData()
     return self.data
 end
@@ -153,16 +155,16 @@ function Leaderboard:GetEmbed()
     return EMBEDS.Leaderboard(self, self.type == Leaderboard.TYPE.MONTHLY)
 end
 
-function Leaderboard:GetRecordCount()
-    return self.data.records or 0
+function Leaderboard:GetLength()
+    return #self.data.players
+end
+
+function Leaderboard:GetDisplayCount()
+    return self.displaycount
 end
 
 function Leaderboard:GetDisplayedCount()
     return self:HasEnoughPlayers() and #self.data.players or 0
-end
-
-function Leaderboard:ContainsPlayer(userid)
-    return table.contains(self.data.players, userid)
 end
 
 --------------------------------------
@@ -188,6 +190,7 @@ function Leaderboard:SetCheckFn(checkfn)
     self.checkfn = checkfn
 end
 
+--- @param data table
 function Leaderboard:SetData(data)
     self.data = data
     self.changed = true
@@ -197,8 +200,8 @@ function Leaderboard:SetMinPlayers(count)
     self.minplayers = count
 end
 
-function Leaderboard:SetMaxPlayers(count)
-    self.maxplayers = count
+function Leaderboard:SetDisplayCount(count)
+    self.displaycount = count
 end
 
 function Leaderboard:SetType(type)
@@ -231,22 +234,22 @@ function Leaderboard:AddPlayer(userid)
     table.insort(self.data.players, userid, self.sortfn)
     self.changed = true
 
-    --- @TODO:
-    -- We are counting the total number of records the leaderboard was built from.
-    if type(self.data.records) == "number" then
-        self.data.records = self.data.records + 1
-    end
+    -- --- @TODO:
+    -- -- We are counting the total number of records the leaderboard was built from.
+    -- if type(self.data.records) == "number" then
+    --     self.data.records = self.data.records + 1
+    -- end
 end
 
 function Leaderboard:UpdatePlayerPosition(position)
     local new_position = table.reorder(self.data.players, position)
     if new_position ~= position then -- If the position has actually changed.
-        self.changes = true
+        self.changed = true
 
         -- Player has managed to get out of the leaderboard
-        if new_position > self.maxplayers then
-            self:RemovePlayer(new_position)
-        end
+        -- if new_position > self.displaycount then
+        --     self:RemovePlayer(new_position)
+        -- end
     end
 end
 
@@ -319,6 +322,7 @@ end
 -- [[ Handlers ]]
 --------------------------------------
 
+--- @return table
 function Leaderboard:OnSave()
     self.changed = false
     return self:GetData()

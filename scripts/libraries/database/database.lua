@@ -14,8 +14,6 @@
 --[[
     @TODOS:
         - Make database records shard specific (they would be unloaded upon migration despawn)
-        - Rethink the data collection dilema.
-        - Maybe we save the lastinv as well?
 ]]
 
 --- Save lastactive shard for synchrnous reading between shards.
@@ -28,18 +26,13 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local Record = PEARL.loadfile("libraries/database/models/record")
 
 ------------------------------------------
--- [[ Localization ]]
-------------------------------------------
-
-local getmetatable, setmetatable = getmetatable, setmetatable
-
-------------------------------------------
 -- [[ Constants ]]
 ------------------------------------------
 
 local FILE_EXTENSION = ".json"
 local FILE_PATH = "/%s"..FILE_EXTENSION
-local DATABASE_ROOT_PATH = PEARL.CONFIG.DATABASE.DIRECTORIES.ROOT
+local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local DATABASE_ROOT_PATH = ROOT.."/"..PEARL.CONFIG.DATABASE.DIRECTORIES.ROOT
 local DATABASE_RECORD_PATH = DATABASE_ROOT_PATH.."/"..PEARL.CONFIG.DATABASE.DIRECTORIES.RECORDS..FILE_PATH
 
 ------------------------------------------
@@ -214,10 +207,6 @@ function DB:SetField(userid, name, value)
     end
 
     record[name] = value
-    local mt = getmetatable(record)
-    if mt then
-        mt.__changes = true
-    end
 
     return true, prev
 end
@@ -329,7 +318,7 @@ function DB:SaveRecordFor(userid, record)
 
     record = record or self._records[userid]
     if not record then
-        PEARL.error("Record not found for", userid)
+        PEARL.error("Record for", userid, "is not cached.")
         return false
     end
 

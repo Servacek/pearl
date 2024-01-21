@@ -257,7 +257,8 @@ end
 -----------------------------------
 
 -- PEARL.AddClassFunctionPreCall("OnBuilt", function(self, builder)
---     PEARL.debug("OnBuilt", builder, self)
+--     PEARL.debug("OnBuilt", builder, self, self.onPreBuilt)
+--     self:onPreBuilt(builder)
 --     if builder and builder.userid and builder.name then
 --         if not self.components.built then
 --             self:AddComponent("built")

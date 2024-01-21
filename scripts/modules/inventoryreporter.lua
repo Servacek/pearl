@@ -61,14 +61,17 @@ local ILLEGALITY_THRESHOLD = 3
 local RARITY_THRESHOLD = 0.5
 local LEARNING_RATE = 0.1
 
+local BUILDER_MULT = .5
+
 local ITEM_WEIGHT_BIAS = PEARL.CONSTS.ITEM_WEIGHT_BIAS
 
 -- Determines the maximal bias for players with age 1.
 local MAX_AGE_BIAS              = 0.2 -- Age bias for 100%
 local AGE_THRESHOLD             = 15 -- Age where the bias is 0
 
-local WEIGHTS_FILE_PATH = PEARL.MODROOT.."data/item_weights.json"
-local BIASES_FILE_PATH  = PEARL.MODROOT.."data/item_weight_biases.json"
+local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local WEIGHTS_FILE_PATH = ROOT.."/item_weights.json"
+local BIASES_FILE_PATH  = ROOT.."/item_weight_biases.json"
 
 --- @type REPUTATION_TABLES
 local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
@@ -219,29 +222,12 @@ local function CalculateBiasFor(item, stacksize)
         bias = bias * finituse_percent
     end
 
-    print(item.prefab, bias)
-
     return bias
 end
 
 local function GetWeightFor(prefab)
     return _weights[prefab] or PEARL.CONSTS.DEFAULT_ITEM_WEIGHT
 end
-
--- local function GetWeightForRecipe(recipe, stacksize)
---     local weight, normalized_weight = 0, 0
-
---     -- For crafted items consider their ingredients
---     for _, ingredient in ipairs(recipe.ingredients) do
---         local ing_weight = GetWeightFor(ingredient.type)
---         if _weights[ingredient.type] and _weights[ingredient.type] > 0 then
---             weight = weight + (ing_weight * ingredient.amount) * (stacksize / recipe.numtogive)
---             normalized_weight = normalized_weight + ing_weight
---         end
---     end
-
---     return weight, normalized_weight
--- end
 
 local function DoLegalityPrediction(inventory, age)
     local pd = {
@@ -262,31 +248,32 @@ local function DoLegalityPrediction(inventory, age)
         local bias = CalculateBiasFor(item, stacksize)
         local weight = GetWeightFor(prefab)
 
-        --- @TODO: Check the recipes only for items we have guranteed were built.
-        --- Also some items may have multiple recipes so store the one used.
-        --- And check the crafter as well.
-        -- local recipe_weight, nrecipe_weight = 0, 0
-        -- local recipe = AllRecipes[prefab]
-        -- if recipe then
-        --     recipe_weight, nrecipe_weight = GetWeightForRecipe(recipe, stacksize)
-        -- end
+        local builderid = item.components.built and item.components.built.doer and item.components.built.doer:GetUserID()
+        if builderid == (inventory.owner and inventory.owner.userid) then
+            weight = weight * BUILDER_MULT
+        end
 
-        -- if recipe_weight > weight then
-        --     weight = nrecipe_weight
-        --     pd.weight = recipe_weight
+        local ingredients = item.components.built and item.components.built.ingredients
+        if ingredients then
+            local recipe = AllRecipes[prefab]
+            local recipe_weight, nrecipe_weight = 0, 0
+            for _, ingredient in ipairs(ingredients) do
+                local ing_weight = GetWeightFor(ingredient.type)
+                if _weights[ingredient.type] and _weights[ingredient.type] > 0 then
+                    weight = weight + (ing_weight * ingredient.amount) * (stacksize / (recipe and recipe.numtogive or 1))
+                    nrecipe_weight = nrecipe_weight + ing_weight
+                end
+            end
 
-        --     for _, ingredient in ipairs(recipe.ingredients) do
-        --         pd.weights[ingredient.type] = math.max((pd.weights[ingredient.type] or 0), weight)
-        --     end
-        -- else
-            -- Store highest normalized weight for this item.
-            pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), weight)
+            weight = nrecipe_weight
+            pd.weight = recipe_weight + bias
+        else
             pd.weight = pd.weight + (weight * stacksize) + bias
-        -- end
+        end
 
+        -- Store highest normalized weight for this item.
+        pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), weight)
         pd.normalized_value = pd.normalized_value + weight
-        print("BIAS", bias, "WEIGHT", weight, "STACKSIZE", stacksize)
-        print("FINAL WEIGHT:", pd.weight)
     end
 
     local unique_item_count = inventory:CountItemPrefabs()
@@ -296,12 +283,9 @@ local function DoLegalityPrediction(inventory, age)
     local age_bias_percent = (-age + AGE_THRESHOLD) / AGE_THRESHOLD
     local age_bias = MAX_AGE_BIAS * age_bias_percent
     pd.weight = pd.weight + age_bias_percent
-    print("AGE BIAS", age_bias_percent, age_bias)
 
     -- local wpercent = pd.weight / worst_scenario
     pd.prediction = pd.weight > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
-    print("VALUE:", pd.weight)
-    print("PREDICTION:", pd.prediction)
 
     GetContributions(pd.weights, pd.normalized_value)
 

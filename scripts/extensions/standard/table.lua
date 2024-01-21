@@ -74,6 +74,57 @@ function table:empty()
     return next(self) == nil
 end
 
+function table.join(t1, t2)
+    for _, val in ipairs(t2) do
+        table.insert(t1, val)
+    end
+end
+
+function table.nestedkeys(t)
+    local keys = {}
+    local queue = {t}
+    while table.empty(queue) == false do
+        local l = #queue
+        local tc = queue[l]
+        queue[l] = nil
+
+        for k, v in pairs(tc) do
+            if keys[k] == nil then
+                keys[k] = true
+            end
+
+            if type(v) == "table" then
+                queue[#queue + 1] = v
+            end
+        end
+    end
+
+    return table.keys(keys)
+end
+
+function table.isarray(t)
+    if type(t) ~= "table" then
+        return false
+    end
+
+    local count = #t
+    if count == 0 then
+        return false
+    end
+
+    if table.size(t) ~= count then
+        return false
+    end
+
+    for i = 1, count do
+        if t[i] == nil then
+            return false
+        end
+    end
+
+    return true
+end
+
 function table.create(size, narr)
     return createTable(size, narr)
 end

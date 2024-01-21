@@ -83,7 +83,7 @@ return function(fname, create_if_needed, subtitles)
         open_section = tbl[#tbl]
     end
 
-    local function ParseLine(tbl, raw_line, subtitles)
+    local function ParseLine(tbl, raw_line)
         local line = raw_line:strip()
 
         if line == "" and not open_section then
@@ -125,7 +125,7 @@ return function(fname, create_if_needed, subtitles)
     end
 
     PEARL.ClusterPersistance:ForEachLineIn(abs_path, function(line)
-        ParseLine(result, line, subtitles)
+        ParseLine(result, line)
     end)
 
     if IsTableEmpty(result) then
@@ -134,7 +134,7 @@ return function(fname, create_if_needed, subtitles)
 
     result.version = version
 
-    --- @TODO: looks like this doesn't work correctly on Linux (seems to be a bug)
+    --- @Note: looks like this doesn't work correctly on Linux (seems to be a bug)
     -- TheSim:GetFileModificationTime returns a hexadecimal string representing the timestamp
     result.lmt = lmt --tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
 

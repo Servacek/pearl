@@ -123,7 +123,6 @@ end)
 -- [[ Static ]]
 -------------------------------------
 
---- @TODO: This should be configurable and request specific
 --- @see RestAPI.STATUS_CODES
 Request.RETRY_CODES = {
     [0] = true,

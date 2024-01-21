@@ -58,8 +58,6 @@ local message_retries = 0
 
 local CreateNewUpdatingMessage
 
-print(leaderboards.monthly:GetIndex())
-
 --------------------------------------
 -- [[ Event Handlers ]]
 --------------------------------------
@@ -96,17 +94,25 @@ local function UpdateLeaderboards()
 end
 
 local function SaveChanges()
+    PEARL.debug("SaveChanges")
+
+    table.dump(leaderboards)
+    local save = false
     -- Check if any of the leaderboards needs an update or needs to be saved.
     for _, leaderboard in pairs(leaderboards) do
         --table.dump(leaderboard)
         if leaderboard:HasAnyUnsavedChanges() then
+            save = true
+
             if leaderboard:HasEnoughPlayers() then
                 UpdateLeaderboards()
                 break
             end
-
-            PEARL.LeaderboardService:Save()
         end
+    end
+
+    if save then
+        PEARL.LeaderboardService:Save()
     end
 end
 

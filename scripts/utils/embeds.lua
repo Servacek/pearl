@@ -177,6 +177,7 @@ end
 --- @param leaderboard Leaderboard
 function EMBEDS.Leaderboard(leaderboard, monthly)
     local data = leaderboard:GetData()
+    local displayed = leaderboard:GetDisplayedCount()
     --- @type Embed
     local embed = Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD[monthly and "TITLE_CUR" or "TITLE_ABS"])
@@ -190,7 +191,8 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
     else
         local max_rep_len = 0
         local index_col, name_col, rep_col = "", "", ""
-        for i, userid in ipairs(data.players) do
+        for i = 1, displayed do
+            local userid = leaderboard:GetPlayerOnPosition(i)
             local name = tostring(PEARL.DB:GetField(userid, "username") or "UNKNOWN")
             local netid = PEARL.DB:GetField(userid, "netid") or nil
             local rep = tostring(PEARL.Reputation:GetFieldOf(userid, monthly and "monthgains" or "value"))
@@ -241,8 +243,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         )
     end
 
-    local displayed = leaderboard:GetDisplayedCount()
-    local total_count = leaderboard:GetRecordCount()
+    local total_count = leaderboard:GetLength()
     embed:SetFooter(("%s/%s"):format(displayed, math.max(total_count, displayed)))
 
     return embed
@@ -283,7 +284,7 @@ function EMBEDS.PlayerInfo()
         PEARL.warn("Created Player Info Embed on a secondary shard!")
     end
 
-    local shardids = PEARL.ServerNetwork:GetConnectedShardIDs()
+    local shardids = deepcopy(PEARL.ServerNetwork:GetConnectedShardIDs())
     local max_index_size, max_name_size, max_rep_size, max_tdays_size, max_cdays_size, max_ping_size
     local description = ""
     local clients = PEARL.ServerNetwork:GetConnectedClients()
@@ -298,12 +299,13 @@ function EMBEDS.PlayerInfo()
             shardid = SHARDID.MASTER
         end
 
-        local prefab = PEARL.DB:GetField(client.userid, "fancyprefab", client.prefab)
+        local icons = ""
+        local prefab = PEARL.GetFancyCharacterPrefabFor(userid)
         local name = client.name
         local netid = client.netid
         local cur_days = tostring(client.playerage)
         local tot_days = PEARL.DB:IsEnabled() and tostring(PEARL.DB:GetField(client.userid, "totaldays")) or "???"
-        local ping = tostring(client.netscore)
+        local ping = tostring(client.netscore or "???")
         local rep = PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(userid)
 
         max_index_size = max_index_size or PEARL.GetMaxStringSize(clients, true)
@@ -322,6 +324,17 @@ function EMBEDS.PlayerInfo()
             STRINGS.PEARL.POSITION:format(string.rep(" ", max_index_size - #istr)..istr)
         )
 
+        local record = PEARL.DB:GetRecordFor(userid)
+        if client.admin then
+            icons = icons.." "..PEARL.ICONS.ADMIN
+        elseif record and record:IsNovice() then
+            icons = icons.." "..PEARL.ICONS.BEGINNER
+        end
+
+        if PEARL.ServerNetwork:IsClientInactive(userid) then
+            icons = icons.." "..PEARL.ICONS.AFK
+        end
+
         --- @NOTE: The spaces are only visible in codelines!
         shard_player_map[shardid] = (shard_player_map[shardid] and shard_player_map[shardid].."\n" or "")
             .."> "..index_str
@@ -333,6 +346,7 @@ function EMBEDS.PlayerInfo()
             ))
             .." "..MARKDOWN.codeline(SPACE:rep(max_ping_size - #ping)..ping.." ms")
             .." "..(rep and MARKDOWN.codeline(SPACE:rep(max_rep_size - #tostring(rep))..tostring(rep).." rep") or "")
+            ..icons
     end
 
     table.insert(shardids, PEARL.SHARDID)

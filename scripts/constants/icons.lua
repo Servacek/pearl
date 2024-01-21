@@ -48,6 +48,7 @@ local ICONS = {
 
     AFK   = "<:avatar_afk:1191784868347121714>",
     ADMIN = "<:avatar_admin:1191784852341661696>",
+    BEGINNER = "<:beginner:1093454509931495545>",
 
     INFO = "<:announcement:997492667422351360>",
     WARN = "<:warn:1076451075126734878>",

@@ -433,10 +433,12 @@ end)
 
 RegisterPlayerActionHandler(ACTIONS.SMOTHER,
 RegisterPlayerActionHandler(ACTIONS.MANUALEXTINGUISH, function(doer, target, item)
-    if target:HasTag("structure") then
-        Rep:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
-    else
-        Rep:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH)
+    if target.components.burnable and (not target.components.burnable.doer or target.components.burnable.doer:GetUserID() ~= doer.userid) then
+        if target:HasTag("structure") then
+            Rep:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH_STRUCT)
+        else
+            Rep:EarnFor(doer.userid, REPUTATIONS.EXTINGUISH)
+        end
     end
 
     return AL:EntityAct(STRINGS.PEARL.ACTIONS.EXTINGUISH[item and "WITH" or "GENERIC"], doer,
@@ -528,7 +530,7 @@ RegisterPlayerActionHandler(ACTIONS.PLANTWEED,
 RegisterPlayerActionHandler(ACTIONS.PLANTSOIL,
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
     local icon = PEARL.EMOTES.DISCORD.EYEPLANT
-    if item:HasTag("plant") then
+    if item:HasTag("deployedplant") or item:HasTag("plant") then
         icon = PEARL.EMOTES.DISCORD.BERRY
         if item:HasTag("witherable") then
             Rep:EarnFor(doer.userid, REPUTATIONS.PLANT_WITHERABLE)
@@ -906,7 +908,7 @@ onburntup = function(target)
     end
 
     local cmps = target.components
-    if not (cmps.built or (cmps.deployable and cmps.deployable.doer)) then
+    if not (cmps.built or (cmps.pickable and cmps.pickable.transplanted)) then
         return
     end
 

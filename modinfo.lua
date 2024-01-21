@@ -59,7 +59,6 @@ server_filter_tags = {
 --- - implicit - This configuration is meant to be used internally.
 --- - zip - For public configurations. If set, we will attempt to zip the value before sending.
 
---- @TODO: Create the checks API.
 configuration_options = {
 
     --------------------
@@ -69,7 +68,7 @@ configuration_options = {
     {
         name = "DISCORD",
         default = {
-            -- The IDs NEEDS to be strings because they could overflow
+            -- The IDs NEED to be strings because they could overflow
             LHOOK = {
                 ID              = "",
                 TOKEN           = "",
@@ -286,6 +285,12 @@ configuration_options = {
         default = {},
         type = "table<string, boolen>",
         public = true,
+    },
+
+    {
+        name = "DATA_ROOT_DIRECTORY",
+        default = ".", -- at DoNotStarveTogetherDedicatedServer/data
+        type = "string",
     },
 
     --------------------

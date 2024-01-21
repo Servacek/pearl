@@ -24,7 +24,7 @@ local Text = require("widgets/text")
 local TEMPLATES = require("widgets/redux/templates")
 
 --- @class DiscordProxy
-local DiscordProxy = PEARL.loadfile("libraries/discordapi/discordproxy")
+local DiscordProxy = PEARL.loadlib("discordapi/discordproxy")
 
 --- @class PlayerStatusScreen
 local PlayerStatusScreen = require("screens/playerstatusscreen")
@@ -61,15 +61,14 @@ local CUSTOM_HOST_BUTTON = not TheNet:GetServerIsClientHosted() and type(HOST_NA
 local VALID_HOST_URL = type(HOST_URL) == "string" and #HOST_URL > 1
 
 local SPINNER_CHAR = "."
-local SPINNER_SPACE = " "
 local MAX_SPINNER_CHARS = 3
 
 local STATE_LABEL_DATA = {
     [DiscordProxy.STATE.FAILED] = {
-        text = STRINGS.PEARL.UI.UNREACHABLE, colour = WEBCOLOURS.DARKRED
+        text = STRINGS.PEARL.UI.UNREACHABLE, colour = WEBCOLOURS.RED,
     },
     [DiscordProxy.STATE.STOPPED] = {
-        text = STRINGS.PEARL.UI.OFFLINE, colour = WEBCOLOURS.RED
+        text = STRINGS.PEARL.UI.OFFLINE, colour = WEBCOLOURS.DARKGREY,
     },
     [DiscordProxy.STATE.RUNNING] = {
         text = STRINGS.PEARL.UI.ONLINE, colour = WEBCOLOURS.GREEN
@@ -171,15 +170,12 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
     end
 
     if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
-        if not proxy_state_label then
+        if not proxy_state_label and proxy_state then
             self.step_time = GetStaticTime()
 
             proxy_state_label = Text(TALKINGFONT, 24)
 
-            OnProxyStateChanged(proxy_state and proxy_state:value() or false)
-
-            print(proxy_state_label:GetPositionXYZ())
-
+            OnProxyStateChanged(proxy_state:value() or false)
             PEARL.AddClassFunctionPreCall("OnUpdate", function()
                 local state = proxy_state:value()
                 if state ~= DiscordProxy.STATE.CONNECTING then
@@ -207,7 +203,7 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
         end
 
         local host_widget = type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]
-        if host_widget then
+        if host_widget and proxy_state_label then
             host_widget:AddChild(proxy_state_label)
             proxy_state_label:SetPosition(0, 0, 0)
         end

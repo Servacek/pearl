@@ -56,6 +56,10 @@ function ModPersistance:GetFileContent(fp, ensure)
     return success, result
 end
 
+function ModPersistance:GetRootDirectoryPath()
+    return PEARL.CONFIG.DATA_ROOT_DIRECTORY
+end
+
 function ModPersistance:GetAllFileLines(fp, ensure, strip)
     local lines = {}
     self:ForEachLineIn(fp, function(line)
