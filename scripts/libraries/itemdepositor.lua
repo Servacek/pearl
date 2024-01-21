@@ -320,8 +320,6 @@ local function OnDepoRemove(inst)
 
     inst.__sign_prefab = nil
     inst.__nerby_chest_count = nil
-
-    table.foreach(_depos, print)
 end
 
 local function OnDepoInit(inst)
@@ -340,8 +338,6 @@ local function OnDepoInit(inst)
     else
         table.insort(_depos, inst, sort_depo_by_priority)
     end
-
-    table.foreach(_depos, print)
 end
 
 local function OnSignRemove(sign)
