@@ -53,6 +53,13 @@ CommandContext.TYPE = {
     DISCORD = 3,
 }
 
+-- CommandContext.BINDINGS = {
+--     THIRD_PARTY = {
+--          -- Looks like AccountBindings are not yet initialized
+--         [CommandContext.TYPE.DISCORD] = PEARL.AccountBindings.BINDING_TYPE.DISCORD,
+--     }
+-- }
+
 --- @type table<integer, fun(context: CommandContext, response: string)>
 CommandContext.OHANDLER = {
     [CommandContext.TYPE.CONSOLE] = function(context, response)
@@ -165,7 +172,10 @@ function CommandContext:ReplyDiscordMessage(message)
 
     -- For non-discord commands calling this function
     if self.iid == nil then
-        if self.command.permission == COMMAND_PERMISSION.USER then
+        local request
+        if self.author.discordid and PEARL.DiscordProxy:IsRunning() then
+            request = PEARL.DiscordProxy:PostMessage(message, self.author.discordid)
+        elseif self.command.privateresponse == false then
             if PEARL.DiscordLogger:IsDisabled() and not self:WasReplied() then
                 self:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_LHOOK)
                 return
@@ -178,7 +188,18 @@ function CommandContext:ReplyDiscordMessage(message)
                 return
             end
 
-            return PEARL.DiscordReporter:SendRawReportMessage(message)
+            request = PEARL.DiscordReporter:SendRawReportMessage(message)
+        end
+
+        --- @DEBUG
+        if request then
+            request:SetOnComplete(function(response, success)
+                if success then
+                    return self:Reply(STRINGS.PEARL.UI.CMD_INFO.SENT_TO_THIRDPARTY)
+                end
+
+                self:Reply(STRINGS.PEARL.UI.CMD_ERRORS.SENT_TO_THIRDPARTY_FAILED)
+            end)
         end
     else
         PEARL.DiscordProxy:SendCommandResponse(self.iid, message)

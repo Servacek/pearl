@@ -254,7 +254,6 @@ AddCommand("inv", {
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_NOTFOUND)
         end
 
-        local request
         if raw == true then
             local success, inventory_json = pcall(json.encode, inventory)
             if success == false then
@@ -265,20 +264,9 @@ AddCommand("inv", {
                 reference:GetName() or PEARL.DB:GetField(userid, "username", userid)
             ))..MARKDOWN.codeblock(inventory_json, "json")
 
-            -- Force the response in this case to be always on discord.
-            request = ctx:ReplyDiscordMessage(Message(content))
+            ctx:ReplyDiscordMessage(Message(content))
         else
-            request = ctx:ReplyDiscordMessage(MESSAGES.InvReport(userid, reference))
-        end
-
-        if request then
-            request:SetOnComplete(function(response, success)
-                if success then
-                    return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_SUCCESS)
-                end
-
-                ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.ON_FAILURE)
-            end)
+            ctx:ReplyDiscordMessage(MESSAGES.InvReport(userid, reference))
         end
     end,
 })
@@ -645,20 +633,24 @@ AddCommand("boost", {
 })
 
 AddCommand("profile", {
-    permission = COMMAND_PERMISSION.ADMIN,
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.DESC,
+    permission = UserCommands.PERMISSION.USER,
     params = {UserCommands.STD_PARAMS.PLAYER},
     paramsoptional = {true},
-    slash = false,  -- Doesn"t make much sense
+    -- Only admins can see profiles of other players
+    parampermissions = {[UserCommands.STD_PARAMS.PLAYER] = UserCommands.PERMISSION.ADMIN},
+    privateresponse = true,
+    --requiredbindings = UserCommands.BINDINGS.THIRD_PARTY,
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
-        local commandpermission = UserCommands.GetPermissionLevel(ctx.command.permission)
-        local authorpermission = UserCommands.GetPermissionLevel(ctx.author.permission)
-        if ctx.params.player ~= nil and ctx.params.player ~= ctx.author.userid and authorpermission < commandpermission then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.MISSING_PERMISSION)
+        local playerid = userid or ctx.author.userid
+        if not playerid then
+            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+            return
         end
 
-        local playerid = userid or ctx.author.userid
         local record = playerid and PEARL.DB:GetRecordFor(playerid)
         if not record then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
@@ -668,25 +660,35 @@ AddCommand("profile", {
     end,
 })
 
-AddCommand("mystats", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.MYSTATS.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.MYSTATS.DESC,
+AddCommand("stats", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.DESC,
+    params = {UserCommands.STD_PARAMS.PLAYER},
+    paramsoptional = {true},
+    -- Only admins can see stats of other players
+    parampermissions = {[UserCommands.STD_PARAMS.PLAYER] = UserCommands.PERMISSION.ADMIN},
     permission = COMMAND_PERMISSION.USER,
-    routing = UserCommands.SHARD_ROUTING.NONE,
+    routing = UserCommands.SHARD_ROUTING.NONE, -- Leaderboard is centralized
+    --requiredbindings = UserCommands.BINDINGS.THIRD_PARTY,
+    privateresponse = true,
     console = false,
 
     --- @param ctx CommandContext
-    fn = function(ctx)
-        local userid     = ctx.author.userid
+    fn = function(ctx, userid)
+        userid = userid or ctx.author.userid
+        if not userid then
+            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+            return
+        end
+
         local reputation = PEARL.Reputation:GetOf(userid)
         local daygains   = PEARL.Reputation:GetTodayGainsOf(userid)
         local monthgains = PEARL.Reputation:GetMonthGainsOf(userid)
         local username   = PEARL.DB:GetField(userid, "username", userid)
         local board      = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)
-        --- @TODO: Make this more accurate for players not displayed on the leaderboard.
         local place      = board and board:GetPositionFor(userid) or "?"
 
-        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.MYSTATS.RESULT:format(
+        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT:format(
             place, username, reputation, daygains, monthgains
         ))
     end,
@@ -696,11 +698,32 @@ AddCommand("leaderboard", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.DESC,
     permission = COMMAND_PERMISSION.USER,
-    discord = false,
-    routing = UserCommands.SHARD_ROUTING.NONE,
+    routing = UserCommands.SHARD_ROUTING.NONE, -- Leaderboard is centralized
+    params = {"typ"},
+    paramsoptional = {true},
 
     --- @param ctx CommandContext
-    fn = function(ctx)
+    fn = function(ctx, typ)
+        local leaderboards = PEARL.LeaderboardService:GetAllLeaderboards()
+        if ctx.type == CommandContext.TYPE.DISCORD and table.empty(leaderboards) == false then
+            local message = Message()
+            if typ ~= nil then
+                local leaderboard = PEARL.LeaderboardService:GetLeaderboard(typ)
+                if not leaderboard then
+                    return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.NOT_FOUND)
+                end
+
+                message:AddEmbed(leaderboard:GetEmbed())
+            else
+                for _, leaderboard in pairs(leaderboards) do
+                    -- Max 10 leaderboard embeds
+                    message:AddEmbed(leaderboard:GetEmbed())
+                end
+            end
+
+            return ctx:ReplyDiscordMessage(message)
+        end
+
         return ctx:Reply(PEARL.LeaderboardService:ToString())
     end,
 })
@@ -1118,7 +1141,7 @@ AddCommand("system", {
 
     --- @param ctx CommandContext
     fn = function(ctx, message)
-        TheNet:SystemMessage()
+        TheNet:SystemMessage(message)
     end
 })
 
@@ -1339,7 +1362,7 @@ AddCommand("show", {
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
-        local str = DataDumper(record, nil, false, 2)
+        local str = DataDumper(record:GetData(), nil, false, 2)
         str = str:gsub("return ", ""):gsub("    ", ""):gsub("\t", "")
         if ctx.type == CommandContext.TYPE.DISCORD then
             str = MARKDOWN.codeblock(str, "lua")

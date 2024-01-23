@@ -489,9 +489,7 @@ PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
 
 --- @type AccountBindings
 PEARL.AccountBindings = PEARL.loadfile("libraries/database/accountbindings")
-if PEARL.DB:IsEnabled() then
-    PEARL.AccountBindings:Load()
-end
+PEARL.AccountBindings:Load()
 
 --- @type Reputation
 PEARL.Reputation = PEARL.loadfile("libraries/reputation")

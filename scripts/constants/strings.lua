@@ -597,6 +597,7 @@ local STRINGS = {
         CONNECTION_FAILED = "Connection failed...",
 
         CMD_ERRORS = {
+            MISSING_BINDING = "In order to use this command you need to pair your account!",
             EXECUTION = "Error while executing the command!",
             NO_LHOOK = "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua.",
             NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",
@@ -619,10 +620,16 @@ local STRINGS = {
             VALIDATION_FAILED = "Failed to validate command \"%s\"!",
             JSON_DECODING_FAILED = "Failed to decode the provided JSON data!",
             INVALID_JSON = "Invalid JSON data provided!",
+            SENT_TO_THIRDPARTY_FAILED = "Sending the command response to discord has failed!",
+            NO_PARAMETER_PERMISSIONS = "You do not have permission to use the \"%s\" parameter!",
         },
 
         CMD_WARN = {
             SAVE_REQUIRED = "In order for the changes to be correctly applied, you have to save the server.",
+        },
+
+        CMD_INFO = {
+            SENT_TO_THIRDPARTY = "The response was sent to discord.",
         },
 
         -- Add more translations
@@ -657,9 +664,11 @@ local STRINGS = {
             LEADERBOARD = {
                 PRETTYNAME  = "Show Active Leaderboards",
                 DESC        = "Displays the active leaderboards and players on them.",
+
+                NOT_FOUND   = "Specified leaderboard was not found!",
             },
 
-            MYSTATS = {
+            STATS = {
                 PRETTYNAME  = "Show My Stats",
                 DESC        = "Shows your current statistics and place on the leaderboard.",
 
@@ -925,7 +934,7 @@ local STRINGS = {
 
             PROFILE = {
                 PRETTYNAME = "Show Player Profile",
-                DESC       = "Shows player's community profile on discord.",
+                DESC       = "Shows profile of the given player or your own profile on discord.",
 
                 MISSING_PERMISSION = "You do not have permission to display profiles of other players."
             },

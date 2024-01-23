@@ -201,6 +201,9 @@ function AccountBindings:LoadForType(bindtype)
     local path = self:GetBindingFilePath(bindtype)
     local bindings = PEARL.ModPersistance:LoadDataFromFile(path, true)
     if type(bindings) ~= "table" then
+        self._bindings[bindtype] = {}
+        self:SaveForType(bindtype)
+
         return PEARL.error("Failed to load binding file with type", bindtype)
     end
 
@@ -211,6 +214,8 @@ end
 
 --- Loads all binding files from disk.
 function AccountBindings:Load()
+    PEARL.debug("Loading account bindings...")
+
     for _, bindtype in pairs(BINDING_TYPE) do
         self:LoadForType(bindtype)
     end

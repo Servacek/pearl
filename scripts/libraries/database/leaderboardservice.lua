@@ -13,9 +13,6 @@
 
 local Library = PEARL.loadfile("models/library")
 
---- @type PersistentMap
-local PersistentMap = PEARL.loadfile("libraries/datastructures/persistentmap")
-
 --- @type Leaderboard
 local Leaderboard = PEARL.loadfile("libraries/database/models/leaderboard")
 
@@ -39,32 +36,6 @@ local LeaderboardService = {
 
 --- @type LeaderboardService
 LeaderboardService = Library(LeaderboardService)
-
--- LeaderboardService.savedata:SetOnLoad(function(data)
---     local leaderboards = data.leaderboards or {}
---     for _, typ in pairs(Leaderboard.TYPE) do
---         leaderboards[typ] = Leaderboard(typ, leaderboards[typ])
---         LeaderboardService.leaderboards[typ] = leaderboards[typ]
---     end
-
---     data.leaderboards = leaderboards
-
---     PEARL.DiscordLeaderBoarder:SetUpdatingMessageID(data.messageid)
-
---     return data
--- end)
--- LeaderboardService.savedata:SetOnSave(function(data)
---     local leaderboards = LeaderboardService.leaderboards or {}
---     for _, typ in pairs(Leaderboard.TYPE) do
---         local leaderboard = leaderboards[typ] or Leaderboard()
---         leaderboards[typ] = leaderboard:OnSave()
---     end
-
---     data.leaderboards = leaderboards
---     data.messageid = PEARL.DiscordLeaderBoarder:GetUpdatingMessageID()
-
---     return data
--- end)
 
 --------------------------------------
 -- [[ Getters ]]
@@ -129,15 +100,6 @@ function LeaderboardService:ArchiveLeaderboard(typ)
         PEARL.DiscordLeaderBoarder:DoUpdate()
     end
 end
-
--- --- @return Leaderboard
--- function LeaderboardService:EnsureLeaderboard(typ)
---     if not self.leaderboards[typ] then -- No such leaderboard exists, add one!
---         self.leaderboards[typ] = Leaderboard()
---     end
-
---     return self.leaderboards[typ]
--- end
 
 function LeaderboardService:ValidateLoadedData()
     -- Ensure that everything was loaded correctly.

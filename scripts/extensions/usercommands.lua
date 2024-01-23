@@ -107,6 +107,8 @@ UserCommands.STD_PARAMS = {
     JSON   = "json",
 }
 
+UserCommands.PERMISSION = COMMAND_PERMISSION
+
 local PARAMS = UserCommands.STD_PARAMS
 
 -------------------------------------
@@ -156,10 +158,22 @@ local function ProccessParams(ctx, params)
     local optional      = ctx.command.paramsoptional
     local types         = ctx.command.paramtypes
     local novalidation  = ctx.command.paramsnovalidation
+    local permission    = ctx.command.parampermissions
+
+    local author_permission = UserCommands.GetPermissionLevel(
+        ctx.author.permission or UserCommands.CalculatePermissionFor(ctx.author.userid)
+    )
 
     local args, n = nil, 0
     for i, name in ipairs(ctx.command.params) do
         local value = params[name]
+        if value ~= nil then
+            local param_permission = permission and UserCommands.GetPermissionLevel(permission[name])
+            if param_permission and param_permission > author_permission then
+                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_PARAMETER_PERMISSIONS:format(name))
+                return
+            end
+        end
 
         -- Parameters are optional by default
         if optional and optional[i] == false and value == nil then
@@ -288,6 +302,12 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
 
         return false
     end
+
+    -- local required_binding_type = command.requiredbindings[ctx.type]
+    -- if required_binding_type ~= nil and not PEARL.AccountBindings:ExistsAny(ctx.author.userid, required_binding_type) then
+    --     ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+    --     return false
+    -- end
 
     local route_shardid
     local routing_type      = norouting and UserCommands.SHARD_ROUTING.NONE or command.routing
