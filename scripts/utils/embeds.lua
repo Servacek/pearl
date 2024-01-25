@@ -177,7 +177,7 @@ end
 --- @param leaderboard Leaderboard
 function EMBEDS.Leaderboard(leaderboard, monthly)
     local data = leaderboard:GetData()
-    local displayed = leaderboard:GetDisplayedCount()
+    local displayed = 0
     --- @type Embed
     local embed = Embed()
         :SetTitle(STRINGS.PEARL.EMBEDS.LEADERBOARD[monthly and "TITLE_CUR" or "TITLE_ABS"])
@@ -190,6 +190,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         ))
     else
         local max_rep_len = 0
+        displayed = math.min(leaderboard:GetLength(), leaderboard:GetDisplayCount())
         local index_col, name_col, rep_col = "", "", ""
         for i = 1, displayed do
             local userid = leaderboard:GetPlayerOnPosition(i)
@@ -265,6 +266,7 @@ function EMBEDS.ServerInfo(boot)
     end
 
     return Embed()
+        :SetAuthor(TheNet:GetServerName())
         :SetTitle(title)
         :SetColor(colour)
         :SetThumbnail(STRINGS.PEARL.EMBEDS.SERVER.THMB_URL)
@@ -369,6 +371,7 @@ function EMBEDS.PlayerInfo()
     end
 
     return Embed()
+        :SetAuthor(TheNet:GetServerName(), nil, STRINGS.PEARL.EMBEDS.PLAYERS.AUTHOR_ICON_URL)
         :SetTitle(STRINGS.PEARL.EMBEDS.PLAYERS.TITLE)
         --:SetColor(Embed.COLORS.YELLOW)
         --:SetThumbnail(STRINGS.PEARL.EMBEDS.PLAYERS.THMB_URL)
@@ -416,29 +419,30 @@ function EMBEDS.WorldInfo(world, session_id, regen)
         end
 
         if #displayed < #customizations then
-            description = description.."... ("..STRINGS.PEARL.EMBEDS.REGEN.OTHER:format(
+            description = description.."... ("..STRINGS.PEARL.EMBEDS.WORLD.OTHER:format(
                 table.size(customizations) - displayed_count
             )..")\n"
         end
 
-        description = STRINGS.PEARL.EMBEDS.REGEN.DESC_TITLE..MARKDOWN.codeblock(description, "ini")
+        description = STRINGS.PEARL.EMBEDS.WORLD.DESC_TITLE..MARKDOWN.codeblock(description, "ini")
     end
 
-    local title = regen == true and STRINGS.PEARL.EMBEDS.REGEN.REGENERATED or STRINGS.PEARL.EMBEDS.REGEN.TITLE
+    local title = regen == true and STRINGS.PEARL.EMBEDS.WORLD.REGENERATED or STRINGS.PEARL.EMBEDS.WORLD.TITLE
     local embed = Embed()
+        :SetAuthor(TheNet:GetServerName(), nil, STRINGS.PEARL.EMBEDS.WORLD.AUTHOR_ICON_URL)
         :SetTitle(title:format(PEARL.GetShardFancyName()))
         :SetColor(Embed.COLORS.GREEN)
-        :SetThumbnail(STRINGS.PEARL.EMBEDS.REGEN.THMB_URL)
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.WORLD.THMB_URL)
         :SetDescription(description)
         :SetTimestamp(os.time())
 
-        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
-        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
-        :AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
 
     if TheShard:IsMaster() then
-        embed:AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
-        embed:AddField(STRINGS.PEARL.EMBEDS.REGEN.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
+        embed:AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
+        embed:AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
     end
 
     return embed
@@ -601,10 +605,20 @@ function EMBEDS.ClientProfile(userid, dbr)
     if dbr.bans and table.empty(dbr.bans) == false then
         local lastban = dbr.bans[#dbr.bans]
         local active = lastban.timestop == nil
-        local author = lastban.author and PEARL.DB:MentionOrName(lastban.author) or nil
+        local author = lastban.author
+        if author == PEARL.CONSTS.BAN_AUTHORS.SYSTEM then
+            author = MARKDOWN.italic(P_STRINGS.SYSTEM_BAN)
+        else
+            author = author and PEARL.DB:MentionOrName(author) or MARKDOWN.italic(P_STRINGS.UNKNOWN_AUTHOR)
+        end
+
         embed:AddField(P_STRINGS.FD_NAMES.LAST_BAN, P_STRINGS.FD_VALUES.LAST_BAN:format(
-            author or MARKDOWN.italic(P_STRINGS.SYSTEM_BAN),
-            MARKDOWN.timestamp(lastban.timestart)..(active and " "..P_STRINGS.ACTIVE_BAN_TAG or ""),
+            author,
+            MARKDOWN.timestamp(lastban.timestart)..(
+                active and " "..P_STRINGS.ACTIVE_BAN_TAG or " "..P_STRINGS.BAN_END:format(
+                    MARKDOWN.timestamp(lastban.timestop)
+                )
+            ),
             lastban.reason or MARKDOWN.italic(P_STRINGS.NO_REASON)
         ), false) -- Print all these on a new line always.
     end

@@ -11,7 +11,7 @@
 --]==]====================================================]]
 
 
-local EMBEDS = require("utils/embeds")
+local EMBEDS = PEARL.loadfile("utils/embeds")
 
 --------------------------------------
 -- [[ Local Functions ]]
@@ -26,9 +26,9 @@ local function CreateValidDataFrom(data)
 
     -- Validate the provided table.
     data.players     = type(data.players) == "table" and data.players or {}
-    --data.records     = type(data.records) == "number" and data.records or 0
     data.timecreated = type(data.timecreated) == "number" and data.timecreated or os.time()
     data.dayleader   = type(data.dayleader) == "string" and data.dayleader or nil
+    data.updated     = type(data.updated) == "boolean" and data.updated or false
 
     return data
 end
@@ -62,9 +62,11 @@ Leaderboard = Class(function(self, typ, data)
     assert(data == nil or type(data) == "table", "Invalid data provided!")
 
     --- @type boolean
-    self.loaded = type(data) == "table" and not table.empty(data)
+    self.loaded = type(data) == "table" and table.empty(data) == false or false
+
     --- @type boolean
-    self.changed = not self.loaded
+    self.saved = self.loaded == true
+    self.updating = false
 
     --- @type string
     self.type = typ or Leaderboard.TYPE.ABSOLUTE
@@ -77,13 +79,6 @@ Leaderboard = Class(function(self, typ, data)
 
     --- @type function
     self.sortfn = Leaderboard.COMP[self.type]
-
-    --- @type function?
-    self.checkfn = nil
-
-    self:Validate()
-
-    assert(type(self.data) == "table" and not table.empty(self.data))
 end)
 
 --------------------------------------
@@ -104,13 +99,8 @@ Leaderboard.COMP = {
 -- [[ Getters ]]
 --------------------------------------
 
-function Leaderboard:IsValid(userid)
-    return not self.checkfn or self.checkfn(userid)
-end
-
 function Leaderboard:HasAnyUnsavedChanges()
-    print(self.changed)
-    return self.changed == true
+    return self.saved == false
 end
 
 function Leaderboard:GetIndex()
@@ -118,11 +108,19 @@ function Leaderboard:GetIndex()
 end
 
 function Leaderboard:GetPlayerOnPosition(position)
-    return self.players[position]
+    return self.data.players[position]
 end
 
 function Leaderboard:GetLeaderUserID()
     return self.data.players[1]
+end
+
+function Leaderboard:IsUpdatingUI()
+    return self.updating == true
+end
+
+function Leaderboard:IsUIUpToDate()
+    return self.data.updated == true
 end
 
 function Leaderboard:HasEnoughPlayers()
@@ -147,6 +145,14 @@ function Leaderboard:IsArchived()
     return self.archived
 end
 
+function Leaderboard:IsPlayerVisible(userid)
+    return self:IsPositionVisible(self:GetPositionFor(userid))
+end
+
+function Leaderboard:IsPositionVisible(position)
+    return self:HasEnoughPlayers() and position and position <= self:GetDisplayCount()
+end
+
 function Leaderboard:GetEmbed()
     if self:IsArchived() then
         return EMBEDS.LeaderboardArchived()
@@ -163,10 +169,6 @@ function Leaderboard:GetDisplayCount()
     return self.displaycount
 end
 
-function Leaderboard:GetDisplayedCount()
-    return self:HasEnoughPlayers() and #self.data.players or 0
-end
-
 --------------------------------------
 -- [[ Setters ]]
 --------------------------------------
@@ -174,7 +176,7 @@ end
 function Leaderboard:SetDayLeaderUserID(userid)
     if self.data.dayleader ~= userid then
         self.data.dayleader = userid
-        self.changed = true
+        self:OnChange()
     end
 end
 
@@ -186,14 +188,10 @@ function Leaderboard:SetIndex(index)
     self.index = index
 end
 
-function Leaderboard:SetCheckFn(checkfn)
-    self.checkfn = checkfn
-end
-
 --- @param data table
 function Leaderboard:SetData(data)
     self.data = data
-    self.changed = true
+    self:OnChange()
 end
 
 function Leaderboard:SetMinPlayers(count)
@@ -216,14 +214,8 @@ end
 -- [[ Public Methods ]]
 --------------------------------------
 
-function Leaderboard:Validate()
-    for i = #self.data.players, 1, -1 do
-        if not self:IsValid(self.data.players[i]) then
-            self:RemovePlayer(i)
-        end
-    end
-end
-
+--- @param userid string The userid of the player to add.
+--- @return integer? position The position the player was added to.
 function Leaderboard:AddPlayer(userid)
     PEARL.debug("Leaderboard:AddPlayer", userid, self.type)
 
@@ -231,59 +223,56 @@ function Leaderboard:AddPlayer(userid)
         return PEARL.debug("ALREADY!") -- Player already in the leaderboard
     end
 
-    table.insort(self.data.players, userid, self.sortfn)
-    self.changed = true
+    local position = table.insort(self.data.players, userid, self.sortfn)
+    local visible = self:IsPositionVisible(position)
+    self:OnChange(visible)
 
-    -- --- @TODO:
-    -- -- We are counting the total number of records the leaderboard was built from.
-    -- if type(self.data.records) == "number" then
-    --     self.data.records = self.data.records + 1
-    -- end
+    return position
 end
 
 function Leaderboard:UpdatePlayerPosition(position)
     local new_position = table.reorder(self.data.players, position)
     if new_position ~= position then -- If the position has actually changed.
-        self.changed = true
-
-        -- Player has managed to get out of the leaderboard
-        -- if new_position > self.displaycount then
-        --     self:RemovePlayer(new_position)
-        -- end
+        self:OnChange(self:IsPositionVisible(position) or self:IsPositionVisible(new_position))
     end
 end
 
-function Leaderboard:RemovePlayer(i)
-    PEARL.debug("Leaderboard:RemovePlayer", i, self.type)
+--- @param position integer
+--- @return string userid The ID of the removed player.
+function Leaderboard:Remove(position)
+    PEARL.debug("Leaderboard:RemovePlayer", position, self.type)
 
-    -- Remove so the hole is fixed.
-    local userid = table.remove(self.data.players, i)
+    -- Use table.remove so the hole is fixed.
+    local visible = self:IsPositionVisible(position)
+    local userid = table.remove(self.data.players, position)
     if userid ~= nil then
         PEARL.info("User", userid, "removed from", self.type, "leaderboard...")
-
-        self.data.changed = true
+        self:OnChange(visible)
     end
 
     return userid
 end
 
 --- @param userid string The userid of the player to remove.
---- @return string? userid The userid of the removed player, if any.
-function Leaderboard:RemovePlayerByID(userid)
-    return self:RemovePlayer(self:GetPositionFor(userid))
+--- @return integer? position The position the player was removed from.
+function Leaderboard:RemovePlayer(userid)
+    local position = self:GetPositionFor(userid)
+    if self:Remove(position) then
+        return position
+    end
 end
 
 function Leaderboard:RemoveAllPlayers()
     if not table.empty(self.data.players) then
         table.iclear(self.data.players)
-        self.changed = true
+        self:OnChange(true)
     end
 end
 
 function Leaderboard:ClearData()
     if not table.empty(self.data) then
         table.clear(self.data)
-        self.changed = true
+        self:OnChange(true)
     end
 
     return self.data
@@ -322,24 +311,37 @@ end
 -- [[ Handlers ]]
 --------------------------------------
 
+function Leaderboard:OnChange(visible)
+    self.saved = false
+
+    PEARL.EventProcessor:HandleEvent("leaderboardchanged", self, visible)
+
+    if visible == true then
+        self.updating = false
+        self.data.updated = false
+    end
+end
+
+function Leaderboard:OnUpdateStart()
+    self.updating = true
+end
+
+function Leaderboard:OnUpdateDone()
+    if self:IsUpdatingUI() then
+        self.updating = false
+        self.data.updated = true
+    end
+end
+
 --- @return table
 function Leaderboard:OnSave()
-    self.changed = false
+    self.saved = true
+
     return self:GetData()
 end
 
 function Leaderboard:OnReputationChanged(userid)
     local position = self:GetPositionFor(userid)
-
-    -- Reputation has changed, verify that the player is still allowed to be on the leaderboard.
-    if not self:IsValid(userid) then
-        if position then
-            self:RemovePlayer(position)
-        end
-
-        return
-    end
-
     if position then
         self:UpdatePlayerPosition(position)
         return

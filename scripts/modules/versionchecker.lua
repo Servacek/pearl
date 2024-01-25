@@ -156,7 +156,7 @@ local function OnVersionCheckQueryComplete(response)
     -- Try to use the optimized string based approach first, if that fails
     -- use the default json one or return zero.
     target_version = tonumber(get_target_version_from_string(response))
-        or tonumber(get_target_version(response))
+        or tonumber(get_target_version(response) or nil)
         or 0
 
     if target_version < 1 then

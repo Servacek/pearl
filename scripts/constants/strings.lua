@@ -212,6 +212,7 @@ local STRINGS = {
             SHARD_NAME = "%s (%s)",
             TITLE = "Player List",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1187075388187357294/player.png",
+            AUTHOR_ICON_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
             EMPTY = "Nobody is playing..."
         },
 
@@ -229,10 +230,11 @@ local STRINGS = {
             },
         },
 
-        REGEN = {
+        WORLD = {
             TITLE = "%s World Properties",
             REGENERATED = "Shard `%s` Regenerated",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066443002630918236/world.png",
+            AUTHOR_ICON_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
             DESC_TITLE = "**World Setting Overrides**",
             OTHER = "+%d other change(s)",
             FD_NAMES = {
@@ -298,9 +300,11 @@ local STRINGS = {
             PRIVATE = "Profile is set as private, therefore some data may be inaccurate or not provided.",
             NOT_SETUPED = "User has not setuped their community profile yet.",
             SYSTEM_BAN = "System Ban",
+            UNKNOWN_AUTHOR = "Unknown",
             NO_REASON  = "No Reason Provided",
             FOOTER_ICON = "https://cdn.discordapp.com/attachments/1066442901380403333/1190652981864042556/authentication.png",
             ACTIVE_BAN_TAG = "[Active]",
+            BAN_END = "`To:` %s",
             FD_NAMES = {
                 PLAYED          = "Total Days Played/Survived",
                 REP             = "Reputation",

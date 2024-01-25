@@ -22,7 +22,11 @@ local DAY_PERCENT_SEGMENT = .1
 --------------------------------------
 
 -- RECORDS ARE CREATED HERE
-local function RecordClientConnectionData(userid, data)
+local function OnSynchronousFiltersDoneFor(userid, allowed, data)
+    if allowed == false then
+        return -- Do not create new records when we fail
+    end
+
     -- This is the place where we want to create the record if needed.
     if not PEARL.DB:HasRecordFile(userid) then
         if not PEARL.DB:CreateRecordFile(userid) then
@@ -53,10 +57,6 @@ end
 -- [[ Event Handlers ]]
 --------------------------------------
 
-local function OnClientDataRecevied(userid, data)
-    return RecordClientConnectionData(userid, data)
-end
-
 local function OnClientBanned(userid, seconds, reason, author)
     seconds = tonumber(seconds)
     local timenow = os.time()
@@ -76,14 +76,16 @@ local function OnClientBanned(userid, seconds, reason, author)
 end
 
 local function OnClientUnbanned(userid)
+    PEARL.debug("OnClientUnbanned", userid)
+
     local bans = PEARL.DB:GetField(userid, "bans")
     -- Try to get the latest ban.
-    local ban = type(bans) == "table" and bans[#bans]
-    if not ban then
+    local lastban = type(bans) == "table" and bans[#bans]
+    if not lastban then
         return
     end
 
-    ban.timestop = os.time()
+    lastban.timestop = os.time()
     PEARL.DB:SetField(userid, "bans", bans)
     PEARL.DB:SaveRecordFor(userid)
 end
@@ -129,11 +131,25 @@ local function OnClientConnected(world, player)
     PEARL.DB:SafeSetField(player.userid, "username", client.name)
 end
 
+local function OnRecordLoadedFor(userid, record)
+    local lastban = record and record:GetLastBan()
+    local banned = PEARL.BlackList:Contains(userid)
+    print("BANNED", banned, lastban)
+    -- In case the user was unbanned manually by removing the userid from the blocklist.txt file.
+    if lastban and lastban.timestop == nil and not banned then
+        OnClientUnbanned(userid)
+    elseif (not lastban or lastban.timestop ~= nil) and banned then
+        OnClientBanned(userid)
+    end
+end
+
 local function OnClientAuthenticationComplete(world, data)
-    print("SETTING LASTSHARID TO", PEARL.SHARDID)
-    -- Set this as soon as possible.
-    PEARL.DB:SafeSetField(data.userid, "lastshardid", tostring(PEARL.SHARDID))
-    PEARL.DB:SaveRecordFor(data.userid)
+    local userid = data and data.userid
+    if PEARL.DB:IsRecordCachedFor(userid) then
+        -- Set this as soon as possible.
+        PEARL.DB:SafeSetField(userid, "lastshardid", tostring(PEARL.SHARDID))
+        PEARL.DB:SaveRecordFor(userid)
+    end
 end
 
 local function OnClientDisconnected(world, data)
@@ -276,7 +292,9 @@ end
 
 PEARL.EventProcessor:AddSafeEventHandler("clientagreementdatareceived", OnClientAgreementDataReceived)
 
-PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
+PEARL.EventProcessor:AddSafeEventHandler("synchronousfiltersdone", OnSynchronousFiltersDoneFor)
+
+PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", OnRecordLoadedFor)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)

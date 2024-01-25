@@ -20,6 +20,14 @@ local Webhook = PEARL.loadfile("libraries/discordapi/models/webhook")
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 --------------------------------
+-- [[ Constants ]]
+--------------------------------
+
+local FILE_EXTENSION = ".txt"
+local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local ID_FILE_PATH = ROOT.."/"..PEARL.CONFIG.LEADERBOARD.DIRECTORY.."/discord_id"..FILE_EXTENSION
+
+--------------------------------
 -- [[ Class Initialization ]]
 --------------------------------
 
@@ -35,11 +43,13 @@ local LeaderBoarder = Class(function(self)
 
     self._embeds = {}
 
-    --- @type string
+    --- @type string?
     self._message_id = nil
 
     --- @type integer
     self._mode = self.MODE.STACK
+
+    self:LoadIdentifier()
 end)
 
 -------------------------------------
@@ -84,7 +94,11 @@ end
 
 --- @param message_id string
 function LeaderBoarder:SetUpdatingMessageID(message_id)
-    self._message_id = message_id
+    if message_id ~= self._message_id then
+        self._message_id = message_id
+
+        self:SaveIdentifier()
+    end
 
     return self
 end
@@ -135,6 +149,11 @@ function LeaderBoarder:DoUpdate(force)
 
     local message = self:GetMessage()
     if self._mode == self.MODE.UPDATE then
+        if not self._message_id then
+            self:PostUpdatingMessage()
+        end
+
+        --- @TODO: Setup max retries
         return self._webhook:EditMessage(
             self._message_id, message, force
         )
@@ -144,7 +163,7 @@ function LeaderBoarder:DoUpdate(force)
 end
 
 --- @return Request? request The request for this action or nil if disabled.
-function LeaderBoarder:PostUpdatingMessage(cb)
+function LeaderBoarder:PostUpdatingMessage()
     PEARL.info("PostUpdatingMessage")
 
     if self:IsDisabled() then
@@ -158,7 +177,7 @@ function LeaderBoarder:PostUpdatingMessage(cb)
     end
 
     if self:CanEditMessages() and PEARL.HTTPClient:IsProxyEnabled() then
-        request = PEARL.HTTPClient.proxy:POST(self._webhook.url, cb, message:ToTable())
+        request = PEARL.HTTPClient.proxy:POST(self._webhook.url, nil, message:ToTable())
         request:SetParameters({ ["wait"] = true })
         request:SetOnComplete(function(message)
             PEARL.debug("OnUpdatingMessagePosted", message)
@@ -190,6 +209,19 @@ function LeaderBoarder:Announce(text)
     end
 
     return self:PostNotification(Message(text))
+end
+
+function LeaderBoarder:SaveIdentifier()
+    if self._message_id then
+        PEARL.ModPersistance:WriteToFile(ID_FILE_PATH, self._message_id)
+    end
+end
+
+function LeaderBoarder:LoadIdentifier()
+    local str = PEARL.ModPersistance:ReadFromFile(ID_FILE_PATH)
+    if str then
+        self._message_id = str:strip()
+    end
 end
 
 --------------------------------

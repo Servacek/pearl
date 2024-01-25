@@ -116,8 +116,8 @@ function SteamAPI:ExecuteDataQuerySequenceFor(steamid, finishcb)
     for i, query in ipairs(self._query_sequences[steamid]) do
         query
             -- These most likely mean that the users profile is set to private.
-            :SetStatusCodeHandle(SteamAPI.STATUS_CODES.UNAUTHORIZED)
-            :SetStatusCodeHandle(SteamAPI.STATUS_CODES.FORBIDDEN)
+            :AddStatusCodeHandle(SteamAPI.STATUS_CODES.UNAUTHORIZED)
+            :AddStatusCodeHandle(SteamAPI.STATUS_CODES.FORBIDDEN)
             :SetMaxRetries(STEAM_QUERY_RETRIES)
             :SetOnComplete(OnQueryCompleted, steamid, i, finishcb)
             :Send()

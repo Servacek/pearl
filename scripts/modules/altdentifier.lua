@@ -74,7 +74,7 @@ local function RunRootFilterFor(userid, rootid, filtercb)
     if HasAccountInvalidRoot(userid, rootid) then
         PEARL.WallScheduler:ExecuteInTime(3, function()
             PEARL.info("Banning", userid, "for being an alt account of banned", rootid)
-            TheNet:Ban(userid, STRINGS.PEARL.UI.STATIC_BAN_REASONS.ALT)
+            TheNet:Ban(userid, STRINGS.PEARL.UI.STATIC_BAN_REASONS.ALT, PEARL.CONSTS.BAN_AUTHORS.SYSTEM)
         end)
 
         return filtercb(false, "ID_DST_BANNED_ROOT")

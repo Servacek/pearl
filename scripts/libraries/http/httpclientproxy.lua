@@ -65,7 +65,7 @@ HTTPClientProxy.METHODS = {
 
 local function _CreateProxyRequest(oncompletefn, ...)
     return PEARL.HTTPClient:Request(HTTPClientProxy._url, PEARL.HTTPClient.METHODS.POST, true)
-        :SetStatusCodeHandle(0, _OnProxyRequestTimeout)
+        :AddStatusCodeHandle(0, _OnProxyRequestTimeout)
         :SetTimeout(PROXY_REQUEST_TIMEOUT)
         :SetOnComplete(function(response, request, ...)
             if type(oncompletefn) == "function" then

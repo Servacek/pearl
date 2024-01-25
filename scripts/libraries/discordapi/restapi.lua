@@ -62,6 +62,7 @@ RestAPI = Library(RestAPI)
 --------------------------------
 
 RestAPI.STATUS_CODES = {
+    ANY                 = -1,
     TIMEOUT             = 0,   -- The request timed out.
     HEADER_RECEIVED     = 100, -- Only the header of the request was received.
     OK                  = 200, -- The request completed successfully.

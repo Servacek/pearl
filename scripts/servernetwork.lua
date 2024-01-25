@@ -379,10 +379,6 @@ function ServerNetwork:RunAsyncConnectionFilters(userid, filters, finishcb)
         end
 
         canceled = true
-        if PEARL.CONFIG.DEBUG_MODE then
-            return error("Async filters timed out!")
-        end
-
         PEARL.error("Async filters timed out! Did you forgot to call 'oncomplete'?")
         handle_filter(true)
     end)
@@ -762,6 +758,8 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
         if allowed ~= false and table.empty(conn_filters) == false then
             allowed, reason, title = self:RunConnectionFiltersFor(userid, conn_filters, cfd)
         end
+
+        PEARL.EventProcessor:HandleEvent("synchronousfiltersdone", userid, allowed, cfd)
 
         if allowed ~= false and table.empty(async_conn_filters) == false then
             return self:RunAsyncConnectionFilters(

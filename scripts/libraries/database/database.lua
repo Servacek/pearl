@@ -107,6 +107,10 @@ function DB:GetRecordFor(userid)
         return self._records[userid]
     end
 
+    if not self:HasRecordFile(userid) then
+        return -- The file is not created yet (this is quite common)
+    end
+
     local record = self:LoadRecordFor(userid, true)
     -- If the record is not active on this shard but somewhere else.
     if record and record:IsReadOnly() then

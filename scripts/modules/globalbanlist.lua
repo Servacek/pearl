@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
---- @DEBUG
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
@@ -104,6 +104,7 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid)
             return false, "ID_DST_USER_BANNED"
         end
 
+        --- @TODO: Add proper string
         PEARL.DiscordReporter:SendRawReportString("User was on global banlist! "..userid)
     end
 end, PEARL.ServerNetwork.FILTER_PRIORITY.HIGH)

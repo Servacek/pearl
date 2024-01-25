@@ -647,8 +647,7 @@ AddCommand("profile", {
     fn = function(ctx, userid)
         local playerid = userid or ctx.author.userid
         if not playerid then
-            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
-            return
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
         end
 
         local record = playerid and PEARL.DB:GetRecordFor(playerid)
@@ -1327,27 +1326,26 @@ AddCommand("setrarity", {
     end
 })
 
--- --- @TODO: Repair
--- AddCommand("setslots", {
---     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
---     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
---     permission = COMMAND_PERMISSION.ADMIN,
---     params = {"count"},
---     paramsoptional = {false},
---     paramtypes = {["count"] = "number"},
+AddCommand("setslots", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    params = {"count"},
+    paramsoptional = {false},
+    paramtypes = {["count"] = "number"},
 
---     --- @param ctx CommandContext
---     fn = function(ctx, count)
---         if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
---             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
---         end
+    --- @param ctx CommandContext
+    fn = function(ctx, count)
+        if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
+        end
 
---         -- This prints some weird error at first use. But the count is actually set.
---         TheNet:SetDefaultMaxPlayers(tostring(count))
+        -- This prints some weird error at first use. But the count is actually set.
+        TheNet:SetDefaultMaxPlayers(tostring(count))
 
---         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS)
---     end
--- })
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS)
+    end
+})
 
 AddCommand("show", {
     permission = COMMAND_PERMISSION.ADMIN,

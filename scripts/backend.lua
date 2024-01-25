@@ -159,6 +159,10 @@ PEARL.SafeModTableExtend("CONSTS", {
         MASTER = 1,
     },
 
+    BAN_AUTHORS = {
+        SYSTEM = "SYSTEM",
+    },
+
     TASK_ID = {
         INPUTPROXY_FETCH = 3,
     },
@@ -466,6 +470,7 @@ end
 PEARL.DiscordReporter = PEARL.loadfile("libraries/discordapi/webhooks/reporter")()
 PEARL.DiscordReporter._webhook:FetchData()
 
+--- Has to be loaded before leaderboard service
 --- @type LeaderBorder
 PEARL.DiscordLeaderBoarder = PEARL.loadfile("libraries/discordapi/webhooks/leaderboarder")()
 PEARL.DiscordLeaderBoarder:SetIsDisabled(true)

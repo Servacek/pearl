@@ -200,7 +200,7 @@ end
 --- @param code integer The status code number.
 --- @param handler fun(response: table|string, request: Request, ...)?
 --- @return Request self
-function Request:SetStatusCodeHandle(code, handler)
+function Request:AddStatusCodeHandle(code, handler)
     if self:WasCompletedAny() then
         PEARL.error("Attempted to set status code handler for an already completed request!")
         return self
@@ -409,6 +409,20 @@ function Request:OnRetry()
     self.sent       = false
 end
 
+function Request:OnStatusCode(code, response)
+    -- Handlers For Specific Status Codes
+    local handlers = self.rcode_handlers and self.rcode_handlers[code]
+    if type(handlers) == "table" and #handlers > 0 then
+        for i = 1, #handlers do
+            handlers[i](response, self)
+        end
+
+        return true
+    end
+
+    return false
+end
+
 --- @param datastr string?
 --- @param success boolean?
 --- @param code integer?
@@ -447,12 +461,8 @@ function Request:OnCompleted(datastr, success, code)
     end
 
     -- Handlers For Specific Status Codes
-    local handlers = self.rcode_handlers and self.rcode_handlers[code]
-    if type(handlers) == "table" and #handlers > 0 then
-        for i = 1, #handlers do
-            handlers[i](response, self)
-        end
-
+    self:OnStatusCode(PEARL.DiscordRestAPI.STATUS_CODES.ANY, response)
+    if self:OnStatusCode(code, response) then
         return -- If custom handlers exist, do not call the default callbacks.
     end
 

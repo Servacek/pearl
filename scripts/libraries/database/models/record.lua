@@ -132,6 +132,11 @@ function PlayerRecord:IsNovice()
     return joinedday == currentday
 end
 
+--- @return table?
+function PlayerRecord:GetLastBan()
+    return self._data.bans and self._data.bans[#self._data.bans]
+end
+
 --- @return boolean
 function PlayerRecord:IsReadOnly()
     return not self:IsWriteable()

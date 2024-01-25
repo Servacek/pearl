@@ -47,7 +47,11 @@ end
 
 PEARL.ServerNetwork:AddAsyncConnectionFilter(function(userid, cb)
     local record = PEARL.DB:GetRecordFor(userid)
-    if not record or RunAsyncProfileFilter(record, cb) then
+    if not record then
+        return cb(true)
+    end
+
+    if RunAsyncProfileFilter(record, cb) then
         return
     end
 

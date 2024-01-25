@@ -243,9 +243,9 @@ local function OnFetchInput()
         :SetMaxRetries(MAX_RETRIES)
         :SetTimeBetweenRetries(RETRY_TIMEOUT)
         :SetOnError(OnFetchingFailed)
-        :SetStatusCodeHandle(500, OnProxyInternalError)
-        :SetStatusCodeHandle(204, function() end) -- Ignore empty responses
-        :SetStatusCodeHandle(202, function()
+        :AddStatusCodeHandle(500, OnProxyInternalError)
+        :AddStatusCodeHandle(204, function() end) -- Ignore empty responses
+        :AddStatusCodeHandle(202, function()
             PEARL.info("Received request to restart the session from proxy server.")
             DiscordProxy:RestartSession()
         end)

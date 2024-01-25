@@ -135,7 +135,6 @@ function ClientNetwork:SendCFDToServer()
     PEARL.SendRawRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(cfd))
 
     self:SetCFDSent(true)
-    --- @DEBUG
     PEARL.ClientLoader:AddDeferant(DEFERANT.VERIFICATION)
     self:StartTimeout()
 end

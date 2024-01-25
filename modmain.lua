@@ -230,7 +230,6 @@ PEARL.LUATYPES = {
 local id = GetWorkshopIdNumber(PEARL.MODNAME)
 PEARL.WORKSHOP_ID   = tonumber(id) ~= nil and tostring(id) or nil
 PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
-print(PEARL.WORKSHOP_ID, PEARL.BACKUP_ID)
 PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
 
 --------------------------------
