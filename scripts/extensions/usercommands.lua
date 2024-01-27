@@ -406,14 +406,14 @@ end
 
 --- @param flagname string The name of the flag used to choose the commands.
 --- @return table flagged The table of chosen commands.
-function UserCommands.GetCustomCommandsWithFlag(flagname, value)
+function UserCommands.GetCustomCommandsWithFlag(flagname, value, noalias)
     if value == nil then
         value = true
     end
 
     local flagged = {}
     for name, command in pairs(custom_commands) do
-        if command[flagname] == value then
+        if command[flagname] == value and (noalias ~= true or command.alias ~= true) then
             flagged[name] = command
         end
     end
@@ -457,6 +457,12 @@ function UserCommands.RegisterCustomCommand(name, command)
     end
 
     custom_commands[name] = command
+end
+
+function UserCommands.RegisterCustomCommandAlias(alias, command)
+    command.alias = true
+
+    UserCommands.RegisterCustomCommand(alias, command)
 end
 
 --- @param name string
@@ -564,7 +570,7 @@ function UserCommands.AddCustomCommand(name, command)
     UserCommands.RegisterCustomCommand(name, command)
     if command.aliases then
         for _, alias in ipairs(command.aliases) do
-            UserCommands.RegisterCustomCommand(alias, command)
+            UserCommands.RegisterCustomCommandAlias(alias, command)
         end
     end
 
@@ -583,6 +589,7 @@ function UserCommands.AddCustomCommand(name, command)
             -- Register the console name as an alias for better consistency.
             if not table.contains(command.aliases, command.consolename) then
                 command.aliases[#command.aliases+1] = command.consolename
+                UserCommands.RegisterCustomCommandAlias(command.consolename, command)
             end
         end
     end

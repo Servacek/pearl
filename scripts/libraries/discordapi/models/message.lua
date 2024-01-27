@@ -63,29 +63,23 @@ local TOSTRING_PT = "<DiscordMessage[content=%s,embeds=%s,components=%s]>"
 -- (Currently loglines and raw content are combined)
 
 --- @param content string? The content of the message
---- @class Message
+--- @return Message
+--- @class (exact) Message
+--- @field _embeds table<integer, Embed>?
+--- @field _content string?
+--- @field _flags integer?
+--- @field _silent boolean
+--- @field _components table?
+--- @field _allowed_mentions table?
+--- @field _id string?
 local Message = PEARL.Class(function(self, content)
-    --- @type string?
     self._content = content
-
-    -- This table is rarely used so create it
-    -- only when it's needed
-    --- @type table?
     self._embeds = nil
-
-    --- @type integer?
     self._flags = nil
-
-    --- @type boolean
     self._silent = false
-
-    --- @type table?
     self._components = nil
-
-    -- Setting parse to an empty array disables all mentions in the message.
-    -- That's what we want by default.
-    --- @type table<string, table>
-    self._allowed_mentions = shallowcopy(DEFAULT_ALLOWED_MENTIONS)
+    self._allowed_mentions = nil
+    self._id = nil
 end)
 
 ------------------------------------------
@@ -94,18 +88,18 @@ end)
 
 -- Note: Discord's limit is based on characters not bytes.
 -- So use utf8len to determine the actual number of characters.
-Message.MAX_CONTENT_LENGTH        = 2000
+Message.MAX_CONTENT_LENGTH              = 2000
 Message.MAX_TOTAL_LENGTH                = 6000
 Message.CONTENT_LENGTH_LIMIT_RESERVE    = 100
 Message.CONTENT_LENGHT_LIMIT            = Message.MAX_CONTENT_LENGTH - Message.CONTENT_LENGTH_LIMIT_RESERVE
 Message.EMBED_COUNT_LIMIT               = 10
-Message.MENTION_TYPES           = {
+Message.MENTION_TYPES                   = {
     USERS       = "users",
     ROLES       = "roles",
     EVERYONE    = "everyone", -- @everyone and @here
 }
 
-Message.FLAGS                   = {
+Message.FLAGS = {
     CROSSPOSTED	            = bit.lshift(1, 0), -- this message has been published to subscribed channels (via Channel Following)
     IS_CROSSPOST	        = bit.lshift(1, 1), -- this message originated from a message in another channel (via Channel Following)
     SUPPRESS_EMBEDS	        = bit.lshift(1, 2), -- do not include any embeds when serializing this message
@@ -120,10 +114,30 @@ Message.SILENT_PREFIX  = "@silent"
 Message.SILENT_PATTERN = Message.SILENT_PREFIX.." %s"
 Message.SEPARATOR      = "__\n__\n"
 
+--- @param t table
+--- @return Message
+function Message.FromTable(t)
+    --- @type Message
+    local message = Message(t.content)
+    message:SetID(t.id and tostring(t.id) or nil)
+    message:SetFlags(tonumber(t.flags))
+    message._allowed_mentions = deepcopy(t.allowed_mentions)
+    message._components = deepcopy(t.components)
+
+    if table.empty(t.embeds) == false then
+        for _, embed_data in pairs(t.embeds) do
+            message:AddEmbed(Embed.FromTable(embed_data))
+        end
+    end
+
+    return message
+end
+
 ------------------------------------------
 -- [[ Meta Methods ]]
 ------------------------------------------
 
+--- @meta
 function Message:__tostring()
     return TOSTRING_PT:format(
         tostring(self:HasContent()), tostring(self:HasEmbed()), tostring(self:HasComponents())
@@ -224,6 +238,10 @@ function Message:GetEmbed(index)
     return self._embeds and self._embeds[index]
 end
 
+function Message:GetID()
+    return self._id
+end
+
 ------------------------------------------
 -- [[ Setters ]]
 ------------------------------------------
@@ -247,10 +265,18 @@ function Message:SetContent(content)
     return self
 end
 
+--- @param id string
+function Message:SetID(id)
+    self._id = id
+
+    return self
+end
+
 --- @nonchainable
 --- @param embed Embed The logline to be added.
+--- @param position integer? Position of the embed in the message. (starting from the top)
 --- @return Message? self Return self on success, nil on error.
-function Message:AddEmbed(embed)
+function Message:AddEmbed(embed, position)
     if not Embed.is_instance(embed) then
         PEARL.error("Attempted to add an invalid embed!")
         return nil
@@ -265,7 +291,8 @@ function Message:AddEmbed(embed)
         self._embeds = {} -- Leave allocation on lua for small messages.
     end
 
-    self._embeds[#self._embeds + 1] = embed
+    position = position or #self._embeds + 1
+    self._embeds[position] = embed
 
     return self
 end
@@ -275,6 +302,15 @@ function Message:AddEmbeds(embeds)
     for i = 1, #embeds do
         self:AddEmbed(embeds[i])
     end
+
+    return self
+end
+
+--- @param pos integer Position of the embed in the message. (starting from the top)
+--- @param embed Embed The embed to be set for this position.
+--- @return Message
+function Message:SetEmbed(pos, embed)
+    self:AddEmbed(embed, pos)
 
     return self
 end
@@ -327,7 +363,7 @@ end
 --- @NOTE: Careful here.
 function Message:SetAllowedMentionTypes(mention_types)
     if type(self._allowed_mentions) ~= "table" then
-        self._allowed_mentions = {}
+        self._allowed_mentions = shallowcopy(DEFAULT_ALLOWED_MENTIONS)
     end
 
     self._allowed_mentions.parse = mention_types
@@ -337,7 +373,7 @@ end
 
 function Message:AllowMentionsForRole(roleid)
     if not self._allowed_mentions then
-        self._allowed_mentions = {}
+        self._allowed_mentions = shallowcopy(DEFAULT_ALLOWED_MENTIONS)
     end
 
     if not self._allowed_mentions.roles then
@@ -354,7 +390,7 @@ end
 
 function Message:AllowMentionsForUser(userid)
     if not self._allowed_mentions then
-        self._allowed_mentions = {}
+        self._allowed_mentions = shallowcopy(DEFAULT_ALLOWED_MENTIONS)
     end
 
     if not self._allowed_mentions.users then
@@ -370,10 +406,12 @@ function Message:AllowMentionsForUser(userid)
 end
 
 function Message:ClearAllowedMentions()
-    local parse = self._allowed_mentions and self._allowed_mentions.parse
-    cleartable(self._allowed_mentions)
+    if self._allowed_mentions then
+        local parse = self._allowed_mentions and self._allowed_mentions.parse
+        cleartable(self._allowed_mentions)
 
-    self._allowed_mentions.parse = parse and iclear(parse) or {}
+        self._allowed_mentions.parse = parse and iclear(parse) or {}
+    end
 end
 
 ------------------------------------------
@@ -387,7 +425,9 @@ function Message:ToTable()
         content = utf8.decode_string(self:GetContent()),
         embeds = table.empty(self._embeds) == false and self._embeds or nil,
         flags = self._flags,
-        allowed_mentions = table.empty(self._allowed_mentions) == false and self._allowed_mentions or nil,
+        -- Setting parse to an empty array disables all mentions in the message.
+        -- That's what we want by default.
+        allowed_mentions = table.empty(self._allowed_mentions) == false and self._allowed_mentions or DEFAULT_ALLOWED_MENTIONS,
         components = table.empty(self._components) == false and self._components or nil
     }
 end

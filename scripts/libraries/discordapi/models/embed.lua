@@ -19,7 +19,17 @@
 -- [[ Class Declaration ]]
 ------------------------------------------
 
---- @class Embed
+--- @class (exact) Embed
+--- @field author table?
+--- @field title string?
+--- @field url string?
+--- @field description string?
+--- @field footer table?
+--- @field color integer?
+--- @field image table?
+--- @field thumbnail table?
+--- @field timestamp integer|string?
+--- @field fields table?
 local Embed = Class(function(self)
     self.author = nil
     self.title = nil
@@ -29,7 +39,6 @@ local Embed = Class(function(self)
     self.color = nil
 
     self.image = nil
-    self.url = nil
     self.thumbnail = nil
     self.timestamp = nil
 
@@ -74,6 +83,22 @@ Embed.COLORS = {
     DARK_NAVY	   = 2899536,
     YELLOW	       = 16776960,
 }
+
+--- @param t table
+--- @return Embed
+function Embed.FromTable(t)
+    --- @type Embed
+    local embed = Embed()
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            embed[k] = deepcopy(v)
+        end
+
+        embed[k] = v
+    end
+
+    return embed
+end
 
 ------------------------------------------
 -- [[ Setters ]]
@@ -348,6 +373,10 @@ function Embed:IsValid()
     return self:HasTitle() or self:HasDescription() or self:HasFields()
 end
 
+------------------------------------------
+-- [[ Public Functions ]]
+------------------------------------------
+
 function Embed:ToTable()
     return {
         author = self.author,
@@ -367,6 +396,8 @@ function Embed:ToJson()
     return json.encode_sanitized(self:ToTable())
 end
 
+------------------------------------------
+-- [[ Return ]]
 ------------------------------------------
 
 return Embed

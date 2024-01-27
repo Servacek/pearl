@@ -102,7 +102,9 @@ configuration_options = {
                 SYNC_INTERVAL_FAST  = 4,
 
                 BOOST_DELAY         = 2 * 60,  -- 5 minutes
-            }
+            },
+
+            GUILDS = {}
         },
         type = "table<string, any>",
         checks = {

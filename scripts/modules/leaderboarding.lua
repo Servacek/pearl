@@ -10,6 +10,13 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--[[
+    1. Leaderboard Module
+    2. Leaderboard Service
+    3. Leaderboard Webhook
+    4. Leaderboard Model
+--]]
+
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
@@ -24,8 +31,6 @@ local MIN_ABS_RECORDS = 3
 local MIN_CURRENT_RECORDS = 5
 
 local MIN_DAY_LEADER_GAINS = 25
-
-local MAX_MESSAGE_RETRIES = 1
 
 local REP_BUFFER_TIME = 5
 
@@ -45,66 +50,15 @@ monthly_leaderboard:SetIndex(2)
 
 local leaderboards = PEARL.LeaderboardService:GetAllLeaderboards()
 
-local message_retries = 0
-
 --------------------------------------
 -- [[ Event Handlers ]]
 --------------------------------------
-
-local function OnMessageNotFound()
-    if message_retries >= MAX_MESSAGE_RETRIES then
-        return
-    end
-
-    PEARL.info("Saved message ID refers to an invalid message, creating a new one...")
-    message_retries = message_retries + 1
-
-    PEARL.LeaderboardService:StartNewSession()
-end
-
-local function UpdateLeaderboardUI()
-    PEARL.debug("Updating the leaderboard...")
-
-    local self = PEARL.DiscordLeaderBoarder
-
-    PEARL.LeaderboardService:UpdateLeaderboardEmbeds()
-
-    local update_request = self:DoUpdate()
-    if not update_request then
-        PEARL.error("Failed to update the leaderboard message!")
-        return
-    end
-
-    PEARL.LeaderboardService:ForEach(function(leaderboard)
-        leaderboard:OnUpdateStart()
-    end)
-
-    update_request:SetOnSuccess(function()
-        PEARL.LeaderboardService:ForEach(function(leaderboard)
-            leaderboard:OnUpdateDone()
-        end)
-    end)
-
-    if self:CanEditMessages() then
-        update_request:AddStatusCodeHandle(
-            PEARL.DiscordRestAPI.STATUS_CODES.NOT_FOUND, OnMessageNotFound
-        )
-    end
-end
 
 local function SaveChangesIfNeeded()
     PEARL.debug("SaveChanges")
 
     if PEARL.LeaderboardService:HasAnyUnsavedChanges() then
         PEARL.LeaderboardService:Save()
-    end
-end
-
-local function UpdateUIIfNeeded()
-    PEARL.debug("UpdateUI")
-
-    if PEARL.LeaderboardService:NeedsToUpdateUI() then
-        PEARL.LeaderboardService:UpdateUI()
     end
 end
 
@@ -125,13 +79,39 @@ local function CompeteDayLeader(rivalid)
     end
 end
 
+local function AnnounceNewPOTM(userid, month, year)
+    local monthname = PEARL.GetMonthFancyName(month)
+    local monthfullname = STRINGS.PEARL.FULL_MONTH_NAME:format(monthname, year)
+
+    local name = PEARL.DB:GetField(userid, "username")
+    local netid = PEARL.DB:GetField(userid, "netid")
+    local discordid = PEARL.DB:GetField(userid, "discordid")
+
+    local mention
+    if discordid then
+        mention = MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
+    end
+
+    PEARL.DiscordLeaderBoarder:Announce(PEARL.EMOTES.DISCORD.TROPHY.." "..STRINGS.PEARL.UI.POTM_ANNOUNCEMENT:format(
+        MARKDOWN.bold(monthfullname), mention or PEARL.NetProfileLink(name, netid) or MARKDOWN.bold(name)
+    ))
+end
+
+function PEARL.UpdateLeaderboard()
+    PEARL.LeaderboardService:UpdateUI()
+end
+
+--------------------------------
+-- [[ Event Handlers ]]
+--------------------------------
+
 local function OnClientBanned(userid)
     for _, leaderboard in pairs(leaderboards) do
         -- Do this for all leaderboards.
         leaderboard:RemovePlayer(userid)
     end
 
-    UpdateUIIfNeeded()
+    --UpdateUIIfNeeded()
 end
 
 local function OnClientUnbanned(userid)
@@ -140,7 +120,7 @@ local function OnClientUnbanned(userid)
         leaderboard:AddPlayer(userid)
     end
 
-    UpdateUIIfNeeded()
+    --UpdateUIIfNeeded()
 end
 
 --- @type table<string, Task>
@@ -164,8 +144,8 @@ local function OnBufferDone()
         end
     end
 
-    SaveChangesIfNeeded()
-    UpdateUIIfNeeded()
+    -- SaveChangesIfNeeded()
+    -- UpdateUIIfNeeded()
 end
 
 local function OnReputationChanged(userid, old, new)
@@ -184,42 +164,13 @@ local function OnReputationChanged(userid, old, new)
     end
 end
 
-local function AnnounceNewPOTM(userid, month, year)
-    local monthname = PEARL.GetMonthFancyName(month)
-    local monthfullname = STRINGS.PEARL.FULL_MONTH_NAME:format(monthname, year)
-
-    local name = PEARL.DB:GetField(userid, "username")
-    local netid = PEARL.DB:GetField(userid, "netid")
-    local discordid = PEARL.DB:GetField(userid, "discordid")
-
-    local mention
-    if discordid then
-        mention = MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
-    end
-
-    PEARL.DiscordLeaderBoarder:Announce(
-    PEARL.EMOTES.DISCORD.TROPHY.." "..STRINGS.PEARL.UI.POTM_ANNOUNCEMENT:format(
-        MARKDOWN.bold(monthfullname), mention or (netid and MARKDOWN.hlink(name, PEARL.CONSTS.STEAM_ACCOUNT_URL:format(
-            netid
-        ))) or MARKDOWN.bold(name)
-    ))
-end
-
-function PEARL.UpdateLeaderboard()
-    PEARL.LeaderboardService:UpdateUI()
-end
-
---------------------------------
--- [[ Event Handlers ]]
---------------------------------
-
 local function OnNewDay()
     PEARL.debug("OnNewDay")
     monthly_leaderboard:SetDayLeaderUserID(nil)
     SaveChangesIfNeeded()
 end
 
-function PEARL.OnNewMonth(stb)
+local function OnNewMonth(stb)
     PEARL.debug("OnNewMonth")
 
     -- If the monthly leaderboard has enough players (it does display them),
@@ -229,26 +180,18 @@ function PEARL.OnNewMonth(stb)
         AnnounceNewPOTM(leaderid, stb.month, stb.year)
     end
 
-    if PEARL.DiscordLeaderBoarder:CanEditMessages() then
-        -- Since we are creating a new updating message, archive the old one.
-        PEARL.LeaderboardService:ArchiveLeaderboard(Leaderboard.TYPE.ABSOLUTE)
-    end
+    -- Since we are creating a new updating message, archive the old one.
+    -- Do NOT update the other embeds so the data do match the date.
+    PEARL.LeaderboardService:ArchiveLeaderboardEmbed(absolute_leaderboard)
+    PEARL.DiscordLeaderBoarder:UpdateMessage()
 
     -- Clear all the player data and start again.
     monthly_leaderboard:Reset()
     PEARL.LeaderboardService:StartNewSession()
 end
 
-local function OnTimestampUpdated()
-    PEARL.debug("OnTimestampUpdated")
-
-    -- If we are in updating mode and no updating message was created yet.
-    if PEARL.DiscordLeaderBoarder:CanEditMessages() and not PEARL.DiscordLeaderBoarder:HasUpdatingMessage() then
-        return PEARL.LeaderboardService:StartNewSession()
-    end
-
-    -- Everything is fine, just update
-    return UpdateLeaderboardUI()
+function PEARL.OnNewMonth()
+    OnNewMonth(PEARL.TimestampToTable(os.time()))
 end
 
 --------------------------------
@@ -260,14 +203,47 @@ PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
 
 PEARL.EventProcessor:AddSafeEventHandler("newday", OnNewDay)
-PEARL.EventProcessor:AddSafeEventHandler("newmonth", PEARL.OnNewMonth)
+PEARL.EventProcessor:AddSafeEventHandler("newmonth", OnNewMonth)
 
-PEARL.EventProcessor:AddSafeEventHandler("timeupdatedone", OnTimestampUpdated)
+--- @type Task?, boolean?
+local buffered_task, was_visible = nil, false
+PEARL.EventProcessor:AddSafeEventHandler("leaderboardchanged", function(leaderboard, visible)
+    if visible == true then
+        was_visible = visible
+    end
 
-PEARL.EventProcessor:AddSafeEventHandler("proxy_server_start", UpdateUIIfNeeded)
+    if not buffered_task then
+        buffered_task = PEARL.WallScheduler:ExecuteInTime(0, function()
+            if buffered_task then
+                buffered_task:cancel()
+                buffered_task = nil
+            end
+
+            PEARL.LeaderboardService:Save()
+
+            if was_visible then
+                PEARL.LeaderboardService:UpdateUI()
+            end
+
+            was_visible = nil
+        end)
+    end
+end)
 
 --------------------------------
 -- [[ Init ]]
 --------------------------------
 
-PEARL.AddGamePostInit(UpdateUIIfNeeded)
+PEARL.AddGamePostInit(function()
+    if PEARL.LeaderboardService:IsAnySessionActive() then
+        if PEARL.LeaderboardService:NeedsToUpdateUI() then
+            PEARL.debug("UpdateUI")
+
+            PEARL.LeaderboardService:UpdateUI()
+        end
+
+        return
+    end
+
+    PEARL.LeaderboardService:StartNewSession()
+end)

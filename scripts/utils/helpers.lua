@@ -549,7 +549,7 @@ function PEARL.ToISO8601UTC(timestamp)
     -- display it for each client according to their timezone.
     --
     -- "!" for UTC time
-    return os.date("!%Y-%m-%dT%X", timestamp)
+    return tostring(os.date("!%Y-%m-%dT%X", timestamp))
 end
 
 function PEARL.ExtinguishFires(x, y, z, radius)

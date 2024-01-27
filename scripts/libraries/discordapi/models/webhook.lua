@@ -10,6 +10,10 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--[[
+    Dataclass representing a discord webhook object
+--]]
+
 
 -------------------------------------
 -- [[ Private ]]
@@ -29,7 +33,7 @@ end
 -- [[ Class Declarations ]]
 -------------------------------------
 
---- @class Webhook Dataclass representing a discord webhook object
+--- @class Webhook: Library
 local Webhook = Class(function(self, id, token)
     self._id = id
     self._token = token

@@ -477,10 +477,6 @@ PEARL.DiscordLeaderBoarder:SetIsDisabled(true)
 
 if TheShard:IsMaster() then
     PEARL.DiscordLeaderBoarder:SetIsDisabled(false)
-
-    if PEARL.HTTPClient:IsProxyEnabled() then
-        PEARL.DiscordLeaderBoarder:SetMode(PEARL.DiscordLeaderBoarder.MODE.UPDATE)
-    end
 end
 
 -------------------------------------
@@ -679,7 +675,7 @@ ModuleManager:AddModule("filters/profilefilter", PEARL.CONFIG.PROFILE_FILTER.ENA
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD_PROXY_ENABLED)
-    ModuleManager:AddModule("leaderboard", PEARL.LeaderboardService:IsEnabled())
+    ModuleManager:AddModule("leaderboarding", PEARL.LeaderboardService:IsEnabled())
 end
 
 -- Logger Modules

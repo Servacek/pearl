@@ -76,6 +76,7 @@ Leaderboard = Class(function(self, typ, data)
     self.displaycount = PEARL.CONSTS.LEADERBOARD_DISPLAY_COUNT
     --- @type table
     self.data = CreateValidDataFrom(data)
+    self.index = 1
 
     --- @type function
     self.sortfn = Leaderboard.COMP[self.type]
@@ -141,10 +142,6 @@ function Leaderboard:GetData()
     return self.data
 end
 
-function Leaderboard:IsArchived()
-    return self.archived
-end
-
 function Leaderboard:IsPlayerVisible(userid)
     return self:IsPositionVisible(self:GetPositionFor(userid))
 end
@@ -153,8 +150,8 @@ function Leaderboard:IsPositionVisible(position)
     return self:HasEnoughPlayers() and position and position <= self:GetDisplayCount()
 end
 
-function Leaderboard:GetEmbed()
-    if self:IsArchived() then
+function Leaderboard:GetEmbed(archived)
+    if archived == true then
         return EMBEDS.LeaderboardArchived()
     end
 
@@ -176,12 +173,8 @@ end
 function Leaderboard:SetDayLeaderUserID(userid)
     if self.data.dayleader ~= userid then
         self.data.dayleader = userid
-        self:OnChange()
+        self:OnChange(true)
     end
-end
-
-function Leaderboard:SetIsArchived(archived)
-    self.archived = archived
 end
 
 function Leaderboard:SetIndex(index)
@@ -191,15 +184,24 @@ end
 --- @param data table
 function Leaderboard:SetData(data)
     self.data = data
-    self:OnChange()
+    self:OnChange(true)
 end
 
 function Leaderboard:SetMinPlayers(count)
-    self.minplayers = count
+    if self.minplayers ~= count then
+        local had_enough = self:HasEnoughPlayers()
+        self.minplayers = count
+        if had_enough ~= self:HasEnoughPlayers() then
+            self:OnChange(true)
+        end
+    end
 end
 
 function Leaderboard:SetDisplayCount(count)
-    self.displaycount = count
+    if self.displaycount ~= count then
+        self.displaycount = count
+        self:OnChange(true)
+    end
 end
 
 function Leaderboard:SetType(type)
@@ -207,7 +209,10 @@ function Leaderboard:SetType(type)
         return PEARL.error("Attempted to set an invalid leaderboard type!")
     end
 
-    self.type = type
+    if self.type ~= type then
+        self.type = type
+        self:OnChange(true)
+    end
 end
 
 --------------------------------------
@@ -231,7 +236,7 @@ function Leaderboard:AddPlayer(userid)
 end
 
 function Leaderboard:UpdatePlayerPosition(position)
-    local new_position = table.reorder(self.data.players, position)
+    local new_position = table.reorder(self.data.players, position, self.sortfn)
     if new_position ~= position then -- If the position has actually changed.
         self:OnChange(self:IsPositionVisible(position) or self:IsPositionVisible(new_position))
     end
@@ -282,6 +287,12 @@ function Leaderboard:Reset()
     PEARL.debug("Leaderboard:Reset()")
 
     self:SetData(CreateValidDataFrom(self:ClearData()))
+    self:OnChange(true)
+end
+
+function Leaderboard:Resort()
+    table.sort(self.data.players, self.sortfn)
+    self:OnChange(true)
 end
 
 function Leaderboard:ToString()
@@ -323,13 +334,19 @@ function Leaderboard:OnChange(visible)
 end
 
 function Leaderboard:OnUpdateStart()
+    PEARL.debug("OnUpdateStart", self.updating)
+
     self.updating = true
 end
 
 function Leaderboard:OnUpdateDone()
+    PEARL.debug("OnUpdateDone", self.updating, self.data.updated)
+
     if self:IsUpdatingUI() then
         self.updating = false
         self.data.updated = true
+
+        self:OnChange(false)
     end
 end
 

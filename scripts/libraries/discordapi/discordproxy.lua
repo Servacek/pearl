@@ -11,6 +11,12 @@
 --]==]====================================================]]
 
 
+--- @type UserCommands
+local UserCommands = require("usercommands")
+
+local Command = PEARL.loadfile("libraries/discordapi/models/command")
+local Option  = PEARL.loadfile("libraries/discordapi/models/option")
+local Choice  = PEARL.loadfile("libraries/discordapi/models/choice")
 local Library = PEARL.loadfile("models/library")
 
 --------------------------------
@@ -29,10 +35,11 @@ local STATE = {
 }
 
 local URL = {
-    INPUT   = BASE_URL.."/input",
-    OUTPUT  = BASE_URL.."/output",
-    SESSION = BASE_URL.."/session",
-    MESSAGE = BASE_URL.."/message",
+    INPUT       = BASE_URL.."/input",
+    OUTPUT      = BASE_URL.."/output",
+    SESSION     = BASE_URL.."/session",
+    MESSAGE     = BASE_URL.."/message",
+    COMMANDS    = BASE_URL.."/commands",
 }
 
 local FETCH_REQUEST_TIMEOUT = 5
@@ -205,13 +212,17 @@ local function OnProxyInternalError()
     OnFetchingFailed()
 end
 
-local function OnSessionStarted()
+local function OnSessionStarted(data)
     DiscordProxy:SetState(DiscordProxy.STATE.RUNNING)
 
     PEARL.info("The input proxy session has successfully started!")
     PEARL.EventProcessor:HandleEvent("proxy_server_start")
 
     DiscordProxy:RestartFetchTask()
+
+    if data.command_version ~= PEARL.MOD_INFO.version or PEARL.CONFIG.DEBUG_MODE then
+        DiscordProxy:SyncCommands()
+    end
 end
 
 local function OnSessionStartFailed(response, status, request)
@@ -321,7 +332,7 @@ function DiscordProxy:StartSession(retries)
 
     PEARL.info("Sending start session request to input proxy server...")
 
-    PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, OnSessionStarted, {
+    PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, nil, {
         running = true,
 
         messages = PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED,
@@ -330,6 +341,7 @@ function DiscordProxy:StartSession(retries)
         players = DiscordProxy:GetPlayerAutocompleteData(),
         shards  = DiscordProxy:GetShardAutocompleteData(),
     })
+    :SetOnSuccess(OnSessionStarted)
     :SetDecodeResponse(false)
     :SetOnError(retries ~= 0 and OnSessionStartFailed or nil)
     :SetMaxRetries(retries or START_SESSION_RETRIES)
@@ -401,6 +413,26 @@ function DiscordProxy:SendCommandResponse(commandid, message)
     if not self:IsProcessing(self.PROCESSING_TYPE.COMMANDS) and self:HasAnyCommandResponses() then
         self:SendCachedCommandResponses()
     end
+end
+
+function DiscordProxy:SyncCommands()
+    local sync_data = {
+        commands = {},
+        version  = PEARL.MOD_INFO.version,
+    }
+    local discord_commands = UserCommands.GetCustomCommandsWithFlag("discord", true)
+    for _, command_data in pairs(discord_commands) do
+        sync_data.commands[#sync_data.commands+1] = Command.FromGameAPICommand(command_data):ToTable()
+    end
+
+    table.dump(sync_data)
+    -- We do not care about the response at this point
+    PEARL.HTTPClient:POST(DiscordProxy.URL.COMMANDS, function()
+        PEARL.info("Commands successfully synchronized!")
+    end, sync_data)
+        :SetDecodeResponse(false)
+        :SetMaxRetries(0)
+        :Send()
 end
 
 function DiscordProxy:StopFetchTask()

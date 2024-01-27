@@ -153,6 +153,16 @@ function string:capitalize()
     return self and (self:gsub("^%l", utf8upper)) or self
 end
 
+function string:camelcase()
+    local words = string.split(self, " _-.:|,")
+    local result = ""
+    for _, word in pairs(words) do
+        result = result..word:capitalize()
+    end
+
+    return result
+end
+
 function string:count(word)
     local count = 0
 

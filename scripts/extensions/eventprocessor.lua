@@ -29,17 +29,13 @@ EventProcessor = EventProcessor
 local EventProcessor = EventProcessor
 
 -------------------------------------
--- [[ Public Methods ]]
+-- [[ Event Listeners ]]
 -------------------------------------
 
 function EventProcessor:AddSafeEventHandler(event, fn, ...)
     return self:AddEventHandler(event, function(...)
         PEARL.SafeRun(fn, ...)
     end, ...)
-end
-
-function EventProcessor:SafeHandleEvent(...)
-    return PEARL.SafeRun(self.HandleEvent, self, ...)
 end
 
 function EventProcessor:AddSafeOneTimeHandler(event, fn, ...)
@@ -52,6 +48,14 @@ function EventProcessor:AddSafeOneTimeHandler(event, fn, ...)
             PEARL.EventProcessor:RemoveHandler(handler)
         end
     end, ...)
+end
+
+-------------------------------------
+-- [[ Event Handlers ]]
+-------------------------------------
+
+function EventProcessor:SafeHandleEvent(...)
+    return PEARL.SafeRun(self.HandleEvent, self, ...)
 end
 
 -------------------------------------

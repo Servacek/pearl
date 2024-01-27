@@ -523,7 +523,8 @@ AddCommand("giverep", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.DESC,
     permission = COMMAND_PERMISSION.USER,
-    params = {UserCommands.STD_PARAMS.PLAYER},
+    params = {UserCommands.STD_PARAMS.PLAYER, "value"},
+    parampermissions = {["value"] = COMMAND_PERMISSION.ADMIN},
     paramsoptional = {false},
     console = false, -- This is meant to be a user-only command.
     cantargetself = false,
@@ -531,6 +532,10 @@ AddCommand("giverep", {
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
+        if not ctx.author.userid then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+        end
+
         if ctx.author.userid == userid then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.ON_SELF)
         end
@@ -662,7 +667,7 @@ AddCommand("profile", {
 AddCommand("stats", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.DESC,
-    params = {UserCommands.STD_PARAMS.PLAYER},
+    params = {UserCommands.STD_PARAMS.PLAYER, "typ"},
     paramsoptional = {true},
     -- Only admins can see stats of other players
     parampermissions = {[UserCommands.STD_PARAMS.PLAYER] = UserCommands.PERMISSION.ADMIN},
@@ -673,18 +678,19 @@ AddCommand("stats", {
     console = false,
 
     --- @param ctx CommandContext
-    fn = function(ctx, userid)
+    fn = function(ctx, userid, typ)
         userid = userid or ctx.author.userid
         if not userid then
             ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
             return
         end
 
+        typ = typ or Leaderboard.TYPE.MONTHLY
         local reputation = PEARL.Reputation:GetOf(userid)
         local daygains   = PEARL.Reputation:GetTodayGainsOf(userid)
         local monthgains = PEARL.Reputation:GetMonthGainsOf(userid)
         local username   = PEARL.DB:GetField(userid, "username", userid)
-        local board      = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)
+        local board      = PEARL.LeaderboardService:GetLeaderboard(typ)
         local place      = board and board:GetPositionFor(userid) or "?"
 
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT:format(

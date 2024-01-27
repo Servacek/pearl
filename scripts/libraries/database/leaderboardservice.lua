@@ -33,7 +33,7 @@ local LEADERBOARD_FILE_PATH = ROOT.."/"..PEARL.CONFIG.LEADERBOARD.DIRECTORY.."/l
 local LeaderboardService = {
     --- @type table<string, Leaderboard>
     leaderboards = {},
-    webhook = self:
+    ui_webhook = PEARL.DiscordLeaderBoarder,
 }
 
 --- @type LeaderboardService
@@ -57,6 +57,10 @@ function LeaderboardService:IsLeaderboardingAllowedFor(userid)
     return PEARL.DB:IsRecordCachedFor(userid) and
             not PEARL.ServerNetwork:IsClientBanned(userid) and
            (not PEARL.ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.DEBUG_MODE)
+end
+
+function LeaderboardService:IsAnySessionActive()
+    return self.ui_webhook:HasUpdatingMessage() == true
 end
 
 --------------------------------------
@@ -102,9 +106,15 @@ function LeaderboardService:ToString()
     return str
 end
 
+--- @param leaderboard Leaderboard
+function LeaderboardService:ArchiveLeaderboardEmbed(leaderboard)
+    leaderboard:GetMessage():SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed(true))
+end
+
 function LeaderboardService:UpdateLeaderboardEmbeds()
+    local ui_message = self.ui_webhook:GetMessage()
     for _, leaderboard in pairs(self:GetAllLeaderboards()) do
-        self.webhook:SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed())
+        ui_message:SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed())
     end
 end
 
@@ -113,7 +123,7 @@ function LeaderboardService:UpdateUI()
 
     self:UpdateLeaderboardEmbeds()
 
-    local update_request = self.webhook:DoUpdate()
+    local update_request = self.ui_webhook:UpdateMessage()
     if not update_request then
         PEARL.error("Failed to update the leaderboard message!")
         return
@@ -126,34 +136,16 @@ function LeaderboardService:UpdateUI()
     update_request:SetOnSuccess(function()
         self:ForEach(function(leaderboard)
             leaderboard:OnUpdateDone()
+            self:Save()
         end)
     end)
-
-    if self.webhook:CanEditMessages() then
-        update_request:AddStatusCodeHandle(
-            PEARL.DiscordRestAPI.STATUS_CODES.NOT_FOUND, function()
-                self:StartNewSession()
-            end
-        )
-    end
 end
 
 function LeaderboardService:StartNewSession()
     -- Make sure the newest embeds are assigned.
     self:UpdateLeaderboardEmbeds()
 
-    self.webhook:PostUpdatingMessage()
-end
-
-function LeaderboardService:ArchiveLeaderboard(typ)
-    local leaderboard = self:GetLeaderboard(typ)
-    if leaderboard then
-        leaderboard:SetIsArchived(true)
-
-        -- Remove the absolute leaderboard embed from it so we can archive it.
-        self.webhook:SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed())
-        self.webhook:DoUpdate()
-    end
+    self.ui_webhook:PostUpdatingMessage()
 end
 
 function LeaderboardService:ValidateLoadedData()
