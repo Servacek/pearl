@@ -15,8 +15,6 @@
 local UserCommands = require("usercommands")
 
 local Command = PEARL.loadfile("libraries/discordapi/models/command")
-local Option  = PEARL.loadfile("libraries/discordapi/models/option")
-local Choice  = PEARL.loadfile("libraries/discordapi/models/choice")
 local Library = PEARL.loadfile("models/library")
 
 --------------------------------
@@ -392,16 +390,6 @@ function DiscordProxy:SendCommandResponse(commandid, message)
         return PEARL.error("Attempted to respond with an invalid message!", message)
     end
 
-    -- if TheShard:IsSecondary() then
-    --     local success, jsondata = message:ToJson()
-    --     if success then
-    --         -- Send the message to Master because only the Master can communicate with the server.
-    --         return PEARL.SendRPCToMaster(PEARL.RPC.SendDiscordCommandResponse, jsondata)
-    --     end
-
-    --     return PEARL.error("Failed to encode the message for RPC!")
-    -- end
-
     local message_table = message
     if message.ToTable then
         message_table = message:ToTable()
@@ -415,10 +403,12 @@ function DiscordProxy:SendCommandResponse(commandid, message)
     end
 end
 
+--- @return Request
 function DiscordProxy:SyncCommands()
     local sync_data = {
         commands = {},
-        version  = PEARL.MOD_INFO.version,
+        version  = UserCommands.VERSION,
+        mod_version = PEARL.VERSION,
     }
     local discord_commands = UserCommands.GetCustomCommandsWithFlag("discord", true)
     for _, command_data in pairs(discord_commands) do
@@ -427,12 +417,12 @@ function DiscordProxy:SyncCommands()
 
     table.dump(sync_data)
     -- We do not care about the response at this point
-    PEARL.HTTPClient:POST(DiscordProxy.URL.COMMANDS, function()
+    return (PEARL.HTTPClient:POST(DiscordProxy.URL.COMMANDS, function()
         PEARL.info("Commands successfully synchronized!")
     end, sync_data)
         :SetDecodeResponse(false)
         :SetMaxRetries(0)
-        :Send()
+        :Send())
 end
 
 function DiscordProxy:StopFetchTask()

@@ -39,7 +39,7 @@ local function _normalize_path(path)
         afp = PEARL.SRCDIR..afp
     end
 
-    -- Remove the extensions if provided since kleiloadlua seems to add it implicitly.
+    -- Add the extensions if not provided
     if afp:utf8sub(-FILE_EXTENSION:len()) ~= FILE_EXTENSION then
         afp = afp..FILE_EXTENSION
     end

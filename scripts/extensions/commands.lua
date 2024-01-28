@@ -668,7 +668,7 @@ AddCommand("stats", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.DESC,
     params = {UserCommands.STD_PARAMS.PLAYER, "typ"},
-    paramsoptional = {true},
+    paramsoptional = {true, true},
     -- Only admins can see stats of other players
     parampermissions = {[UserCommands.STD_PARAMS.PLAYER] = UserCommands.PERMISSION.ADMIN},
     permission = COMMAND_PERMISSION.USER,
@@ -1386,6 +1386,24 @@ AddCommand("ls", {
         -- Everyone has a binding with steam!
         local ids = PEARL.DB:GetBindings(PEARL.AccountBindings.BINDING_TYPE.STEAM)
         table.dump(ids)
+    end
+})
+
+AddCommand("sync", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYNC.PRETTYNAME,
+    desc       = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYNC.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    slash      = false,
+
+    --- @param ctx CommandContext
+    fn = function(ctx)
+        PEARL.DiscordProxy:SyncCommands()
+            :SetOnSuccess(function()
+                ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SYNC.ON_SUCCESS)
+            end)
+            :SetOnError(function()
+                ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SYNC.ON_FAILURE)
+            end)
     end
 })
 

@@ -232,6 +232,9 @@ PEARL.WORKSHOP_ID   = tonumber(id) ~= nil and tostring(id) or nil
 PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
 PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
 
+PEARL.VERSION       = PEARL.MOD_INFO.version
+PEARL.LUA_VERSION   = _VERSION
+
 --------------------------------
 -- [[ Server Mod Config ]]
 --------------------------------

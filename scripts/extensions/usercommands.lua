@@ -109,6 +109,13 @@ UserCommands.STD_PARAMS = {
 
 UserCommands.PERMISSION = COMMAND_PERMISSION
 
+
+UserCommands.VERSION = "1.1"
+if IsWin32() then
+    UserCommands.VERSION = TheSim:GetFileModificationTime(PEARL.SRCDIR.."/extensions/commands.lua")
+end
+print("VERSION:", UserCommands.VERSION)
+
 local PARAMS = UserCommands.STD_PARAMS
 
 -------------------------------------
@@ -135,6 +142,10 @@ end
 
 function UserCommands.IsCommandRoutable(command)
     return command.routing ~= UserCommands.SHARD_ROUTING.NONE and PEARL.ServerNetwork:IsAnySecondaryShardConnected()
+end
+
+function UserCommands.IsCommandRegistered(name)
+    return custom_commands[name] ~= nil
 end
 
 --- @return boolean, any
@@ -404,16 +415,18 @@ function UserCommands.GetCustomCommand(name)
     return custom_commands[name]
 end
 
+--- Aliases are not included.
 --- @param flagname string The name of the flag used to choose the commands.
 --- @return table flagged The table of chosen commands.
-function UserCommands.GetCustomCommandsWithFlag(flagname, value, noalias)
+function UserCommands.GetCustomCommandsWithFlag(flagname, value)
     if value == nil then
         value = true
     end
 
     local flagged = {}
     for name, command in pairs(custom_commands) do
-        if command[flagname] == value and (noalias ~= true or command.alias ~= true) then
+        print(name, command.alias)
+        if command[flagname] == value then
             flagged[name] = command
         end
     end
@@ -450,19 +463,30 @@ local function EnsureRequiredFields(command)
     end
 end
 
+local function ValidateFields(command)
+    local optional_reached = false
+    for i, paramname in ipairs(command.params) do
+        if command.paramsoptional then
+            if command.paramsoptional and command.paramsoptional[i] == true then
+                optional_reached = true
+            elseif optional_reached then
+                return error(("Required options must be placed before non-required options (param %s command %s)"):format(
+                    paramname, command.name
+                ))
+            end
+        end
+    end
+end
+
 function UserCommands.RegisterCustomCommand(name, command)
-    if custom_commands[name] ~= nil then
+    --PEARL.debug("UserCommands.RegisterCustomCommand", name)
+
+    if UserCommands.IsCommandRegistered(name) then
         PEARL.error("Custom command", name, "already registered!")
         return
     end
 
     custom_commands[name] = command
-end
-
-function UserCommands.RegisterCustomCommandAlias(alias, command)
-    command.alias = true
-
-    UserCommands.RegisterCustomCommand(alias, command)
 end
 
 --- @param name string
@@ -532,10 +556,12 @@ function UserCommands.AddCustomCommand(name, command)
         PEARL.warn("Overriding command", name)
     end
 
+    command.name = name
+
     EnsureRequiredFields(command)
+    ValidateFields(command)
 
     PEARL.info("Registering command", name)
-    command.name = name
 
     command.remote = type(command.fn) == "function"
 
@@ -568,11 +594,18 @@ function UserCommands.AddCustomCommand(name, command)
     end
 
     UserCommands.RegisterCustomCommand(name, command)
-    if command.aliases then
-        for _, alias in ipairs(command.aliases) do
-            UserCommands.RegisterCustomCommandAlias(alias, command)
-        end
-    end
+    -- For now, aliases are only for slash commands to not flood the command list.
+    -- if command.aliases then
+    --     for i, alias in ipairs(command.aliases) do
+    --         if alias == name then -- Make sure the actual name isnt registered as an alias!
+    --             print("Alias is the same as the name!")
+    --             table.remove(command.aliases, i)
+    --         else
+    --             print("REGISTERING ALIAS", alias)
+    --             UserCommands.RegisterCustomCommandAlias(alias, command)
+    --         end
+    --     end
+    -- end
 
     if not command.remote and TheNet:GetIsServer() then
         return -- Ignore local only commands on the server.
@@ -589,7 +622,6 @@ function UserCommands.AddCustomCommand(name, command)
             -- Register the console name as an alias for better consistency.
             if not table.contains(command.aliases, command.consolename) then
                 command.aliases[#command.aliases+1] = command.consolename
-                UserCommands.RegisterCustomCommandAlias(command.consolename, command)
             end
         end
     end

@@ -964,6 +964,14 @@ local STRINGS = {
                 ON_COUNT_TOO_LOW = "The Specified number of slots is less than the total number of players!",
                 ON_SUCCESS = "The number of server slots has been updated!",
             },
+
+            SYNC = {
+                PRETTYNAME = "Sync Commands",
+                DESC       = "Synchronizes all the proxy commands with the Discord bot.",
+
+                ON_SUCCESS = "Commands successfully synchronized!",
+                ON_FAILURE = "Failed to synchronize commands with Discord!",
+            }
         },
 
         SOCIAL_LINK_BUTTON_HOVERS = {
