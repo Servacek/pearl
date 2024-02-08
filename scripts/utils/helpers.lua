@@ -348,9 +348,40 @@ function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
 
+local TRUE = {
+    ['1'] = true,
+    ['t'] = true,
+    ['T'] = true,
+    ['true'] = true,
+    ['TRUE'] = true,
+    ['True'] = true,
+}
+local FALSE = {
+    ['0'] = false,
+    ['f'] = false,
+    ['F'] = false,
+    ['false'] = false,
+    ['FALSE'] = false,
+    ['False'] = false,
+}
+
+function PEARL.toboolean(x)
+    assert(type( x ) == 'string', 'str must be string')
+
+    if TRUE[x] == true then
+        return true;
+    elseif FALSE[x] == false then
+        return false;
+    else
+        return false, string.format('cannot convert %q to boolean', x);
+    end
+end
+
 local TYPE_CONVERTERS = {
     ["string"] = tostring,
     ["number"] = tonumber,
+    ["integer"] = tonumber,
+    ["boolean"] = PEARL.toboolean,
     ["function"] = {
         ["string"] = loadstring,
     },

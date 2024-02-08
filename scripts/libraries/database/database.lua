@@ -84,8 +84,15 @@ function DB:GetTotalRecordCount()
     return PEARL.AccountBindings:CountBindingsForType(PEARL.AccountBindings.BINDING_TYPE.STEAM)
 end
 
+--- @param userid string
+--- @return string
 function DB:GetRecordFilePathFor(userid)
     return DATABASE_RECORD_PATH:format(tostring(userid))
+end
+
+--- @return integer?
+function DB:GetRecordLastUpdateTimeFor(userid)
+    return io.fmtime(DB:GetRecordFilePathFor(userid))
 end
 
 --- Checks whether the provided userid has a record file created.
@@ -246,7 +253,7 @@ function DB:CreateRecordFile(userid)
 
     PEARL.debug("Creating database record for", userid)
 
-    local record = Record(userid)
+    local record = Record.New(userid)
     if type(record) ~= "table" or not self:CacheRecord(userid, record) then
         return PEARL.error("Failed to create record for", userid)
     end
@@ -292,9 +299,7 @@ function DB:LoadRecordFor(userid, validate)
         return
     end
 
-    local record = Record(userid)
-    record:SetData(data)
-
+    local record = Record(userid, data)
     if validate == true then
         self:ValidateRecord(record)
     end
@@ -339,12 +344,16 @@ function DB:SaveRecordFor(userid, record)
     -- Called before the actual saving so we have time to change some of the data.
     PEARL.EventProcessor:HandleEvent("db_savingrecord", userid)
 
+    local lastupdate = record.lastupdate
+    record.lastupdate = os.time()
     if PEARL.ModPersistance:SaveDataToFile(
         self:GetRecordFilePathFor(userid), record:GetData(), true
     ) then
         record:SetIsUpToDate(true)
         return true
     end
+
+    record.lastupdate = lastupdate
 
     PEARL.error("Failed to save record for", userid)
     return false

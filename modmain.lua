@@ -231,9 +231,16 @@ local id = GetWorkshopIdNumber(PEARL.MODNAME)
 PEARL.WORKSHOP_ID   = tonumber(id) ~= nil and tostring(id) or nil
 PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
 PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
+PEARL.IN_UGC_FOLDER = PEARL.IS_WORKSHOP == true
 
 PEARL.VERSION       = PEARL.MOD_INFO.version
 PEARL.LUA_VERSION   = _VERSION
+
+PEARL.X32 = APP_ARCHITECTURE == "x32"
+PEARL.X64 = APP_ARCHITECTURE == "x64"
+
+--- ../mods/MODNAME/
+MODROOT = MODROOT
 
 --------------------------------
 -- [[ Server Mod Config ]]

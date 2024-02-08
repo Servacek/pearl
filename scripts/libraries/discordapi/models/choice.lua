@@ -27,11 +27,10 @@ local Choice
 
 Choice = PEARL.Class(function(self, name, value)
     assert(name, "Name parameter is required!")
-    assert(value, "Name parameter is required!")
 
     self.name = name
     self.name_localizations = nil
-    self.value = value
+    self.value = value or name
 end)
 
 ------------------------------------------
@@ -40,14 +39,8 @@ end)
 
 function Choice.FromTable(t)
     --- @type Choice
-    local choice = Choice()
-    for k, v in pairs(t) do
-        if type(v) == "table" then
-            choice[k] = deepcopy(v)
-        end
-
-        choice[k] = v
-    end
+    local choice = Choice(t.name, t.value)
+    choice.name_localizations = t.name_localizations
 
     return choice
 end

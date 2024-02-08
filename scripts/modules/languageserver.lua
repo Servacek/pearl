@@ -72,8 +72,8 @@ if (IS_JOINING and PEARL.CONFIG.LANGUAGE_SERVER.AUTOUPDATE) or not io.exists(FIL
     PEARL.info("Requesting newest version of the translation from the configured server...")
 
     PEARL.HTTPClient:GET(URL, OnTranslationDownloaded)
-        :SetOnComplete(OnDownloadQueryCompleted)
-        :SetOnError(OnDownloadQueryFailed)
+        :AddOnComplete(OnDownloadQueryCompleted)
+        :AddOnError(OnDownloadQueryFailed)
         :SetDecodeResponse(false)
         :Send()
 

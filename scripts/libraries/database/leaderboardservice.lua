@@ -108,7 +108,7 @@ end
 
 --- @param leaderboard Leaderboard
 function LeaderboardService:ArchiveLeaderboardEmbed(leaderboard)
-    leaderboard:GetMessage():SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed(true))
+    self.ui_webhook:GetMessage():SetEmbed(leaderboard:GetIndex(), leaderboard:GetEmbed(true))
 end
 
 function LeaderboardService:UpdateLeaderboardEmbeds()
@@ -133,7 +133,7 @@ function LeaderboardService:UpdateUI()
         leaderboard:OnUpdateStart()
     end)
 
-    update_request:SetOnSuccess(function()
+    update_request:AddOnSuccess(function()
         self:ForEach(function(leaderboard)
             leaderboard:OnUpdateDone()
             self:Save()

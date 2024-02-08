@@ -67,13 +67,13 @@ local function _CreateProxyRequest(oncompletefn, ...)
     return PEARL.HTTPClient:Request(HTTPClientProxy._url, PEARL.HTTPClient.METHODS.POST, true)
         :AddStatusCodeHandle(0, _OnProxyRequestTimeout)
         :SetTimeout(PROXY_REQUEST_TIMEOUT)
-        :SetOnComplete(function(response, request, ...)
+        :AddOnComplete(function(response, request)
             if type(oncompletefn) == "function" then
-                oncompletefn(response, request, ...)
+                oncompletefn(response, request)
             end
 
             _timeouts_in_row = 0
-        end, ...)
+        end)
 end
 
 --------------------------------
@@ -102,15 +102,14 @@ end
 --- @param oncompletefn? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
 --- @param data table? The json data table for the request, if any.
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:Request(url, method, oncompletefn, data, timeout, ...)
+function HTTPClientProxy:Request(url, method, oncompletefn, data, timeout)
     if data ~= nil and type(data) ~= "table" then
         error("Attempted to create a proxy request with invalid data!")
     end
 
-    return _CreateProxyRequest(oncompletefn, ...)
+    return _CreateProxyRequest(oncompletefn)
         :SetProxyData({ -- Data for the proxied request
             url = url,
             timeout = timeout,
@@ -123,11 +122,10 @@ end
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param callbackfn? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
 function HTTPClientProxy:DELETE(url, callbackfn, timeout, ...)
-    return self:Request(url, self.METHODS.DELETE, callbackfn, nil, timeout, ...)
+    return self:Request(url, self.METHODS.DELETE, callbackfn, nil, timeout)
 end
 
 --- @nodiscard
@@ -135,22 +133,20 @@ end
 --- @param callbackfn? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
 --- @param data table The data table body for the request.
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:PATCH(url, callbackfn, data, timeout, ...)
-    return self:Request(url, self.METHODS.PATCH, callbackfn, data, timeout, ...)
+function HTTPClientProxy:PATCH(url, callbackfn, data, timeout)
+    return self:Request(url, self.METHODS.PATCH, callbackfn, data, timeout)
 end
 
 --- @nodiscard
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param oncompletefn? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:GET(url, oncompletefn, timeout, ...)
-    return self:Request(url, self.METHODS.GET, oncompletefn, nil, timeout, ...)
+function HTTPClientProxy:GET(url, oncompletefn, timeout)
+    return self:Request(url, self.METHODS.GET, oncompletefn, nil, timeout)
 end
 
 --- @nodiscard
@@ -158,11 +154,10 @@ end
 --- @param oncompletefn? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
 --- @param data table The data table body for the request.
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClientProxy:POST(url, oncompletefn, data, timeout, ...)
-    return self:Request(url, self.METHODS.POST, oncompletefn, data, timeout, ...)
+function HTTPClientProxy:POST(url, oncompletefn, data, timeout)
+    return self:Request(url, self.METHODS.POST, oncompletefn, data, timeout)
 end
 
 --------------------------------

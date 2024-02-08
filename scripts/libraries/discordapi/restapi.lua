@@ -14,8 +14,6 @@
 local Library = require("models/library")
 local Message = require("libraries/discordapi/models/message")
 
-local math = math
-
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
@@ -62,7 +60,6 @@ RestAPI = Library(RestAPI)
 --------------------------------
 
 RestAPI.STATUS_CODES = {
-    ANY                 = -1,
     TIMEOUT             = 0,   -- The request timed out.
     HEADER_RECEIVED     = 100, -- Only the header of the request was received.
     OK                  = 200, -- The request completed successfully.
@@ -83,24 +80,22 @@ RestAPI.STATUS_CODES = {
 -- [[ Local Functions ]]
 --------------------------------
 
-local function _OnErrorStatusCode(response, status_code, request)
-    status_code = tonumber(status_code) or 0
-
+local function _OnErrorStatusCode(response, request)
     -- Handle rate limits first
-    if status_code == RestAPI.STATUS_CODES.TOO_MANY_REQUESTS then
+    if request.code == RestAPI.STATUS_CODES.TOO_MANY_REQUESTS then
         -- WallScheduler doesn't support floats with the current precision.
         return RestAPI:RateLimitForTime(
             response and math.ceil(tonumber(response.retry_after or 1) or 1) or nil
         )
     end
 
-    if status_code == RestAPI.STATUS_CODES.NOT_FOUND then
+    if request.code == RestAPI.STATUS_CODES.NOT_FOUND then
         PEARL.error("Invalid endpoint url.")
 
         return request:SetMaxRetries(0)
     end
 
-    if status_code == RestAPI.STATUS_CODES.GATEWAY_UNAVAILABLE then
+    if request.code == RestAPI.STATUS_CODES.GATEWAY_UNAVAILABLE then
         local retry_seconds = RETRY_SECONDS + math.random(RETRY_SECONDS)
         PEARL.error("Gateway Unavailable.")
         PEARL.HTTPClient:RetryRequestAfter(request, retry_seconds)
@@ -108,7 +103,7 @@ local function _OnErrorStatusCode(response, status_code, request)
         return
     end
 
-    if status_code > 500 then
+    if request.code > 500 then
         PEARL.error("Server failed to proccess the request.")
         return
     end
@@ -137,7 +132,7 @@ local function _SendActionRequest(url, action, data)
             :SetTimeout(REQUEST_TIMEOUT)
     end
 
-    request:SetOnError(_OnErrorStatusCode)
+    request:AddOnError(_OnErrorStatusCode)
 
     return (request:Send())
 end

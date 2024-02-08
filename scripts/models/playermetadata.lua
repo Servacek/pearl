@@ -297,7 +297,7 @@ function PlayerMetadata:LoadInventoryData()
         end
     end
 
-    local inventory = data.data and data.data.inventory
+    local inventory = data and data.data and data.data.inventory
     if not inventory then
         return false
     end

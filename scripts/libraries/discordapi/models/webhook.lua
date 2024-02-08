@@ -19,7 +19,7 @@
 -- [[ Private ]]
 -------------------------------------
 
-local function OnWebhookDataFetched(data, request, webhook)
+local function OnWebhookDataFetched(data, webhook)
     webhook.avatar = data.avatar
     webhook.channel_id = data.channel_id
     webhook.guild_id = data.guild_id
@@ -113,7 +113,9 @@ function Webhook:FetchData()
         return
     end
 
-    request:SetOnSuccess(OnWebhookDataFetched, self)
+    request:AddOnSuccess(function(response)
+        OnWebhookDataFetched(response, self)
+    end)
 
     return request
 end

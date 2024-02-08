@@ -129,7 +129,9 @@ local function SendRootRetriveQuery(userid, oncomplete)
         return oncomplete(true) -- Allow the connection on error
     end
 
-    query:SetOnComplete(OnQueryCompleted, userid, oncomplete)
+    query:AddOnComplete(function(response, request)
+        OnQueryCompleted(response, request, userid, oncomplete)
+    end)
     query:SetMaxRetries(QUERY_MAX_RETRIES)
     query:Send()
 end

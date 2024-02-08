@@ -63,12 +63,12 @@ function KleiAccounts:QueryGameOwner(userid, gameid, cb)
     ))
 
     if cb then
-        request:SetOnComplete(function(data, request, success)
-            if not success and request:IsRetryable() then
+        request:AddOnComplete(function(data)
+            if not request.ok and request:IsRetryable() then
                 return
             end
 
-            cb((success and not data.Error) and data.ParentAccount or nil)
+            cb((request.ok and not data.Error) and data.ParentAccount or nil)
         end)
     end
 

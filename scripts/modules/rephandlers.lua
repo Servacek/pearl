@@ -22,6 +22,7 @@ if TheShard:IsSecondary() then
 end
 
 local function ResetFieldFor(userid, field)
+    print("RESET FIELD")
     PEARL.Reputation:SetFieldFor(
         userid, field, PEARL.Reputation.DEFAULT_REP_DATA.monthgains
     )
@@ -46,9 +47,9 @@ end)
 --- @param record PlayerRecord
 PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, record)
     if record and userid and record:IsWriteable() then
-        local lastseentime = PEARL.DB:GetField(userid, "lastseentime")
-        if lastseentime then
-            local lastseentimetbl = PEARL.TimestampToTable(lastseentime)
+        local lastupdate = PEARL.DB:GetField(userid, "lastupdate", PEARL.DB:GetRecordLastUpdateTimeFor(userid))
+        if lastupdate then
+            local lastseentimetbl = PEARL.TimestampToTable(lastupdate)
             local currenttimetbl = PEARL.TimestampToTable(os.time())
             local yearmismatch = lastseentimetbl.year ~= currenttimetbl.year
             local monthmismatch = lastseentimetbl.month ~= currenttimetbl.month

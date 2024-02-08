@@ -175,6 +175,11 @@ PEARL.SafeModTableExtend("CONSTS", {
     FSLS_QUERY_URL              = "https://login.kleientertainment.com/login/FamilySharingLookup",
     STEAM_UP_TO_DATE_CHECK      = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v1/?appid=%s&version=%s",
     STEAM_WORKSHOP              = "https://steamcommunity.com/sharedfiles/filedetails/?id=%s",
+
+    HELP_URLS = {
+        ACCOUNT_BINDINGS        = "https://discord.com/channels/662329201721868293/1202878043878592532/1202906592841039872",
+    },
+
     ------------------------------------
 
     BASE_STRUCTURE_TAGS         = {"structure", "wall"},
@@ -192,6 +197,8 @@ PEARL.SafeModTableExtend("CONSTS", {
     MOD_ALLOWLIST_FILE_PATH     = "../../modallowlist.txt",
 
     SERVER_TOKEN_PATH           = "../../cluster_token.txt",
+
+    UGC_MODS_FOLDER = "../../../workshop/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID),
 
     ------------------------------------
 

@@ -43,7 +43,7 @@ local EMBEDS = {}
 --- @return Embed
 function EMBEDS.Inventory(pmd, highlighted)
     local userid     = pmd:GetUserID()
-    local owner_name = PEARL.DB:GetField(userid, "username", pmd:GetName()) or ""
+    local owner_name = PEARL.DB:GetField(userid, "username", pmd:GetName()) or userid
     local inventory  = pmd:GetInventory()
     local prefab     = PEARL.DB:GetField(userid, "fancyprefab", pmd:GetPrefab())
     -- local age        = pmd:GetAge()
@@ -250,9 +250,11 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
     return embed
 end
 
-function EMBEDS.PlayerStats(userid)
-    return Embed()
-end
+--- @TODO: Try to replace the embed with a rank card image.
+-- function EMBEDS.PlayerStats(userid)
+--     local STRINGS = STRINGS.PEARL.EMBEDS.STATS
+--     return Embed()
+-- end
 
 --- @return Embed
 function EMBEDS.ServerInfo(boot)
@@ -517,7 +519,7 @@ function EMBEDS.ClientMods(enabled_mods, userid)
 end
 
 --- @return Embed
-function EMBEDS.ClientProfile(userid, dbr)
+function EMBEDS.ClientProfile(userid, dbr, all)
     dbr = dbr or PEARL.DB:GetRecordFor(userid)
 
     local P_STRINGS = STRINGS.PEARL.EMBEDS.PROFILE
@@ -623,12 +625,20 @@ function EMBEDS.ClientProfile(userid, dbr)
         ), false) -- Print all these on a new line always.
     end
 
+    local description = ""
+
     -- Check for explicity true since this is false by default.
     if dbr.communityprofile == false then
-        embed:SetDescription(PEARL.ICONS.WARN.." "..MARKDOWN.italic(P_STRINGS.NOT_SETUPED))
+        description = PEARL.ICONS.WARN.." "..MARKDOWN.italic(P_STRINGS.NOT_SETUPED)
     elseif dbr.privateprofile == true then
-        embed:SetDescription(PEARL.ICONS.INFO.." "..MARKDOWN.italic(P_STRINGS.PRIVATE))
+        description = PEARL.ICONS.INFO.." "..MARKDOWN.italic(P_STRINGS.PRIVATE)
     end
+
+    if dbr.modnote and all == true then
+        description = description.."\n\n"..P_STRINGS.MOD_NOTE:format(dbr.modnote)
+    end
+
+    embed:SetDescription(description)
 
     return embed
 end

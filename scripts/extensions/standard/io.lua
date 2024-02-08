@@ -53,6 +53,24 @@ function io.extensure(fp, ext)
     return fp
 end
 
+--- @return integer?
+function io.fmtime(fp)
+    -- 64bit representation of the last update timestamp in hexdecimal format.
+    --- @type string
+    local hex = TheSim:GetFileModificationTime(fp)
+    if type(hex) ~= "string" then
+        return
+    end
+
+    if PEARL.X32 and hex then
+        -- If more characters are needed at some point,
+        -- it will overflow on the 32 bit system anyway.
+        hex = hex:rtake(8)
+    end
+
+    return tonumber(hex, 16)
+end
+
 function io.strippedlines(...)
     local slines = {}
     for line in io.lines(...) do

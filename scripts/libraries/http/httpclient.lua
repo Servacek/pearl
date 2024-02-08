@@ -140,12 +140,11 @@ end
 --- @param url string The url of the endpoint we want to send the request to.
 --- @param onsuccess? fun(result: string, success: boolean, http_code: string, ...: any): any The function that should be called after the request completes.
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClient:GET(url, onsuccess, timeout, ...)
+function HTTPClient:GET(url, onsuccess, timeout)
     return self:Request(url, HTTPClient.METHODS.GET)
-        :SetOnSuccess(onsuccess, ...)
+        :AddOnSuccess(onsuccess)
         :SetTimeout(timeout or HTTPClient.DEFAULT_REQUEST_TIMEOUT)
 end
 
@@ -154,14 +153,13 @@ end
 --- @param onsuccess? fun(response: table|string, self: Request, ...: any): any The function that should be called after the request completes.
 --- @param data string|table The json data body for the request (JSON or table)
 --- @param timeout integer? The number of seconds before timeout should occur.
---- @param ... any? Additional parameters for the callback function.
 ---
 --- @return Request request The newly created request. You need to execute it using :Send.
-function HTTPClient:POST(url, onsuccess, data, timeout, ...)
+function HTTPClient:POST(url, onsuccess, data, timeout)
     assert(data ~= nil, "Invalid data provided for POST request. Method would be changed to GET implicitly.")
 
     return self:Request(url, HTTPClient.METHODS.POST)
-        :SetOnSuccess(onsuccess, ...)
+        :AddOnSuccess(onsuccess)
         :SetTimeout(timeout or HTTPClient.DEFAULT_REQUEST_TIMEOUT)
         :SetData(data)
 end

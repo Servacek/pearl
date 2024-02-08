@@ -42,15 +42,17 @@ local DAY_IN_SECONDS = 24 * 60 * 60
 ------------------------------------------
 
 --- @class PlayerRecord
-local PlayerRecord = Class(function(self, userid)
+--- @field _data table
+local PlayerRecord = Class(function(self, userid, data)
     PEARL.debug("PlayerRecord", userid)
+
     assert(type(userid) == "string", "Invalid userid provided!")
+    assert(type(data) == "table", "Invalid data provided!")
 
-    rawset(self, "_data", deepcopy(DEFAULT_FIELDS))
-    self._data.joinedtime = os.time()
+    rawset(self, "_data", data)
+    rawset(self, "_uptodate", true)
+
     self._data.userid = userid
-
-    rawset(self, "_uptodate", false)
 end)
 
 ------------------------------------------
@@ -58,6 +60,18 @@ end)
 ------------------------------------------
 
 PlayerRecord.TEMPLATE = DEFAULT_FIELDS
+
+--- @param userid string
+--- @return PlayerRecord
+function PlayerRecord.New(userid)
+    local data = deepcopy(DEFAULT_FIELDS)
+    data.joinedtime = os.time()
+
+    local record = PlayerRecord(userid, data)
+    record:SetIsUpToDate(false)
+
+    return record
+end
 
 ------------------------------------------
 -- [[ Meta Methods ]]
@@ -96,7 +110,7 @@ end
 -- [[ Getters ]]
 ------------------------------------------
 
---- @return boolean
+--- @return table
 function PlayerRecord:GetData()
     return self._data
 end

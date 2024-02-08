@@ -28,9 +28,13 @@ local MENTION_DELIMETER = PEARL.CONSTS.DELIMS.PLAYER_NAME
 local DEFAULT_COMMAND_PERMISSION = COMMAND_PERMISSION.ADMIN -- For safety
 
 local REQUIRED_FIELDS = {
+    options = {},
     params = {},
     permission = DEFAULT_COMMAND_PERMISSION
 }
+
+local COMMANDS_FILE_PATH = (PEARL.IS_WORKSHOP and PEARL.CONSTS.UGC_MODS_FOLDER or MODROOT)
+    .."/scripts/extensions/commands.lua"
 
 -------------------------------------
 -- Locals
@@ -49,6 +53,10 @@ PEARL.GameInstParams:SetModParam("user_cmd_cooldowns", user_cooldowns)
 --------------------------------------
 
 local function make_safe_cb(name, cb)
+    if type(cb) ~= "function" then
+        return
+    end
+
     return function(params, caller, ...)
         local result = {PEARL.SafeRun(cb, params, caller, ...)}
         if not result[1] then
@@ -99,22 +107,34 @@ UserCommands.PERMISSION_LEVEL = {
     [COMMAND_PERMISSION.ADMIN] = 2,
 }
 
+UserCommands.OPTION_TYPE = {
+    STRING      = "string",
+    INTEGER     = "integer",
+    BOOLEAN     = "boolean",
+    NUMBER      = "number",
+}
+
+UserCommands.DEFAULT = {
+    OPTION = {
+        TYPE = UserCommands.OPTION_TYPE.STRING,
+        OPTIONAL = false,
+        VALIDATION = true,
+    }
+}
+
+--- @TODO: Finish the commands API
 UserCommands.STD_PARAMS = {
-    PLAYER = "player",
-    SHARD  = "shard",
-    PREFAB = "prefab",
-    USER   = "user",
-    JSON   = "json",
+    PLAYER  = {name = "player", type = UserCommands.OPTION_TYPE.STRING},
+    SHARD   = {name = "shard", type = UserCommands.OPTION_TYPE.STRING},
+    PREFAB  = {name = "prefab", type = UserCommands.OPTION_TYPE.STRING},
+    USER    = {name = "user", type = UserCommands.OPTION_TYPE.STRING},
+    JSON    = {name = "json", type = UserCommands.OPTION_TYPE.STRING},
 }
 
 UserCommands.PERMISSION = COMMAND_PERMISSION
 
-
-UserCommands.VERSION = "1.1"
-if IsWin32() then
-    UserCommands.VERSION = TheSim:GetFileModificationTime(PEARL.SRCDIR.."/extensions/commands.lua")
-end
-print("VERSION:", UserCommands.VERSION)
+UserCommands.PATH = COMMANDS_FILE_PATH
+UserCommands.VERSION = io.fmtime(COMMANDS_FILE_PATH) or "1.1"
 
 local PARAMS = UserCommands.STD_PARAMS
 
@@ -358,6 +378,10 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
 
     command.fn(ctx, PEARL.unpack(validated_args, 1, n))
 
+    if not ctx:WasReplied() and command.async ~= true and ctx.type == CommandContext.TYPE.DISCORD then
+        ctx:Reply(STRINGS.PEARL.UI.CMD_INFO.RECEIVED_FROM_THIRDPARTY, PEARL.ICONS.CHECK)
+    end
+
     return true
 end
 
@@ -425,7 +449,6 @@ function UserCommands.GetCustomCommandsWithFlag(flagname, value)
 
     local flagged = {}
     for name, command in pairs(custom_commands) do
-        print(name, command.alias)
         if command[flagname] == value then
             flagged[name] = command
         end
@@ -458,7 +481,7 @@ end
 local function EnsureRequiredFields(command)
     for key, value in pairs(REQUIRED_FIELDS) do
         if command[key] == nil then
-            command[key] = value
+            command[key] = deepcopy(value)
         end
     end
 end
@@ -475,7 +498,37 @@ local function ValidateFields(command)
                 ))
             end
         end
+
+        if command.options[i] == nil then
+            command.options[i] = {
+                name = paramname,
+                optional = command.paramsoptional and command.paramsoptional[i] == true or false,
+                type = UserCommands.OPTION_TYPE.STRING,
+            }
+        end
     end
+
+    local params = command.params
+    local paramsoptional = command.paramsoptional or {}
+    for i, option in ipairs(command.options) do
+        params[i] = option.name
+        paramsoptional[i] = option.optional == true
+
+        for name, default in pairs(UserCommands.DEFAULT.OPTION) do
+            local field = name:lower()
+            if option[field] == nil then
+                option[field] = default
+            end
+        end
+    end
+
+    command.params = params
+    command.paramsoptional = paramsoptional
+end
+
+--- @param name string
+local function NormalizeCommandName(name)
+    return name:gsub("-", "_")
 end
 
 function UserCommands.RegisterCustomCommand(name, command)
@@ -499,9 +552,9 @@ function UserCommands.CustomizeCommand(name, fn)
     end)
 end
 
-function UserCommands.AddConsoleCommand(name, command)
+function UserCommands.AddConsoleCommand(normalized_name, command)
     -- When executed from STDIN, these are always in a protected call so no need for make_safe_cb.
-    PEARL.OverrideValue(_G, "c_"..name:gsub("-", "_"), function(...)
+    PEARL.OverrideGlobalVariable("c_"..normalized_name, function(...)
         local params, success = ParseParamsArray(command, toarrayornil(...))
         if success == false then
             return PEARL.error("Executing console command failed!")
@@ -515,6 +568,15 @@ function UserCommands.AddConsoleCommand(name, command)
             })
         )
     end)
+
+    if command.consolename and command.consolename ~= normalized_name then
+        -- Register the console name as an alias for better consistency.
+        -- For now, aliases are only for slash commands to not flood the command list.
+        command.aliases = command.aliases or {}
+        if not table.contains(command.aliases, command.consolename) then
+            command.aliases[#command.aliases+1] = command.consolename
+        end
+    end
 end
 
 function UserCommands.AddSlashCommand(name, command)
@@ -544,6 +606,8 @@ function UserCommands.AddSlashCommand(name, command)
     AddUserCommand(name, command)
 end
 
+--- @param name string
+--- @param command table
 function UserCommands.AddCustomCommand(name, command)
     assert(type(name) == "string", "Missing or invalid command name!")
 
@@ -563,8 +627,14 @@ function UserCommands.AddCustomCommand(name, command)
 
     PEARL.info("Registering command", name)
 
-    command.remote = type(command.fn) == "function"
+    local normalized_name = NormalizeCommandName(name)
+    command.consolename = normalized_name
 
+    local strings = STRINGS.PEARL.UI.BUILTINCOMMANDS[normalized_name:upper()]
+    command.prettyname = command.prettyname or (strings and strings.PRETTYNAME)
+    command.desc = command.desc or (strings and strings.DESC)
+
+    command.remote = type(command.fn) == "function" -- Whether we should send the response to the server.
     command.routing = command.routing or UserCommands.SHARD_ROUTING.AUTO
     command.routingfallback = command.routingfallback or UserCommands.SHARD_ROUTINGFALLBACK.CURRENT
 
@@ -585,50 +655,26 @@ function UserCommands.AddCustomCommand(name, command)
     end
 
     -- Make all the functions safe
-    if command.localfn then
-        command.localfn = make_safe_cb(name, command.localfn)
-    end
-
-    if command.canstartfn then
-        command.canstartfn = make_safe_cb(name, command.canstartfn)
-    end
+    command.localfn = make_safe_cb(name, command.localfn)
+    command.canstartfn = make_safe_cb(name, command.canstartfn)
 
     UserCommands.RegisterCustomCommand(name, command)
-    -- For now, aliases are only for slash commands to not flood the command list.
-    -- if command.aliases then
-    --     for i, alias in ipairs(command.aliases) do
-    --         if alias == name then -- Make sure the actual name isnt registered as an alias!
-    --             print("Alias is the same as the name!")
-    --             table.remove(command.aliases, i)
-    --         else
-    --             print("REGISTERING ALIAS", alias)
-    --             UserCommands.RegisterCustomCommandAlias(alias, command)
-    --         end
-    --     end
-    -- end
-
     if not command.remote and TheNet:GetIsServer() then
         return -- Ignore local only commands on the server.
     end
 
-    if command.console ~= false then
+    if command.console == true then
         UserCommands.AddConsoleCommand(command.consolename or name, command)
-
-        if command.consolename and command.consolename ~= name then
-            if not command.aliases then
-                command.aliases = {}
-            end
-
-            -- Register the console name as an alias for better consistency.
-            if not table.contains(command.aliases, command.consolename) then
-                command.aliases[#command.aliases+1] = command.consolename
-            end
-        end
     end
 
     if command.slash == true or command.usermenu or command.servermenu then
         UserCommands.AddSlashCommand(name, command)
     end
+end
+
+function UserCommands.AddCustomAsyncCommand(name, command)
+    command.async = true
+    UserCommands.AddCustomCommand(name, command)
 end
 
 --- @return string userid The client's Klei ID or nil on failure.

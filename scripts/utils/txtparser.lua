@@ -134,9 +134,7 @@ return function(fname, create_if_needed, subtitles)
 
     result.version = version
 
-    --- @Note: looks like this doesn't work correctly on Linux (seems to be a bug)
-    -- TheSim:GetFileModificationTime returns a hexadecimal string representing the timestamp
-    result.lmt = lmt --tonumber(TheSim:GetFileModificationTime(abs_path) or 0, 16)
+    result.lmt = lmt
 
     return result
 end

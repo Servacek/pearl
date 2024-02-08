@@ -113,6 +113,21 @@ configuration_options = {
         }
     },
 
+    -- --------------------
+    -- -- Folders
+    -- --------------------
+
+    -- {
+    --     name = "SERVER_FOLDERS",
+    --     default = {
+    --         SERVER_FOLDERS = {
+    --             CLUSTER = "MyDediServer",
+    --             SHARD = "Master",
+    --         },
+    --     },
+    --     type = "table<string, string?>"
+    -- },
+
     --------------------
     -- Social Links
     --------------------

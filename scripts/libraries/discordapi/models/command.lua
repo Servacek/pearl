@@ -16,12 +16,14 @@
 
 
 local Option = PEARL.loadfile("libraries/discordapi/models/option")
+local Permission = PEARL.loadfile("libraries/discordapi/models/permission")
 
 ------------------------------------------
 -- [[ Constants ]]
 ------------------------------------------
 
 local DEFAULT_OPTION_TYPE = "string"
+local ADMIN_COMMAND_DEFAULT_PERMISSIONS = Permission.PRIORITY_SPEAKER
 
 ------------------------------------------
 -- [[ Class Declaration ]]
@@ -38,12 +40,17 @@ local DEFAULT_OPTION_TYPE = "string"
 --- @field description_localizations table?
 --- @field default_member_permissions Permission?
 --- @field nsfw boolean?
+--- Custom:
+--- @field wait boolean? Whether we should wait for the response or not. Defaults to True.
+--- @field private boolean? Whether the response should be ephemeral or not.
+--- @field notify boolean? Whether it should notify the user that the command was fetched or not.
 local Command
 
 Command = PEARL.Class(function(self, name, description)
     assert(name, "Name parameter is required!")
     assert(not description or string.utf8len(description) <= Command.MAX_DESCRIPTION_LENGTH, "Description too long for command "..name)
 
+    --- Official Discord API fields
     self.type = Command.TYPE.CHAT_INPUT
     self.guild_id = nil
     self.name = name
@@ -54,6 +61,9 @@ Command = PEARL.Class(function(self, name, description)
     self.options = nil
     self.dm_permission = nil
     self.nsfw = nil
+
+    --- Custom Discord API wrapper fields
+    self.private = nil
 end)
 
 ------------------------------------------
@@ -94,14 +104,32 @@ end
 function Command.FromGameAPICommand(cmd)
     --- @type Command
     local command = Command(cmd.name, cmd.desc)
+    command.dm_permission = false
+    command.private = cmd.privateresponse
+    command.permission = cmd.permission
+
+    if cmd.permission ~= COMMAND_PERMISSION.USER then
+        command.default_member_permissions = ADMIN_COMMAND_DEFAULT_PERMISSIONS
+    end
 
     if table.empty(cmd.params) == false then
         command.options = {}
         for i, paramname in ipairs(cmd.params) do
             local type = Option.TypeFromGeneric(cmd.paramtypes and cmd.paramtypes[paramname] or DEFAULT_OPTION_TYPE)
+            --- @type Option
             local option = Option(type, paramname)
             option.required = not cmd.paramsoptional or cmd.paramsoptional[i] ~= true
-            command.options[#command.options+1] = option
+
+            local cmd_option = cmd.options and cmd.options[i]
+            option.description = (cmd_option and cmd_option.description) or STRINGS.PEARL.UI.PARAM_DESCRIPTIONS[paramname]
+            option.autocomplete = cmd_option and cmd_option.autocomplete
+            option.choices = cmd_option and cmd_option.choices -- Its already a list of Choice objects.
+            option.min_value = cmd_option.minvalue
+            option.max_value = cmd_option.maxvalue
+            option.max_length = cmd_option.maxlength
+            option.min_length = cmd_option.minlength
+
+            command.options[i] = option
         end
     end
 

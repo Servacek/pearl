@@ -131,9 +131,12 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
         return
     end
 
+    -- Do not show the parameters for private commands.s
+    local revealed = command.private and name or cmd
+
     PEARL.DiscordLogger:LogStringRaw(
         STRINGS.PEARL.LOGS.SAY_COMMAND:format(
-            MARKDOWN.escape(UserToName(userid) or userid), cmd
+            MARKDOWN.escape(UserToName(userid) or userid), revealed
         ),
         PEARL.ICONS.PLAYER_STATE.CMD_SEND
     )

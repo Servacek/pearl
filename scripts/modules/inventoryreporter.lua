@@ -166,7 +166,7 @@ local function RemovePrediction(id)
 end
 
 local function SendProxyFeedbackMessage(channel_id, message)
-    PEARL.DiscordProxy:PostMessage(message, channel_id)
+    return PEARL.DiscordProxy:PostMessage(message, channel_id)
 end
 
 local function CreateFeedbackMessage(message)
@@ -183,7 +183,10 @@ local function ReportInventoryWithFeedback(message, pd)
     if channel_id ~= nil then
         local request = SendProxyFeedbackMessage(channel_id, CreateFeedbackMessage(message))
         if request ~= nil then
-            request:SetOnSuccess(OnPredictionMessageReceived, pd)
+            request:AddOnSuccess(function(response)
+                OnPredictionMessageReceived(response, pd)
+            end)
+
             return true
         end
 
@@ -382,7 +385,7 @@ end
 -- [[ Query Handlers ]]
 -------------------------------
 
-OnPredictionMessageReceived = function(response, request, pd)
+OnPredictionMessageReceived = function(response, pd)
     -- Store the message ID so we can identify the response.
     StorePrediction(response, pd)
 end

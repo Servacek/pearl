@@ -10,6 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 --- @category FrontEnd & BackEnd
+--- @alias PlayerInst EntityScript
 
 -------------------------------------
 -- Dependencies
@@ -25,6 +26,7 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 
 local ChatMessage = PEARL.loadfile("models/chatmessage")
 local CommandContext = PEARL.loadfile("models/commandcontext")
+local OptionChoice = PEARL.loadfile("libraries/discordapi/models/choice")
 
 local MESSAGES = PEARL.loadfile("utils/messages")
 local EMBEDS = PEARL.loadfile("utils/embeds")
@@ -41,17 +43,29 @@ local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
 
 local TheNet = TheNet
 local AddCommand = UserCommands.AddCustomCommand
+local AddAsyncCommand = UserCommands.AddCustomAsyncCommand
 
 -------------------------------------
 -- Constants
 -------------------------------------
 
-local DAYSBACK_DELAY = 3
+local OPTION_TYPE = UserCommands.OPTION_TYPE
+local PARAMS = UserCommands.STD_PARAMS
+
+--local DAYSBACK_DELAY = 3
 local ROLLBACK_DELAY = 3
 
 local GIVEREP_AMOUNT = 25
 
 local SEED_PATH = MODROOT.."data/seed.txt"
+
+-- Sort choices by common usage.
+local STATIC_CHOICES = {
+    LEADERBOARD_TYPE = {
+        OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.LEADERBOARD.MONTHLY, Leaderboard.TYPE.MONTHLY),
+        OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.LEADERBOARD.ABSOLUTE, Leaderboard.TYPE.ABSOLUTE),
+    }
+}
 
 ------------------------------------
 -- Slash commands [ADMIN]
@@ -80,28 +94,24 @@ AddCommand("fire", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {true},
     routingfallback = UserCommands.SHARD_ROUTINGFALLBACK.ALL,
+    instrequired = true,
+    options = {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, optional = true},
 
     --- @param ctx CommandContext
-    fn = function(ctx, userid)
+    --- @param player PlayerInst?
+    fn = function(ctx, player)
         local pt_postfix = ctx.author.userid and "_DOER" or ""
 
-        if userid then
-            local player = LookupPlayerInstByUserID(userid)
-            if player ~= nil then
-                extinguish_near(player:GetPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
+        if player ~= nil then
+            extinguish_near(player:GetPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
 
-                -- Keep it global
-                TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
-                    ctx.author.name or player.name, player.name
-                ), player.entity)
+            -- Keep it global
+            TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
+                ctx.author.name or player.name, player.name
+            ), player.entity)
 
-                return
-            end
-
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+            return
         end
 
         extinguish_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
@@ -141,28 +151,24 @@ AddCommand("repair", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REPAIR.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {true},
     routingfallback = UserCommands.SHARD_ROUTINGFALLBACK.ALL,
+    instrequired = true,
+    options = {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, optional = true},
 
     --- @param ctx CommandContext
-    fn = function(ctx, userid)
+    --- @param player PlayerInst
+    fn = function(ctx, player)
         local pt_postfix = ctx.author.userid and "_DOER" or ""
 
-        if userid then
-            local player = LookupPlayerInstByUserID(userid)
-            if player ~= nil then
-                repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
+        if player then
+            repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
 
-                -- Keep it global.
-                TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_NEAR"..pt_postfix]:format(
-                    ctx.author.name or "Shenanigans", (player.name or STRINGS.PEARL.LOGS.UNKNOWN)
-                ), player.entity)
+            -- Keep it global.
+            TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_NEAR"..pt_postfix]:format(
+                ctx.author.name or "Shenanigans", (player.name or STRINGS.PEARL.LOGS.UNKNOWN)
+            ), player.entity)
 
-                return
-            end
-
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+            return
         end
 
         repair_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
@@ -178,12 +184,11 @@ AddCommand("unban", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {false},
-    paramsnovalidation = {true},
-    routing = UserCommands.SHARD_ROUTING.NONE, --- @TODO: Maybe to ALL?
+    routing = UserCommands.SHARD_ROUTING.NONE,
+    options = {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, validation = false},
 
     --- @param ctx CommandContext
+    --- @param userid string
     fn = function(ctx, userid)
         if PEARL.BlackList:Remove(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_SUCCESS)
@@ -197,12 +202,11 @@ AddCommand("grant", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {false},
-    paramsnovalidation = {true},
     routing = UserCommands.SHARD_ROUTING.NONE,
+    options = {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, validation = false},
 
     --- @param ctx CommandContext
+    --- @param userid string
     fn = function(ctx, userid)
         if PEARL.BlackList:Contains(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED)
@@ -221,12 +225,11 @@ AddCommand("revoke", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {false},
-    paramsnovalidation = {true},
     routing = UserCommands.SHARD_ROUTING.NONE,
+    options = {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, validation = false},
 
     --- @param ctx CommandContext
+    --- @param userid string
     fn = function(ctx, userid)
         if not PEARL.WhiteList:Contains(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND)
@@ -245,8 +248,11 @@ AddCommand("inv", {
     params = {UserCommands.STD_PARAMS.PLAYER, "raw"},
     paramsoptional = {false, true},
     paramtypes = {["raw"] = "boolean"},
+    options = {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, validation = false},
 
     --- @param ctx CommandContext
+    --- @param userid string
+    --- @param raw boolean?
     fn = function(ctx, userid, raw)
         local reference = PEARL.GetPlayerMetadataFor(userid)
         local inventory = reference and reference:GetInventory()
@@ -523,17 +529,20 @@ AddCommand("giverep", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVEREP.DESC,
     permission = COMMAND_PERMISSION.USER,
-    params = {UserCommands.STD_PARAMS.PLAYER, "value"},
-    parampermissions = {["value"] = COMMAND_PERMISSION.ADMIN},
-    paramsoptional = {false},
+    options = {
+        {name = UserCommands.STD_PARAMS.PLAYER},
+        {name = "value", optional = true, permission = COMMAND_PERMISSION.ADMIN},
+    },
     console = false, -- This is meant to be a user-only command.
     cantargetself = false,
     cooldown = 6 * 60 * 60, -- Cooldown for six hours.
 
     --- @param ctx CommandContext
-    fn = function(ctx, userid)
+    fn = function(ctx, userid, value)
         if not ctx.author.userid then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING:format(
+                PEARL.CONSTS.HELP_URLS.ACCOUNT_BINDINGS
+            ))
         end
 
         if ctx.author.userid == userid then
@@ -550,7 +559,7 @@ AddCommand("giverep", {
     end,
 })
 
-AddCommand("borrowed", {
+AddAsyncCommand("borrowed", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
@@ -584,7 +593,7 @@ AddCommand("reload", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.RELOAD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.RELOAD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.SHARD},
+    options = {{name = PARAMS.SHARD.name, type = PARAMS.SHARD.type, }},
     paramsoptional = {true},
 
     --- @param ctx CommandContext
@@ -597,9 +606,8 @@ AddCommand("count", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.COUNT.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {"prefab"},
-    paramsoptional = {false},
     routing = UserCommands.SHARD_ROUTING.ALL, -- Count on all connected shards.
+    options = {PARAMS.PREFAB},
 
     --- @param ctx CommandContext
     fn = function(ctx, prefab)
@@ -641,12 +649,11 @@ AddCommand("profile", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.PROFILE.DESC,
     permission = UserCommands.PERMISSION.USER,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {true},
     -- Only admins can see profiles of other players
     parampermissions = {[UserCommands.STD_PARAMS.PLAYER] = UserCommands.PERMISSION.ADMIN},
     privateresponse = true,
-    --requiredbindings = UserCommands.BINDINGS.THIRD_PARTY,
+    params = {UserCommands.STD_PARAMS.PLAYER},
+    paramsoptional = {true},
 
     --- @param ctx CommandContext
     fn = function(ctx, userid)
@@ -660,22 +667,22 @@ AddCommand("profile", {
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
         end
 
-        return ctx:ReplyDiscordEmbed(EMBEDS.ClientProfile(playerid, record))
+        local show_moderator_info = ctx.author.permission == COMMAND_PERMISSION.ADMIN
+        return ctx:ReplyDiscordEmbed(EMBEDS.ClientProfile(playerid, record, show_moderator_info))
     end,
 })
 
 AddCommand("stats", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.DESC,
-    params = {UserCommands.STD_PARAMS.PLAYER, "typ"},
-    paramsoptional = {true, true},
-    -- Only admins can see stats of other players
-    parampermissions = {[UserCommands.STD_PARAMS.PLAYER] = UserCommands.PERMISSION.ADMIN},
     permission = COMMAND_PERMISSION.USER,
     routing = UserCommands.SHARD_ROUTING.NONE, -- Leaderboard is centralized
-    --requiredbindings = UserCommands.BINDINGS.THIRD_PARTY,
     privateresponse = true,
     console = false,
+    options = {
+        {name = PARAMS.PLAYER.NAME, type = PARAMS.PLAYER.TYPE, optional = true, permission = UserCommands.PERMISSION.ADMIN},
+        {name = "typ", type = OPTION_TYPE.STRING, optional = true}
+    },
 
     --- @param ctx CommandContext
     fn = function(ctx, userid, typ)
@@ -692,6 +699,20 @@ AddCommand("stats", {
         local username   = PEARL.DB:GetField(userid, "username", userid)
         local board      = PEARL.LeaderboardService:GetLeaderboard(typ)
         local place      = board and board:GetPositionFor(userid) or "?"
+        local minvalue   = PEARL.Reputation:GetLowestOf(userid)
+        local maxvalue   = PEARL.Reputation:GetPeakOf(userid)
+
+        if ctx.type == CommandContext.TYPE.DISCORD then
+            return ctx:ReplyDiscordData({
+                value = reputation,
+                daygains = daygains,
+                monthgains = monthgains,
+                rank = place,
+                username = username,
+                minvalue = minvalue,
+                maxvalue = maxvalue,
+            })
+        end
 
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT:format(
             place, username, reputation, daygains, monthgains
@@ -700,12 +721,13 @@ AddCommand("stats", {
 })
 
 AddCommand("leaderboard", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.DESC,
+    -- prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.PRETTYNAME,
+    -- desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.DESC,
     permission = COMMAND_PERMISSION.USER,
     routing = UserCommands.SHARD_ROUTING.NONE, -- Leaderboard is centralized
-    params = {"typ"},
-    paramsoptional = {true},
+    options = {
+        {name = "typ", optional = true, choices = STATIC_CHOICES.LEADERBOARD_TYPE}
+    },
 
     --- @param ctx CommandContext
     fn = function(ctx, typ)
@@ -738,13 +760,13 @@ AddCommand("give", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.GIVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
-    paramsoptional = {false, false, true},
-    paramtypes = {["count"] = "number"},
     instrequired = true,
+    options = {PARAMS.PLAYER, PARAMS.PREFAB, {name = "count", type = "integer", optional = true}},
 
-    --- @param count number
     --- @param ctx CommandContext
+    --- @param player PlayerInst
+    --- @oaram prefab string
+    --- @param count number?
     fn = function(ctx, player, prefab, count)
         local item, given = player.components.inventory:GiveItemPrefabCount(prefab, count)
         if not item then
@@ -774,12 +796,13 @@ AddCommand("give", {
 
 AddCommand("giveall", {
     permission = COMMAND_PERMISSION.ADMIN,
-    slash = false,
-    params = {UserCommands.STD_PARAMS.PLAYER, UserCommands.STD_PARAMS.JSON},
-    paramsoptional = {false, false},
+    slash = false, -- Would be really ackward since it doesn't support multi word parameters.
     instrequired = true,
+    options = {PARAMS.PLAYER, PARAMS.JSON},
 
     --- @param ctx CommandContext
+    --- @param player PlayerInst
+    --- @param items table<string, number>
     fn = function(ctx, player, items)
         local isactive = PEARL.ServerNetwork:HasClientActiveInstance(player.userid)
         local postfix = isactive and "" or "\n"..STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
@@ -804,13 +827,13 @@ AddCommand("take", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
-    paramsoptional = {false, false, true},
-    paramtypes = {["count"] = "number"},
     instrequired = true,
+    options = {PARAMS.PLAYER, PARAMS.PREFAB, {name = "count", type = "integer", optional = true}},
 
-    --- @param count number
     --- @param ctx CommandContext
+    --- @param player PlayerInst
+    --- @param prefab string
+    --- @param count number?
     fn = function(ctx, player, prefab, count)
         -- Take all items by default.
         count = count or math.huge
@@ -850,13 +873,17 @@ AddCommand("drop", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER, UserCommands.STD_PARAMS.PREFAB, "count"},
-    paramsoptional = {false, true, true},
-    paramtypes = {["count"] = "number"},
     instrequired = true,
+    options = {
+        PARAMS.PLAYER,
+        {name = PARAMS.PREFAB, optional = true, type = PARAMS.PREFAB.type},
+        {name = "count", type = OPTION_TYPE.INTEGER, optional = true},
+    },
 
-    --- @param count number
     --- @param ctx CommandContext
+    --- @param player PlayerInst
+    --- @param prefab string?
+    --- @param count number?
     fn = function(ctx, player, prefab, count)
         local isactive = PEARL.ServerNetwork:HasClientActiveInstance(player.userid)
         local postfix = isactive and "" or "\n"..STRINGS.PEARL.UI.CMD_WARN.SAVE_REQUIRED
@@ -903,27 +930,26 @@ AddCommand("spawn", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER, "prefab", "count"},
-    paramsoptional = {false, false, true},
-    paramtypes = {["count"] = "number"},
+    instrequired = true,
     console = false, -- Already implemented
+    options = {PARAMS.PLAYER, PARAMS.PREFAB, {name = "count", type = "integer", optional = true}},
 
-    --- @param count number
     --- @param ctx CommandContext
-    fn = function(ctx, userid, prefab, count)
-        local player = userid and LookupPlayerInstByUserID(userid)
-        local position = player and player:GetPosition()
-        if not player or not position then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-        end
-
+    --- @param player PlayerInst
+    --- @param prefab string
+    --- @param count number?
+    fn = function(ctx, player, prefab, count)
         local spawned = 0
+        local position = player and player:GetPosition()
         for _ = 1, math.max(count or 1, 1) do
             local entity = SpawnPrefab(prefab)
-            if entity and entity.Transform then
-                entity.Transform:SetPosition(position:Get())
-
-                spawned = spawned + 1
+            if entity then
+                if entity.Transform then
+                    entity.Transform:SetPosition(position:Get())
+                    spawned = spawned + 1
+                else
+                    entity:Remove()
+                end
             end
         end
 
@@ -937,13 +963,13 @@ AddCommand("removeall", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REMOVEALL.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {"prefab", "count"},
-    paramsoptional = {false, true},
     routing = UserCommands.SHARD_ROUTING.ALL, -- Run on all shards.
-    paramtypes = {["count"] = "number"},
     console = false, -- Already implemented
+    options = { PARAMS.PREFAB, {name = "count", type = "integer", optional = true} },
 
     --- @param ctx CommandContext
+    --- @param prefab string
+    --- @param count number?
     fn = function(ctx, prefab, count)
         local removedcount = 0
         for _, ent in pairs(Ents) do
@@ -967,11 +993,11 @@ AddCommand("kill", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.KILL.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {true},
     targetselfbydefault = true,
+    options = { {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, optional = true} },
 
     --- @param ctx CommandContext
+    --- @param userid string?
     fn = function(ctx, userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player or not player.components.health then
@@ -986,11 +1012,11 @@ AddCommand("revive", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {true},
     targetselfbydefault = true,
+    options = { {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, optional = true} },
 
     --- @param ctx CommandContext
+    --- @param userid string?
     fn = function(ctx, userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
@@ -1046,11 +1072,11 @@ AddCommand("despawn", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     console = false, -- Already built in
-    params = {UserCommands.STD_PARAMS.PLAYER},
-    paramsoptional = {true},
+    options = { {name = PARAMS.PLAYER.name, type = PARAMS.PLAYER.type, optional = true} },
     targetselfbydefault = true,
 
     --- @param ctx CommandContext
+    --- @param userid string?
     fn = function(ctx, userid)
         local player = userid and LookupPlayerInstByUserID(userid)
         if not player then
@@ -1086,10 +1112,10 @@ AddCommand("announce", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ANNOUNCE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     console = false, -- Already implemented for console.
-    params = {"message"},
-    paramsoptional = {false},
+    options = { {name = "message"} },
 
     --- @param ctx CommandContext
+    --- @param message string
     fn = function(ctx, message)
         TheNet:Announce(message)
     end
@@ -1099,10 +1125,13 @@ AddCommand("dm", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DM.DESC,
     permission = COMMAND_PERMISSION.USER,
-    params = {UserCommands.STD_PARAMS.PLAYER, "message"},
-    paramsoptional = {false, false},
+    options = {
+        PARAMS.PLAYER, {name = "message"}
+    },
 
     --- @param ctx CommandContext
+    --- @param userid string
+    --- @param message string
     fn = function(ctx, userid, message)
         local target = UserCommands.InputToClientTable(userid)
         if not target or not target.name then
@@ -1141,10 +1170,10 @@ AddCommand("system", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SYSTEM.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {"message"},
-    paramsoptional = {false},
+    options = { {name = "message", type = OPTION_TYPE.STRING} },
 
     --- @param ctx CommandContext
+    --- @param message string
     fn = function(ctx, message)
         TheNet:SystemMessage(message)
     end
@@ -1155,10 +1184,16 @@ AddCommand("notify", {
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTIFY.DESC,
     slash = false, -- Doesn't support multiword parameters :(
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {UserCommands.STD_PARAMS.PLAYER, "message", "title"},
-    paramsoptional = {false, false, true},
+    options = {
+        PARAMS.PLAYER,
+        {name = "message", type = OPTION_TYPE.STRING},
+        {name = "title", type = OPTION_TYPE.STRING, optional = true},
+    },
 
     --- @param ctx CommandContext
+    --- @param userid string
+    --- @param message string
+    --- @param title string?
     fn = function(ctx, userid, message, title)
         PEARL.ServerNetwork:DisplayPopupFor(userid, title, message)
 
@@ -1166,15 +1201,15 @@ AddCommand("notify", {
     end
 })
 
-AddCommand("pair", {
+AddAsyncCommand("pair", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.DESC,
     permission = COMMAND_PERMISSION.USER,
     console = false, -- Needs a valid user
-    params = {"id"},
-    paramsoptional = {false},
+    options = { {name = "id", type = OPTION_TYPE.STRING} },
 
     --- @param ctx CommandContext
+    --- @param id string
     fn = function(ctx, id)
         local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
         local userid = ctx.author.userid or id
@@ -1195,9 +1230,9 @@ AddCommand("pair", {
             error("Failed to encode verification json data!")
         end
 
-        request:SetOnComplete(function(data, self, success)
-            if not success then
-                if not self:IsRetryable() then
+        request:AddOnComplete(function(data)
+            if not request.ok then
+                if not request:IsRetryable() then
                     ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.KLEI_SERVERS_UNREACHABLE)
                 end
 
@@ -1249,10 +1284,12 @@ AddCommand("blockmod", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {"id"},
-    paramsoptional = {false},
+    options = {
+        {name = "id", type = OPTION_TYPE.STRING},
+    },
 
     --- @param ctx CommandContext
+    --- @param modid string
     fn = function(ctx, modid)
         PEARL.CONFIG.MOD_BLOCKLIST = PEARL.CONFIG.MOD_BLOCKLIST or {}
         if table.contains(PEARL.CONFIG.MOD_BLOCKLIST, modid) then
@@ -1270,18 +1307,45 @@ AddCommand("blockmod", {
     end
 })
 
+AddCommand("note", {
+    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.PRETTYNAME,
+    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.DESC,
+    permission = COMMAND_PERMISSION.ADMIN,
+    private = true,
+    options = {
+        PARAMS.PLAYER,
+        {name = "note", optional = true, type = OPTION_TYPE.STRING},
+    },
+
+    --- @param ctx CommandContext
+    --- @param userid string
+    --- @param note string?
+    fn = function(ctx, userid, note)
+        if PEARL.DB:SetField(userid, "modnote", note) then
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.ON_SUCCESS)
+        end
+
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.ON_FAILURE)
+    end
+})
+
 ------------------------------------
 -- These should be safe.
 -- They are here for debugging and special case handling purposes.
 
 AddCommand("exec", {
     permission = COMMAND_PERMISSION.ADMIN,
+    routing = UserCommands.SHARD_ROUTING.NONE,
     console = false,
     slash = false, -- Admins can use the console right away from the game.
-    params = {"command", UserCommands.STD_PARAMS.SHARD},
-    paramsoptional = {false, true},
-    routing = UserCommands.SHARD_ROUTING.NONE,
+    options = {
+        {name = "command", type = OPTION_TYPE.STRING},
+        PARAMS.SHARD
+    },
 
+    --- @param ctx CommandContext
+    --- @param command string
+    --- @param shardid? string
     fn = function(ctx, command, shardid)
         PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, command)
     end
@@ -1290,11 +1354,16 @@ AddCommand("exec", {
 AddCommand("setdbfield", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
-    params = {UserCommands.STD_PARAMS.PLAYER, "field", "value"},
-    paramsoptional = {false, false, true}, -- value can be nil
-    paramtypes = {["field"] = "string"},
+    options = {
+        PARAMS.PLAYER,
+        {name = "field", type = OPTION_TYPE.STRING},
+        {name = "value", optional = true} -- So we can "nil" the field
+    },
 
     --- @param ctx CommandContext
+    --- @param userid string
+    --- @param field string
+    --- @param value any
     fn = function(ctx, userid, field, value)
         if not PEARL.DB:IsEnabled() then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED)
@@ -1317,11 +1386,14 @@ AddCommand("setdbfield", {
 AddCommand("setrarity", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
-    params = {"prefab", "value"},
-    paramsoptional = {false, false},
-    paramtypes = {["value"] = "number"},
+    options = {
+        PARAMS.PREFAB,
+        {name = "value", type = OPTION_TYPE.NUMBER}
+    },
 
     --- @param ctx CommandContext
+    --- @param prefab string
+    --- @param value number
     fn = function(ctx, prefab, value)
         if not PEARL.CONFIG.INVENTORY_REPORTER.ENABLED then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_RARITY.ON_DISABLED)
@@ -1336,11 +1408,12 @@ AddCommand("setslots", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
-    params = {"count"},
-    paramsoptional = {false},
-    paramtypes = {["count"] = "number"},
+    options = {
+        {name = "count", type = OPTION_TYPE.NUMBER, minvalue = 1}
+    },
 
     --- @param ctx CommandContext
+    --- @param count number
     fn = function(ctx, count)
         if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
             return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
@@ -1356,10 +1429,12 @@ AddCommand("setslots", {
 AddCommand("show", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
-    params = {"player"},
-    paramsoptional = {false},
+    options = {
+        {name = UserCommands.STD_PARAMS.PLAYER}
+    },
 
     --- @param ctx CommandContext
+    --- @param userid string
     fn = function(ctx, userid)
         local record = PEARL.DB:GetRecordFor(userid)
         if not record then
@@ -1398,10 +1473,10 @@ AddCommand("sync", {
     --- @param ctx CommandContext
     fn = function(ctx)
         PEARL.DiscordProxy:SyncCommands()
-            :SetOnSuccess(function()
+            :AddOnSuccess(function()
                 ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SYNC.ON_SUCCESS)
             end)
-            :SetOnError(function()
+            :AddOnError(function()
                 ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SYNC.ON_FAILURE)
             end)
     end

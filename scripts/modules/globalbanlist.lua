@@ -90,7 +90,7 @@ local function FetchBanlistFromURL(url)
 
     return PEARL.HTTPClient:GET(url, OnBanlistFetched)
         :SetDecodeResponse(false)
-        :SetOnError(LoadBanlistFromFile)
+        :AddOnError(function() LoadBanlistFromFile(BANLIST_FILE_PATH) end)
         :Send()
 end
 

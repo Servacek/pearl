@@ -168,6 +168,10 @@ end
 --- @param message Message
 --- @return Request? request
 function CommandContext:ReplyDiscordMessage(message)
+    if self.type ~= CommandContext.TYPE.DISCORD then
+        return PEARL.error("Attempted to sent a discord message from a non-discord context!")
+    end
+
     self.replied = true
 
     -- For non-discord commands calling this function
@@ -193,8 +197,8 @@ function CommandContext:ReplyDiscordMessage(message)
 
         --- @DEBUG
         if request then
-            request:SetOnComplete(function(response, success)
-                if success then
+            request:AddOnComplete(function()
+                if request.ok then
                     return self:Reply(STRINGS.PEARL.UI.CMD_INFO.SENT_TO_THIRDPARTY)
                 end
 
@@ -204,6 +208,14 @@ function CommandContext:ReplyDiscordMessage(message)
     else
         PEARL.DiscordProxy:SendCommandResponse(self.iid, message)
     end
+end
+
+--- @param data table
+--- @return Request? request
+function CommandContext:ReplyDiscordData(data)
+    self.replied = true
+
+    PEARL.DiscordProxy:SendCommandResponse(self.iid, data)
 end
 
 --- @param embed Embed

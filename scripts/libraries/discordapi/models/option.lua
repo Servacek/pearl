@@ -104,7 +104,24 @@ end
 ------------------------------------------
 
 function Option:ToTable()
-    return deepcopy(self)
+    local t = {}
+    for k, v in pairs(self) do
+        if k == "choices" and table.empty(v) == false then
+            t.choices = {}
+            print("CHOICE!!!")
+            for i, choice in ipairs(v) do
+                t.choices[i] = choice:ToTable()
+            end
+        else
+            if type(v) == "table" then
+                t[k] = deepcopy(v)
+            end
+
+            t[k] = v
+        end
+    end
+
+    return t
 end
 
 ------------------------------------------

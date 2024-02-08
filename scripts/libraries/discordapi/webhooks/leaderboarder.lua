@@ -120,7 +120,7 @@ function LeaderBoarder:PostUpdatingMessage()
     local request = PEARL.HTTPClient.proxy:POST(self._webhook.url, nil, message:ToTable())
     if request then
         request:SetParameters(POST_MESSAGE_PARAMS)
-        request:SetOnSuccess(function(message_data)
+        request:AddOnSuccess(function(message_data)
             if type(message_data) == "table" then
                 self:SetUpdatingMessageID(message_data.id)
             end

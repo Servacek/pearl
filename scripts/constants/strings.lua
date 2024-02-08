@@ -301,6 +301,7 @@ local STRINGS = {
             NOT_SETUPED = "User has not setuped their community profile yet.",
             SYSTEM_BAN = "System Ban",
             UNKNOWN_AUTHOR = "Unknown",
+            MOD_NOTE = "**Staff Note**\n```%s```",
             NO_REASON  = "No Reason Provided",
             FOOTER_ICON = "https://cdn.discordapp.com/attachments/1066442901380403333/1190652981864042556/authentication.png",
             ACTIVE_BAN_TAG = "[Active]",
@@ -564,6 +565,12 @@ local STRINGS = {
 
         CONSOLE_DISABLED = "Disabled :)",
 
+        OPTION_CHOICES = {
+            LEADERBOARD = {
+                MONTHLY = "Monthly", ABSOLUTE = "Absolute"
+            },
+        },
+
         STATIC_BAN_REASONS = {
             NONE = "Reason not specified.",
             AUTO = "Auto-Banned for repeated violation of the rules.",
@@ -588,8 +595,6 @@ local STRINGS = {
         MODS_BLOCKED_BODY  = "Some of the mods you are using were blocked by the server.",
         MODS_BLOCKED_ALL_BODY = "All of your mods were blocked by the server.",
 
-        TIP_TOGGLE_CHAT = "Anytime you get bored with the chat, don't forget that {toggle} will toggle it for you!",
-
         WHISPER_WARN_TEXT = "Messages sent in the Whisper Mode will be only visible to nearby players. Use %s in order to display your message for everyone.",
 
         DM_DESIGNATOR = "[DM]",
@@ -600,8 +605,16 @@ local STRINGS = {
         LOADING_ERROR = "Maybe it didn't work that well at the end...",
         CONNECTION_FAILED = "Connection failed...",
 
+        PARAM_DESCRIPTIONS = {
+            ["player"] = "Identifier of the target player.",
+            ["shard"]  = "Identifier of the target shard.",
+            ["prefab"] = "Prefab code of the target entitiy.",
+
+            ["note"]   = "The note text to save for the player."
+        },
+
         CMD_ERRORS = {
-            MISSING_BINDING = "In order to use this command you need to pair your account!",
+            MISSING_BINDING = "In order to use this command you need to pair your account! Lern more at: %s",
             EXECUTION = "Error while executing the command!",
             NO_LHOOK = "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua.",
             NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",
@@ -634,6 +647,7 @@ local STRINGS = {
 
         CMD_INFO = {
             SENT_TO_THIRDPARTY = "The response was sent to discord.",
+            RECEIVED_FROM_THIRDPARTY = "Command was successfully received and processed!",
         },
 
         -- Add more translations
@@ -650,7 +664,7 @@ local STRINGS = {
 
             UNBAN = {
                 PRETTYNAME = "Unban",
-                DESC       = "Removes the given player from the blacklist. Accepts both, Klei ID and Steam ID.",
+                DESC       = "Removes the given player from the blacklist.",
 
                 ON_SUCCESS  = "Player was successfully removed the blacklist and can join back now!",
                 ON_NOTFOUND = "Player was not found on the blacklist...",
@@ -971,6 +985,14 @@ local STRINGS = {
 
                 ON_SUCCESS = "Commands successfully synchronized!",
                 ON_FAILURE = "Failed to synchronize commands with Discord!",
+            },
+
+            NOTE = {
+                PRETTYNAME = "Add Note",
+                DESC       = "Adds a note to the player's profile visible only by the staff.",
+
+                ON_SUCCESS = "Note successfully added!",
+                ON_FAILURE = "Failed to add the specified note..."
             }
         },
 
