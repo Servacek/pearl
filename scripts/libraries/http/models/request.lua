@@ -216,7 +216,8 @@ end
 --- @param decode boolean
 --- @return Request
 function Request:SetDecodeResponse(decode)
-    return self:_SetField("decode_response", decode or false, "boolean", false, true)
+    print("Request:SetDecodeResponse()", decode)
+    return self:_SetField("decode_response", decode or false, "boolean", false, false)
 end
 
 --- @param maxretries integer
@@ -502,9 +503,10 @@ function Request:OnCompleted(datastr, success, code)
     self.ok = success == true and self.code < 300 or false
 
     --- @type string|table
-    local response = datastr or ""
-    if not response:empty() and self.decode_response == true then
-        response = self:_DecodeResponse(datastr)
+    local response
+    local data = datastr or ""
+    if not data:empty() and self.decode_response == true then
+        response = self:_DecodeResponse(data)
     end
 
     self:OnStatusCode(Request.GENERIC_CODES.COMPLETE, response)
@@ -514,11 +516,11 @@ function Request:OnCompleted(datastr, success, code)
         return -- If custom handlers exist, do not call the default callbacks.
     end
 
-    if success == true then
+    if self.ok == true then
         return self:OnSuccess(response)
     end
 
-    local reason = (datastr and #datastr > 1) and datastr or "Reason unknown."
+    local reason = (#data > 1) and datastr or "Reason unknown."
     if self.code == 0 then
         reason = "Operation timed out!"
     end

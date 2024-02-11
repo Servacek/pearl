@@ -219,6 +219,16 @@ function AgreementManager:UpdateFile()
     self:Save()
 end
 
+function AgreementManager:SyncAgreementDataWithServer(agreed, datacollection, agreedintime, version)
+    PEARL.SendRPCToServer(
+        PEARL.RPC.AgreementDataReceived, agreed, datacollection, agreedintime, version
+    )
+end
+
+--------------------------------
+-- [[ Handlers ]]
+--------------------------------
+
 function AgreementManager:OnAgreed()
     -- Only save the record when we have agreed.
     return self:UpdateFile()

@@ -427,6 +427,7 @@ function DiscordProxy:SyncCommands()
     return (PEARL.HTTPClient:POST(DiscordProxy.URL.COMMANDS, function()
         PEARL.info("Commands successfully synchronized!")
     end, sync_data)
+        :SetDecodeResponse(false)
         :SetMaxRetries(0)
         :Send())
 end

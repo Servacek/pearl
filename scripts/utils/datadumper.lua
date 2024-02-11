@@ -1,3 +1,16 @@
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023-2024 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
 --[[ DataDumper.lua
 Copyright (c) 2007 Olivetti-Engineering SA
 
@@ -224,9 +237,9 @@ local function DataDumper(value, varname, fastmode, ident)
                 str[#str+1] = s
                 totallen = totallen + #s + 2
             end
-            if totallen > 80 then
+            --if totallen > 80 then
                 sep = "\n" .. string_rep("  ", ident+1)
-            end
+            --end
             str = "{"..sep..table_concat(str, ","..sep).." "..sep:sub(1,-3).."}"
             if meta then
                 sep = sep:sub(1,-3)

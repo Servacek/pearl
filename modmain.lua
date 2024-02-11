@@ -502,12 +502,27 @@ end
 -- With this implementation we are not limited to a hard coded set of languages
 -- but we are able to add our own languages without changing the code instead.
 -- Load translations only after strings.lua else they will be overriden.
-local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
-if io.exists(path) then
-    LoadTranslations(path)
-elseif PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE then
-    PEARL.error("Language", PEARL.CONFIG.LANGUAGE, "not supported!")
+do
+    local path = PEARL.SRCDIR.."languages/"..tostring(PEARL.CONFIG.LANGUAGE)..".po"
+    if io.exists(path) then
+        LoadTranslations(path)
+    elseif PEARL.CONFIG.LANGUAGE ~= PEARL.DEFAULT_LANGUAGE then
+        PEARL.error("Language", PEARL.CONFIG.LANGUAGE, "not supported!")
+    end
 end
+
+--------------------------------
+-- [[ Custom Translations ]]
+--------------------------------
+--- @TODO: Potential conflict with languageserver module
+
+PEARL.AddGlobalFunctionPostCall("TranslateStringTable", function()
+    for path, translation in pairs(PEARL.CONFIG.CUSTOM_TRANSLATIONS) do
+        print(path, translation)
+        table.pathset(GLOBAL, path, translation)
+        print(table.pathget(GLOBAL, path))
+    end
+end)
 
 --------------------------------
 -- [[ Load ]]

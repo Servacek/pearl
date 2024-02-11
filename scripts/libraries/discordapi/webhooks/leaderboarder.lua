@@ -58,9 +58,10 @@ end)
 -- [[ Setters ]]
 -------------------------------------
 
---- @param message_id string
+--- @param message_id string?
 --- @return LeaderBorder
 function LeaderBoarder:SetUpdatingMessageID(message_id)
+    PEARL.debug("LeaderBoarder:SetUpdatingMessageID", message_id)
     if message_id ~= self._message:GetID() then
         self._message:SetID(message_id)
 
@@ -139,7 +140,12 @@ end
 function LeaderBoarder:SaveIdentifier()
     local message_id = self:GetUpdatingMessageID()
     if message_id ~= nil then
-        PEARL.ModPersistance:WriteToFile(ID_FILE_PATH, message_id)
+        PEARL.info("Saving the updating message identifier", message_id)
+
+        local success, errmsg = PEARL.ModPersistance:WriteToFile(ID_FILE_PATH, message_id)
+        if not success or errmsg then
+            PEARL.error("Saving identifier failed!", errmsg)
+        end
     end
 end
 

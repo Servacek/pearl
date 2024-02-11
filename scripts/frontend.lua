@@ -65,7 +65,7 @@ PEARL.SafeModTableExtend("ASSETS", {
             AGREEMENT       = "agreement_button.tex",
             AGREEMENT_FOCUS = "agreement_button_hover.tex",
         }
-    }
+    },
 })
 
 ----------------------------------
@@ -104,6 +104,12 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
         end
     end
 end
+
+----------------------------------
+-- Custom Music Handlers
+----------------------------------
+
+PEARL.loadfile("music")
 
 ----------------------------------
 -- Game Extensions
@@ -209,6 +215,9 @@ PEARL.info("Loading preload assets...")
 PEARL.ENV.PreloadAssets = {
     Asset("PKGREF", "images/bg_loading_space.tex"),
     Asset("DYNAMIC_ATLAS", "images/bg_loading_space.xml"),
+
+    Asset("SOUNDPACKAGE",   "sound/music_mod.fev"),
+    Asset("SOUND",          "sound/music_mod.fsb"),
 
     --Asset("PKGREF", "movies/test_video.ogv")
 }

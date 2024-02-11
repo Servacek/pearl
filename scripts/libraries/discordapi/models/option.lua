@@ -82,7 +82,7 @@ end
 
 --- @param tp OptionType
 function Option.GenericFromType(tp)
-    return tostring(table.getkey(tp)):lower()
+    return tostring(table.getkey(Option.TYPE, tp)):lower()
 end
 
 function Option.FromTable(t)
@@ -108,7 +108,6 @@ function Option:ToTable()
     for k, v in pairs(self) do
         if k == "choices" and table.empty(v) == false then
             t.choices = {}
-            print("CHOICE!!!")
             for i, choice in ipairs(v) do
                 t.choices[i] = choice:ToTable()
             end
