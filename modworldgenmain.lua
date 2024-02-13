@@ -57,7 +57,7 @@ end
 local io = GLOBAL.io
 local tonumber = GLOBAL.tonumber
 
-local SEED = tonumber(GetModConfigData("SEED"))
+local SEED = tonumber(GetModConfigData("SEED") or nil)
 local rf = io.open(SEED_PATH, "r")
 if rf then
     local content = rf:read()

@@ -37,14 +37,12 @@ local function _OnActionInitialized(action)
     -- The action did not manage to become stackable during its construction,
     -- so it won't be added to the queue but logged right away.
     if not action:IsStackable() then
-        print("NON STACKABLE")
         ActionLog:LogAction(action)
         return
     end
 
     ActionLog:QueueAction(action)
     action:StartQueueTask(function()
-        print("DONE!")
         ActionLog:LogAction(action)
     end)
 end

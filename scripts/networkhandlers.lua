@@ -70,7 +70,7 @@ PEARL.OverrideUserdataValue("BanForTime", function(self, userid, seconds, reason
 end, TheNet)
 
 PEARL.AddUserDataFunctionPostCall("SetDefaultMaxPlayers", function(self, value)
-    local slots = tonumber(TheNet:GetDefaultMaxPlayers())
+    local slots = tonumber(TheNet:GetDefaultMaxPlayers() or nil)
     if slots then
         PEARL.ServerNetwork:SetClientSlots(slots)
     end

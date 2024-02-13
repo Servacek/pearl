@@ -13,7 +13,6 @@
 
 
 local PEARL = PEARL
-local AllRecipes = AllRecipes
 
 --- @class InventoryItem
 local InventoryItem = require("components/inventoryitem")

@@ -964,7 +964,7 @@ local function onplayerhitepic(doer, target, dmg, mult)
     end
 
     -- The more damage we deal to the mob, the longer will it remember us.
-    local total_dmg = (tonumber(target.components.memory:Get(doer.userid)) or 0) + dmg
+    local total_dmg = (tonumber(target.components.memory:Get(doer.userid) or nil) or 0) + dmg
     local ttl = math.min(MAX_REMEMBERING_DELAY * total_dmg / maxhealth, MAX_REMEMBERING_DELAY)
     target.components.memory:Set(doer.userid, total_dmg)
     target.components.memory:SetLifetime(doer.userid, ttl)

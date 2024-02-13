@@ -518,9 +518,7 @@ end
 
 PEARL.AddGlobalFunctionPostCall("TranslateStringTable", function()
     for path, translation in pairs(PEARL.CONFIG.CUSTOM_TRANSLATIONS) do
-        print(path, translation)
         table.pathset(GLOBAL, path, translation)
-        print(table.pathget(GLOBAL, path))
     end
 end)
 

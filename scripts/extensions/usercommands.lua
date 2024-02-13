@@ -824,7 +824,6 @@ UserCommands.AddStandardizedParam(PARAMS.PREFAB.name, function(ctx, param, valid
     end
 
     local prefab = tostring(param):lower():gsub("-", "_")
-    print(prefab, validate, PEARL.PrefabExists(prefab))
     if validate and not PEARL.PrefabExists(prefab) then
         ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
         return nil, false

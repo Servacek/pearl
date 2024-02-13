@@ -115,6 +115,7 @@ end
 function EntityScript:GetRarity()
     local rarity = PEARL.GetRarityForPrefab(self.prefab)
 
+    --- @TODO:
     print(self.components.built and self.components.built.recipe)
     local recipe = AllRecipes[self.prefab]
     if recipe then

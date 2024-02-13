@@ -97,7 +97,7 @@ end
 
 --- @return number
 function Reputation:GetOf(userid)
-    return userid and tonumber(self:GetFieldOf(userid, "value")) or Reputation.STARTING_VALUE
+    return userid and tonumber(self:GetFieldOf(userid, "value") or nil) or Reputation.STARTING_VALUE
 end
 
 --- @return number
@@ -176,13 +176,11 @@ function Reputation:SetFieldFor(userid, field, value, sync)
 
     local old = modifable[field]
     modifable[field] = value
-    print(field, value)
 
     if field == "value" and old ~= value then
         local delta = value - old
         local monthgains = self:GetMonthGainsOf(userid)
         self:SetFieldFor(userid, "monthgains", math.floor(monthgains + delta))
-        print("AFTER", "monthgains", monthgains)
         local daygains = self:GetTodayGainsOf(userid)
         self:SetFieldFor(userid, "daygains", math.floor(daygains + delta))
 

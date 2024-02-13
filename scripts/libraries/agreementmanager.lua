@@ -104,7 +104,7 @@ end
 
 --- @return number?
 function AgreementManager:GetLocalLastAgreeTime()
-    return tonumber(self:GetLocalRecordField(self.RECORD.TIME))
+    return tonumber(self:GetLocalRecordField(self.RECORD.TIME) or nil)
 end
 
 --- @return boolean uptodate Whether the file exists and it version matches with the server's (global) version.

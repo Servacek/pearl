@@ -222,7 +222,6 @@ function PlayerMetadata:OnSessionLoaded(data)
 
     self:SetAge(data.age or self._age)
     self:SetPrefab(data.prefab)
-    print("PREFAB", data.prefab)
 
     if not self._name then
         self:SetName(PEARL.DB:GetField(self._userid, "username"))

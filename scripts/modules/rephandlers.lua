@@ -22,7 +22,6 @@ if TheShard:IsSecondary() then
 end
 
 local function ResetFieldFor(userid, field)
-    print("RESET FIELD")
     PEARL.Reputation:SetFieldFor(
         userid, field, PEARL.Reputation.DEFAULT_REP_DATA.monthgains
     )

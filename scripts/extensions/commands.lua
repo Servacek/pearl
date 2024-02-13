@@ -335,33 +335,6 @@ AddCommand("invf", {
     end,
 })
 
---- @TODO: Check if this works properly
--- AddCommand("daysback", {
---     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.PRETTYNAME,
---     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC,
---     permission = COMMAND_PERMISSION.ADMIN,
---     slash = true,
---     confirm = true,
---     console = false,
---     params = { "days" },
---     paramsoptional = { false },
-
---     --- @param ctx CommandContext
-    -- fn = function(ctx)
---         if not (ctx.params and ctx.author and ctx.params.days) then
---             return
---         end
-
---         PEARL.RollbackByDays(tonumber(ctx.params.days), function(success, result)
---             if success then
---                 return TheNet:Announce(result)
---             end
-
---             PEARL.ServerNetwork:SendCommandResponse(ctx.author.userid, result)
---         end, DAYSBACK_DELAY)
---     end,
--- })
-
 --- @TODO: Migrate to the new cooldown API, keep all cooldowns on the server.
 --- Remove the unnecessary RPC call...
 -- Slash commands only
@@ -985,25 +958,6 @@ AddCommand("revive", {
         player:PushEvent("respawnfromghost", {})
     end,
 })
-
--- AddCommand("pause", {
---     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAUSE.PRETTYNAME,
---     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.PAUSE.DESC,
---     permission = COMMAND_PERMISSION.ADMIN,
---     console = true,
---     discord = true,
---     slash = true,
---     usermenu = false,
---     servermenu = false,
-
---     --- @TODO:
---     --- @param ctx CommandContext
---    fn = function(ctx)
---      -- Looks like you cannot pause an empty server.
---     -- TheNet:IsServerPaused()
---         SetServerPaused() -- Implicit Response!
---     end
--- })
 
 AddCommand("permissive", {
     permission = COMMAND_PERMISSION.ADMIN,

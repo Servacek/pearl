@@ -60,7 +60,7 @@ function PEARL.log(lv, ...)
 
     -- Accept nil as an argument
     local args = toarrayornil(...)
-    local src = (PEARL.CONFIG.DEBUG_MODE or lv == LOG_LEVELS.ERROR) and (debug.PEARL.getsrc(5) or debug.PEARL.getsrc(4))
+    local src = (PEARL.CONFIG.DEBUG_MODE or lv == LOG_LEVELS.ERROR) and (debug.PEARL.getsrc(4))
 
     local content = ""
     if type(args) == "table" then

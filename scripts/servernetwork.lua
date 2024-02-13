@@ -714,7 +714,7 @@ end
 
 function ServerNetwork:OnClientAuthenticationComplete(userid)
     -- Keep the newest data cached.
-    local client = self:CacheClientTableFor(userid)
+    self:CacheClientTableFor(userid)
 
     -- From this point we can send RPCs to the client until the disconnect event.
     connected_clients[userid] = true
@@ -723,10 +723,6 @@ function ServerNetwork:OnClientAuthenticationComplete(userid)
     -- Ensure this is true in case it isn't
     if joining_clients[userid] ~= true then
         self:OnClientJoining(userid)
-    end
-
-    if self:IsClientJoining(userid) then
-        print("----------- JOINING !!! -------------------")
     end
 end
 

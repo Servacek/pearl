@@ -41,9 +41,13 @@ local INITIAL_DELAY = 10
 -- [[ Variables ]]
 -------------------------------------
 
+--- @type Task?
 local task
 local current_version = tonumber(APP_VERSION) or 0
 local target_version = 0
+
+--- @type Request?
+local fetch_request
 
 -------------------------------------
 -- [[ Helpers ]]
@@ -81,6 +85,10 @@ local function StopVersionCheckTask()
         task:cancel()
         task = nil
     end
+end
+
+local function IsWaitingForResponse()
+    return fetch_request and fetch_request.sent and not fetch_request.completed
 end
 
 local function IsAutoUpdateEnabled()
@@ -133,6 +141,10 @@ local function CheckAppVersion()
     if current_version < target_version then
         PEARL.info("Running on an older version!")
 
+        if not task then
+            return false
+        end
+
         if IsAutoUpdateEnabled() then
             DoAutoUpdate()
             return false
@@ -152,10 +164,10 @@ local function CheckAppVersion()
     return true
 end
 
-local function OnVersionCheckQueryComplete(response)
+local function OnVersionCheckQuerySuccess(response)
     -- Try to use the optimized string based approach first, if that fails
     -- use the default json one or return zero.
-    target_version = tonumber(get_target_version_from_string(response))
+    target_version = tonumber(get_target_version_from_string(response) or nil)
         or tonumber(get_target_version(response) or nil)
         or 0
 
@@ -168,9 +180,10 @@ end
 
 local function DoVersionCheckTask()
     PEARL.debug("DoVersionCheck")
-    if target_version == 0 or CheckAppVersion() then
-        PEARL.HTTPClient:GET(
-            PEARL.CONSTS.DST_BUILDS, OnVersionCheckQueryComplete, VERSION_QUERY_TIMEOUT
+
+    if not IsWaitingForResponse() and (target_version == 0 or CheckAppVersion()) then
+        fetch_request = PEARL.HTTPClient:GET(
+            PEARL.CONSTS.DST_BUILDS, OnVersionCheckQuerySuccess, VERSION_QUERY_TIMEOUT
         ):SetDecodeResponse(false):Send()
     end
 end
@@ -178,6 +191,8 @@ end
 
 local function StartVersionCheckTask()
     PEARL.debug("Starting version check task...")
+
+    assert((tonumber(PEARL.CONFIG.VERSION_CHECKER.FREQUENCY) or -1) >= 0, "Invalid version check frequency provided! Provide a positive number.")
 
     local initialdelay = PEARL.ServerNetwork:GetConnectedClientsCount() > 0 and INITIAL_DELAY or 1
     task = PEARL.WallScheduler:ExecutePeriodic(

@@ -42,7 +42,7 @@ local function LoadTimestamp()
         return PEARL.error(err)
     end
 
-    local result = tonumber(rf:read())
+    local result = tonumber(rf:read() or nil)
     return rf:close() and result or nil
 end
 

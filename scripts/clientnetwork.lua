@@ -328,7 +328,7 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
 end)
 
 PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
-    local count =  tonumber(_server_slots and _server_slots:value())
+    local count =  tonumber(_server_slots and _server_slots:value() or nil)
     if type(count) == "number" and count > 0 then
         return count
     end

@@ -134,7 +134,6 @@ end
 local function OnRecordLoadedFor(userid, record)
     local lastban = record and record:GetLastBan()
     local banned = PEARL.BlackList:Contains(userid)
-    print("BANNED", banned, lastban)
     -- In case the user was unbanned manually by removing the userid from the blocklist.txt file.
     if lastban and lastban.timestop == nil and not banned then
         OnClientUnbanned(userid)
