@@ -568,7 +568,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
     local netprofiletimecreated = PEARL.DB:GetField(userid, "profiletimecreated")
     local gameplayed = P_STRINGS.UNKNOWN
     if hours > 0 and minutes > 0 then
-        gameplayed = MARKDOWN.codeline(STRINGS.PEARL.GAMEPLAYTIME:format(
+        gameplayed = MARKDOWN.codeline(STRINGS.PEARL.HM_TIME_FORMAT:format(
             hours, minutes
         ))
     end

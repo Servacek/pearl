@@ -11,7 +11,6 @@
 --]==]====================================================]]
 
 
-
 ----------------------------------
 -- Constants
 ----------------------------------
@@ -47,20 +46,19 @@ end)
 
 local _OnNetworkDisconnect = PEARL.GetGlobal("OnNetworkDisconnect")
 
-local disconnection_notified = false
-local disconnect_data = {}
-local disconnect_reason = nil
-local disconnected = false
-local disconnected_by_server = false
-local force_disconnected = false
-local connection_allowed = false
+local _disconnection_notified = false
+local _disconnect_data = {}
+--- @type string?
+local _disconnect_reason = nil
+local _disconnected = false
+local _disconnected_by_server = false
+local _force_disconnected = false
+local _connection_allowed = false
 
 local _hasrecord = false
 
-local cfd = {}
-
 --- @type Task?
-local timeout_task = nil
+local _timeout_task = nil
 
 ----------------------------------
 -- Class Declaration
@@ -68,6 +66,16 @@ local timeout_task = nil
 
 --- @class ClientNetwork
 local ClientNetwork = {}
+
+----------------------------------
+-- Local Functions
+----------------------------------
+
+local function OnSelfDisconnected(reason)
+    return PEARL.SendRawRPCToServer(
+        PEARL.RPC.ClientDisconnected, reason, _force_disconnected
+    )
+end
 
 ----------------------------------
 -- Public
@@ -80,8 +88,8 @@ function ClientNetwork:Disconnect(reason, from_server, immediate, reason_title)
         return PEARL.debug("Already disconnected...")
     end
 
-    disconnected_by_server = from_server == true or false
-    force_disconnected = true
+    _disconnected_by_server = from_server == true or false
+    _force_disconnected = true
 
     if not self:HasSentCFD() then
         -- In case we have been disconnected for invalid mods
@@ -126,97 +134,65 @@ end
 --- CFD = Connection Filter Data = Client Filter Data
 --- We are sending this data on the initial connection.
 function ClientNetwork:SendCFDToServer()
-    if type(cfd) ~= "table" then
-        return PEARL.error("Attempted to send invalid CFD data to server!")
-    end
-
-    self:BuildCFD()
     PEARL.info("Sending connection filter data to the server...")
-    PEARL.SendRawRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(cfd))
+    PEARL.SendRawRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(
+        self:GetConnectionData()
+    ))
 
     self:SetCFDSent(true)
     PEARL.ClientLoader:AddDeferant(DEFERANT.VERIFICATION)
     self:StartTimeout()
 end
 
-function ClientNetwork:SendAgreementData(agreed, datacollection, agreedintime, version)
-    PEARL.SendRPCToServer(
-        PEARL.RPC.AgreementDataReceived, agreed, datacollection, agreedintime, version
-    )
-end
-
-function ClientNetwork:BuildCFD()
-    cleartable(cfd)
-
-    cfd.enabled_mods    = KnownModIndex:GetModsReport()
-
-    cfd.locale          = TheNet:GetCountryCode()
-    cfd.username        = TheNet:GetLocalUserName()
-
-    cfd.platform        = PLATFORM
-
-    return cfd
+function ClientNetwork:GetConnectionData()
+    return {
+        enabled_mods    = KnownModIndex:GetModsReport(),
+        locale          = TheNet:GetCountryCode(),
+        username        = TheNet:GetLocalUserName(),
+        platform        = PLATFORM,
+    }
 end
 
 function ClientNetwork:NotifyNetworkDisconnect()
     PEARL.debug("ClientNetwork:NotifyNetworkDisconnect")
-    disconnection_notified = true
+    _disconnection_notified = true
 
     -- Call the original non-hooked function to prevent any loops.
-    return _OnNetworkDisconnect(unpack(disconnect_data))
+    return _OnNetworkDisconnect(unpack(_disconnect_data))
 end
 
 ----------------------------------
 -- Setters
 ----------------------------------
 
--- function ClientNetwork:SetIsWaitingForResponse(waiting)
---     PEARL.GameInstParams:SetModParam("waiting_for_response", waiting)
--- end
-
-function ClientNetwork:SetIsConnectionAllowed(allowed)
-    connection_allowed = allowed
-end
-
 function ClientNetwork:SetCFDSent(sent)
     PEARL.GameInstParams:SetModParam("cfd_sent", sent)
 end
 
-function ClientNetwork:SetDisconnectionData(data)
-    disconnect_data = data
-end
-
-function ClientNetwork:SetDisconnectioReason(reason)
-    disconnect_reason = reason
-end
-
 function ClientNetwork:StartTimeout()
-    if timeout_task then
+    if _timeout_task then
         return PEARL.debug("Timeout task already running!")
     end
 
     PEARL.debug("Starting timeout task!")
-    timeout_task = PEARL.StaticScheduler:ExecuteInTime(TIMEOUT,
+    _timeout_task = PEARL.StaticScheduler:ExecuteInTime(TIMEOUT,
         self.OnTimeout, nil, self
     )
 end
 
 function ClientNetwork:CancelTimeout()
-    if timeout_task ~= nil then
-        timeout_task:Cancel()
-        timeout_task = nil
+    if _timeout_task ~= nil then
+        _timeout_task:Cancel()
+        _timeout_task = nil
     end
 end
 
 ----------------------------------
 -- Getters
 ----------------------------------
-function ClientNetwork:IsConnectionAllowed()
-    return connection_allowed
-end
 
 function ClientNetwork:IsWaitingForResponse()
-    return timeout_task ~= nil
+    return _timeout_task ~= nil
 end
 
 function ClientNetwork:GetHostPerformance()
@@ -230,11 +206,11 @@ end
 
 --- @return string?
 function ClientNetwork:GetDisconnectReason()
-    return disconnect_reason
+    return _disconnect_reason
 end
 
 function ClientNetwork:IsDisconnected()
-    return disconnected or disconnected_by_server or force_disconnected
+    return _disconnected or _disconnected_by_server or _force_disconnected
 end
 
 function ClientNetwork:JoinedFirstTime()
@@ -258,7 +234,7 @@ function ClientNetwork:OnTimeout()
     PEARL.info("ClientNetwork:OnTimeout")
     self:CancelTimeout()
 
-    if self:IsConnectionAllowed() then
+    if _connection_allowed then
         return
     end
 
@@ -279,25 +255,17 @@ function ClientNetwork:OnConnectionAllowed(initial)
     -- This is for backwards compatibility when the database
     -- doesn't have a record yet but we have already agreed to the agreement.
     _hasrecord = initial == false
-    if initial == true and PEARL.AgreementManager:HasRecord() then
-        local version = PEARL.AgreementManager:GetLocalVersion()
-        self:SendAgreementData(true, true, nil, version)
-    end
 
-    if self:IsDisconnected() or self:IsConnectionAllowed() then
+    if self:IsDisconnected() or _connection_allowed then
         return -- Server already responded - Ignore
     end
 
-    self:SetIsConnectionAllowed(true)
+    _connection_allowed = true
     PEARL.EventProcessor:HandleEvent("connection_allowed", initial)
 
     -- If the connection is allowed, remove the deferant
     -- potentially loading the client as well if we are the last one.
     return PEARL.ClientLoader:RemoveDeferant(DEFERANT.VERIFICATION)
-end
-
-function ClientNetwork:OnConnectionClosed(reason)
-    return PEARL.SendRawRPCToServer(PEARL.RPC.ClientDisconnected, reason, force_disconnected)
 end
 
 ----------------------------------
@@ -312,13 +280,13 @@ PEARL.AddFrontEndPostInit(function(fe)
         ClientNetwork:SendCFDToServer()
     end
 
-    if table.empty(disconnect_data) == false then
+    if table.empty(_disconnect_data) == false then
         return ClientNetwork:NotifyNetworkDisconnect()
     end
 end)
 
 PEARL.AddUserDataFunctionPreCall("Disconnect", function()
-    disconnected = true
+    _disconnected = true
 end, TheNet)
 
 -- Also try to let the server known why we have been disconnected.
@@ -330,8 +298,8 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
 
     -- We have already showed a disconnection popup to the user
     -- Show only the first one.
-    if disconnection_notified then
-        local old_reason_priority = tonumber(DISCONNECT_REASON_PRIORITIES[disconnect_reason]) or 0
+    if _disconnection_notified then
+        local old_reason_priority = tonumber(DISCONNECT_REASON_PRIORITIES[_disconnect_reason]) or 0
         local new_reason_priority = tonumber(DISCONNECT_REASON_PRIORITIES[reason]) or 0
         if old_reason_priority >= new_reason_priority then
             PEARL.debug("Already disconnected!")
@@ -340,26 +308,23 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     end
 
     --- Only notify the server if he isn't the cause.
-    if not disconnected_by_server then
-        ClientNetwork:OnConnectionClosed(reason)
+    if not _disconnected_by_server then
+        OnSelfDisconnected(reason)
     end
 
-    ClientNetwork:SetDisconnectioReason(reason)
-    -- Record only the first disconnection
-    ClientNetwork:SetDisconnectionData({
-        reason, should_reset, immediate, ...
-    })
+    _disconnect_reason = reason
+    _disconnect_data = {reason, should_reset, immediate, ...}
 
     -- If we have FE already loaded, there is nothing to wait for.
     -- Or if the restart should be immediate in which case we do not touch the FE at all.
-    -- Show only the first popup.
     if (TheFrontEnd ~= nil or immediate) then
-        return ClientNetwork:NotifyNetworkDisconnect()
+        ClientNetwork:NotifyNetworkDisconnect()
+    else
+        PEARL.debug("Deffering OnNetworkDisconnect until FE is ready...")
     end
 
-    -- If we have no FE then do not execute this yet.
-    -- It would cause a crash...
-    PEARL.debug("Deffering OnNetworkDisconnect")
+    -- Call this after the potential popup is shown, so it can manage it.
+    PEARL.EventProcessor:HandleEvent("connection_closed", reason)
 end)
 
 PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()

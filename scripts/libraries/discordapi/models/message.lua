@@ -265,7 +265,7 @@ function Message:SetContent(content)
     return self
 end
 
---- @param id string
+--- @param id string?
 function Message:SetID(id)
     self._id = id
 

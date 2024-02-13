@@ -614,7 +614,7 @@ local STRINGS = {
         },
 
         CMD_ERRORS = {
-            MISSING_BINDING = "In order to use this command you need to pair your account! Lern more at: %s",
+            MISSING_BINDING = "In order to use this command you need to pair your account! Lern more at:\n%s",
             EXECUTION = "Error while executing the command!",
             NO_LHOOK = "Logging webhook is disabled! Enable 'LHOOK' in modoverrides.lua.",
             NO_RHOOK = "Report webhook is disabled! Enable 'RHOOK' in modoverrides.lua.",

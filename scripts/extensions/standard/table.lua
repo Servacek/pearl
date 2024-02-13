@@ -178,6 +178,48 @@ function table:getkey(value)
     end
 end
 
+function table.pathget(t, path)
+    local value = t
+    for key in path:gmatch("[^%.]+") do
+        if type(value) ~= "table" then
+            return nil -- If any intermediate value is not a table, return nil
+        end
+
+        value = rawget(value, key) or rawget(value, tonumber(key))
+        if value == nil then
+            return nil -- If any key doesn't exist, return nil
+        end
+    end
+
+    return value
+end
+
+function table.pathset(t, path, new)
+    local last_key
+    local value = t -- We use this so t is the previous value
+    for key in path:gmatch("[^%.]+") do
+        if type(value) ~= "table" then
+            return nil -- If any intermediate value is not a table, return nil
+        end
+
+        t = value
+        value = rawget(value, key)
+        if value == nil then
+            key = tonumber(key)
+            value = rawget(value, key)
+            if value == nil then
+                return -- If any key doesn't exist, return nil
+            end
+        end
+
+        last_key = key
+    end
+
+    if last_key ~= nil then
+        rawset(t, last_key, new)
+    end
+end
+
 function table.rcontains(t, value)
     for _, v in pairs(t) do
         if v == value then

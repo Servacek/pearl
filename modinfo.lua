@@ -252,6 +252,13 @@ configuration_options = {
     },
 
     {
+        name = "CUSTOM_TRANSLATIONS",
+        default = {},
+        type = "table<string, string>",
+        public = true,
+    },
+
+    {
         name="PROFANITY_FILTERS",
         default= {
             default = true,

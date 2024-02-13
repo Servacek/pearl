@@ -82,7 +82,9 @@ local function OnPlayerFinishedAgreement(data)
     local agreed_version = PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version
     local datacollection = data.datacollection or false
 
-    PEARL.ClientNetwork:SendAgreementData(agreed, datacollection, agreedintime, agreed_version)
+    PEARL.AgreementManager:SyncAgreementDataWithServer(
+        agreed, datacollection, agreedintime, agreed_version
+    )
 end
 
 local function OnDisagreeConfirmed(data)
@@ -231,6 +233,16 @@ OnPlayerEnteredGame = function(world)
     end)
 end
 
+local function OnConnectionAllowed(initial)
+    if initial == true and PEARL.AgreementManager:HasRecord() then
+        local version = PEARL.AgreementManager:GetLocalVersion()
+
+        PEARL.AgreementManager:SyncAgreementDataWithServer(
+            true, true, nil, version
+        )
+    end
+end
+
 --------------------------------------
 -- [[ Setup ]]
 --------------------------------------
@@ -246,3 +258,5 @@ if PEARL.AgreementManager:IsEnabled() and not PEARL.AgreementManager:IsUpToDate(
         world:ListenForEvent("entercharacterselect", OnPlayerEnteredGame)
     end)
 end
+
+PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", OnConnectionAllowed)

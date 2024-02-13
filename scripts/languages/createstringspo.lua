@@ -41,23 +41,6 @@ local function write_text(file, path, msgid, msgstr)
 	file:write("\n\n")
 end
 
-local function getvbypath(t, path)
-    --print(path)
-    local value = t
-    for key in path:gmatch("[^%.]+") do
-        if type(value) ~= "table" then
-            return nil -- If any intermediate value is not a table, return nil
-        end
-
-        value = value[key] or value[tonumber(key)]
-        if value == nil then
-            return nil -- If any key doesn't exist, return nil
-        end
-    end
-
-    return value
-end
-
 local function WriteUntranslatedModStrings(base, original, translated, file)
     -- We are traversing the actual table from strings.lua
     -- These always start with STRINGS.PEARL
@@ -68,7 +51,7 @@ local function WriteUntranslatedModStrings(base, original, translated, file)
 		if type(v) == "table" then
 			WriteUntranslatedModStrings(path, v, translated, file)
 		elseif translated[path] == nil then
-			local msgid = getvbypath(original, path:sub(#base + 2)) or ""
+			local msgid = table.pathget(original, path:sub(#base + 2)) or ""
 			msgid = string.gsub(msgid, "\n", "\\n")
 			msgid = string.gsub(msgid, "\r", "\\r")
 			msgid = string.gsub(msgid, "\"", "\\\"")
@@ -84,7 +67,7 @@ local function WriteTranslatedStrings(base, original, translated, file)
     -- Some of these may not base in STRINGS.PEARL
 	for path, msgstr in pairs(translated) do
         msgstr = normalize(msgstr)
-        local msgid = normalize(getvbypath(original, path:sub(#base + 2)) or "")
+        local msgid = normalize(table.pathget(original, path:sub(#base + 2)) or "")
 
         local tmatchers = #msgstr:findall(STRING_MATCH_CHAR)
         local omatchers = #msgid:findall(STRING_MATCH_CHAR)

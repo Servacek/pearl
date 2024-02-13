@@ -112,22 +112,20 @@ function Command.FromGameAPICommand(cmd)
         command.default_member_permissions = ADMIN_COMMAND_DEFAULT_PERMISSIONS
     end
 
-    if table.empty(cmd.params) == false then
+    if table.empty(cmd.options) == false then
         command.options = {}
-        for i, paramname in ipairs(cmd.params) do
-            local type = Option.TypeFromGeneric(cmd.paramtypes and cmd.paramtypes[paramname] or DEFAULT_OPTION_TYPE)
+        for i, cmdopt in ipairs(cmd.options) do
             --- @type Option
-            local option = Option(type, paramname)
+            local option = Option(Option.TypeFromGeneric(cmdopt.type), cmdopt.name)
             option.required = not cmd.paramsoptional or cmd.paramsoptional[i] ~= true
 
-            local cmd_option = cmd.options and cmd.options[i]
-            option.description = (cmd_option and cmd_option.description) or STRINGS.PEARL.UI.PARAM_DESCRIPTIONS[paramname]
-            option.autocomplete = cmd_option and cmd_option.autocomplete
-            option.choices = cmd_option and cmd_option.choices -- Its already a list of Choice objects.
-            option.min_value = cmd_option.minvalue
-            option.max_value = cmd_option.maxvalue
-            option.max_length = cmd_option.maxlength
-            option.min_length = cmd_option.minlength
+            option.description = (cmdopt and cmdopt.description) or STRINGS.PEARL.UI.PARAM_DESCRIPTIONS[cmdopt.name]
+            option.autocomplete = cmdopt and cmdopt.autocomplete
+            option.choices = cmdopt and cmdopt.choices -- Its already a list of Choice objects.
+            option.min_value = cmdopt.min_value
+            option.max_value = cmdopt.max_value
+            option.max_length = cmdopt.max_length
+            option.min_length = cmdopt.min_length
 
             command.options[i] = option
         end
