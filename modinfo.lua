@@ -86,9 +86,7 @@ configuration_options = {
             BHOOK = {
                 ID      = "",
                 TOKEN   = "",
-                ENABLED = true,
-
-                MESSAGE_ID = "",
+                ENABLED = false,
             },
 
             PROXY = {
@@ -182,7 +180,6 @@ configuration_options = {
         name = "DATABASE",
         default = {
             ENABLED = false,
-            FOLDER = ".", -- "data" folder by default
             ENCODE_DATA = false,
             DIRECTORIES = {
                 ROOT = ".",
