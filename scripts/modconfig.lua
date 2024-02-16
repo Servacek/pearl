@@ -275,7 +275,8 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     -- If there are some conflicts, it's better to crash before we sent them to the public.
     VerifyConfigOverridesForMod(PEARL.MODNAME)
 
-    local data_str = ModConfig:GetEnabledServerModsConfigDataString(PEARL.CONFIG.HIDE_SERVER_ONLY_MODS)
+    local data = ModConfig:GetEnabledServerModsConfigData(PEARL.CONFIG.HIDE_SERVER_ONLY_MODS)
+    local data_str = DataDumper(data, nil, false)
 
     if PEARL.CONFIG.DEBUG_MODE then
         TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:")
@@ -286,6 +287,15 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
 
     return data_str
 end)
+
+-- local _GetEnabledModsModInfoDetails = rawget(_G, "GetEnabledModsModInfoDetails")
+-- rawset(_G, "GetEnabledModsModInfoDetails", function(...)
+--     local details = _GetEnabledModsModInfoDetails(...)
+
+--     -- Do some changes...
+
+--     return details
+-- end)
 
 -------------------------------------
 -- [[ Return ]]

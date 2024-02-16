@@ -200,6 +200,8 @@ GLOBAL.PEARL = setmetatable({
     INIT_FULL           = TheSim:GetNumLaunches() == 2,
     LAUNCHES            = TheSim:GetNumLaunches(),
 
+    PREFAB              = "MOD_"..modname,
+
     BACKUP_ID           = "3122299418",--"2924921999",
 
     --- @type string?
@@ -668,8 +670,36 @@ if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
 
+    -- for _, dependency in ipairs(PEARL.MOD_INFO.mod_dependencies) do
+    --     TheSim:QueueDownloadTempMod(dependency.workshop)
+    -- end
+
+    -- TheSim:StartDownloadTempMods(function( success, msg )
+    --     for _, dependency in ipairs(PEARL.MOD_INFO.mod_dependencies) do
+    --         KnownModIndex:TempEnable(dependency.workshop)
+
+    --         local initenv = KnownModIndex:GetModInfo(dependency.workshop)
+	-- 		local env = CreateEnvironment(dependency.workshop, ModManager.worldgen)
+	-- 		env.modinfo = initenv
+
+    --         print("INSTALLING MOD", dependency.workshop)
+    --         ModManager:InitializeModMain(env.modname, env, "modmain.lua")
+    --     end
+
+    --     print("DOWNLOADED!", success, msg)
+    --     PEARL.WallScheduler:ExecuteInTime(0, function()
+    --         PEARL.ClientLoader:RemoveDeferant("dependencies")
+    --     end)
+    -- end)
+
+    -- PEARL.ClientLoader:AddDeferant("dependencies")
+
     PEARL.info("Loading mod FE done.")
 end
+
+PEARL.AddGlobalFunctionPreCall("ProcessJsonMessage", function(message)
+    PEARL.debug("ProcessJsonMessage:", message)
+end)
 
 --------------------------------
 -- [[ Commmon Modules ]]

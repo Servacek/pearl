@@ -563,6 +563,9 @@ local STRINGS = {
     UI = {
         DEFAULT_POPUP_TITLE = "Notification",
 
+        CLIENTERROR_DETAIL_SELF = "The error was reported to the server owner.\nWe will make sure to take a look into it!",
+        CLIENTERROR_DETAIL = "The error was reported to the server owner.",
+
         CONSOLE_DISABLED = "Disabled :)",
 
         OPTION_CHOICES = {

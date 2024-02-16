@@ -73,6 +73,35 @@ local EMOTES = {
         RMB             = STRINGS.RMB,
     },
 
+    CUSTOM_GAME = {
+        ["anojdgurl"] = "󰂠",
+        ["cat_angry"] = "󰂡",
+        ["catto"] = "󰂢",
+        ["conceited_reaction"] = "󰂣",
+        ["doublefacepalm"] = "󰂤",
+        ["facepalm"] = "󰂥",
+        ["free_real_estate"] = "󰂦",
+        ["gooddoggo"] = "󰂧",
+        ["harold"] = "󰂨",
+        ["heh"] = "󰂩",
+        ["kekleo"] = "󰂪",
+        ["kekw"] = "󰂫",
+        ["krtek_ewww"] = "󰂬",
+        ["risitas"] = "󰂭",
+        ["skillIssue"] = "󰂮",
+        ["stare"] = "󰂯",
+        ["takjo"] = "󰂰",
+        ["webber_damage"] = "󰂱",
+        ["wes_annoyed"] = "󰂲",
+        ["wesluv"] = "󰂳",
+        ["wigfrid_ping"] = "󰂴",
+        ["willowkys"] = "󰂵",
+        ["wilson_thong"] = "󰂶",
+        ["wilson_why"] = "󰂷",
+        ["wormwoodFire"] = "󰂸",
+        ["yeah"] = "󰂹",
+    },
+
     --- @class EMOTES.DISCORD
     -- Converts a game utf-8 formatted emote to a discord emoji
     MAP_DISCORD = {

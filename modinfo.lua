@@ -9,6 +9,8 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
+--- Provided by the environment:
+--- folder_name, locale, ChooseTranslationTable
 
 
 ---@diagnostic disable: lowercase-global
@@ -18,7 +20,7 @@ backend_name = "PearlOS"
 author = "Fi7iP"
 version = "Alpha 3.0"
 description = [[
-    “Nothin' wrong with being independent.” - Winona
+    “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
 
 priority = 2^31-2
@@ -34,6 +36,10 @@ all_clients_require_mod = true
 
 api_version = 10
 forumthread = ""
+
+mod_dependencies = {
+    {workshop = "workshop-3033694168"} -- Better Wormwood font for better language support
+}
 
 -------------------------------------
 -- [[ Mod Specific Server Tags ]]

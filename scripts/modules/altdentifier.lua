@@ -102,7 +102,7 @@ local function OnGameOwnerQueryFailed(response, http_code, request, userid)
     end
 end
 
-local function OnQueryCompleted(response, success, code, request, userid, oncomplete)
+local function OnQueryCompleted(response, request, userid, oncomplete)
     local valid = type(response) == "table"
 
     local rootid = response.ParentAccount
@@ -111,7 +111,7 @@ local function OnQueryCompleted(response, success, code, request, userid, oncomp
     end
 
     -- response.Error refers to a boolean
-    if not success or not valid or response.Error == true then
+    if not request.ok or not valid or response.Error == true then
         OnGameOwnerQueryFailed(response, response.ErrorCode or -1, request, userid)
     end
 

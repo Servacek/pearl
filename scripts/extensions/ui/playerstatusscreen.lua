@@ -68,7 +68,7 @@ local STATE_LABEL_DATA = {
         text = STRINGS.PEARL.UI.UNREACHABLE, colour = WEBCOLOURS.RED,
     },
     [DiscordProxy.STATE.STOPPED] = {
-        text = STRINGS.PEARL.UI.OFFLINE, colour = WEBCOLOURS.DARKGREY,
+        text = STRINGS.PEARL.UI.OFFLINE, colour = GREY,
     },
     [DiscordProxy.STATE.RUNNING] = {
         text = STRINGS.PEARL.UI.ONLINE, colour = WEBCOLOURS.GREEN
@@ -79,7 +79,7 @@ local STATE_LABEL_DATA = {
 }
 
 local DEFAULT_STATE_LABEL_DATA = {
-    text = STRINGS.PEARL.LOGS.UNKNOWN, colour = WEBCOLOURS.DARKER_GREY
+    text = STRINGS.PEARL.LOGS.UNKNOWN, colour = GREY
 }
 
 ---------------------------

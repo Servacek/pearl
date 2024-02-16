@@ -51,6 +51,7 @@ local function WriteUntranslatedModStrings(base, original, translated, file)
 		if type(v) == "table" then
 			WriteUntranslatedModStrings(path, v, translated, file)
 		elseif translated[path] == nil then
+            print(path)
 			local msgid = table.pathget(original, path:sub(#base + 2)) or ""
 			msgid = string.gsub(msgid, "\n", "\\n")
 			msgid = string.gsub(msgid, "\r", "\\r")
@@ -104,6 +105,7 @@ return function(filename, original, translated)
 
 	WriteTranslatedStrings("STRINGS", original, translated, file)
 	WriteUntranslatedModStrings("STRINGS.PEARL", original.PEARL, shallowcopy(translated), file)
+    WriteUntranslatedModStrings("STRINGS.UI.PAUSEMENU", original.UI.PAUSEMENU, {}, file)
 
 	file:close()
 end

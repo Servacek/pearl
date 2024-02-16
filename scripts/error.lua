@@ -22,7 +22,7 @@
 -- [[ Constants ]]
 --------------------------------
 
-local MOD_AFFLICTER_PATTERN = "%#?%[string \"../mods/([^/]+)/.*\"%]%:"
+local MOD_AFFLICTER_PATTERN = "../mods/([^/]+)/.+" --"%#?%[string \"../mods/([^/]+)/.*\"%]%:"
 
 --------------------------------
 -- [[ Locals ]]
@@ -39,8 +39,6 @@ local function OnClientError(traceback)
             PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
 
             ModManager:RemoveBadMod(afflicter_modname, traceback)
-            -- Make sure we call this only when all afflicter mods exist.
-            ModManager:DisplayBadMods()
         end
     end
 
@@ -63,6 +61,20 @@ local function OnClientError(traceback)
     end
 
     -- Do not force abort here in case we are displaying the error.
+    if KnownModIndex:IsModKnownBad(afflicter_modname) then
+        -- Make sure we call this only when all afflicter mods exist.
+        -- Only the first error will be shown (so this one should be the first)
+        ModManager:DisplayBadMods()
+
+        if global_error_widget and global_error_widget.additionaltext then
+            if afflicter_modname == PEARL.MODNAME then
+                global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF)
+            else
+                local str = global_error_widget.additionaltext:GetString()
+                global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL.."\n"..(str or ""))
+            end
+        end
+    end
 end
 
 local function OnServerError(traceback)
@@ -116,6 +128,8 @@ end)
 ----------------------------------
 
 PEARL.AddRawServerRPCHandler("ClientError", function(userid, datastr)
+    PEARL.debug("ClientError", userid)
+
     if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
         return PEARL.error("Client", userid, "crashed! Reports to discord are either disabled or not initialized!", datastr)
     end
@@ -144,7 +158,7 @@ function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname)
         mod = {
             id          = GetWorkshopIdNumber(afflicter_modname),
             fancyname   = GetModFancyName(afflicter_modname),
-            disabled    = KnownModIndex:IsModKnownBad(afflicter_modname),
+            disabled    = KnownModIndex:IsModKnownBad(afflicter_modname) and not KnownModIndex:IsModTempEnabled(afflicter_modname),
         }
     end
 
