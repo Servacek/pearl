@@ -51,11 +51,14 @@ local function WriteUntranslatedModStrings(base, original, translated, file)
 		if type(v) == "table" then
 			WriteUntranslatedModStrings(path, v, translated, file)
 		elseif translated[path] == nil then
-            print(path)
 			local msgid = table.pathget(original, path:sub(#base + 2)) or ""
 			msgid = string.gsub(msgid, "\n", "\\n")
 			msgid = string.gsub(msgid, "\r", "\\r")
 			msgid = string.gsub(msgid, "\"", "\\\"")
+
+            if not msgid or msgid == "" then
+                PEARL.warn("Translation", path, "doesn't map to an existing string!")
+            end
 
 			write_text(file, path, msgid, "")
 		end
@@ -105,7 +108,9 @@ return function(filename, original, translated)
 
 	WriteTranslatedStrings("STRINGS", original, translated, file)
 	WriteUntranslatedModStrings("STRINGS.PEARL", original.PEARL, shallowcopy(translated), file)
-    WriteUntranslatedModStrings("STRINGS.UI.PAUSEMENU", original.UI.PAUSEMENU, {}, file)
+    --WriteUntranslatedModStrings("STRINGS.UI.PAUSEMENU", original.UI.PAUSEMENU, {}, file)
+    --WriteUntranslatedModStrings("STRINGS.UI.LOBBYSCREEN", original.UI.LOBBYSCREEN, {}, file)
+    --WriteUntranslatedModStrings("STRINGS.UI.BUILTINCOMMANDS", original.UI.BUILTINCOMMANDS, {}, file)
 
 	file:close()
 end

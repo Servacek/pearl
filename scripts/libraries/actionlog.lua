@@ -50,12 +50,10 @@ end
 --- @param pattern string
 --- @return QueuedLogAction
 local function _InitializeAction(pattern)
-    print("initialize action")
     local action = QueuedLogAction(pattern)
 
     -- Wait a tick until the action is fully constructed.
     return action:SetQueueTask(PEARL.WallScheduler:ExecutePeriodic(0, function()
-        print("INIT")
         _OnActionInitialized(action)
     end, 2)) -- 1. Initialization, 2. Queue (optional)
 end
@@ -99,18 +97,17 @@ function ActionLog:LogAction(action)
     PEARL.debug("ActionLog:LogAction")
     local index = self:GetQueuedActionIndex(action.pattern) or 1
     for i = 1, index do
-        if i ~= index then
-            print("LOGGING PREVIOUS ACTION", i)
-        end
         local queued = self._queue[self._queueindex[i]]
-        self:DequeueAction(queued.pattern)
+        if queued then
+            self:DequeueAction(queued.pattern)
 
-        -- Prevent the action from being logged twice.
-        queued:CancelQueueTask()
+            -- Prevent the action from being logged twice.
+            queued:CancelQueueTask()
 
-        self:Log(
-            queued.colorentity, queued.logtype, queued:GetString(), queued.silent, queued.icon
-        )
+            self:Log(
+                queued.colorentity, queued.logtype, queued:GetString(), queued.silent, queued.icon
+            )
+        end
     end
 end
 

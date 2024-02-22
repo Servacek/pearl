@@ -21,16 +21,10 @@ if TheShard:IsSecondary() then
     end)
 end
 
-local function ResetFieldFor(userid, field)
-    PEARL.Reputation:SetFieldFor(
-        userid, field, PEARL.Reputation.DEFAULT_REP_DATA.monthgains
-    )
-end
-
 local function ResetFieldForActivePlayers(field)
     -- For active players within the shard (writable records)
     for userid, _ in ipairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
-        ResetFieldFor(userid, field)
+        PEARL.Reputation:ResetFieldFor(userid, field)
     end
 end
 
@@ -43,6 +37,11 @@ PEARL.EventProcessor:AddSafeEventHandler("newday", function()
     ResetFieldForActivePlayers("daygains")
 end)
 
+PEARL.EventProcessor:AddSafeEventHandler("clientbanned", function(userid)
+    -- Reset the reputation fields in case of an unban.
+    PEARL.Reputation:ResetFor(userid)
+end)
+
 --- @param record PlayerRecord
 PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, record)
     if record and userid and record:IsWriteable() then
@@ -53,10 +52,10 @@ PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, rec
             local yearmismatch = lastseentimetbl.year ~= currenttimetbl.year
             local monthmismatch = lastseentimetbl.month ~= currenttimetbl.month
             if lastseentimetbl.day ~= currenttimetbl.day or monthmismatch or yearmismatch then
-                ResetFieldFor(userid, "daygains")
+                PEARL.Reputation:ResetFieldFor(userid, "daygains")
 
                 if monthmismatch or yearmismatch then
-                    ResetFieldFor(userid, "monthgains")
+                    PEARL.Reputation:ResetFieldFor(userid, "monthgains")
                 end
             end
         end
@@ -67,7 +66,7 @@ PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, rec
             local cycle = TheWorld.state.cycles
             local sessionid = TheNet:GetSessionIdentifier()
             if cycle ~= lastcycle or lastsessionid ~= sessionid then
-                ResetFieldFor(userid, "cyclegains")
+                PEARL.Reputation:ResetFieldFor(userid, "cyclegains")
             end
         end
     end

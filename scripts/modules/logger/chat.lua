@@ -179,6 +179,6 @@ PEARL.AddGlobalFunctionPreCall("Networking_SystemMessage", OnSystemMessage)
 -- [[ Event Listeners ]]
 -----------------------------
 
-PEARL.EventProcessor:AddEventHandler("chat_message", OnChatMessage)
-PEARL.EventProcessor:AddEventHandler("chat_system_message", OnSystemMessage)
-PEARL.EventProcessor:AddEventHandler("chat_announcement", OnAnnouncement)
+PEARL.EventProcessor:AddSafeEventHandler("chat_message", OnChatMessage)
+PEARL.EventProcessor:AddSafeEventHandler("chat_system_message", OnSystemMessage)
+PEARL.EventProcessor:AddSafeEventHandler("chat_announcement", OnAnnouncement)

@@ -390,6 +390,13 @@ configuration_options = {
     },
 
     {
+        name = "EMPTY_SERVER_POPUP",
+        default = true,
+        type = "boolean",
+        public = true,
+    },
+
+    {
         name = "HIDE_SERVER_ONLY_MODS",
         default = false,
         options = {

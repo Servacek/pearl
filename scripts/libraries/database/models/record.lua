@@ -21,16 +21,19 @@ local rawget, rawset =  rawget, rawset
 -- [[ Constants ]]
 ------------------------------------------
 
---- Put default non-dynamic record data here.
-local DEFAULT_FIELDS = {
-    joinedtime = nil,
+--- In case the value is function (functions cannot be JSON serialized) the function
+--- is called and it's return value is used as the default value instead.
+--- This allows for dynamic default values.
+--- @type table<string, number|boolean|string|table|fun(userid: string): number|boolean|string|table>
+local DEFAULT_FIELD_VALUES = {
     totaldays = 0,
     daysalive = 0,
     deathscount = 0,
-    netid = nil,
-    agreement = {
-        --collectdata = false,
-    },
+
+    joinedtime = function(userid) return os.time() end,
+    netid = function(userid) return TheNet:GetNetIdForUser(userid) end,
+    userid = function(userid) return userid end,
+    username = function(userid) return PEARL.GetUserName(userid) end,
 }
 
 local TOSTRING_PT = "<DatabaseRecord %s>[uptodate=%s]"
@@ -59,12 +62,12 @@ end)
 -- [[ Static Fields ]]
 ------------------------------------------
 
-PlayerRecord.TEMPLATE = DEFAULT_FIELDS
+PlayerRecord.TEMPLATE = DEFAULT_FIELD_VALUES
 
 --- @param userid string
 --- @return PlayerRecord
 function PlayerRecord.New(userid)
-    local data = deepcopy(DEFAULT_FIELDS)
+    local data = deepcopy(DEFAULT_FIELD_VALUES)
     data.joinedtime = os.time()
 
     local record = PlayerRecord(userid, data)
@@ -176,11 +179,15 @@ end
 -- [[ Public Functions ]]
 ------------------------------------------
 
-function PlayerRecord:Validate()
+function PlayerRecord:Validate(userid)
     --- Backwards compatibility in case we add new default fields.
-    for field, value in pairs(DEFAULT_FIELDS) do
+    for field, value in pairs(DEFAULT_FIELD_VALUES) do
         if self._data[field] == nil then
-            self._data[field] = value
+            if type(value) == "function" then
+                self._data[field] = value(userid)
+            else
+                self._data[field] = value
+            end
         end
     end
 end

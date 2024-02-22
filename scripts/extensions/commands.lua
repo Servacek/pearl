@@ -198,8 +198,6 @@ AddCommand("unban", {
 })
 
 AddCommand("grant", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     routing = UserCommands.SHARD_ROUTING.NONE,
     options = {PARAMS.PLAYER{validate = false}},
@@ -208,21 +206,19 @@ AddCommand("grant", {
     --- @param userid string
     fn = function(ctx, userid)
         if PEARL.BlackList:Contains(userid) then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_BANNED)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GRANT.ON_BANNED)
         end
 
         if PEARL.WhiteList:Contains(userid) then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_ALREADY_WHITELISTED)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GRANT.ON_ALREADY_WHITELISTED)
         end
 
         PEARL.WhiteList:Add(userid)
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_ADD.ON_SUCCESS:format(userid))
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.GRANT.ON_SUCCESS:format(userid))
     end,
 })
 
 AddCommand("revoke", {
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     routing = UserCommands.SHARD_ROUTING.NONE,
     options = {PARAMS.PLAYER{validate = false}},
@@ -231,12 +227,12 @@ AddCommand("revoke", {
     --- @param userid string
     fn = function(ctx, userid)
         if not PEARL.WhiteList:Contains(userid) then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_NOTFOUND)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.REVOKE.ON_NOTFOUND)
         end
 
         PEARL.WhiteList:Remove(userid)
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.ALLOWLIST_REMOVE.ON_SUCCESS:format(userid))
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.REVOKE.ON_SUCCESS:format(userid))
     end,
 })
 
@@ -278,8 +274,6 @@ AddCommand("inv", {
 
 AddCommand("invf", {
     aliases = {"inv-find"},
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
     routing = UserCommands.SHARD_ROUTING.ALL,
     options = {PARAMS.PREFAB},
@@ -302,7 +296,7 @@ AddCommand("invf", {
         end
 
         if #item_owners <= 0 then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_FAILURE)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_FAILURE)
         end
 
         -- Sort by item count and player age
@@ -328,7 +322,7 @@ AddCommand("invf", {
         ctx:ReplyDiscordMessage(message)
 
         if ctx.type ~= CommandContext.TYPE.DISCORD then
-            ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INV_FIND.ON_SUCCESS:format(
+            ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_SUCCESS:format(
                 #item_owners
             ))
         end
@@ -339,9 +333,7 @@ AddCommand("invf", {
 --- Remove the unnecessary RPC call...
 -- Slash commands only
 AddCommand("admins", {
-    aliases = {"staff", "sos"},
-    prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.PRETTYNAME,
-    desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SOS.DESC,
+    aliases = {"staff", "sos"}, -- So it reaches to more players
     permission = COMMAND_PERMISSION.USER,
     confirm = true,
     console = false,
@@ -361,7 +353,7 @@ AddCommand("admins", {
         return true
     end,
 
-    -- Handle"s the cooldown locally
+    -- Handles the cooldown locally
     localfn = function(params, caller)
         local curr_time = GetTime()
         if curr_time <= (caller.__soscall_cd_time or 0) then
@@ -404,6 +396,7 @@ AddCommand("mods", {
 })
 
 AddCommand("server", {
+    slash = false,
     permission = COMMAND_PERMISSION.USER,
 
     --- @param ctx CommandContext
@@ -413,6 +406,7 @@ AddCommand("server", {
 })
 
 AddCommand("players", {
+    slash = false,
     permission = COMMAND_PERMISSION.USER,
 
     --- @param ctx CommandContext
@@ -422,6 +416,7 @@ AddCommand("players", {
 })
 
 AddCommand("world", {
+    slash = false,
     permission = COMMAND_PERMISSION.USER,
     routing = UserCommands.SHARD_ROUTING.AUTO, -- Let the API do the routing for us.
     options = {PARAMS.SHARD{optional = true}}, -- Display master info as default.
@@ -821,6 +816,57 @@ AddCommand("take", {
 
 AddCommand("drop", {
     permission = COMMAND_PERMISSION.ADMIN,
+    activeinstrequired = true,
+    options = {
+        PARAMS.PLAYER,
+        PARAMS.PREFAB{optional = true},
+        {name = "count", type = OPTION_TYPE.INTEGER, optional = true},
+    },
+
+    --- @param ctx CommandContext
+    --- @param player PlayerInst
+    --- @param prefab string
+    --- @param count number?
+    fn = function(ctx, player, prefab, count)
+        -- If no item specified, drop everything.
+        if not prefab then
+            player.components.inventory:DropEverything()
+
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.ALL:format(
+                player.name
+            ))
+        end
+
+        -- Take all items by default.
+        count = count or math.huge
+        local items = player.components.inventory:GetItemByName(prefab, count, false)
+        if not items or table.empty(items) then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.ITEM_NOT_FOUND)
+        end
+
+        local item_name
+        local total_amount = 0
+        for stack, amount in pairs(items) do
+            amount = math.min(count, amount)
+            total_amount = total_amount + amount
+            local item = stack.components.stackable and stack.components.stackable:Get(amount) or stack
+
+            if not item_name then
+                item_name = item:GetBasicDisplayName()
+            end
+
+            -- Drop the whole stack of the item taken from the source stack!
+            player.components.inventory:DropItem(item, true)
+        end
+
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.SOME:format(
+            total_amount, item_name or "UNKNOWN", player.name
+        ))
+    end,
+})
+
+AddCommand("deposit", {
+    permission = COMMAND_PERMISSION.ADMIN,
     instrequired = true,
     options = {
         PARAMS.PLAYER,
@@ -841,7 +887,7 @@ AddCommand("drop", {
             -- Use depositor to support offline inventories.
             ItemDepositor:DepositAllItems(player.components.inventory)
 
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP_ALL:format(
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DEPOSIT.ALL:format(
                 player.name
             )..postfix, PEARL.ICONS.PLAYER_STATE.DROP_ITEMS)
         end
@@ -868,7 +914,7 @@ AddCommand("drop", {
             ItemDepositor:DepositItem(player.components.inventory, item)
         end
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DROP.DROP:format(
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DEPOSIT.SOME:format(
             total_amount, item_name or "UNKNOWN", player.name
         )..postfix)
     end,
@@ -983,6 +1029,7 @@ AddCommand("despawn", {
     console = false, -- Already built in
     activeinstrequired = true,
     options = {PARAMS.PLAYER{optional = true}},
+    targetselfbydefault = true,
 
     --- @param ctx CommandContext
     --- @param player PlayerInst
@@ -1068,7 +1115,6 @@ AddCommand("system", {
 })
 
 AddCommand("notify", {
-    slash = false, -- Doesn't support multiword parameters :(
     permission = COMMAND_PERMISSION.ADMIN,
     options = {PARAMS.PLAYER, {name = "message"}, {name = "title", optional = true}},
 
@@ -1250,10 +1296,10 @@ AddCommand("setdbfield", {
         if PEARL.DB:SetField(
             userid, field, value
         ) and PEARL.DB:SaveRecordFor(userid) then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_SUCCESS)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETDBFIELD.ON_SUCCESS)
         end
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_DB_FIELD.ON_FAILURE)
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETDBFIELD.ON_FAILURE)
     end
 })
 
@@ -1290,7 +1336,11 @@ AddCommand("setslots", {
     --- @param count number
     fn = function(ctx, count)
         if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
+            return ctx:ReplyError(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
+        end
+
+        if count == TheNet:GetDefaultMaxPlayers() then
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.NO_CHANGES)
         end
 
         -- This prints some weird error at first use. But the count is actually set.
@@ -1372,23 +1422,17 @@ UserCommands.CustomizeCommand("rescue", function(command)
     command.routing = UserCommands.SHARD_ROUTING.NONE
     command.params = command.params or {}
     command.paramsoptional = command.paramsoptional or {}
+    command.activeinstrequired = true
+    command.targetselfbydefault = true
 
     table.insert(command.params, PARAMS.PLAYER.name)
     table.insert(command.paramsoptional, true)
 
     local serverfn  = command.serverfn
-    command.fn = function(ctx, userid)
-        local target = ctx.author
-        if userid ~= nil then
-            target = LookupPlayerInstByUserID(userid)
-            if not target then
-                return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
-            end
-        end
+    command.fn = function(ctx, player)
+        serverfn(ctx.params, player) -- Run the original handler
 
-        serverfn(ctx.params, target) -- Run the original handler
-
-        if target and target:HasTag("playerghost") and target == ctx.author then
+        if player:HasTag("playerghost") and player.userid == ctx.author.userid then
             -- People often confuse this command as a revive command.
             if GetPortalRez() then
                 ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.RESCUE.ON_DEATH)

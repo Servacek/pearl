@@ -22,7 +22,6 @@ local Permission = PEARL.loadfile("libraries/discordapi/models/permission")
 -- [[ Constants ]]
 ------------------------------------------
 
-local DEFAULT_OPTION_TYPE = "string"
 local ADMIN_COMMAND_DEFAULT_PERMISSIONS = Permission.PRIORITY_SPEAKER
 
 ------------------------------------------

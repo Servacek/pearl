@@ -69,9 +69,6 @@ local function OnClientBanned(userid, seconds, reason, author)
         timestop    = seconds and timenow + seconds or nil
     }
     PEARL.DB:SetField(userid, "bans", bans)
-
-    -- Reset reputation value in case of an unban.
-    PEARL.Reputation:SetFor(userid, PEARL.CONSTS.STARTING_REPUTATION)
     PEARL.DB:SaveRecordFor(userid)
 end
 

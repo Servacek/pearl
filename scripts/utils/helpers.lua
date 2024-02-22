@@ -343,6 +343,12 @@ function PEARL.PrefabExists(prefab)
     return PrefabExists(prefab) == true
 end
 
+--- @return string
+function PEARL.GetUserName(userid)
+    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
+    return client and client.name or PEARL.DB:GetField(userid, "username", userid) or "UNKNOWN"
+end
+
 function PEARL.PrefabToName(prefab)
     return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
 end
@@ -365,8 +371,6 @@ local FALSE = {
 }
 
 function PEARL.toboolean(x)
-    assert(type( x ) == 'string', 'str must be string')
-
     if TRUE[x] == true then
         return true;
     elseif FALSE[x] == false then
@@ -376,10 +380,22 @@ function PEARL.toboolean(x)
     end
 end
 
+function PEARL.tointeger(x)
+    if tostring(x):match("^%-?%d+$") == nil then
+        return nil
+    end
+
+    return tonumber(x)
+end
+
+function PEARL.isvisiblestring(s)
+    return type(s) == "string" and not s:blank()
+end
+
 local TYPE_CONVERTERS = {
     ["string"] = tostring,
     ["number"] = tonumber,
-    ["integer"] = tonumber,
+    ["integer"] = PEARL.tointeger,
     ["boolean"] = PEARL.toboolean,
     ["function"] = {
         ["string"] = loadstring,
@@ -388,23 +404,30 @@ local TYPE_CONVERTERS = {
         ["userdata"] = instrument_userdata,
     },
 }
---- @return any
+--- @return boolean success, any converted
 function PEARL.TryConvertToType(value, tp)
     local origin_type = type(value)
     if origin_type == tp then
-        return value
+        return true, value
     end
 
+    -- For special case conversions like "string" to "function"
     local converterfn = TYPE_CONVERTERS[tp]
     if type(converterfn) == "table" then
         converterfn = converterfn[origin_type]
     end
 
     if type(converterfn) ~= "function" then
-        return value
+        PEARL.warn("No convertor exists for type", type(value), "to type", tp)
+        return false, value
     end
 
-    return converterfn(value) or value
+    local new_value = converterfn(value)
+    if new_value == nil then
+        return false, value
+    end
+
+    return true, new_value
 end
 
 function PEARL.NameToPrefab(name)

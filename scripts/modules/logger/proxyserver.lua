@@ -32,17 +32,22 @@ local function OnProxyServerError()
     PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR)
 end
 
+local unreachable = false
 local function OnProxyServerUnreachable()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
-    PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
+    if not unreachable then
+        unreachable = true
+
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
+        PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
+    end
 end
 
 --------------------------------
 -- [[ Event Listeners ]]
 --------------------------------
 
-PEARL.EventProcessor:AddEventHandler("proxy_server_start", OnProxyServerStart)
-PEARL.EventProcessor:AddEventHandler("proxy_server_error", OnProxyServerError)
-PEARL.EventProcessor:AddEventHandler("proxy_server_stop", OnProxyServerStop)
-PEARL.EventProcessor:AddEventHandler("proxy_server_restart", OnProxyServerRestarted)
-PEARL.EventProcessor:AddEventHandler("proxy_server_unreachable", OnProxyServerUnreachable)
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_start", OnProxyServerStart)
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_error", OnProxyServerError)
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_stop", OnProxyServerStop)
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_restart", OnProxyServerRestarted)
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_unreachable", OnProxyServerUnreachable)

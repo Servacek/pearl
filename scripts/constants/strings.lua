@@ -357,6 +357,8 @@ local STRINGS = {
         STEAM_BANNED_FRIENDS    = "User %s has %d/%d friends currently banned on this server.",
         STEAM_LOCALE_MISMATCH   = "Mismatch between the IP locale (`%s`) and the locale set on Steam Profile (`%s`) for user %s.\nMaybe they are using a VPN?",
 
+        PLAYER_ON_EXT_BANLIST   = "The player %s is banned on the external banlist. Keep an eye on them.",
+
         SAY                     = MARKDOWN.bold("%s")..": %s",
         SAY_COMMAND             = MARKDOWN.bold("%s")..": "..MARKDOWN.codeline("/%s"),
         SAY_WHISPER             = STRINGS.UI.CHATINPUTSCREEN.WHISPER_DESIGNATOR.." "..MARKDOWN.bold("%s")..": "..MARKDOWN.italic("%s"),
@@ -592,6 +594,14 @@ local STRINGS = {
         POTM_ANNOUNCEMENT = "Best player of the month %s is %s! New month begins from today!",
         POTM_AGAIN_ANNOUNCEMENT = "Best player of the month %s is again %s! New month begins from today!",
 
+        EMPTY_SERVER_POPUP = {
+            TITLE = "The Server is Empty! For now...",
+            BODY_DISCORD = "You are alone here but surviving is much more fun in multiple people!\nDo not hesitate to invite your friends or visit our Discod community\nto find some people to play with!",
+            BODY = "You are alone here but surviving is much more fun in multiple people!\nDo not hesitate to invite your friends!",
+            VISIT_DISCORD_BUTTON = "Visit our Discord",
+            CONTINUE = "Continue",
+        },
+
         -- Mod blocker popup
         MODS_BLOCKED_TITLE = "Mods Disabled",
         MODS_BLOCKED_ALL_TITLE = "All Mods Blocked",
@@ -634,7 +644,7 @@ local STRINGS = {
             DB_DISABLED = "The database is not enabled!",
             KLEI_SERVERS_UNREACHABLE = "There was an error contacting Klei servers.",
             MISSING_PARAMETER = "Missing required parameter \"%s\"!",
-            INVALID_PARAM_VALUE = "Invalid value provided for parameter \"%s\"!",
+            INVALID_PARAM_VALUE = "Parameter \"%s\" has incorrect type! Please provide a \"%s\" instead.",
             INVALID_PARAM = "Invalid parameter \"%s\"!",
             STANDARDIZATION_FAILED = "Standardization failed for command \"%s\"!",
             VALIDATION_FAILED = "Failed to validate command \"%s\"!",
@@ -642,6 +652,10 @@ local STRINGS = {
             INVALID_JSON = "Invalid JSON data provided!",
             SENT_TO_THIRDPARTY_FAILED = "Sending the command response to discord has failed!",
             NO_PARAMETER_PERMISSIONS = "You do not have permission to use the \"%s\" parameter!",
+            VALUE_TOO_LOW = "The value of the parameter \"%s\" must be higher than or equal to %s!",
+            VALUE_TOO_HIGH = "The value of the parameter \"%s\" must be lower than or equal to %s!",
+            VALUE_TOO_SHORT = "The value of the parameter \"%s\" must be at least %s characters!",
+            VALUE_TOO_LONG = "The value of the parameter \"%s\" must be lower than or equal to %s!",
         },
 
         CMD_WARN = {
@@ -697,6 +711,7 @@ local STRINGS = {
             },
 
             GIVEALL = {
+                DESC         = "Give all items on the provided list to the player.",
                 GAVE_ALL     = "Gave all %d items to %s!",
                 GAVE_SOME    = "Gave %d items to %s! %d items were skipped because they were invalid or didn't fit in the inventory.",
                 GAVE_NONE    = "Wasn't able to add any of the provided items!",
@@ -713,8 +728,16 @@ local STRINGS = {
                 PRETTYNAME = "Drop Item(s)",
                 DESC       = "Drops an player's item or the whole inventory if no item was specified.",
 
-                DROP_ALL   = "%s's inventory was dropped!",
-                DROP       = "Dropped %sx %s from %s's inventory!",
+                ALL   = "%s's inventory was dropped!",
+                SOME  = "Dropped %sx %s from %s's inventory!",
+            },
+
+            DEPOSIT = {
+                PRETTYNAME = "Deposit Item(s)",
+                DESC       = "Returns the specified item or the whole inventory back to the base.",
+
+                ALL   = "%s's inventory was returned to the world!",
+                SOME  = "Returned %sx %s from %s's inventory to the world!",
             },
 
             KILL = {
@@ -743,11 +766,6 @@ local STRINGS = {
                 DESC       = "Removes all entities with the specified prefab from the world.",
 
                 ON_SUCCESS = "Removed %dx %s from shard %s.",
-            },
-
-            PAUSE = {
-                PRETTYNAME = "Pause/Resume",
-                DESC       = "Toggle pause the server.",
             },
 
             SAVE = {
@@ -797,7 +815,7 @@ local STRINGS = {
                 INVENTORY_HEADER    = "%s's Inventory:",
             },
 
-            INV_FIND = {
+            INVF = {
                 PRETTYNAME = "Find Inventory",
                 DESC       = "Searches for inventory containing specified item.",
 
@@ -805,7 +823,7 @@ local STRINGS = {
                 ON_FAILURE          = "No results...",
             },
 
-            ALLOWLIST_ADD = {
+            GRANT = {
                 PRETTYNAME = "Add to whitelist",
                 DESC       = "Increases the allowlist with the given user ID.",
 
@@ -813,33 +831,18 @@ local STRINGS = {
                 ON_SUCCESS  = "Player was successfully added to the whitelist.",
                 ON_FAILURE  = "An error occured while saving the changes...",
                 ON_BANNED   = "Player is on the blacklist and has no access to this server.",
-                -- ON_DISABLED = "Allowlist je aktuálne vypnutý.",
             },
 
-            ALLOWLIST_REMOVE = {
+            REVOKE = {
                 PRETTYNAME = "Remove from allowlist",
                 DESC       = "Attempts to remove the given player id from the allowlist.",
 
                 ON_SUCCESS  = "Player was removed from the allowlist.",
-                -- ON_DISABLED = "Allowlist je aktuálne vypnutý.",
                 ON_FAILURE  = "An error occured while saving the changes...",
                 ON_NOTFOUND = "Player was not found on the allowlist."
             },
 
-            -- ALLOWLIST_TOGGLE = {
-            --     PRETTYNAME = "Toggle the allowlist",
-            --     DESC       = "Turns on/off the allowlisting.",
-
-            --     ON_ENABLED  = "Allowlisting was enabled! Only players on the list will be able to join.",
-            --     ON_DISABLED = "Allowlisting was disabled! Everyone can join now."
-            -- }
-
-            DAYSBACK = {
-                PRETTYNAME = "Rollback by Days",
-                DESC       = "Roll the server back by actual days instead of snapshots.\nChanges in the current snapshot will be lost!",
-            },
-
-            SOS = {
+            ADMINS = {
                 PRETTYNAME = "Call the Admins",
                 DESC       = "If you find yourself in a hopeless situation... call the admins!",
             },
@@ -893,12 +896,16 @@ local STRINGS = {
                 ON_SUCCESS = "Player was kicked from the server.",
             },
 
-            SET_DB_FIELD = {
+            SETDBFIELD = {
+                DESC = "Set any field in the DB record to the desired value.",
+
                 ON_SUCCESS = "Field successfully set!",
                 ON_FAILURE = "Failed to set the specified field!",
             },
 
             BOOST = {
+                DESC = "Lower the server latency for a small period of time.",
+
                 ON_SUCCESS = "Lower server latency for 2 minutes!",
                 ON_TIMEOUT = "Server response latency back to normal.",
                 ON_FAILURE = "Wasn't able to lower the server latency!",
@@ -979,6 +986,7 @@ local STRINGS = {
 
                 ON_INVALID_INPUT = "Invalid number of slots provided!",
                 ON_COUNT_TOO_LOW = "The Specified number of slots is less than the total number of players!",
+                NO_CHANGES = "No changes...",
                 ON_SUCCESS = "The number of server slots has been updated!",
             },
 
@@ -996,7 +1004,39 @@ local STRINGS = {
 
                 ON_SUCCESS = "Note successfully added!",
                 ON_FAILURE = "Failed to add the specified note..."
-            }
+            },
+
+            SERVER = {
+                DESC = "Show server info.",
+            },
+
+            PLAYERS = {
+                DESC = "Show information about players currently playing on the server.",
+            },
+
+            WORLD = {
+                DESC = "Show information about the current world.",
+            },
+
+            REBOOT = {
+                DESC = "Turn off and on the server.",
+            },
+
+            SHUTDOWN = {
+                DESC = "Turn off the server.",
+            },
+
+            EXEC = {
+                DESC = "Execute arbitrary Lua code on the server.",
+            },
+
+            SETRARITY = {
+                DESC = "Set rarity of an item. Used when detecting suspicious inventories.",
+            },
+
+            SHOW = {
+                DESC = "Show a DB record in it's raw JSON format.",
+            },
         },
 
         SOCIAL_LINK_BUTTON_HOVERS = {

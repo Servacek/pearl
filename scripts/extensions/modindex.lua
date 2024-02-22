@@ -64,6 +64,19 @@ function KnownModIndex:IsClientOnlyMod(modname)
     return modinfo and modinfo.client_only_mod == true or false
 end
 
+function KnownModIndex:IsModRequiredByServer(modname)
+    local listing = TheNet:GetServerListing()
+    if type(listing) == "table" and type(listing.mods_description) == "table" then
+        for _, mod in pairs(listing.mods_description) do
+            if mod.mod_name == modname then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 function KnownModIndex:IsModAllowlisted(modname)
     return table.contains(MOD_ALLOWLIST, GetWorkshopIdNumber(modname))
 end
@@ -73,11 +86,17 @@ function KnownModIndex:IsModBlocklisted(modname)
 end
 
 function KnownModIndex:IsModPrivate(modname)
+    --- These seem to only load up when the mod is enabled from the start of the game (before joining the server).
     --- @Note: December 2023: Testing this again...
     return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
 end
 
 function KnownModIndex:ShouldDisableMod(modname)
+    if self:IsModRequiredByServer(modname) then
+        PEARL.debug("Mod is required by the server!", modname)
+        return false
+    end
+
     -- ALWAYS block private mods since all the other checks can be bypassed
     if self:IsModPrivate(modname) then
         PEARL.debug("Private mod!", modname)

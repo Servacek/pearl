@@ -246,7 +246,7 @@ function QueuedLogAction:GetString()
     local str = self.pattern
     for name, value in pairs(self.stackable) do
         value = type(value) == "table" and _GetStringFromStackableData(value) or value
-        str = self.pattern:nformat(name, value)
+        str = str:nformat(name, value)
     end
 
     return str

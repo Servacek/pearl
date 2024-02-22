@@ -274,14 +274,6 @@ function DB:CreateRecordFile(userid)
     return record
 end
 
---- Makes sure that the database record contains valid data and bindings.
---- @param record PlayerRecord
-function DB:ValidateRecord(record)
-    record:Validate()
-
-    PEARL.AccountBindings:ValidateForRecord(record)
-end
-
 --- WARNING: This function doesn't cache the record!
 --- Loads the record data from the actual database file for the given player.
 --- @param userid string
@@ -301,7 +293,7 @@ function DB:LoadRecordFor(userid, validate)
 
     local record = Record(userid, data)
     if validate == true then
-        self:ValidateRecord(record)
+        record:Validate(userid)
     end
 
     -- Only cache when we are the active shard.

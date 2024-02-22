@@ -12,6 +12,7 @@
 
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 --------------------------------------
 -- [[ Constants ]]
@@ -20,13 +21,18 @@ local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local RESPONSE_ICON_PATTERN = "%s %s"
 local CONSOLE_RESPONSE_PREFIX = "Command Response:\n"
 
+local ERROR_TEXT_COLOUR = Colour.FromRGBA(237, 67, 55)
+
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
 
 --- @dataclass
 --- @class CommandContext
-local CommandContext = PEARL.Class(function(self, command, type, params, author)
+local CommandContext
+CommandContext = PEARL.Class(function(self, command, type, params, author)
+    assert(table.getkey(CommandContext.TYPE, type) ~= nil, "Invalid type provided!")
+
     --- @type table
     self.author = author or {}
     --- @type table
@@ -36,7 +42,7 @@ local CommandContext = PEARL.Class(function(self, command, type, params, author)
     self.validated_args = nil
 
     self.command = command or {}
-    --- @type integer
+    --- @type CommandContextType
     self.type = type
 
     --- @type boolean
@@ -47,18 +53,12 @@ end)
 -- [[ Static ]]
 --------------------------------------
 
+--- @enum CommandContextType
 CommandContext.TYPE = {
     SLASH   = 1,
     CONSOLE = 2,
     DISCORD = 3,
 }
-
--- CommandContext.BINDINGS = {
---     THIRD_PARTY = {
---          -- Looks like AccountBindings are not yet initialized
---         [CommandContext.TYPE.DISCORD] = PEARL.AccountBindings.BINDING_TYPE.DISCORD,
---     }
--- }
 
 --- @type table<integer, fun(context: CommandContext, response: string)>
 CommandContext.OHANDLER = {
@@ -83,12 +83,34 @@ function CommandContext.FromTable(tbl)
 end
 
 --------------------------------------
--- [[ Getters ]]
+-- [[ Private Functions ]]
 --------------------------------------
 
-function CommandContext:GetOutputHandler()
-    return CommandContext.OHANDLER[self.type]
+local function _ConvertIconToType(icon, target_type)
+    local icon_type = PEARL.ICONS.GetType(icon)
+
+    local icon_str = icon_type == PEARL.ICONS.TYPE.UNKNOWN and icon or nil
+    if icon_type == PEARL.ICONS.TYPE.DISCORD then
+        icon_str = target_type == CommandContext.TYPE.SLASH and PEARL.EMOTES.MAP_GAME[icon] or (
+            target_type == CommandContext.TYPE.DISCORD and icon or nil
+        )
+    elseif icon_type == PEARL.ICONS.TYPE.INGAME then
+        icon_str = target_type == CommandContext.TYPE.DISCORD and PEARL.EMOTES.MAP_DISCORD[icon] or (
+            target_type == CommandContext.TYPE.SLASH and icon or nil
+        )
+    end
+
+    -- Console doesnt support much icon types, so display only the unknown ones.
+    if target_type == CommandContext.TYPE.CONSOLE and icon_type ~= PEARL.ICONS.TYPE.UNKNOWN then
+        icon_str = nil
+    end
+
+    return icon_str
 end
+
+--------------------------------------
+-- [[ Getters ]]
+--------------------------------------
 
 function CommandContext:WasReplied()
     return self.replied == true
@@ -131,30 +153,13 @@ end
 --- @param content string
 --- @param icon string? Optional icon (emoji) to the content. Displayed only on discord.
 function CommandContext:Reply(content, icon)
-    local ohandler = self:GetOutputHandler()
+    local ohandler = CommandContext.OHANDLER[self.type]
     if type(ohandler) ~= "function" then
-        return PEARL.error("No handler for command", self.command.name, self.type)
+        return error("No handler for command "..self.command.name.." with type "..tostring(self.type))
     end
 
     if type(icon) == "string" then
-        local icon_type = PEARL.ICONS.GetType(icon)
-
-        local icon_str = icon_type == PEARL.ICONS.TYPE.UNKNOWN and icon or nil
-        if icon_type == PEARL.ICONS.TYPE.DISCORD then
-            icon_str = self.type == CommandContext.TYPE.SLASH and PEARL.EMOTES.MAP_GAME[icon] or (
-                self.type == CommandContext.TYPE.DISCORD and icon or nil
-            )
-        elseif icon_type == PEARL.ICONS.TYPE.INGAME then
-            icon_str = self.type == CommandContext.TYPE.DISCORD and PEARL.EMOTES.MAP_DISCORD[icon] or (
-                self.type == CommandContext.TYPE.SLASH and icon or nil
-            )
-        end
-
-        -- Console doesnt support much icon types, so display only the unknown ones.
-        if self.type == CommandContext.TYPE.CONSOLE and icon_type ~= PEARL.ICONS.TYPE.UNKNOWN then
-            icon_str = nil
-        end
-
+        local icon_str = _ConvertIconToType(icon, self.type)
         if icon_str then
             content = RESPONSE_ICON_PATTERN:format(icon_str, content)
         end
@@ -165,13 +170,19 @@ function CommandContext:Reply(content, icon)
     self.replied = true
 end
 
+function CommandContext:ReplyError(content)
+    self.replied = true
+
+    if self.type == CommandContext.TYPE.SLASH then
+        PEARL.ServerNetwork:SendCommandResponse(self.author.userid, content, ERROR_TEXT_COLOUR)
+    else
+        self:Reply(content, PEARL.ICONS.X)
+    end
+end
+
 --- @param message Message
 --- @return Request? request
 function CommandContext:ReplyDiscordMessage(message)
-    if self.type ~= CommandContext.TYPE.DISCORD then
-        return PEARL.error("Attempted to sent a discord message from a non-discord context!")
-    end
-
     self.replied = true
 
     -- For non-discord commands calling this function

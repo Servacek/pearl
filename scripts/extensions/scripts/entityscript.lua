@@ -33,7 +33,7 @@ local EntityScript = EntityScript
 function EntityScript:IsBaseStructure()
     return self:IsValid()
         and self:HasOneOfTags(PEARL.CONSTS.BASE_STRUCTURE_TAGS)
-        and self:HasBuilder()
+        and self.components.built and self.components.buit.doer
 end
 
 function EntityScript:IsResourcePlant()

@@ -11,21 +11,6 @@
 --]==]====================================================]]
 
 
-
---[[====================================================[==[
-    The 'Pearl' - modification software for
-    the game 'Don't Starve Together' by Klei Entertainment.
-
-    Copyright (c) 2023-2024 Fi7iP
-    All rights reserved.
-
-    This file is part of the 'Pearl' software shared under
-    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
-    See LICENSE and AUTHORS for more details.
---]==]====================================================]]
-
-
-
 --[[
     Server specific stuff. Needs to be loaded only on the server.
 --]]
@@ -131,7 +116,9 @@ PEARL.SafeModTableExtend("CONSTS", {
         EAT_RARE            = -10, -- For 100% rarity
         WASTE_FOOD          = -5, -- For 100% of foods nutrition wasted (> 50%)
         HAMMER_STRUCTURE    = -7,
-        IGNITED_STRUCTURE   = -3, -- Per One Structure
+        IGNITED_STRUCTURE   = -6, -- Per One Structure
+        IGNITED_PLANT       = -3,
+        IGNITED_ENTITY      = -1.5,
         IGNITING_AT_BASE    = -8,
         FIRE_MOB_KILLED     = -5,
         LEARNED_BLUEPRINT   = -5,
@@ -548,7 +535,6 @@ local function LoadExtensions()
 
     PEARL.info("Loading game script extensions...")
     PEARL.loadfile("extensions/scripts/entityscript")
-    PEARL.loadfile("extensions/scripts/playercommon")
 
     -- Extension for all prefabs
     PEARL.loadfile("extensions/prefabs/global")

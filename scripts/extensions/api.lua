@@ -56,7 +56,10 @@ local function WrapFunctionPostCall(origin, postcb, with_res)
         return function(...)
             local results = {origin(...)}
             postcb(results, ...)
-            return results and unpack(results)
+
+            if results then
+                return unpack(results)
+            end
         end
     end
 
@@ -130,12 +133,21 @@ function PEARL.OverrideUserdataFnReturn(userdata, funcname, overridefn, noraw, o
     return PEARL.OverrideReturnValue(mt.__index, funcname, overridefn, noraw, optional)
 end
 
+--- @param name string
+--- @param t table
+--- @param precb function
+--- @param noraw boolean?
 function PEARL.AddFunctionPreCall(name, precb, t, noraw)
     return PEARL.OverrideValue(
         t, name, WrapFunctionPreCall(PEARL.GetValue(t, name, noraw), precb), noraw
     )
 end
 
+--- @param name string
+--- @param t table
+--- @param postcb function
+--- @param with_res boolean?
+--- @param noraw boolean?
 function PEARL.AddFunctionPostCall(name, postcb, t, with_res, noraw)
     return PEARL.OverrideValue(
         t, name, WrapFunctionPostCall(PEARL.GetValue(t, name, noraw), postcb, with_res), noraw

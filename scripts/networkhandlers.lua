@@ -47,7 +47,7 @@ PEARL.AddGlobalFunctionPreCall("Shard_UpdateWorldState", function(world_id, stat
     PEARL.EventProcessor:HandleEvent("shard_stateupdate", world_id, state, ...)
 end)
 
-PEARL.EventProcessor:AddEventHandler("quit", function()
+PEARL.EventProcessor:AddSafeEventHandler("quit", function()
     PEARL.ServerNetwork:OnQuit()
 end)
 

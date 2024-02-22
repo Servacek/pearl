@@ -212,9 +212,7 @@ function Reporter:ReportClientLuaError(userid, data)
         return -- Error was already handled
     end
 
-    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
-    local client_name = client.name or "UNKNOWN"
-
+    local client_name = PEARL.GetUserName(userid)
     local self_afflicter = type(data.mod) == "table" and data.mod.id == PEARL.MODID
     local pattern = (
         (self_afflicter and STRINGS.PEARL.LOGS.EXC_SELF_CLIENT) or
@@ -273,8 +271,7 @@ end
 --- @param userid string
 --- @param message string?
 function Reporter:SendPlayerReportMessage(userid, message)
-    local client = userid and TheNet:GetClientTableForUser(userid)
-    local username = client and client.name or "UNKNOWN"
+    local username = PEARL.GetUserName(userid)
     local prefab = PEARL.GetFancyCharacterPrefabFor(userid)
     local pt = (type(message) ~= "string" or message:blank())
         and STRINGS.PEARL.LOGS.PLAYER_REPORT_EMPTY or STRINGS.PEARL.LOGS.PLAYER_REPORT

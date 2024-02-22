@@ -207,8 +207,7 @@ local function OnShardDisconnected(shardid)
 end
 
 local function OnClientConnected(userid)
-    local client = TheNet:GetClientTableForUser(userid)
-    PEARL.DiscordProxy:AddPlayerEvent("player_connected", userid, client and client.name or userid)
+    PEARL.DiscordProxy:AddPlayerEvent("player_connected", userid, PEARL.GetUserName(userid))
 end
 
 local function OnClientDisconnected(userid)

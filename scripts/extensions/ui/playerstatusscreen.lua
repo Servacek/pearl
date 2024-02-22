@@ -65,21 +65,21 @@ local MAX_SPINNER_CHARS = 3
 
 local STATE_LABEL_DATA = {
     [DiscordProxy.STATE.FAILED] = {
-        text = STRINGS.PEARL.UI.UNREACHABLE, colour = WEBCOLOURS.RED,
+        textkey = "UNREACHABLE", colour = WEBCOLOURS.RED,
     },
     [DiscordProxy.STATE.STOPPED] = {
-        text = STRINGS.PEARL.UI.OFFLINE, colour = GREY,
+        textkey = "OFFLINE", colour = GREY,
     },
     [DiscordProxy.STATE.RUNNING] = {
-        text = STRINGS.PEARL.UI.ONLINE, colour = WEBCOLOURS.GREEN
+        textkey = "ONLINE", colour = WEBCOLOURS.GREEN
     },
     [DiscordProxy.STATE.CONNECTING] = {
-        text = STRINGS.PEARL.UI.STARTING, colour = WEBCOLOURS.YELLOW
+        textkey = "STARTING", colour = WEBCOLOURS.YELLOW
     }
 }
 
 local DEFAULT_STATE_LABEL_DATA = {
-    text = STRINGS.PEARL.LOGS.UNKNOWN, colour = GREY
+    textkey = "UNKNOWN", colour = GREY
 }
 
 ---------------------------
@@ -94,8 +94,8 @@ local function GetProxyStateLabelData(state)
     return STATE_LABEL_DATA[state] or DEFAULT_STATE_LABEL_DATA
 end
 
-local function GetProxyStateLabelText(state_text)
-    return STRINGS.PEARL.UI.PROXY_STATE:format(state_text)
+local function GetProxyStateLabelText(state_text_key)
+    return STRINGS.PEARL.UI.PROXY_STATE:format(STRINGS.PEARL.UI[state_text_key])
 end
 
 -- Show the label only if proxy is enabled.
@@ -103,8 +103,8 @@ local proxy_state_label, proxy_state
 local function OnProxyStateChanged(new)
     if proxy_state_label then
         local data = STATE_LABEL_DATA[new] or DEFAULT_STATE_LABEL_DATA
-        proxy_state_label:SetColour(data.colour)
-        proxy_state_label:SetString(GetProxyStateLabelText(data.text))
+        proxy_state_label:SetColour(data.colour or WHITE)
+        proxy_state_label:SetString(GetProxyStateLabelText(data.textkey))
     end
 end
 
@@ -187,7 +187,7 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
                 local NEXT_STATE = 1.0
                 if time_delta > NEXT_STATE then
                     local data = GetProxyStateLabelData(state)
-                    local text = GetProxyStateLabelText(data.text)
+                    local text = GetProxyStateLabelText(data.textkey)
                     if self.elipse_state == nil then
                         self.elipse_state = 0
                     end

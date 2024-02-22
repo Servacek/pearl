@@ -15,6 +15,8 @@ local CommandContext = PEARL.loadfile("models/commandcontext")
 
 local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
+local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
+
 --- @static
 --- @singleton
 --- @class UserCommands
@@ -199,6 +201,7 @@ local function StandardizeParam(ctx, name, value, validate)
     return success == true, standardized
 end
 
+--- This is not being called for parameters retrieved from third party sites (like Discord).
 --- Returns an array of parameter values for the given context
 --- Also modifies the given table so the changes apply accordingly.
 --- or nil if there was an error.
@@ -215,7 +218,7 @@ local function ProccessParams(ctx, params)
         if value ~= nil then
             local permission = UserCommands.GetPermissionLevel(option.permission)
             if permission and permission > author_permission then
-                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.NO_PARAMETER_PERMISSIONS:format(
+                ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.NO_PARAMETER_PERMISSIONS:format(
                     option.name
                 ))
                 return
@@ -224,17 +227,39 @@ local function ProccessParams(ctx, params)
 
         -- Parameters are required by default
         if option.optional ~= true and value == nil then
-            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER:format(option.name))
+            ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_PARAMETER:format(option.name))
             return
         end
 
         -- Check if the value type is correct, if not try to convert it.
         local tp = option.type
-        if tp and value ~= nil and value ~= tp then
-            value = PEARL.TryConvertToType(value, tp)
-            if type(value) ~= tp then
-                ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE:format(option.name))
+        if tp and value ~= nil and type(value) ~= tp then
+            local success, converted = PEARL.TryConvertToType(value, tp)
+            if success ~= true then
+                ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM_VALUE:format(option.name, tp))
                 return
+            end
+
+            value = converted
+        end
+
+        if value ~= nil and (tp == UserCommands.OPTION_TYPE.INTEGER or tp == UserCommands.OPTION_TYPE.NUMBER) then
+            if option.min_value and value < option.min_value then
+                return ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.VALUE_TOO_LOW:format(option.name, option.min_value))
+            end
+
+            if option.max_value and value > option.max_value then
+                return ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.VALUE_TOO_HIGH:format(option.name, option.max_value))
+            end
+        end
+
+        if value ~= nil and tp == UserCommands.OPTION_TYPE.STRING then
+            if option.min_length and #value < option.min_length then
+                return ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.VALUE_TOO_LOW:format(option.name, option.min_value))
+            end
+
+            if option.max_length and #value > option.max_length then
+                return ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.VALUE_TOO_HIGH:format(option.name, option.max_value))
             end
         end
 
@@ -244,7 +269,7 @@ local function ProccessParams(ctx, params)
                 return
             end
 
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED:format(option.name))
+            return ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.STANDARDIZATION_FAILED:format(option.name))
         end
 
         n = n + 1
@@ -255,7 +280,7 @@ local function ProccessParams(ctx, params)
 
     for paramname, _ in pairs(params) do
         if not table.contains(ctx.command.params, paramname) then
-            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM:format(paramname))
+            ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_PARAM:format(paramname))
             return
         end
     end
@@ -311,9 +336,11 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         return false
     end
 
+    -- If the context already contains the arguments already validated by a third party.
     local validated_args = ctx:GetValidatedArguments()
     local n = validated_args and table.size(validated_args) or 0
     if not validated_args then
+        table.dump(ctx.params)
         local count
         validated_args, count = ProccessParams(ctx, ctx.params)
         if not count then
@@ -614,6 +641,24 @@ function UserCommands.AddSlashCommand(name, command)
             author.permission = UserCommands.CalculatePermissionFor(userid)
         end
 
+        -- Handle text command rest
+        if type(params.rest) == "string" then
+            for i = #command.params, 1, -1 do
+                local paramname = command.params and command.params[i]
+                if params[paramname] ~= nil then
+                    if type(params[paramname]) == "string" then
+                        params[paramname] = params[paramname].." "..params.rest
+                    end
+
+                    break
+                end
+            end
+        end
+
+        if params.rest ~= nil then
+            params.rest = nil -- So the validation doesn't complain about redundant parameter.
+        end
+
         UserCommands.RunHybridCommand(
             command, CommandContext(command, CommandContext.TYPE.SLASH, params, author)
         )
@@ -644,11 +689,15 @@ function UserCommands.AddCustomCommand(name, command)
     PEARL.info("Registering command", name)
 
     local normalized_name = NormalizeCommandName(name)
-    command.consolename = normalized_name
+    command.consolename = command.consolename and NormalizeCommandName(command.consolename) or normalized_name
 
-    local strings = STRINGS.PEARL.UI.BUILTINCOMMANDS[normalized_name:upper()]
-    command.prettyname = command.prettyname or (strings and strings.PRETTYNAME)
-    command.desc = command.desc or (strings and strings.DESC)
+    local uppercase_nor_name = normalized_name:upper()
+    local strings = STRINGS.PEARL.UI.BUILTINCOMMANDS[uppercase_nor_name]
+    local game_strings = STRINGS.UI.BUILTINCOMMANDS[uppercase_nor_name]
+    command.prettyname = command.prettyname or (strings and strings.PRETTYNAME) or (game_strings and game_strings.PRETTYNAME)
+    command.desc = command.desc or (strings and strings.DESC) or (game_strings and game_strings.DESC)
+
+    print(command.prettyname)
 
     command.remote = type(command.fn) == "function" -- Whether we should send the response to the server.
     command.routing = command.routing or UserCommands.SHARD_ROUTING.AUTO
@@ -662,6 +711,10 @@ function UserCommands.AddCustomCommand(name, command)
     -- Disabled by default
     command.usermenu = command.usermenu or false
     command.servermenu = command.servermenu or false
+
+    if command.desc == nil and (command.discord or command.slash) then
+        return PEARL.warn("Missing description for UI command", command.name)
+    end
 
     -- Cooldown
     if type(command.cooldown) == "number" then
@@ -707,6 +760,20 @@ end
 -------------------------------------
 -- Overrides
 -------------------------------------
+
+if TheNet:GetIsClient() then
+    -- A temporary fix for the "unparsecommand" function until Klei fixes it on their side.
+    local runcommand = UpvalueHacker:GetUpvalue(UserCommands.RunTextUserCommand, "runcommand")
+    local unparsecommand = UpvalueHacker:GetUpvalue(runcommand, "unparsecommand")
+    UpvalueHacker:SetUpvalue(runcommand, function(command, params, ...)
+        local unparsed = unparsecommand(command, params, ...)
+        if unparsed and PEARL.isvisiblestring(params.rest) then
+            unparsed = unparsed.." "..params.rest
+        end
+
+        return unparsed
+    end, "unparsecommand")
+end
 
 -- Support for mentions.
 --- @param client table?
@@ -775,7 +842,7 @@ UserCommands.AddStandardizedParam(PARAMS.PLAYER.name, function(ctx, param, valid
     local isknown = userid and PEARL.ServerNetwork:IsKleiIDKnown(userid)
     if validate and (not optional or userid ~= nil) and not isknown then
         -- Player is unknown to the server as a whole.
-        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER)
+        ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.UNKNOWN_PLAYER)
         return nil, false
     end
 
@@ -783,7 +850,7 @@ UserCommands.AddStandardizedParam(PARAMS.PLAYER.name, function(ctx, param, valid
         local player_inst = PEARL.ServerNetwork:GetClientInstance(userid, ctx.command.activeinstrequired)
         if player_inst == nil then
             -- An instance is required but couldn't be provided, so let's just fail.
-            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+            ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
             return nil, false
         end
 
@@ -794,7 +861,7 @@ UserCommands.AddStandardizedParam(PARAMS.PLAYER.name, function(ctx, param, valid
         local client = userid and TheNet:GetClientTableForUser(userid)
         if client == nil then
             -- An client table is required but couldn't be provided, so let's just fail.
-            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+            ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
             return nil, false
         end
 
@@ -811,7 +878,7 @@ UserCommands.AddStandardizedParam(PARAMS.SHARD.name, function(ctx, param, valida
 
     local shardid = tostring(param)
     if validate and shardid ~= SHARDID.MASTER and not PEARL.ServerNetwork:IsShardConnected(shardid) then
-        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND)
+        ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.SHARD_NOT_FOUND)
         return nil, false
     end
 
@@ -825,7 +892,7 @@ UserCommands.AddStandardizedParam(PARAMS.PREFAB.name, function(ctx, param, valid
 
     local prefab = tostring(param):lower():gsub("-", "_")
     if validate and not PEARL.PrefabExists(prefab) then
-        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
+        ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID)
         return nil, false
     end
 
@@ -839,7 +906,7 @@ UserCommands.AddStandardizedParam(PARAMS.JSON.name, function(ctx, param, validat
 
     local success, data = pcall(json.encode, param)
     if validate and (success ~= true or type(data) ~= "table" or table.empty(data)) then
-        ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON)
+        ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.INVALID_JSON)
         return nil, false
     end
 

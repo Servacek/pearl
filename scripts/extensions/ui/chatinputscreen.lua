@@ -32,6 +32,8 @@ local COMMAND_PREDICTION_CHARS = 0 -- Commands do not have usually under 2 chara
 local NAME_PREDICTION_CHARS = 0
 local USERID_PREDICTION_CHARS = 0
 
+local last_slash_command = nil
+
 ---------------------------
 -- [[ Local Functions ]]
 ---------------------------
@@ -117,4 +119,19 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         words = names,
         num_chars = NAME_PREDICTION_CHARS,
     })
+
+    PEARL.AddClassFunctionPreCall("OnRawKey", function(self, key, down)
+        if key == KEY_UP then
+            if down and self:GetString() == "" then
+                self:SetString(last_slash_command)
+            end
+            return true
+        end
+    end, self.chat_edit)
 end)
+
+PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
+    if input then
+        last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..tostring(input)
+    end
+end, UserCommands)

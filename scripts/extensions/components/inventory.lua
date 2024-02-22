@@ -125,7 +125,7 @@ function Inventory:GiveItemPrefabCount(prefab, count, drop)
     count = count_left
     while count_left > 0 do
         item = SpawnPrefab(prefab)
-        if item == nil then
+        if item == nil or not item.components.inventoryitem then
             return
         end
 

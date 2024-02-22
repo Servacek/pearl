@@ -10,6 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--- @TODO: Log Lureplants eating deerclops eyeballs
 
 
 --[[
@@ -39,7 +40,7 @@ local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
 -- Determines the number of burnable structures needed to activate the extinguisher.
 local EXTINGUISHER_STRUCTURES = 4
-local EXTINGUISHER_ANY = 6
+local EXTINGUISHER_PLANTS = 6
 local EXTINGUISHER_RADIUS = PEARL.CONSTS.EXTINGUISH_RADIUS
 
 local TIME_UNTIL_EXTINGUISH = 4 -- in seconds
@@ -106,7 +107,8 @@ local function RegisterActionHandler(action, handler, checkfn, pre, postevent)
         end
 
         -- If the original action handler crashes, let the error propagate.
-        local success = _action(act, ...)
+        local action_res = {_action(act, ...)}
+        local success = action_res[1] == true
         if postevent ~= nil then
             PEARL.EventProcessor:HandleEvent(postevent, success)
         end
@@ -124,7 +126,8 @@ local function RegisterActionHandler(action, handler, checkfn, pre, postevent)
             PEARL.error("Error while executing an action handler!\n Reason: "..tostring(result), "error")
         end
 
-        return success
+        print("SUCCESS", success)
+        return unpack(action_res)
     end
 
     return handler
@@ -149,19 +152,40 @@ end
 --- @TODO: Create some separate "pyromaniac" component for this.
 --- Cache the ignited entities somewhere.
 local function OnIgniteNear(doer, near, pos)
+    if PEARL.CONFIG.PERMISSIVE_MODE == true then
+        return
+    end
+
     pos = pos or doer:GetPosition()
-    local mult = near and #near or 0 + 1
-    Rep:EarnFor(doer.userid, REPUTATIONS.IGNITED_STRUCTURE * mult, Rep.LIMIT.NONE)
+
+    local structures = {}
+    local plants = {}
+    local other = {}
+    for _, entity in ipairs(near) do
+        if entity:IsResourcePlant() then
+            plants[#plants+1] = entity
+        elseif entity:IsBaseStructure() then
+            structures[#structures+1] = entity
+        else
+            other[#other+1] = entity
+        end
+    end
+
+    Rep:EarnFor(doer.userid, #structures * REPUTATIONS.IGNITED_STRUCTURE
+        + #plants * REPUTATIONS.IGNITED_PLANT
+        + #other * REPUTATIONS.IGNITED_ENTITY,
+        Rep.LIMIT.WORST
+    )
 
     --- For now this is enough since griefing is not that big of a problem as it was.
     if doer.Transform and (
-        #near >= EXTINGUISHER_ANY or
-        table.find(near, burnablestructuresearchfn, EXTINGUISHER_STRUCTURES)
-    ) and PEARL.CONFIG.PERMISSIVE_MODE ~= true then
+        #structures >= EXTINGUISHER_STRUCTURES or
+        #plants >= EXTINGUISHER_PLANTS
+    ) then
         PEARL.info("Extinguishing the fires!")
 
         Rep:EarnFor(
-            doer.userid, REPUTATIONS.IGNITING_AT_BASE, Rep.LIMIT.NONE, "pyromaniac"
+            doer.userid, REPUTATIONS.IGNITING_AT_BASE, Rep.LIMIT.WORST, "pyromaniac"
         )
 
         local doername = doer:GetDisplayName()
@@ -335,7 +359,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         if target:HasTag("burnt") then
             silent = true
         else
-            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.NONE)
+            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.WORST)
         end
 
         local action
@@ -555,7 +579,7 @@ RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
     if not item or item.components.fertilizer then
         Rep:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
 
-        icon = PEARL.EMOTES.DISCORD.LMB
+        icon = PEARL.EMOTES.DISCORD.POOP
         pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD
         if target then
             pt = STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
@@ -1277,6 +1301,12 @@ PEARL.AddComponentPostInit("finiteuses", function(self)
 end)
 
 PEARL.EventProcessor:AddSafeEventHandler("afk_statechanged", onafkstatechanged)
+
+PEARL.EventProcessor:AddSafeEventHandler("playerwarnedforbadrep", function(player)
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.WARNED:format(
+        player:GetDisplayName()), PEARL.ICONS.WARN
+    )
+end)
 
 PEARL.EventProcessor:AddSafeEventHandler("constructionfinished", function(doer, target)
     if doer and doer:HasTag("player") and target then

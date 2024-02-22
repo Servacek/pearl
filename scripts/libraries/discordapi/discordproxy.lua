@@ -348,9 +348,11 @@ function DiscordProxy:StartSession(retries)
         },
     })
     :AddOnSuccess(OnSessionStarted)
-    :AddOnError(retries ~= 0 and OnSessionStartFailed or nil)
+    :AddOnError(OnSessionStartFailed)
     :SetMaxRetries(retries or START_SESSION_RETRIES)
     :Send()
+
+    self:SetState(DiscordProxy.STATE.CONNECTING)
 end
 
 function DiscordProxy:StopSession()
@@ -376,7 +378,10 @@ function DiscordProxy:RestartSession(retries)
         PEARL.EventProcessor:HandleEvent("proxy_server_restart")
     end
 
-    self:SetState(DiscordProxy.STATE.STOPPED)
+    if self:IsRunning() then
+        self:SetState(DiscordProxy.STATE.STOPPED)
+    end
+
     self:StartSession(retries)
 end
 

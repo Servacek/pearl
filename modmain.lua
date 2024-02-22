@@ -94,6 +94,14 @@ local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 --------------------------------
 
 local ENV = GLOBAL.getfenv()
+local MT = {
+    -- Called when lua is not able to find the field in our environment table.
+    -- This allows implicit access to fields of the GLOBAL table.
+    -- This is beign called... a lot.
+    __index = function(env, index)
+        return rawget(GLOBAL, index)
+    end,
+}
 
 --------------------------------
 -- [[ Local Functions ]]
@@ -104,14 +112,7 @@ local ENV = GLOBAL.getfenv()
 --- @return table
 local function setupenv()
     -- Modify the metatable of the current safe separated mod environment.
-    return setmetatable(ENV, {
-        -- Called when lua is not able to find the field in our environment table.
-        -- This allows implicit access to fields of the GLOBAL table.
-        -- This is beign called... a lot.
-        __index = function(env, index)
-            return rawget(GLOBAL, index)
-        end,
-    })
+    return setmetatable(ENV, MT)
 end
 
 --------------------------------
@@ -135,6 +136,7 @@ GLOBAL.PEARL = setmetatable({
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
+    ENV_MT              = MT,
     MODNAME             = modname,
     MODID               = GetWorkshopIdNumber(modname),
     MOD_INFO            = KnownModIndex:GetModInfo(modname),
@@ -201,6 +203,7 @@ GLOBAL.PEARL = setmetatable({
     LAUNCHES            = TheSim:GetNumLaunches(),
 
     PREFAB              = "MOD_"..modname,
+    FONTS_PREFAB        = "MODFONTS_"..modname,
 
     BACKUP_ID           = "3122299418",--"2924921999",
 
@@ -329,6 +332,7 @@ PEARL.CONSTS = {
 
     DELIMS = {
         SLASH_COMMAND         = "/",
+        EMOJI                 = ":",
         KLEI_ID               = "KU_",
         PLAYER_NAME           = "@",
         CONSOLE_COMMAND       = "c_",
@@ -499,6 +503,9 @@ local function LoadTranslations(path)
         local TRANSLATED_STRINGS = LanguageTranslator.languages[PEARL.CONFIG.LANGUAGE]
         PEARL.loadfile("languages/createstringspo")(path, ORIGINAL_STRINGS, TRANSLATED_STRINGS)
     end
+
+    -- Since this mod is loaded first we only load our own translations for now so the strings can be cached.
+    TranslateStringTable(ORIGINAL_STRINGS)
 end
 
 -- With this implementation we are not limited to a hard coded set of languages
@@ -669,6 +676,19 @@ end
 if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
+
+    PEARL.Saying = function()
+        --Networking_Say(guid, userid, name, prefab, message, colour, whisper, isemote, user_vanity)
+        Networking_Say("123", "KU_TEST", "Borb", nil, "F", PLAYERCOLOURS.PINK)
+        Networking_Say("123", "KU_TEST", "Gertrúda", nil, "󰂰󰂰", PLAYERCOLOURS.RED)
+        Networking_Say("123", "KU_TEST", "Mlaskal", nil, "f 󰂲 󰂴", PLAYERCOLOURS.BLUE)
+        TheNet:Say("󰂷")
+
+        PEARL.StaticScheduler:ExecuteInTime(2, function()
+            local client = TheNet:GetClientTableForUser(ThePlayer.userid)
+            Networking_LeaveAnnouncement("Fi7iP", client.colour)
+        end)
+    end
 
     -- for _, dependency in ipairs(PEARL.MOD_INFO.mod_dependencies) do
     --     TheSim:QueueDownloadTempMod(dependency.workshop)

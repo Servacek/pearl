@@ -123,9 +123,7 @@ PEARL.loadfile("extensions/input")
 PEARL.loadfile("extensions/scripts/entityscript")
 
 PEARL.loadfile("extensions/usercommands")
-if PEARL.CONFIG.SLASH_COMMANDS then
-    PEARL.loadfile("extensions/commands")
-end
+PEARL.loadfile("extensions/commands")
 
 ----------------------------------
 -- Agreement Manager
@@ -182,8 +180,6 @@ end
 -- Assets
 ----------------------------------
 
-require("fonthelper")
-
 --- @ISSUES:
 --- - If the texture displays as a black rectangle
 ---  there is probably some issue with the atlas file
@@ -230,39 +226,11 @@ PEARL.ENV.ReloadPreloadAssets()
 -- Fonts
 ----------------------------------
 
--- PEARL.info("Loading custom fonts...")
--- PEARL.FONTS = PEARL.loadfile("constants/fonts")
+PEARL.debug("Loading fonts...")
 
--- AddFontAssets(PEARL.ENV.Assets, PEARL.FONTS)
+PEARL.FONTS = PEARL.loadfile("constants/fonts")
 
--- PEARL.loadfile("emojis")
-
--- AddFontAssets(PEARL.ENV.PreloadAssets, PEARL.FONTS)
-
--- PEARL.ENV.ReloadPreloadAssets()
-
--- PEARL.AddFrontEndPostInit(function()
---     for _, font in ipairs(PEARL.FONTS) do
---         TheSim:UnloadFont(font.alias)
---     end
-
---     local font_prefab = "pearl_fonts"
---     TheSim:UnloadPrefabs({font_prefab})
-
---     local assets = {}
---     AddFontAssets(assets, PEARL.FONTS)
---     AddFontAssets(PEARL.ENV.PreloadAssets, PEARL.FONTS)
-
---     print("RELOADING ASSETS")
---     local prefab = Prefab(font_prefab, function() return CreateEntity() end, assets)
---     RegisterPrefabs(prefab)
---     TheSim:LoadPrefabs({prefab.name})
-
---     print("RELOADING FONTS!")
---     for _, font in ipairs(PEARL.FONTS) do
---         TheSim:LoadFont(font.filename, font.alias, font.disable_colour)
---     end
--- end)
+PEARL.loadfile("emojis")
 
 ----------------------------------
 -- User Interface
@@ -330,6 +298,9 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     )
     ModuleManager:AddModule(
         "commandblocker", table.empty(PEARL.CONFIG.COMMAND_BLOCKLIST) == false or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
+    )
+    ModuleManager:AddModule(
+        "emptyserverpopup", PEARL.CONFIG.EMPTY_SERVER_POPUP
     )
 end
 

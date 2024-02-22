@@ -305,7 +305,7 @@ function EMBEDS.PlayerInfo()
 
         local icons = ""
         local prefab = PEARL.GetFancyCharacterPrefabFor(userid)
-        local name = client.name
+        local name = PEARL.GetUserName(userid)
         local netid = client.netid
         local cur_days = tostring(client.playerage)
         local tot_days = PEARL.DB:IsEnabled() and tostring(PEARL.DB:GetField(client.userid, "totaldays")) or "???"
@@ -452,8 +452,7 @@ end
 
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, userid)
-    local client = PEARL.ServerNetwork:GetCachedClientTableFor(userid) or TheNet:GetClientTableForUser(userid)
-    local owner_name = client and client.name or PEARL.DB:GetField(userid, "username", userid)
+    local owner_name = PEARL.GetUserName(userid)
     local modlist = type(enabled_mods.list) == "table" and enabled_mods.list or {}
     local description = ""
     local max_id_size = PEARL.GetMaxStringSize(modlist, false, "id")

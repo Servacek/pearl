@@ -67,8 +67,7 @@ Reputation.DEFAULT_REP_DATA = {
 }
 
 Reputation.LIMIT = {
-    NONE        = -1,
-    WORST       = 0,
+    WORST       = -100,
     VERY_BAD    = VERY_BAD_REP_THRESHOLD,
     BAD         = BAD_REP_THRESHOLD,
     NEUTRAL     = PEARL.CONSTS.STARTING_REPUTATION,
@@ -204,9 +203,28 @@ function Reputation:SetFor(userid, value, sync)
     return self:SetFieldFor(userid, "value", value, sync)
 end
 
+function Reputation:ResetFieldFor(userid, field)
+    local reputation = PEARL.DB:GetField(userid, FIELD_NAME, {})
+    reputation[field] = Reputation.DEFAULT_REP_DATA[field]
+    PEARL.DB:SafeSetField(userid, FIELD_NAME, reputation)
+end
+
+function Reputation:ResetFor(userid)
+    local reputation = PEARL.DB:GetField(userid, FIELD_NAME, {})
+    for field, value in pairs(Reputation.DEFAULT_REP_DATA) do
+        reputation[field] = value
+    end
+
+    PEARL.DB:SafeSetField(userid, FIELD_NAME, reputation)
+end
+
 --------------------------------------
 -- [[ Public Methods ]]
 --------------------------------------
+--- There are three main ways to gain/loose reputation:
+--- 1. By griefing.
+--- 2. By contributing to the server.
+--- 3. By a player who gives it to you using /giverep
 
 --- @param userid string
 --- @param delta number
@@ -247,6 +265,7 @@ function Reputation:EarnFor(userid, amount, limit, source)
     end
 
     local old_rep = self:GetOf(userid)
+    print("OLD REP", old_rep)
     local mult = NEGATIVE_REP_MULTIPLIER
     if amount > 0 then
         local gained = math.max(old_rep - Reputation.STARTING_VALUE, 0)
@@ -293,6 +312,7 @@ function Reputation:InitializeFor(userid, value)
     end
 end
 
+-- So the constants are not hardcoded.
 function Reputation:LoadReputationTables()
     local ROOT_DIR = PEARL.ModPersistance:GetRootDirectoryPath()
     local REP_TABLES_PATH = ROOT_DIR.."/reputation_tables.json"

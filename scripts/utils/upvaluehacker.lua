@@ -129,10 +129,11 @@ function UpvalueHacker:GetUpvalue(fn, name)
 	error("Upvalue '"..tostring(name).."' not found!")
 end
 
+--- @param start_fn function The function in which environment you want to override new_fn
 function UpvalueHacker:SetUpvalue(start_fn, new_fn, name)
 	local fups = self:GetUpsRecursively(start_fn, name)
 	if IsTableEmpty(fups) then
-		return error("No upvalues found with name", name)
+		return error("No upvalues found with name"..tostring(name))
 	end
 
 	for fn, i in pairs(fups) do

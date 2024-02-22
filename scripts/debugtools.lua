@@ -841,3 +841,102 @@ local charset = "%d%a"
 function PEARL.GenerateRandomKleiID()
     return "KU_"..string.random(8, charset)
 end
+
+--- from debugkeys.lua
+function PEARL.SpawnBase()
+    -- Spawn a ready-made base!
+    local pos = ThePlayer:GetPosition()
+    local topleft = Vector3(pos.x - 15, 0, pos.z - 15)
+    local bottomright = Vector3(pos.x + 15, 0, pos.z + 15)
+    local width = bottomright-topleft
+    for i=0,width.x do
+        if i < width.x/2-1 or i > width.x/2+1 then
+            local wall = SpawnPrefab("wall_stone")
+            wall.Transform:SetPosition(topleft.x + i, 0, topleft.z)
+            wall = SpawnPrefab("wall_stone")
+            wall.Transform:SetPosition(bottomright.x - i, 0, bottomright.z)
+        end
+    end
+    for i=0,width.z do
+        if i < width.z/2-1 or i > width.z/2+1 then
+            local wall = SpawnPrefab("wall_wood")
+            wall.Transform:SetPosition(topleft.x, 0, topleft.z + i)
+            wall = SpawnPrefab("wall_hay")
+            wall.Transform:SetPosition(bottomright.x, 0, bottomright.z - i)
+        end
+    end
+
+    local items = {
+        "treasurechest",
+        "treasurechest",
+        "treasurechest",
+        "researchlab",
+        "researchlab",
+        "researchlab2",
+        "firepit",
+        "slow_farmplot",
+        "slow_farmplot",
+        "slow_farmplot",
+        "fast_farmplot",
+        "fast_farmplot",
+        "fast_farmplot",
+        "meatrack",
+        "meatrack",
+        "meatrack",
+        "meatrack",
+        "cookpot",
+        "cookpot",
+        "cookpot",
+        "cookpot",
+        "pighouse",
+        "birdcage",
+        "firesuppressor",
+    }
+    for i,v in ipairs(items) do
+        local pos = topleft + Vector3(width.x*math.random(), 0, width.z*math.random())
+        SpawnPrefab(items[i]).Transform:SetPosition(pos.x, pos.y, pos.z)
+    end
+    local group_items = {
+        "grass",
+        "berrybush",
+        "sapling",
+        "evergreen",
+        "evergreen",
+    }
+    for i,v in ipairs(group_items) do
+        local pos = topleft + Vector3(width.x*math.random(), 0, width.z*math.random())
+        for z=-2,2 do
+            for x=-2,2 do
+                local sub_pos = Vector3(pos.x + x, 0, pos.z + z)
+                SpawnPrefab(group_items[i]).Transform:SetPosition(sub_pos.x, sub_pos.y, sub_pos.z)
+            end
+        end
+    end
+    ConsoleCommandPlayer().components.inventory:Equip( c_spawn("backpack") ) -- do this first so other things can get put in it
+    ConsoleCommandPlayer().components.inventory:Equip( c_spawn("axe") )
+    ConsoleCommandPlayer().components.inventory:Equip( c_spawn("flowerhat") )
+    local invitems = {
+        carrot = 20,
+        berries = 20,
+        twigs = 20,
+        cutgrass = 20,
+        flint = 20,
+        rocks = 40,
+        log = 40,
+        spear = 2,
+        armorwood = 2,
+        footballhat = 1,
+        torch = 2,
+        axe = 1,
+        pickaxe = 1,
+        shovel = 1,
+        silk = 10,
+        spidergland = 5,
+        smallmeat = 8,
+        meat = 4,
+        meatballs = 4,
+    }
+    for k,v in pairs(invitems) do
+        c_give(k, v)
+    end
+end

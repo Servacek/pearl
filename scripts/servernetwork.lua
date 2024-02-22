@@ -177,10 +177,11 @@ end
 -- Called from server-side user command handlers.
 -- Sends a RPC to the client with the given userid.
 -- Note: This works only if the player is connected to the local shard.
-function ServerNetwork:SendCommandResponse(userid, response)
+function ServerNetwork:SendCommandResponse(userid, response, colour)
     local message = ChatMessage(response)
     message:SetType(ChatTypes.CommandResponse)
     message:SetIsLocalOnly(true)
+    message:SetColour(colour)
 
     self:DisplayChatMessageFor(userid, message)
 end

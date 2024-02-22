@@ -89,27 +89,28 @@ end, ModManager)
 -- This is when the game loads for the client and we can start playing
 local function OnPlayerActivated()
     if KnownModIndex:AreAnyModsBlocked() and show_popup then
+        show_popup = false
+
         local all_blocked = KnownModIndex:AreAllModsBlocked()
 
         local title = all_blocked and "MODS_BLOCKED_ALL_TITLE" or "MODS_BLOCKED_TITLE"
         local body = all_blocked and "MODS_BLOCKED_ALL_BODY" or "MODS_BLOCKED_BODY"
 
-        -- Inform the player that some of his mods were blocked by the server
-        TheFrontEnd:PushScreen(
-            PopupDialogScreen(
-                STRINGS.PEARL.UI[title], STRINGS.PEARL.UI[body], {
-                    {
-                        text = STRINGS.UI.SERVERLISTINGSCREEN.CONTINUE,
-                        cb = function()
-                            -- Just close the popup
-                            TheFrontEnd:PopScreen()
-                        end
-                    }
-                }, nil, nil, "dark"
-            )
+        local popup
+        popup = PopupDialogScreen(
+            STRINGS.PEARL.UI[title], STRINGS.PEARL.UI[body], {
+                {
+                    text = STRINGS.UI.SERVERLISTINGSCREEN.CONTINUE,
+                    cb = function()
+                        -- Just close the popup
+                        TheFrontEnd:PopScreen(popup)
+                    end
+                }
+            }, nil, nil, "dark"
         )
 
-        show_popup = false
+        -- Inform the player that some of his mods were blocked by the server
+        TheFrontEnd:PushScreen(popup)
     end
 end
 
