@@ -214,8 +214,8 @@ PEARL.ENV.PreloadAssets = {
     Asset("PKGREF", "images/bg_loading_space.tex"),
     Asset("DYNAMIC_ATLAS", "images/bg_loading_space.xml"),
 
-    Asset("SOUNDPACKAGE",   "sound/music_mod.fev"),
-    Asset("SOUND",          "sound/music_mod.fsb"),
+    Asset("SOUNDPACKAGE",   "sound/custom_music.fev"),
+    Asset("SOUND",          "sound/custom_music_bank.fsb"),
 
     --Asset("PKGREF", "movies/test_video.ogv")
 }
@@ -229,8 +229,6 @@ PEARL.ENV.ReloadPreloadAssets()
 PEARL.debug("Loading fonts...")
 
 PEARL.FONTS = PEARL.loadfile("constants/fonts")
-
-PEARL.loadfile("emojis")
 
 ----------------------------------
 -- User Interface
@@ -284,6 +282,7 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
+ModuleManager:AddModule("emojis", PEARL.CONFIG.CUSTOM_EMOJIS)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(

@@ -18,6 +18,8 @@ local Text = require("widgets/text")
 --- @type UserCommands
 local UserCommands = require("usercommands")
 
+local EmojiMenu = PEARL.loadfile("widgets/emojimenu")
+
 local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 ---------------------------
@@ -26,6 +28,11 @@ local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
+
+local EMOJI_SET = {
+    ["Vanilla"] = PEARL.EMOTES.VANILLA,
+    ["Discord"] = PEARL.EMOTES.CUSTOM_GAME,
+}
 
 -- Usually, we want the autocompletion to be shown right after the delimeter was typed in.
 local COMMAND_PREDICTION_CHARS = 0 -- Commands do not have usually under 2 characters.
@@ -51,9 +58,20 @@ local function AddWhisperWarning(self)
     whisper_warn_label:SetColour(WARN_TEXT_COLOUR)
 end
 
----------------------------
--- [[ Overrides ]]
----------------------------
+local function AddEmojiMenuButton(self)
+    self.emoji_menu = self.chat_edit:AddChild(EmojiMenu(self, self.chat_edit, EMOJI_SET))
+    local x = -465
+    if self.chat_type then
+        x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
+    end
+    self.emoji_menu:SetPosition(x, 0)
+
+    self.focus_forward = function()
+        if self.emoji_menu:IsExplorerOpen() then
+            return self.emoji_menu
+        end
+    end
+end
 
 local function ExpandWordPredictorWithCustomCommands(predictor, commands)
     local permission = UserCommands.GetPermissionLevel(
@@ -78,9 +96,17 @@ local function ExpandWordPredictorWithCustomCommands(predictor, commands)
     end
 end
 
+---------------------------
+-- [[ Overrides ]]
+---------------------------
+
 AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     if whisper == true and PEARL.CONFIG.WHISPER_WARNING == true then
         AddWhisperWarning(self)
+    end
+
+    if PEARL.CONFIG.EMOJI_MENU then
+        AddEmojiMenuButton(self)
     end
 
     -- Setup prediction for our custom slash commands

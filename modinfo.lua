@@ -463,6 +463,20 @@ configuration_options = {
     --------------------
 
     {
+        name="CUSTOM_EMOJIS",
+        default = true,
+        type = "boolean",
+        public = true,
+    },
+
+    {
+        name="EMOJI_MENU",
+        default = true,
+        type = "boolean",
+        public = true,
+    },
+
+    {
         name="HEALTH_INFO",
         default = {
             ENABLED = false,
@@ -749,6 +763,26 @@ configuration_options = {
     },
 
     --------------------
+    -- Mods
+    --------------------
+
+    {
+        name = "REQUIRED_CLIENT_MODS", -- List of mods to be installed to clients.
+        default = {},
+        type = "table",
+    },
+
+    --------------------
+    -- Lua
+    --------------------
+
+    {
+        name = "CUSTOM_LUA", -- List of mods to be installed to clients.
+        default = function() end,
+        type = "function",
+    },
+
+    --------------------
     -- Network
     --------------------
 
@@ -947,7 +981,6 @@ configuration_options = {
         public = true,
         implicit = true,
     },
-
 
     {
         name="DISCORD_PROXY_ENABLED",

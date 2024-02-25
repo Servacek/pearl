@@ -9,7 +9,7 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
-
+--- @DEBUG The discord feedback stuff needs some debugging...
 
 --[[
     Checks the content of an inventory when it's owner despawns.

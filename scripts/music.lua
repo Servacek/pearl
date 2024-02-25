@@ -16,7 +16,7 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
         local emittor = (TheFocalPoint and TheFocalPoint.SoundEmitter) or (TheFrontEnd and TheFrontEnd:GetSound())
         local music_volume = math.max(TheMixer:GetLevel("set_music"), 0.5)
         emittor:KillAllSounds()
-        emittor:PlaySound("music_mod/music/music_server_error", "music_server_error")
+        emittor:PlaySound("custom_music/misc/technical_difficulties", "music_server_error")
         emittor:SetVolume("music_server_error", music_volume)
         emittor:SetMute(false)
 
@@ -35,3 +35,8 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
         -- end
     end
 end)
+
+local GAME_MODES = GLOBAL.GAME_MODES
+if GAME_MODES.survival then
+    GAME_MODES.survival.override_lobby_music = "custom_music/misc/vltava"
+end

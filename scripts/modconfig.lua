@@ -18,6 +18,12 @@
 setfenv(1, PEARL.ENV)
 
 -------------------------------------
+-- [[ Constants ]]
+-------------------------------------
+
+local WORKSHOP_MOD_PREFIX = "workshop-"
+
+-------------------------------------
 -- [[ Class Declaration ]]
 -------------------------------------
 
@@ -288,14 +294,31 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     return data_str
 end)
 
--- local _GetEnabledModsModInfoDetails = rawget(_G, "GetEnabledModsModInfoDetails")
--- rawset(_G, "GetEnabledModsModInfoDetails", function(...)
---     local details = _GetEnabledModsModInfoDetails(...)
+local _GetEnabledModsModInfoDetails = rawget(_G, "GetEnabledModsModInfoDetails")
+rawset(_G, "GetEnabledModsModInfoDetails", function(...)
+    local details = _GetEnabledModsModInfoDetails(...)
 
---     -- Do some changes...
+    for _, modid in ipairs(PEARL.CONFIG.REQUIRED_CLIENT_MODS) do
+        local modname = WORKSHOP_MOD_PREFIX..modid
+        local modinfo = KnownModIndex:GetModInfo(modname)
+        if not modinfo then
+            -- We need to know the version and the name of the mod on the Steam workshop, so
+            -- the mods needs to be downloaded (query wouldn't work here).
+            return error("Required client mod is unknown!\nPlease add \"ServerModSetup(\""..tostring(modid).."\")\" to \"dedicated_server_mods_setup.lua\" :)")
+        end
 
---     return details
--- end)
+        details[#details + 1] = {
+            name = modname,
+            info_name = modinfo ~= nil and modinfo.name or modname,
+            version = modinfo ~= nil and modinfo.version or "",
+            version_compatible = modinfo ~= nil and modinfo.version_compatible or "",
+
+            all_clients_require_mod = true, -- Always true for required mods.
+        }
+    end
+
+    return details
+end)
 
 -------------------------------------
 -- [[ Return ]]

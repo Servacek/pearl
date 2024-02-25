@@ -19,8 +19,7 @@ local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
 
 local CONFIG = PEARL.CONFIG.AUTOBAN
 
-local BAN_DELAY = 3
-local BAN_DELAY_OFFLINE = 0
+local UNTIL_BAN_ANIM = 2
 
 local WARNING_HEALTH_PENALTY = 10
 local WARNING_ATTACK_TYPE = "electric"
@@ -28,7 +27,7 @@ local WARNING_SANITY_PENALTY = TUNING.SANITY_MED
 
 local WARNING_THRESHOLDS = {
     [1] = PEARL.Reputation.LIMIT.BAD,
-    [2] = PEARL.Reputation.LIMIT.VERY_BAD / 2,
+    [2] = PEARL.Reputation.LIMIT.VERY_BAD,
 }
 
 --------------------------------------
@@ -43,8 +42,13 @@ end
 -- [[ Event Handlers ]]
 --------------------------------------
 
-local function PreparePlayerForBan(player)
-    player:DoTaskInTime(2, function()
+local function PreparePlayerForBan(player, onprepared)
+    -- Ban the player only once!
+    if player.bantask ~= nil then
+        return
+    end
+
+    player.bantask = player:DoTaskInTime(UNTIL_BAN_ANIM, function()
         if player.components then
             if player.components.talker then
                 player.components.talker:Say(STRINGS.PEARL.GRIEFER_WARNINGS.BAN)
@@ -58,6 +62,8 @@ local function PreparePlayerForBan(player)
 
         -- Let's ban them in style
         player.sg:GoToState("teleportato_teleport")
+
+        onprepared()
     end)
 end
 
@@ -100,32 +106,25 @@ local function WarnPlayer(player, level)
 end
 
 local function BanPlayer(userid, player)
-    local delay = player and BAN_DELAY or BAN_DELAY_OFFLINE
-    PEARL.WallScheduler:ExecuteInTime(delay, function()
-        PEARL.info("Banning player", player and player:GetDisplayName() or userid, "for being a griefer.")
-        TheNet:BanForTime(userid, CONFIG.DURATION, STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO, PEARL.CONSTS.BAN_AUTHORS.SYSTEM)
-    end)
-
-    PEARL.ClientLoader:AddDeferant("waitingforban")
+    PEARL.info("Banning player", player and player:GetDisplayName() or userid, "for being a griefer.")
+    TheNet:BanForTime(userid, CONFIG.DURATION, STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO, PEARL.CONSTS.BAN_AUTHORS.SYSTEM)
 end
 
 local function CheckForBanableRep(userid, rep)
     rep = rep or PEARL.Reputation:GetOf(userid)
-    print(rep, PEARL.CONFIG.AUTOBAN.THRESHOLD)
-    if rep < PEARL.CONFIG.AUTOBAN.THRESHOLD then
-        -- Ban Time!
-
+    if rep < PEARL.CONFIG.AUTOBAN.THRESHOLD then -- Ban Time!
         local player = LookupPlayerInstByUserID(userid)
         if player then
-            PreparePlayerForBan(player)
+            PreparePlayerForBan(player, function()
+                BanPlayer(userid, player)
+            end)
+        else
+            BanPlayer(userid, player)
         end
-
-        BanPlayer(userid, player)
     end
 end
 
 local function OnReputationChanged(userid, old, new)
-    print("OnReputationChanged", userid, old, new)
     if old <= new or IsPlayerUntouchable(userid) then
         return
     end
@@ -134,7 +133,6 @@ local function OnReputationChanged(userid, old, new)
 end
 
 local function OnReputationEarned(userid, old, new)
-    print("OnReputationEarned", userid, old, new)
     -- This player has too much reputation for being penalized in any way.
     -- Keeping this after ban since the threshold can be any number configured.
     if WARNING_THRESHOLDS[1] < new or IsPlayerUntouchable(userid) then
@@ -168,7 +166,6 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid)
 end)
 
 PEARL.AddPlayerPostInit(function(player)
-    print("PLAYER POST INIT")
     CheckForBanableRep(player.userid)
 end)
 

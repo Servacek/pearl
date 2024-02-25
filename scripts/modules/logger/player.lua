@@ -39,8 +39,9 @@ local MAX_COMMAND_LENGTH = 256
 local REPUTATIONS = PEARL.CONSTS.REPUTATION_TABLES
 
 -- Determines the number of burnable structures needed to activate the extinguisher.
-local EXTINGUISHER_STRUCTURES = 4
-local EXTINGUISHER_PLANTS = 6
+local EXTINGUISHER_STRUCTURES = 3
+local EXTINGUISHER_PLANTS = 5
+local EXTINGUISHER_BOTH = 5
 local EXTINGUISHER_RADIUS = PEARL.CONSTS.EXTINGUISH_RADIUS
 
 local TIME_UNTIL_EXTINGUISH = 4 -- in seconds
@@ -180,7 +181,8 @@ local function OnIgniteNear(doer, near, pos)
     --- For now this is enough since griefing is not that big of a problem as it was.
     if doer.Transform and (
         #structures >= EXTINGUISHER_STRUCTURES or
-        #plants >= EXTINGUISHER_PLANTS
+        #plants >= EXTINGUISHER_PLANTS or
+        (#structures + #plants) >= EXTINGUISHER_BOTH
     ) then
         PEARL.info("Extinguishing the fires!")
 
@@ -228,8 +230,15 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         silent = true
     end
 
+    local fire_protected = target:IsFireProtected()
+    if fire_protected then
+        silent = true
+    end
+
     if near and #near > 0 then
-        OnIgniteNear(doer, near)
+        if not fire_protected then
+            OnIgniteNear(doer, near)
+        end
 
         return AL:Log(doer, PEARL.CONSTS.ANN_TYPE.IGNITE, subfmt(STRINGS.PEARL.ACTIONS.IGNITE.NEAR, {
             doer = doer:GetDisplayName(), target = target:GetFancyName(), near = PEARL.BuildFancyStringForEntities(near)

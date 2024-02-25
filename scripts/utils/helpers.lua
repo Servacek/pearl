@@ -29,7 +29,7 @@ local KLEI_ENCODED_DATA_PATTERN = PEARL.CONSTS.KLEI_ENCODED_DATA_PREFIX.."%s"
 -----------------------------------
 
 local function FligoFilter(fligo)
-    return fligo.components.firedetector and fligo.components.firedetector.detectTask ~= nil
+    return fligo.components.machine and fligo.components.machine.ison == true
 end
 
 --------------------------------

@@ -730,6 +730,12 @@ end)
 -- ModuleManager:SetLoader(PEARL.loadfile)
 
 --------------------------------
+-- [[ Custom Lua ]]
+--------------------------------
+
+RunInEnvironmentSafe(PEARL.CONFIG.CUSTOM_LUA, PEARL.ENV)
+
+--------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------
 

@@ -221,6 +221,11 @@ for game, discord in pairs(EMOTES.MAP_DISCORD) do
     EMOTES.MAP_GAME[discord] = game
 end
 
+EMOTES.VANILLA = {} -- Same as EMOTES.GAME but the names are lowered.
+for uppercasename, symbol in pairs(EMOTES.GAME) do
+    EMOTES.GAME[uppercasename:lower()] = symbol
+end
+
 --------------------------------
 -- [[ Return ]]
 --------------------------------
