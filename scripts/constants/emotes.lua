@@ -8,69 +8,64 @@
     This file is part of the 'Pearl' software shared under
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
---]==]====================================================]]
-
-
-
--- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
+--]==]====================================================]] -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
-
 --- @class EMOTES
 local EMOTES = {
     -- Game utf-8 formatted emotes accessed by name
     --- @class EMOTES.GAME
     GAME = {
-        ABIGAIL         = "󰀜",
-        ALCHEMY		    = "󰀝",
-        BACKPACK		= "󰀞",
-        BATTLE		    = "󰀘",
-        BEEFALO		    = "󰀁",
-        BEEHIVE		    = "󰀟",
-        BERRY			= "󰀠",
-        CARROT		    = "󰀡",
-        CHEST			= "󰀂",
-        CHESTER		    = "󰀃",
-        CROCKPOT	   	= "󰀄",
-        EYEBALL		    = "󰀅",
-        EGG			    = "󰀢",
-        EYEPLANT		= "󰀣",
-        FARM			= "󰀇",
-        FIREPIT		    = "󰀤",
-        FIRE			= "󰀈",
-        FLEX			= "󰀙",
-        GHOST			= "󰀉",
-        GOLD			= "󰀚",
-        GRAVE			= "󰀊",
-        HAMBAT		    = "󰀋",
-        HAMMER		    = "󰀌",
-        HEART			= "󰀍",
-        HORN			= "󰀥",
-        HUNGER		    = "󰀎",
-        LIGHTBULB		= "󰀏",
-        ARCANE		    = "󰀀",
-        MEAT			= "󰀦",
-        PIG			    = "󰀐",
-        POOP			= "󰀑",
-        REDGEM		    = "󰀒",
-        REFINE		    = "󰀧",
-        SALT			= "󰀨",
-        SANITY		    = "󰀓",
-        SCIENCEMACHINE	= "󰀔",
-        FAKETEETH		= "󰀆",
-        SHADOW		    = "󰀩",
-        SHOVEL		    = "󰀪",
-        SKULL			= "󰀕",
-        WEB			    = "󰀗",
-        THUMBSUP		= "󰀫",
-        TOPHAT		    = "󰀖",
-        TORCH			= "󰀛",
-        TRAP			= "󰀬",
-        TROPHY		    = "󰀭",
-        WAVE			= "󰀮",
-        WORMHOLE		= "󰀯",
+        ABIGAIL = "󰀜",
+        ALCHEMY = "󰀝",
+        BACKPACK = "󰀞",
+        BATTLE = "󰀘",
+        BEEFALO = "󰀁",
+        BEEHIVE = "󰀟",
+        BERRY = "󰀠",
+        CARROT = "󰀡",
+        CHEST = "󰀂",
+        CHESTER = "󰀃",
+        CROCKPOT = "󰀄",
+        EYEBALL = "󰀅",
+        EGG = "󰀢",
+        EYEPLANT = "󰀣",
+        FARM = "󰀇",
+        FIREPIT = "󰀤",
+        FIRE = "󰀈",
+        FLEX = "󰀙",
+        GHOST = "󰀉",
+        GOLD = "󰀚",
+        GRAVE = "󰀊",
+        HAMBAT = "󰀋",
+        HAMMER = "󰀌",
+        HEART = "󰀍",
+        HORN = "󰀥",
+        HUNGER = "󰀎",
+        LIGHTBULB = "󰀏",
+        ARCANE = "󰀀",
+        MEAT = "󰀦",
+        PIG = "󰀐",
+        POOP = "󰀑",
+        REDGEM = "󰀒",
+        REFINE = "󰀧",
+        SALT = "󰀨",
+        SANITY = "󰀓",
+        SCIENCEMACHINE = "󰀔",
+        FAKETEETH = "󰀆",
+        SHADOW = "󰀩",
+        SHOVEL = "󰀪",
+        SKULL = "󰀕",
+        WEB = "󰀗",
+        THUMBSUP = "󰀫",
+        TOPHAT = "󰀖",
+        TORCH = "󰀛",
+        TRAP = "󰀬",
+        TROPHY = "󰀭",
+        WAVE = "󰀮",
+        WORMHOLE = "󰀯",
 
-        LMB             = STRINGS.LMB,
-        RMB             = STRINGS.RMB,
+        LMB = STRINGS.LMB,
+        RMB = STRINGS.RMB
     },
 
     CUSTOM_GAME = {
@@ -105,7 +100,7 @@ local EMOTES = {
         ["wilson_thong"] = "󰂼",
         ["wilson_why"] = "󰂽",
         ["wormwood_fire"] = "󰂾",
-        ["yeah"] = "󰂿",
+        ["yeah"] = "󰂿"
 
         -- Revelaing internal icons
         -- Looks like even this requires the fonts.
@@ -205,8 +200,8 @@ local EMOTES = {
         ["󰃀"] = "<:Sir:798150463315771412>",
         ["󰂩"] = "<:ds_noice:779689296902094889>",
         ["󰂳"] = ":flag_cz",
-        ["󰂥"] = ":flag_sk",
-    },
+        ["󰂥"] = ":flag_sk"
+    }
 }
 
 -- Game Icon Name -> Discord Emoji
@@ -217,13 +212,31 @@ for name, symbol in pairs(EMOTES.GAME) do
 end
 
 EMOTES.MAP_GAME = {}
-for game, discord in pairs(EMOTES.MAP_DISCORD) do
-    EMOTES.MAP_GAME[discord] = game
-end
+for game, discord in pairs(EMOTES.MAP_DISCORD) do EMOTES.MAP_GAME[discord] =
+    game end
 
-EMOTES.VANILLA = {} -- Same as EMOTES.GAME but the names are lowered.
-for uppercasename, symbol in pairs(EMOTES.GAME) do
-    EMOTES.GAME[uppercasename:lower()] = symbol
+function EMOTES.GetOwnedVanillaEmojis(userid)
+    local has_ownership = nil
+    if TheWorld ~= nil and userid ~= nil and TheWorld.ismastersim then
+        has_ownership = function(item_type)
+            return TheInventory:CheckClientOwnership(userid, item_type)
+        end
+    elseif userid == TheNet:GetUserID() then
+        has_ownership = function(item_type)
+            return TheInventory:CheckOwnership(item_type)
+        end
+    else
+        return {}
+    end
+
+    local emojis_map = {}
+    for item_type, emojis in pairs(EMOJI_ITEMS) do
+        if has_ownership(item_type) then
+            emojis_map[emojis.input_name] = emojis.data.utf8_str
+        end
+    end
+
+    return emojis_map
 end
 
 --------------------------------

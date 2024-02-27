@@ -9,6 +9,8 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
+--- @TODO: Make the profile reputation affect the starting reputation for a player.
+--- So that players with bad profiles are closer to a ban in case they start to be nasty.
 
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")

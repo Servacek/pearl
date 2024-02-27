@@ -14,6 +14,7 @@
 --- @class ChatInputScreen
 local ChatInputScreen = require("screens/chatinputscreen")
 local Text = require("widgets/text")
+local TEMPLATES = require("widgets/redux/templates")
 
 --- @type UserCommands
 local UserCommands = require("usercommands")
@@ -26,11 +27,14 @@ local Colour = PEARL.loadfile("libraries/datastructures/colour")
 -- [[ Constants ]]
 ---------------------------
 
+local START_BUTTON_SIZE = 35
+local START_BUTTON_FOCUS_SIZE = 45
+
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
 
 local EMOJI_SET = {
-    ["Vanilla"] = PEARL.EMOTES.VANILLA,
+    ["Vanilla"] = PEARL.EMOTES.GetOwnedVanillaEmojis(TheNet:GetUserID()),
     ["Discord"] = PEARL.EMOTES.CUSTOM_GAME,
 }
 
@@ -44,6 +48,10 @@ local last_slash_command = nil
 ---------------------------
 -- [[ Local Functions ]]
 ---------------------------
+
+local function GetRandomEmoji(set)
+    return GetRandomItem(GetRandomItem(set))
+end
 
 local function AddWhisperWarning(self)
     local control = CONTROL_TOGGLE_SAY
@@ -59,18 +67,29 @@ local function AddWhisperWarning(self)
 end
 
 local function AddEmojiMenuButton(self)
-    self.emoji_menu = self.chat_edit:AddChild(EmojiMenu(self, self.chat_edit, EMOJI_SET))
+    local btn = self.chat_edit:AddChild(TEMPLATES.EmojiButton(START_BUTTON_SIZE))
     local x = -465
     if self.chat_type then
         x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
     end
-    self.emoji_menu:SetPosition(x, 0)
-
-    self.focus_forward = function()
-        if self.emoji_menu:IsExplorerOpen() then
-            return self.emoji_menu
+    btn:SetText(GetRandomEmoji(self.emoji_menu.emoji_sets))
+    btn:MoveToFront()
+    btn:SetPosition(x, 0)
+    btn.ongainfocus = function()
+        if not self.emoji_menu:IsOpen() then
+            btn:SetTextSize(START_BUTTON_FOCUS_SIZE)
+            btn:SetText(GetRandomEmoji(self.emoji_menu.emoji_sets))
         end
     end
+    btn.onlosefocus = function()
+        if not self.emoji_menu:IsOpen() then
+            btn:SetTextSize(START_BUTTON_SIZE)
+        end
+    end
+    btn:SetOnClick(function()
+        self.emoji_menu:Toggle()
+        self.emoji_menu:SetPosition(x + 100, 100)
+    end)
 end
 
 local function ExpandWordPredictorWithCustomCommands(predictor, commands)
@@ -100,12 +119,20 @@ end
 -- [[ Overrides ]]
 ---------------------------
 
+local emoji_menu
 AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     if whisper == true and PEARL.CONFIG.WHISPER_WARNING == true then
         AddWhisperWarning(self)
     end
 
     if PEARL.CONFIG.EMOJI_MENU then
+        self.emoji_menu = self.screen_root:AddChild(EmojiMenu(EMOJI_SET, self.chat_edit))
+        self.focus_forward = function()
+            if self.emoji_menu:IsOpen() then
+                return self.emoji_menu
+            end
+        end
+
         AddEmojiMenuButton(self)
     end
 

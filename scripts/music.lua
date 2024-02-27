@@ -36,7 +36,8 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
     end
 end)
 
-local GAME_MODES = GLOBAL.GAME_MODES
-if GAME_MODES.survival then
-    GAME_MODES.survival.override_lobby_music = "custom_music/misc/vltava"
-end
+-- Make sure the sound files do not exceed 100 MB
+-- local GAME_MODES = GLOBAL.GAME_MODES
+-- if GAME_MODES.survival then
+--     GAME_MODES.survival.override_lobby_music = "custom_music/misc/vltava"
+-- end

@@ -26,3 +26,17 @@ end
 function math.logb(x, base)
     return math.log(x) / math.log(base)
 end
+
+-- maps an integer x from the range <s_min, s_max> to the new range <d_min, d_max>
+function math.map(x, s_min, s_max, d_min, d_max)
+    if x < s_min or x > s_max then
+        return error("number not from given interval")
+    end
+
+    if s_min == s_max or d_min == d_max then
+        return error("invalid source or destination range provided")
+    end
+
+    local src, dst = (s_max - s_min), (d_max - d_min)
+    return math.floor(d_min + x * (dst / src))
+end

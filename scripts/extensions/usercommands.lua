@@ -697,8 +697,6 @@ function UserCommands.AddCustomCommand(name, command)
     command.prettyname = command.prettyname or (strings and strings.PRETTYNAME) or (game_strings and game_strings.PRETTYNAME)
     command.desc = command.desc or (strings and strings.DESC) or (game_strings and game_strings.DESC)
 
-    print(command.prettyname)
-
     command.remote = type(command.fn) == "function" -- Whether we should send the response to the server.
     command.routing = command.routing or UserCommands.SHARD_ROUTING.AUTO
     command.routingfallback = command.routingfallback or UserCommands.SHARD_ROUTINGFALLBACK.CURRENT

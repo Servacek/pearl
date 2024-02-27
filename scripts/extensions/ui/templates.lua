@@ -12,6 +12,7 @@
 
 
 local ImageButton = require("widgets/imagebutton")
+local Button = require("widgets/button")
 
 local TEMPLATES = require("widgets/redux/templates")
 
@@ -87,4 +88,46 @@ function TEMPLATES.GetSocialLinkButtons(widget, hover_under)
     end
 
     return site_buttons
+end
+
+function TEMPLATES.EmojiButton(size, override_bg_size)
+    local btn = Button()
+    -- local btn = self:AddChild(ImageButton(
+    --     "images/global_redux.xml",
+    --     "button_carny_square_normal.tex",
+    --     "button_carny_square_hover.tex",
+    --     "button_carny_square_disabled.tex",
+    --     "button_carny_square_down.tex"
+    -- ))
+
+    btn.bg = btn:AddChild(Image("images/ui.xml", "blank.tex"))
+    btn.bg:SetPosition(0, 0)
+    btn.bg:MoveToBack()
+
+    if override_bg_size then
+        btn.bg:ScaleToSize(override_bg_size, override_bg_size)
+    else
+        local SetText = btn.SetText
+        btn.SetText = function(...)
+            SetText(...)
+            local w, h = btn.text:GetRegionSize()
+            btn.bg:ScaleToSize(w, h)
+        end
+    end
+
+    btn:SetTextSize(size)
+    btn:SetControl(CONTROL_PRIMARY)
+
+    btn.ongainfocus = function()
+        btn:Select()
+        btn:SetTextSize(size + 7)
+    end
+    btn.onlosefocus = function()
+        btn:SetTextSize(size)
+        btn:Unselect()
+    end
+    btn.AllowOnControlWhenSelected = true
+    btn.OnEnable = function() end -- To prevent stackoverflow
+
+    return btn
 end
