@@ -19,6 +19,7 @@ local TEMPLATES = require("widgets/redux/templates")
 --- @type UserCommands
 local UserCommands = require("usercommands")
 
+--- @type EmojiMenu
 local EmojiMenu = PEARL.loadfile("widgets/emojimenu")
 
 local Colour = PEARL.loadfile("libraries/datastructures/colour")

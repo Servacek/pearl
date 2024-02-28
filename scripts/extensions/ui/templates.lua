@@ -92,42 +92,44 @@ end
 
 function TEMPLATES.EmojiButton(size, override_bg_size)
     local btn = Button()
-    -- local btn = self:AddChild(ImageButton(
-    --     "images/global_redux.xml",
-    --     "button_carny_square_normal.tex",
-    --     "button_carny_square_hover.tex",
-    --     "button_carny_square_disabled.tex",
-    --     "button_carny_square_down.tex"
-    -- ))
 
     btn.bg = btn:AddChild(Image("images/ui.xml", "blank.tex"))
-    btn.bg:SetPosition(0, 0)
+    btn.bg:SetTint(0, 0, 0, 0)
     btn.bg:MoveToBack()
 
     if override_bg_size then
         btn.bg:ScaleToSize(override_bg_size, override_bg_size)
     else
-        local SetText = btn.SetText
-        btn.SetText = function(...)
-            SetText(...)
+        PEARL.AddFunctionPostCall("SetText", function()
             local w, h = btn.text:GetRegionSize()
             btn.bg:ScaleToSize(w, h)
-        end
+        end, btn)
     end
 
     btn:SetTextSize(size)
     btn:SetControl(CONTROL_PRIMARY)
 
     btn.ongainfocus = function()
-        btn:Select()
+        btn.bg:SetTint(.4, .4, .4, .5)
         btn:SetTextSize(size + 7)
     end
     btn.onlosefocus = function()
+        btn.bg:SetTint(0, 0, 0, 0)
         btn:SetTextSize(size)
-        btn:Unselect()
     end
-    btn.AllowOnControlWhenSelected = true
-    btn.OnEnable = function() end -- To prevent stackoverflow
+
+    -------------
+    -- Public functions
+    btn.SetOnLoseFocus = function(fn)
+        PEARL.AddFunctionPostCall("onlosefocus", fn, btn)
+    end
+    btn.SetOnGainFocus = function(fn)
+        PEARL.AddFunctionPostCall("ongainfocus", fn, btn)
+    end
+    btn.SetOnControl = function(fn)
+        PEARL.AddClassFunctionPostCall("OnControl", fn, btn)
+    end
+    -------------------------
 
     return btn
 end

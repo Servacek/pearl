@@ -11,12 +11,12 @@
 --]==]====================================================]]
 
 
-
 local Widget = require("widgets/widget")
 local Screen = require("widgets/screen")
 local Text = require("widgets/text")
+local Grid = require "widgets/grid"
 local Button = require("widgets/button")
--- local ImageButton = require "widgets/imagebutton"
+local ImageButton = require "widgets/imagebutton"
 local TEMPLATES = require("widgets/redux/templates")
 
 local START_BUTTON_SIZE = 35
@@ -25,9 +25,10 @@ local START_BUTTON_FOCUS_SIZE = 45
 local emoji_data_cache = nil
 
 local function is_item_data(data)
-    return data and next(data) and not data.is_title
+    return data and next(data) and not data.header
 end
 
+--- @class EmojiMenu
 local EmojiMenu = Class(Widget, function(self, emojis, chat_edit)
     Widget._ctor(self, "Nitro Emoji Menu")
 
@@ -63,13 +64,13 @@ local function check_and_yield()
 end
 
 local EMPTY_GRID = {}
-local TITLE_GRID = { is_title = true }
+local TITLE_GRID = { header = true }
 function EmojiMenu:CreateEmojiData(emoji_sets)
     self.emojis_data = {}
     StartStaticThread(function()
         last_check = os.clock()
         local need_divider = false
-        for _, emojis in pairs(emoji_sets) do
+        for category, emojis in pairs(emoji_sets) do
             if need_divider then
                 local remainder = #self.emojis_data % self.scroller_cols
                 if remainder ~= 0 then
@@ -77,21 +78,24 @@ function EmojiMenu:CreateEmojiData(emoji_sets)
                         table.insert(self.emojis_data, EMPTY_GRID)
                     end
                 end
-                table.insert(self.emojis_data, TITLE_GRID)
+                table.insert(self.emojis_data, {category = category, header = true})
                 for i = 1, self.scroller_cols - 1 do
                     table.insert(self.emojis_data, EMPTY_GRID)
                 end
             end
             local emoji_aliases = {}
             for alias, emoji in pairs(emojis) do
-                if not emoji_aliases[emoji] then
-                    emoji_aliases[emoji] = {}
-                end
+                emoji_aliases[emoji] = emoji_aliases[emoji] or {}
                 table.insert(emoji_aliases[emoji], alias)
                 check_and_yield()
             end
             for emoji, aliases in pairs(emoji_aliases) do
-                table.insert(self.emojis_data, {emoji = emoji, aliases = aliases})
+                table.insert(self.emojis_data, {
+                    category = category,
+                    emoji = emoji,
+                    aliases = aliases
+                })
+
                 check_and_yield()
                 -- Maybe try refresh the scrollist here?
             end
@@ -102,49 +106,6 @@ function EmojiMenu:CreateEmojiData(emoji_sets)
         end
         emoji_data_cache = self.emojis_data
     end, self.inst.GUID)
-end
-
-function EmojiMenu:ClearEmojiDataCache()
-    emoji_data_cache = nil
-end
-
-function EmojiMenu:CreateEmojiButton(size, override_bg_size)
-    local btn = Button()
-    -- local btn = self:AddChild(ImageButton(
-    --     "images/global_redux.xml",
-    --     "button_carny_square_normal.tex",
-    --     "button_carny_square_hover.tex",
-    --     "button_carny_square_disabled.tex",
-    --     "button_carny_square_down.tex"
-    -- ))
-
-    btn.bg = btn:AddChild(Image("images/ui.xml", "blank.tex"))
-    btn.bg:SetPosition(0, 0)
-    btn.bg:MoveToBack()
-
-    if override_bg_size then
-        btn.bg:ScaleToSize(override_bg_size, override_bg_size)
-    else
-        local SetText = btn.SetText
-        btn.SetText = function(...)
-            SetText(...)
-            local w, h = btn.text:GetRegionSize()
-            btn.bg:ScaleToSize(w, h)
-        end
-    end
-
-    btn:SetTextSize(size)
-    btn:SetControl(CONTROL_PRIMARY)
-
-    btn.ongainfocus = function()
-        btn:Select()
-        btn:SetTextSize(size + 5)
-    end
-    btn.onlosefocus = function()
-        btn:SetTextSize(size)
-    end
-    btn.AllowOnControlWhenSelected = true
-    return btn
 end
 
 local BOX_SIZE = 300
@@ -191,81 +152,116 @@ end
 local ITEM_SIZE = 45
 local SCROLLER_ITEM_PADDING = 15
 local SCROLLER_GRID_SIZE = ITEM_SIZE + SCROLLER_ITEM_PADDING
-function EmojiMenu:CreateScrollingGridItem()
+function EmojiMenu:CreateEmojiList(width, height)
+    local function ScrollWidgetsCtor(context, index)
+        local w = PEARL.EmojiButton(ITEM_SIZE, width)
 
-    local root = Widget()
+		----------------
+        w.category_label = w:AddChild()
 
-    root.divider = root:AddChild(Image("images/global_redux.xml", "item_divider.tex"))
-    -- local w = SCROLLER_GRID_SIZE * self.scroller_cols
-    -- root.divider:SetSize(w, SCROLLER_GRID_SIZE)
-    -- root.divider:SetPosition(w / 2, 0)
+        w:SetOnSelect(function()
+            if self.selected_emoji ~= w.data.emoji then
+                self:SetSelectedEmoji(w.data.emoji, w.data.aliases)
+            end
+        end)
 
-    root.btn = root:AddChild(TEMPLATES.EmojiButton(ITEM_SIZE, SCROLLER_GRID_SIZE))
+        w:SetOnUnselect(function()
+            if self.selected_emoji == w.data.emoji then
+                self:SetSelectedEmoji(nil)
+            end
+        end)
 
-    local OnControl = root.btn.OnControl
-    root.btn.OnControl = function(self, control, down, ...)
-        if OnControl(self, control, down, ...) then return true end
-        if control == CONTROL_SECONDARY then
-            if down then
-                if not self.rmb_down then
-                    TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
-                    self.o_pos = self:GetLocalPosition()
-                    self:SetPosition(self.o_pos + self.clickoffset)
-                    self.rmb_down = true
-                    if self.whiledown then
-                        self:StartUpdating()
+        w:SetOnClick(function()
+            if type(w.data.emoji) == "string" then
+                self:InsertEmoji(w.data.emoji)
+            end
+        end)
+
+        w:SetOnControl(function(self, control, down, ...)
+            if control == CONTROL_SECONDARY then
+                if down then
+                    if not self.rmb_down then
+                        TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
+                        self.o_pos = self:GetLocalPosition()
+                        self:SetPosition(self.o_pos + self.clickoffset)
+                        self.rmb_down = true
+                        if self.whiledown then
+                            self:StartUpdating()
+                        end
+                    end
+                else
+                    if self.rmb_down then
+                        self.rmb_down = false
+                        self:ResetPreClickPosition()
+                        self.onrightclick()
+                        self:StopUpdating()
                     end
                 end
-            else
-                if self.rmb_down then
-                    self.rmb_down = false
-                    self:ResetPreClickPosition()
-                    self.onrightclick()
-                    self:StopUpdating()
-                end
+                return true
             end
-            return true
-        end
+        end)
+
+		----------------
+		return w
     end
 
-    root.btn:SetOnSelect(function()
-        self:SetSelectedEmoji(root.data.emoji, root.data.aliases)
-    end)
-
-    root.btn:SetOnUnselect(function()
-        if self.selected_emoji == root.data.emoji then
-		    self:SetSelectedEmoji(nil)
+    local function ApplyDataToWidget(context, widget, data, index)
+        widget.data = data
+        if table.empty(data) ~= false then
+            return widget:Hide()
         end
-	end)
 
-    root.btn:SetOnClick(function()
-        self:InsertEmoji(root.data.emoji)
-    end)
-
-    return root
-end
-
-local function ApplyDataToWidget(context, widget, data, index)
-    widget.data = data
-    if data and next(data) then
-        if data.is_title then
-            widget.divider:Show()
+        if data.header then
             widget.btn:Hide()
+
+            widget.label:SetString(data.category)
+            widget.label:Show()
         else
             widget.btn:SetText(data.emoji)
             widget.btn:Show()
-            widget.divider:Hide()
         end
+
         widget:Show()
-    else
-        widget:Hide()
     end
+
+	local grid = TEMPLATES.ScrollingGrid(
+        {},
+        {
+            context = {},
+            widget_width = width,
+            widget_height = height,
+			peek_percent     = 0.5,
+            num_visible_rows = 3,
+            num_columns      = 7,
+            item_ctor_fn = ScrollWidgetsCtor,
+            apply_fn     = ApplyDataToWidget,
+            scrollbar_offset = 7,
+            scrollbar_height_offset = -50
+        })
+
+    local atlas = resolvefilepath(CRAFTING_ATLAS)
+	grid.up_button:SetTextures(atlas, "scrollbar_arrow_up.tex", "scrollbar_arrow_up_hl.tex")
+    grid.up_button:SetScale(0.4)
+
+	grid.down_button:SetTextures(atlas, "scrollbar_arrow_down.tex", "scrollbar_arrow_down_hl.tex")
+    grid.down_button:SetScale(0.4)
+
+	grid.scroll_bar_line:SetTexture(atlas, "scrollbar_bar.tex")
+    grid.scroll_bar_line:ScaleToSize(11, grid.scrollbar_height - 15)
+
+	grid.position_marker:SetTextures(atlas, "scrollbar_handle.tex")
+	grid.position_marker.image:SetTexture(atlas, "scrollbar_handle.tex")
+    grid.position_marker:SetScale(.3)
+
+	grid.custom_focus_check = function() return self.focus end
+
+	return grid
 end
 
 local r, g, b = unpack(UICOLOURS.BROWN_DARK)
 function EmojiMenu:BuildExplorer()
     self.menu = self:AddChild(TEMPLATES.RectangleWindow(250, 400))
-    self.menu:SetBackgroundTint(r, g, b, 0.8) -- A bit of transparency
+    self.menu:SetBackgroundTint(r, g, b, 1) -- A bit of transparency
     self.menu:SetPosition(0, 250)
 
     self.search_box = self.menu.top:AddChild(self:CreateSearchBox())
@@ -274,20 +270,7 @@ function EmojiMenu:BuildExplorer()
     self.aliases_text = self.menu.bottom:AddChild(Text(BODYTEXTFONT, 30))
     self.aliases_text:SetPosition(0, 50)
 
-    self.scroll_list = self.search_box.textbox:AddChild(TEMPLATES.ScrollingGrid(self.emojis_data, {
-        item_ctor_fn = function()
-            return self:CreateScrollingGridItem()
-        end,
-        widget_width = SCROLLER_GRID_SIZE,
-        widget_height = SCROLLER_GRID_SIZE,
-        num_visible_rows = self.scroller_rows,
-        num_columns = self.scroller_cols,
-        scroll_per_click = 2.5,
-        scrollbar_offset = 20,
-        apply_fn = ApplyDataToWidget,
-    }))
-    self.scroll_list:SetPosition(0, -250)
-    --self:SetSelectedEmojiWidget(self.scroll_list.widgets_to_update[1])
+    self.scroll_list = self.search_box.textbox(self:CreateEmojiList(SCROLLER_GRID_SIZE, SCROLLER_GRID_SIZE))
 
     return self.menu
 end

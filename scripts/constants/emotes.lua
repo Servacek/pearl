@@ -212,8 +212,11 @@ for name, symbol in pairs(EMOTES.GAME) do
 end
 
 EMOTES.MAP_GAME = {}
-for game, discord in pairs(EMOTES.MAP_DISCORD) do EMOTES.MAP_GAME[discord] =
-    game end
+for game, discord in pairs(EMOTES.MAP_DISCORD) do
+    EMOTES.MAP_GAME[discord] = game
+end
+
+EMOTES.ALL = MergeMaps(EMOTES.GAME, EMOTES.CUSTOM_GAME)
 
 function EMOTES.GetOwnedVanillaEmojis(userid)
     local has_ownership = nil

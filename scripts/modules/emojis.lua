@@ -23,11 +23,13 @@ local WordPredictor = require("util/wordpredictor")
 local DELIM = PEARL.CONSTS.DELIMS.EMOJI
 local PATTERN = DELIM.."([%S]+)"..DELIM
 
+local EMOJI_USED_PATTERN = "["..table.concat(table.values(PEARL.EMOTES.ALL), "|").."]"
+
+local DISCORD_EMOJIS = PEARL.FONTS.CUSTOM.NAMES.DISCORD_EMOJIS
+
 --------------------------------
 -- [[ Setup ]]
 --------------------------------
-
-local DISCORD_EMOJIS = PEARL.FONTS.CUSTOM.NAMES.DISCORD_EMOJIS
 
 table.insert(DEFAULT_FALLBACK_TABLE, 1, DISCORD_EMOJIS)
 table.insert(DEFAULT_FALLBACK_TABLE_OUTLINE, 1, DISCORD_EMOJIS)
@@ -102,6 +104,12 @@ local _Say
 _Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
     if type(message) == "string" then
         message = EmojifyString(message)
+    end
+
+    local favorities = {}
+    for match in string.gmatch(message, EMOJI_USED_PATTERN) do
+        favorities[match] = (tonumber(favorities[match]) or 0) + 1
+        print(match)
     end
 
     return _Say(self, message, ...)
