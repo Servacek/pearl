@@ -14,6 +14,7 @@
 --- @class ChatInputScreen
 local ChatInputScreen = require("screens/chatinputscreen")
 local Text = require("widgets/text")
+--- @type TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
 
 --- @type UserCommands
@@ -68,7 +69,7 @@ local function AddWhisperWarning(self)
 end
 
 local function AddEmojiMenuButton(self)
-    local btn = self.chat_edit:AddChild(TEMPLATES.EmojiButton(START_BUTTON_SIZE))
+    local btn = self.chat_edit:AddChild(TEMPLATES.EmojiButton(START_BUTTON_SIZE, true))
     local x = -465
     if self.chat_type then
         x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
@@ -120,7 +121,6 @@ end
 -- [[ Overrides ]]
 ---------------------------
 
-local emoji_menu
 AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     if whisper == true and PEARL.CONFIG.WHISPER_WARNING == true then
         AddWhisperWarning(self)
@@ -128,11 +128,11 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
 
     if PEARL.CONFIG.EMOJI_MENU then
         self.emoji_menu = self.screen_root:AddChild(EmojiMenu(EMOJI_SET, self.chat_edit))
-        self.focus_forward = function()
-            if self.emoji_menu:IsOpen() then
-                return self.emoji_menu
-            end
-        end
+        -- self.focus_forward = function()
+        --     if self.emoji_menu:IsOpen() then
+        --         return self.emoji_menu
+        --     end
+        -- end
 
         AddEmojiMenuButton(self)
     end

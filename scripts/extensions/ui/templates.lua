@@ -14,6 +14,7 @@
 local ImageButton = require("widgets/imagebutton")
 local Button = require("widgets/button")
 
+--- @class TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
 
 -------------------------------
@@ -90,28 +91,30 @@ function TEMPLATES.GetSocialLinkButtons(widget, hover_under)
     return site_buttons
 end
 
-function TEMPLATES.EmojiButton(size, override_bg_size)
+local SPACING = 7
+function TEMPLATES.EmojiButton(size, scale_on_focus, bg_spacing)
     local btn = Button()
 
-    btn.bg = btn:AddChild(Image("images/ui.xml", "blank.tex"))
+    btn.bg = btn:AddChild(Image("images/global.xml", "square.tex"))
     btn.bg:SetTint(0, 0, 0, 0)
     btn.bg:MoveToBack()
 
-    if override_bg_size then
-        btn.bg:ScaleToSize(override_bg_size, override_bg_size)
-    else
-        PEARL.AddFunctionPostCall("SetText", function()
-            local w, h = btn.text:GetRegionSize()
-            btn.bg:ScaleToSize(w, h)
-        end, btn)
-    end
+    btn.text:SetHAlign(ANCHOR_MIDDLE)
+    btn.text:SetVAlign(ANCHOR_MIDDLE)
+
+    PEARL.AddClassFunctionPostCall("SetText", function()
+        local w, h = btn.text:GetRegionSize()
+        btn.bg:ScaleToSize(w + (bg_spacing or SPACING), h + (bg_spacing or SPACING))
+    end, btn)
 
     btn:SetTextSize(size)
     btn:SetControl(CONTROL_PRIMARY)
 
     btn.ongainfocus = function()
         btn.bg:SetTint(.4, .4, .4, .5)
-        btn:SetTextSize(size + 7)
+        if scale_on_focus then
+            btn:SetTextSize(size + 7)
+        end
     end
     btn.onlosefocus = function()
         btn.bg:SetTint(0, 0, 0, 0)
@@ -120,13 +123,14 @@ function TEMPLATES.EmojiButton(size, override_bg_size)
 
     -------------
     -- Public functions
-    btn.SetOnLoseFocus = function(fn)
+    btn.SetOnLoseFocus = function(self, fn)
         PEARL.AddFunctionPostCall("onlosefocus", fn, btn)
     end
-    btn.SetOnGainFocus = function(fn)
+    btn.SetOnGainFocus = function(self, fn)
         PEARL.AddFunctionPostCall("ongainfocus", fn, btn)
     end
-    btn.SetOnControl = function(fn)
+    btn.SetOnControl = function(self, fn)
+        btn.OnControl = btn.OnControl or function() end
         PEARL.AddClassFunctionPostCall("OnControl", fn, btn)
     end
     -------------------------
