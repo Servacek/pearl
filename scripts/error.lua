@@ -54,10 +54,14 @@ local function OnClientError(traceback)
         ChatHistory.history_start = ChatHistory.MAX_CHAT_HISTORY
     end
 
-    -- No disconnecting in debug mode... We have our fancy Realod Save button!
-    if PEARL.ClientNetwork and not PEARL.CONFIG.DEBUG_MODE then
+    -- No disconnecting in debug mode... We have our fancy "Realod Save" button!
+    if PEARL.CONFIG.DEBUG_MODE then
+        SetServerPaused(true) -- At least pause the game when viewing the error screen.
+    elseif PEARL.ClientNetwork then
         PEARL.info("Disconnecting the user from the server...")
         PEARL.ClientNetwork:Disconnect("ID_DST_USER_CRASHED")
+    else
+        TheNet:Disconnect(false)
     end
 
     -- Do not force abort here in case we are displaying the error.

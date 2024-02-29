@@ -91,13 +91,34 @@ function TEMPLATES.GetSocialLinkButtons(widget, hover_under)
     return site_buttons
 end
 
+-- function TEMPLATES.EmojiGridTile(size, bg_spacing)
+--     local btn = TEMPLATES.EmojiButton(size, false, bg_spacing)
+--     btn.onselect = btn.ongainfocus
+--     btn.onunselect = btn.onlosefocus
+--     btn.ongainfocus = nil
+--     btn.onlosefocus = nil
+
+--     btn.SetOnSelect = function(self, fn)
+--         btn.onselect = btn.onselect or function() end
+--         PEARL.AddClassFunctionPostCall("onselect", fn, btn)
+--     end
+
+--     btn.SetOnUnSelect = function(self, fn)
+--         btn.onunselect = btn.onunselect or function() end
+--         PEARL.AddClassFunctionPostCall("onunselect", fn, btn)
+--     end
+
+--     return btn
+-- end
+
 local SPACING = 7
 function TEMPLATES.EmojiButton(size, scale_on_focus, bg_spacing)
     local btn = Button()
 
     btn.bg = btn:AddChild(Image("images/global.xml", "square.tex"))
-    btn.bg:SetTint(0, 0, 0, 0)
     btn.bg:MoveToBack()
+    btn.bg:SetTint(0, 0, 0, 0)
+    btn.bg.focus_forward = btn
 
     btn.text:SetHAlign(ANCHOR_MIDDLE)
     btn.text:SetVAlign(ANCHOR_MIDDLE)
@@ -111,22 +132,23 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_spacing)
     btn:SetControl(CONTROL_PRIMARY)
 
     btn.ongainfocus = function()
-        btn.bg:SetTint(.4, .4, .4, .5)
-        if scale_on_focus then
+        if scale_on_focus == true then
             btn:SetTextSize(size + 7)
         end
     end
+
     btn.onlosefocus = function()
-        btn.bg:SetTint(0, 0, 0, 0)
         btn:SetTextSize(size)
     end
 
     -------------
     -- Public functions
     btn.SetOnLoseFocus = function(self, fn)
+        btn.onlosefocus = btn.onlosefocus or function() end
         PEARL.AddFunctionPostCall("onlosefocus", fn, btn)
     end
     btn.SetOnGainFocus = function(self, fn)
+        btn.ongainfocus = btn.ongainfocus or function() end
         PEARL.AddFunctionPostCall("ongainfocus", fn, btn)
     end
     btn.SetOnControl = function(self, fn)

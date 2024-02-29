@@ -45,34 +45,35 @@ for _, data in pairs(EMOJI_ITEMS) do
     PEARL.EMOTES.CUSTOM_GAME[data.input_name] = nil
 end
 
+--- @TODO: Rework this for the new beta.
 --- If the player already uses some mod to add icons, the icons added by the mod will be overriden.
-PEARL.AddSimPostInit(function()
-    local apply = PEARL.GameInstParams:GetModParam("font_apply")
-    if apply == false then
-        return
-    end
+-- PEARL.AddSimPostInit(function()
+--     local apply = PEARL.GameInstParams:GetModParam("font_apply")
+--     if apply == false then
+--         return
+--     end
 
-    -- Doesn't need the font to be loaded.
-    TheSim:UnloadFont(DISCORD_EMOJIS)
+--     -- Doesn't need the font to be loaded.
+--     TheSim:UnloadFont(DISCORD_EMOJIS)
 
-    -- Make sure the font assets are loaded.
-    local Assets = {}
-    AddFontAssets(Assets, PEARL.FONTS.CUSTOM.ASSETS)
-    local FontsPrefab = Prefab(PEARL.FONTS_PREFAB, nil, Assets)
-    TheSim:UnloadPrefabs({PEARL.FONTS_PREFAB})
-	RegisterSinglePrefab(FontsPrefab)
-	TheSim:LoadPrefabs({PEARL.FONTS_PREFAB})
+--     -- Make sure the font assets are loaded.
+--     local Assets = {}
+--     AddFontAssets(Assets, PEARL.FONTS.CUSTOM.ASSETS)
+--     local FontsPrefab = Prefab(PEARL.FONTS_PREFAB, nil, Assets)
+--     TheSim:UnloadPrefabs({PEARL.FONTS_PREFAB})
+-- 	RegisterSinglePrefab(FontsPrefab)
+-- 	TheSim:LoadPrefabs({PEARL.FONTS_PREFAB})
 
-    TheSim:LoadFont(PEARL.MODROOT.."fonts/discord_emojis.zip", DISCORD_EMOJIS, true)
-    for _, font in pairs(FONTS) do
-        if font.fallback and font.fallback ~= "" then
-            -- Reload the font fallbacks to apply the changes.
-            TheSim:SetupFontFallbacks(font.alias, font.fallback)
-        end
-    end
+--     TheSim:LoadFont(PEARL.MODROOT.."fonts/discord_emojis.zip", DISCORD_EMOJIS, true)
+--     for _, font in pairs(FONTS) do
+--         if font.fallback and font.fallback ~= "" then
+--             -- Reload the font fallbacks to apply the changes.
+--             TheSim:SetupFontFallbacks(font.alias, font.fallback)
+--         end
+--     end
 
-    PEARL.GameInstParams:SetModParam("font_apply", false)
-end)
+--     PEARL.GameInstParams:SetModParam("font_apply", false)
+-- end)
 
 --------------------------------
 -- [[ Autocomplete ]]

@@ -128,11 +128,14 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
 
     if PEARL.CONFIG.EMOJI_MENU then
         self.emoji_menu = self.screen_root:AddChild(EmojiMenu(EMOJI_SET, self.chat_edit))
-        -- self.focus_forward = function()
-        --     if self.emoji_menu:IsOpen() then
-        --         return self.emoji_menu
-        --     end
-        -- end
+        self.emoji_menu:MoveToFront()
+        self:MoveToBack()
+
+        self.focus_forward = function()
+            if self.emoji_menu:IsOpen() then
+                return self.emoji_menu
+            end
+        end
 
         AddEmojiMenuButton(self)
     end

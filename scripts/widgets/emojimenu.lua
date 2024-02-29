@@ -33,7 +33,7 @@ local SCROLLER_ITEM_SPACING = 7
 local SCROLLER_GRID_SIZE = ITEM_SIZE + SCROLLER_ITEM_SPACING * 1.5
 
 local SCROLLIST_WIDTH = SCROLLER_GRID_SIZE
-local SCROLLIST_HEIGHT = SCROLLER_GRID_SIZE + 5
+local SCROLLIST_HEIGHT = SCROLLER_GRID_SIZE - 4
 
 local BOX_SIZE = 300
 local BOX_HEIGHT = 40
@@ -42,7 +42,12 @@ local INPUTBOX_FONT_SIZE = 35
 local TIMEBUDGET = FRAMES * 0.1
 local CHECK_FREQUENCY = 50
 
+local MAX_ALIAS_LEN = 15
+
 local EMPTY_TILE = {} -- So we do not create a dummy table each time as a fillament
+
+local DELIM = PEARL.CONSTS.DELIMS.EMOJI
+local EMOJI_ALIAS_FORMAT = DELIM.."%s"..DELIM
 
 ---------------------------
 -- [[ Local Variables ]]
@@ -68,6 +73,12 @@ local function check_and_yield()
     end
 end
 
+local function is_emoji(widget, emoji)
+    return widget.data and (
+        (emoji and widget.data.emoji == emoji) or (emoji == nil and widget.data.emoji ~= nil)
+    )
+end
+
 ---------------------------
 -- [[ Class Declaration ]]
 ---------------------------
@@ -79,10 +90,12 @@ local EmojiMenu = Class(Widget, function(self, emojis, chat_edit)
     self.chat_edit = chat_edit
 
     self.scroller_cols = 5
-    self.scroller_rows = 5
+    self.scroller_rows = 7
 
-    print(self.scroller_cols, self.scroller_rows)
     self.insert_index = 1
+
+    self.selected_widget = nil
+    self.selected_emoji = nil
 
     self.emoji_sets = emojis
     if emoji_data_cache[emojis] then
@@ -101,18 +114,18 @@ function EmojiMenu:_CreateEmojiData(emoji_sets)
     StartStaticThread(function()
         last_check = os.clock()
         for category, emojis in pairs(emoji_sets) do
-            local remainder = #self.emojis_data % self.scroller_cols
-            if remainder ~= 0 then
-                for _ = 1, self.scroller_cols - remainder do
-                    table.insert(self.emojis_data, EMPTY_TILE)
-                end
-            end
+            -- local remainder = #self.emojis_data % self.scroller_cols
+            -- if remainder ~= 0 then
+            --     for _ = 1, self.scroller_cols - remainder do
+            --         table.insert(self.emojis_data, EMPTY_TILE)
+            --     end
+            -- end
 
-            self.emojis_data[#self.emojis_data+1] = {category = category, header = true}
+            -- self.emojis_data[#self.emojis_data+1] = {category = category, header = true}
 
-            for _ = 1, self.scroller_cols - 1 do
-                table.insert(self.emojis_data, EMPTY_TILE)
-            end
+            -- for _ = 1, self.scroller_cols - 1 do
+            --     table.insert(self.emojis_data, EMPTY_TILE)
+            -- end
 
             local emoji_aliases = {}
             for alias, emoji in pairs(emojis) do
@@ -122,19 +135,13 @@ function EmojiMenu:_CreateEmojiData(emoji_sets)
             end
 
             for emoji, aliases in pairs(emoji_aliases) do
-                table.insert(self.emojis_data, {
-                    category = category,
-                    emoji = emoji,
-                    aliases = aliases
-                })
-
+                table.insert(self.emojis_data, {emoji = emoji, aliases = aliases})
                 check_and_yield()
-                -- Maybe try refresh the scrollist here?
             end
         end
 
         if self.scroll_list then
-            self:RefreshScrollingItems()
+            self:SearchFor()
         end
 
         -- So each set has it's own cached value.
@@ -159,24 +166,25 @@ function EmojiMenu:_CreateSearchBox()
 
     local last_string = ""
     searchbox.textbox.OnTextInputted = function()
+        print("OnTextInputted")
         local string = searchbox.textbox:GetLineEditString()
         if string ~= last_string then
             last_string = string
-            self:RefreshScrollingItems()
+            self:SearchFor()
         end
     end
 
-    searchbox.textbox.OnTextEntered = function()
-        print("TEXT ENTERED")
-        if self.selected_emoji then
-            self:InsertEmoji(self.selected_emoji)
-            self:Close()
-        end
-    end
+    -- searchbox.textbox.OnTextEntered = function()
+    --     print("TEXT ENTERED")
+    --     if self.selected_emoji then
+    --         self:InsertEmoji(self.selected_emoji)
+    --         self:Close()
+    --     end
+    -- end
 
     searchbox.textbox.OnStopForceEdit = function()
         print("StopForceEdit")
-        if not self.menu.focus then
+        if not self.focus then
             self:Close()
         end
     end
@@ -188,60 +196,44 @@ end
 
 function EmojiMenu:_CreateEmojiList(width, height)
     local function ScrollWidgetsCtor(context, index)
-        local w = TEMPLATES.EmojiButton(ITEM_SIZE)
-        w.bg:ScaleToSize(width, width)
+        local w = Widget("emoji_item"..tostring(index))
 
-		----------------
+        w.button = w:AddChild(TEMPLATES.EmojiButton(ITEM_SIZE, false, SCROLLER_ITEM_SPACING))
+        w.button.bg:ScaleToSize(width, width)
+
+        w.focus_forward = w.button
+
+        ----------------
         w.category_label = w:AddChild(Text(TITLEFONT, 45))
-        w.category_label:SetRegionSize(1000, 50)
-        w.category_label:SetPosition(0, 0)
+        --w.category_label:SetRegionSize(1000, 50)
+        w.category_label:SetPosition(100, 0)
         w.category_label:SetHAlign(ANCHOR_MIDDLE)
+        ----------------
 
-        w:SetOnGainFocus(function()
-            if w.data and self.selected_emoji ~= w.data.emoji then
-                self:SetSelectedEmoji(w.data.emoji, w.data.aliases)
+        w.button:SetOnGainFocus(function()
+            if is_emoji(w) and self.selected_widget ~= w then
+                self:SelectEmojiWidget(w)
             end
         end)
 
-        w:SetOnLoseFocus(function()
-            if w.data and self.selected_emoji == w.data.emoji then
-                self:SetSelectedEmoji(nil)
-            end
+        w.button:SetOnSelect(function()
+            w.button.bg:SetTint(.4, .4, .4, .5)
         end)
 
-        w:SetOnClick(function()
-            if w.data and type(w.data.emoji) == "string" then
+        w.button:SetOnUnselect(function()
+            w.button.bg:SetTint(0, 0, 0, 0)
+        end)
+
+        w.button:SetOnClick(function()
+            print("CLICK")
+            if is_emoji(w) then
                 self:InsertEmoji(w.data.emoji)
             end
         end)
 
-        -- w:SetOnControl(function(self, control, down, ...)
-        --     if not self.focus then
-        --         return false
-        --     end
-
-        --     if control == CONTROL_SECONDARY then
-        --         if down then
-        --             if not self.rmb_down then
-        --                 TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
-        --                 self.o_pos = self:GetLocalPosition()
-        --                 self:SetPosition(self.o_pos + self.clickoffset)
-        --                 self.rmb_down = true
-        --                 if self.whiledown then
-        --                     self:StartUpdating()
-        --                 end
-        --             end
-        --         else
-        --             if self.rmb_down then
-        --                 self.rmb_down = false
-        --                 self:ResetPreClickPosition()
-        --                 self.onrightclick()
-        --                 self:StopUpdating()
-        --             end
-        --         end
-        --         return true
-        --     end
-        -- end)
+        w.IsSelected = function()
+            return w.button:IsSelected()
+        end
 
 		----------------
 		return w
@@ -254,18 +246,38 @@ function EmojiMenu:_CreateEmojiList(width, height)
         end
 
         if data.header then
-            widget.text:Hide()
-            widget.bg:Hide()
+            widget.button:Hide()
 
             widget.category_label:SetString(data.category)
             widget.category_label:Show()
         else
+            local aliases_string = data.emoji
+            if type(aliases_string) == "string" and table.empty(data.aliases) == false then
+                local len = 0
+                for _, alias_name in ipairs(data.aliases) do
+                    local alias = EMOJI_ALIAS_FORMAT:format(alias_name)
+                    len = len + alias:len() + 2
+                    if len < MAX_ALIAS_LEN then
+                        aliases_string = aliases_string.." "..alias
+                    end
+                end
+            end
+
             widget.category_label:Hide()
-            widget:SetText(data.emoji)
-            widget:Show()
+            widget.button:SetHoverText(aliases_string, {offset_y = 30, attach_to_parent = self })
+            widget.button:SetText(data.emoji)
+            widget.button:Show()
         end
 
         widget:Show()
+
+        if self.selected_emoji == data.emoji and not widget:IsSelected() then
+            self:SelectEmojiWidget(widget)
+        end
+
+        if self.selected_emoji ~= data.emoji and widget:IsSelected() then
+            widget.button:Unselect()
+        end
     end
 
 	local grid = TEMPLATES.ScrollingGrid(self.emojis_data, {
@@ -295,25 +307,35 @@ function EmojiMenu:_CreateEmojiList(width, height)
 	grid.position_marker.image:SetTexture(atlas, "scrollbar_handle.tex")
     grid.position_marker:SetScale(.3)
 
-	--grid.custom_focus_check = function() return self.focus end
+	grid.custom_focus_check = function() return self.focus end
 
 	return grid
 end
 
+--- @TODO: Handle enter control to push the selected emoji to the chat bar.
+--- @TODO: There should be always a selected_emoji (by default it's the first one in the visible list)
+--- @TODO: Our menu should be closed when we click outside it.
 function EmojiMenu:_BuildExplorer()
     local bg_color = UICOLOURS.BROWN_DARK
     self.menu = self:AddChild(TEMPLATES.RectangleWindow(MENU_WIDTH, MENU_HEIGHT))
     self.menu:SetBackgroundTint(bg_color[1], bg_color[2], bg_color[3], .7) -- A bit of transparency
     self.menu:SetPosition(0, 250)
+    -- self.menu.OnControl = function(self, control, down, ...)
+    --     print(control, ...)
+    -- end
 
     self.search_box = self.menu.top:AddChild(self:_CreateSearchBox())
     self.search_box:SetPosition(0, -35)
+    self.search_box:MoveToFront()
 
-    self.aliases_text = self.menu.bottom:AddChild(Text(BODYTEXTFONT, 30))
-    self.aliases_text:SetPosition(0, 25)
+    -- self.aliases_text = self.menu.bottom:AddChild(Text(BODYTEXTFONT, 30))
+    -- self.aliases_text:SetPosition(0, 25)
 
-    self.scroll_list = self.search_box.textbox:AddChild(self:_CreateEmojiList(SCROLLIST_WIDTH, SCROLLIST_HEIGHT))
-    self.scroll_list:SetPosition(-10, -155 - BOX_HEIGHT)
+    self.scroll_list = self.menu.top:AddChild(self:_CreateEmojiList(SCROLLIST_WIDTH, SCROLLIST_HEIGHT))
+    self.scroll_list:SetPosition(-10, -201 - BOX_HEIGHT)
+    self.scroll_list:MoveToBack()
+
+    self.menu.bottom:MoveToFront()
 
     self.default_focus = self.search_box
     self.focus_forward = self.search_box
@@ -321,36 +343,61 @@ function EmojiMenu:_BuildExplorer()
     return self.menu
 end
 
+--- @return Button? emoji
+function EmojiMenu:GetFirstEmojiWidget()
+    if self.scroll_list and self.scroll_list.widgets_to_update then
+        for _, widget in ipairs(self.scroll_list.widgets_to_update) do
+            if is_emoji(widget) then
+                return widget
+            end
+        end
+    end
+end
+
 function EmojiMenu:InsertEmoji(emoji)
     local str = self.chat_edit:GetString()
-    self.chat_edit:SetString(str:sub(1, self.insert_index) .. emoji .. " " .. str:sub(self.insert_index + 1))
+    self.chat_edit:SetString(str:sub(1, self.insert_index)..emoji.." "..str:sub(self.insert_index + 1))
     self.insert_index = self.insert_index + emoji:len() + 1
 end
 
-local MAX_ALIAS_LEN = 15
-function EmojiMenu:SetSelectedEmoji(emoji, aliases)
-    local str_t
-    if emoji then
-        str_t = {}
-        table.insert(str_t, emoji)
+function EmojiMenu:SelectEmojiWidget(widget)
+    if not is_emoji(widget) then
+        return
+    end
+
+    local data = widget and widget.data
+    local emoji = data and data.emoji
+    local aliases = data and data.aliases
+    if self.selected_emoji == emoji and widget:IsSelected() then
+        return
+    end
+
+    local aliases_string = emoji
+    if type(aliases_string) == "string" and table.empty(aliases) == false then
         local len = 0
-        for _, alias in ipairs(aliases) do
-            if len < MAX_ALIAS_LEN then
-                table.insert(str_t, ":" .. alias .. ":")
-            end
+        for _, alias_name in ipairs(aliases) do
+            local alias = EMOJI_ALIAS_FORMAT:format(alias_name)
             len = len + alias:len() + 2
+            if len < MAX_ALIAS_LEN then
+                aliases_string = aliases_string.." "..alias
+            end
         end
     end
 
-    self.aliases_text:SetString(emoji and table.concat(str_t, " ") or "")
+    if self.selected_widget then
+        self.selected_widget.button:Unselect()
+    end
+
     self.selected_emoji = emoji
+    self.selected_widget = widget
+    widget.button:Select()
 end
 
 local function format_string(str)
     return TrimString(str):gsub(" ", ""):lower()
 end
 
-function EmojiMenu:RefreshScrollingItems()
+function EmojiMenu:SearchFor(prompt)
     local search_str = self.search_box.textbox:GetLineEditString()
     if not search_str or search_str == "" then
         self.scroll_list:SetItemsData(self.emojis_data)
@@ -367,41 +414,57 @@ function EmojiMenu:RefreshScrollingItems()
                 end
             end
         end
-        -- if IsTableEmpty(emojis_data) then
-        --     self:SetSelectedEmojiWidget(nil)
-        -- end
+
         self.scroll_list:SetItemsData(emojis_data)
     end
 
-    local focused_widget = self.scroll_list:GetFocusChild()
-    self:SetSelectedEmoji(focused_widget and focused_widget.data and focused_widget.emoji or nil)
+    -- If no widget has focus (the cursor is outside the grid) select the first widget.
+    local focused_widget = self.scroll_list:GetFocusChild() or self.scroll_list.widgets_to_update[1]
+    if focused_widget then
+        self:SelectEmojiWidget(focused_widget)
+    end
 end
 
 function EmojiMenu:Open()
     self.menu = self.menu or self:_BuildExplorer()
-
-    self.isopen = true
-    self.insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
     self.menu:Show()
     self.menu:MoveToFront()
+
+    self.insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
+
     self.chat_edit:SetEditing(false)
+    self.chat_edit:ClearFocus()
+    self.chat_edit.focus_forward = self
+
     self.search_box.textbox:SetEditing(true)
+
+    local first = self:GetFirstEmojiWidget()
+    if first then
+        self:SelectEmojiWidget(first)
+    end
+
+    self.menu:SetFocus()
+    self:SetFocus()
+    self.search_box:SetFocus()
 end
 
 function EmojiMenu:Close()
-    self.isopen = false
     self.menu:Hide()
+
     self.search_box.textbox:SetEditing(false)
     self.search_box.textbox:SetString("")
+
     self.chat_edit:SetEditing(true)
     self.chat_edit.inst.TextEditWidget:SetEditCursorPos(self.insert_index)
+
+    --- @TODO: Make sure we reset the button after the menu is closed.
     -- if not self.start_button.focus then
     --     self.start_button.onlosefocus()
     -- end
 end
 
 function EmojiMenu:Toggle()
-    if self.isopen then
+    if self:IsOpen() then
         self:Close()
     else
         self:Open()
@@ -409,7 +472,7 @@ function EmojiMenu:Toggle()
 end
 
 function EmojiMenu:IsOpen()
-    return self.isopen == true
+    return self.menu and self.menu:IsVisible()
 end
 
 ---------------------------
@@ -420,7 +483,6 @@ function EmojiMenu:OnControl(control, down)
     if EmojiMenu._base.OnControl(self, control, down) then return true end
 
     if not down and control == CONTROL_CANCEL and self:IsOpen() then
-        print("CLOSING!!!!!")
         self:Close()
         return true
     end
