@@ -13,6 +13,8 @@
 
 --- @class ChatInputScreen
 local ChatInputScreen = require("screens/chatinputscreen")
+
+local ImageButton = require("widgets/imagebutton")
 local Text = require("widgets/text")
 --- @type TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
@@ -68,30 +70,30 @@ local function AddWhisperWarning(self)
     whisper_warn_label:SetColour(WARN_TEXT_COLOUR)
 end
 
-local function AddEmojiMenuButton(self)
-    local btn = self.chat_edit:AddChild(TEMPLATES.EmojiButton(START_BUTTON_SIZE, true))
-    local x = -465
-    if self.chat_type then
-        x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
-    end
-    btn:SetText(GetRandomEmoji(self.emoji_menu.emoji_sets))
-    btn:MoveToFront()
-    btn:SetPosition(x, 0)
-    btn.ongainfocus = function()
-        if not self.emoji_menu:IsOpen() then
+local function AddEmojiMenuButton(menu)
+    -- Let's handle the scaling ourselves.
+    local btn = TEMPLATES.EmojiButton(START_BUTTON_SIZE, false, 20)
+    btn:SetText(GetRandomEmoji(menu.emoji_sets))
+    btn:SetOnGainFocus(function()
+        if not menu:IsOpen() then
             btn:SetTextSize(START_BUTTON_FOCUS_SIZE)
-            btn:SetText(GetRandomEmoji(self.emoji_menu.emoji_sets))
+            btn:SetText(GetRandomEmoji(menu.emoji_sets))
         end
-    end
-    btn.onlosefocus = function()
-        if not self.emoji_menu:IsOpen() then
+    end)
+    btn:SetOnLoseFocus(function()
+        if not menu:IsOpen() then
             btn:SetTextSize(START_BUTTON_SIZE)
         end
-    end
-    btn:SetOnClick(function()
-        self.emoji_menu:Toggle()
-        self.emoji_menu:SetPosition(x + 100, 100)
     end)
+    btn:SetOnClick(function()
+        menu:Toggle()
+
+        local pos_x = btn:GetPositionXYZ()
+        local w, h = menu.menu.mid_center:GetSize()
+        menu:SetPosition(pos_x + w / 2.2, h - 17)
+    end)
+
+    return btn
 end
 
 local function ExpandWordPredictorWithCustomCommands(predictor, commands)
@@ -127,9 +129,25 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     end
 
     if PEARL.CONFIG.EMOJI_MENU then
+        local _bg = self.chat_edit:AddChild(ImageButton("images/global.xml", "square.tex"))
+        _bg.image:SetVRegPoint(ANCHOR_MIDDLE)
+        _bg.image:SetHRegPoint(ANCHOR_MIDDLE)
+        _bg.image:SetVAnchor(ANCHOR_MIDDLE)
+        _bg.image:SetHAnchor(ANCHOR_MIDDLE)
+        _bg.image:SetScaleMode(SCALEMODE_FILLSCREEN)
+        _bg.image:SetTint(0,0,0,0)
+        _bg:SetHelpTextMessage("")
+        _bg:MoveToFront()
+        _bg:Hide()
+
         self.emoji_menu = self.screen_root:AddChild(EmojiMenu(EMOJI_SET, self.chat_edit))
         self.emoji_menu:MoveToFront()
-        self:MoveToBack()
+
+        _bg:SetOnClick(function()
+            if self.emoji_menu:IsOpen() then
+                self.emoji_menu:Close()
+            end
+        end)
 
         self.focus_forward = function()
             if self.emoji_menu:IsOpen() then
@@ -137,7 +155,30 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
             end
         end
 
-        AddEmojiMenuButton(self)
+        self.emoji_menu_button = self.chat_edit:AddChild(AddEmojiMenuButton(self.emoji_menu))
+        local x = -465
+        if self.chat_type then
+            x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
+        end
+        self.emoji_menu_button:SetPosition(x, 0)
+        self.emoji_menu_button:MoveToFront()
+
+        self.emoji_menu.onopen = function()
+            _bg:Show()
+        end
+
+        self.emoji_menu.onclose = function()
+            _bg:Hide()
+
+            -- The button is in it's focused state until the menu is closed.
+            if not self.emoji_menu_button.focus then
+                self.emoji_menu_button:OnLoseFocus()
+            end
+        end
+
+        if TheInput:IsKeyDown(KEY_CTRL) then
+            PEARL.StaticScheduler:ExecuteInTime(0, self.emoji_menu_button.onclick)
+        end
     end
 
     -- Setup prediction for our custom slash commands
@@ -192,3 +233,21 @@ PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
         last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..tostring(input)
     end
 end, UserCommands)
+
+-- TheInput:AddKeyHandler(function(key, down)
+--     print("KEY INPUT HANDLER")
+--     print(TheInput:IsKeyDown(KEY_CTRL), key, KEY_E)
+--     if not down and TheInput:IsKeyDown(KEY_CTRL) and key == KEY_E then
+--         local screen = TheFrontEnd:GetActiveScreen()
+--         if not ChatInputScreen.is_instance(screen) then
+--             screen = ChatInputScreen(false)
+--             TheFrontEnd:PushScreen(screen)
+--         end
+
+--         if screen then
+--             screen.emoji_menu_button.onclick()
+--         end
+
+--         return false
+--     end
+-- end)

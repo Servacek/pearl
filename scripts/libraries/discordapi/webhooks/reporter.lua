@@ -196,7 +196,7 @@ end
 --- @param traceback string
 function Reporter:ReportCatchedLuaError(traceback)
     if not self:HandleError(traceback) then
-        return -- Error was already handled
+        return PEARL.debug("Report already handled.")
     end
 
     traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")

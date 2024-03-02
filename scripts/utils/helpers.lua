@@ -555,7 +555,7 @@ function PEARL.HandleError(err)
     if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
         PEARL.DiscordReporter:ReportCatchedLuaError(traceback)
     elseif PEARL.ClientNetwork then
-        PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
+        PEARL.ClientNetwork:SendErrorTracebackToServer(traceback, true)
     end
 end
 

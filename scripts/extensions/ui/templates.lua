@@ -91,42 +91,24 @@ function TEMPLATES.GetSocialLinkButtons(widget, hover_under)
     return site_buttons
 end
 
--- function TEMPLATES.EmojiGridTile(size, bg_spacing)
---     local btn = TEMPLATES.EmojiButton(size, false, bg_spacing)
---     btn.onselect = btn.ongainfocus
---     btn.onunselect = btn.onlosefocus
---     btn.ongainfocus = nil
---     btn.onlosefocus = nil
-
---     btn.SetOnSelect = function(self, fn)
---         btn.onselect = btn.onselect or function() end
---         PEARL.AddClassFunctionPostCall("onselect", fn, btn)
---     end
-
---     btn.SetOnUnSelect = function(self, fn)
---         btn.onunselect = btn.onunselect or function() end
---         PEARL.AddClassFunctionPostCall("onunselect", fn, btn)
---     end
-
---     return btn
--- end
-
 local SPACING = 7
-function TEMPLATES.EmojiButton(size, scale_on_focus, bg_spacing)
+function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
     local btn = Button()
 
     btn.bg = btn:AddChild(Image("images/global.xml", "square.tex"))
-    btn.bg:MoveToBack()
+    btn.bg:ScaleToSize(size + (bg_margin or SPACING), size + (bg_margin or SPACING))
     btn.bg:SetTint(0, 0, 0, 0)
-    btn.bg.focus_forward = btn
+    btn.bg:MoveToBack()
 
     btn.text:SetHAlign(ANCHOR_MIDDLE)
     btn.text:SetVAlign(ANCHOR_MIDDLE)
 
-    PEARL.AddClassFunctionPostCall("SetText", function()
-        local w, h = btn.text:GetRegionSize()
-        btn.bg:ScaleToSize(w + (bg_spacing or SPACING), h + (bg_spacing or SPACING))
-    end, btn)
+    if bg_margin == nil then
+        PEARL.AddClassFunctionPostCall("SetText", function()
+            local w, h = btn.text:GetRegionSize()
+            btn.bg:ScaleToSize(w + (bg_margin or SPACING), h + (bg_margin or SPACING))
+        end, btn)
+    end
 
     btn:SetTextSize(size)
     btn:SetControl(CONTROL_PRIMARY)
@@ -138,7 +120,9 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_spacing)
     end
 
     btn.onlosefocus = function()
-        btn:SetTextSize(size)
+        if scale_on_focus == true then
+            btn:SetTextSize(size)
+        end
     end
 
     -------------

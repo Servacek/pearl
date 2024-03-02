@@ -174,6 +174,12 @@ PEARL.AddWorldPostInit(function(world)
     end)
 end)
 
+--- @NOTE when connecting directly, make sure the server is fully loaded before clients can connect.
+-- TheNet:SetAllowIncomingConnections(false)
+-- PEARL.AddSimPostInit(function()
+--     TheNet:SetAllowIncomingConnections(true)
+-- end)
+
 ----------------------------------
 -- RPC Handlers
 ----------------------------------

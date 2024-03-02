@@ -197,7 +197,7 @@ end
 
 function ClientNetwork:GetHostPerformance()
     -- For dedicated servers the first index is reserved for the "host" machine.
-    return TheNet:GetClientTable()[1].performance
+    return (TheNet:GetClientTable() or {})[1].performance
 end
 
 function ClientNetwork:HasSentCFD()

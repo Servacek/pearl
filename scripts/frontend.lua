@@ -171,6 +171,11 @@ if PEARL.CONFIG.DEBUG_MODE then
         return PEARL.SERVER_NAME
     end)
 
+    PEARL.AddPlayerPostInit(function(player)
+        player:PushEvent("respawnfromghost", {})
+        c_godmode(player)
+    end)
+
 --     PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)

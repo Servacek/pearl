@@ -73,7 +73,7 @@ local function make_safe_cb(name, cb)
 
             -- Send the traceback to the server as well.
             if PEARL.ClientNetwork then
-                PEARL.ClientNetwork:SendErrorTracebackToServer(traceback)
+                PEARL.ClientNetwork:SendErrorTracebackToServer(traceback, true)
             end
 
             return

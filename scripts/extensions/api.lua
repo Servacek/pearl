@@ -81,7 +81,7 @@ local function WrapFunctionPreCall(origin, precb)
 end
 
 --- @param t table The lookup table for the value.
---- @param name string The name of the table field holding the value.
+--- @param name any The name of the table field holding the value.
 --- @param noraw boolean? Whether we should call the table's metamethods when looking up the value or not.
 function PEARL.GetValue(t, name, noraw)
     return noraw and t[name] or rawget(t, name)
@@ -133,7 +133,7 @@ function PEARL.OverrideUserdataFnReturn(userdata, funcname, overridefn, noraw, o
     return PEARL.OverrideReturnValue(mt.__index, funcname, overridefn, noraw, optional)
 end
 
---- @param name string
+--- @param name any
 --- @param t table
 --- @param precb function
 --- @param noraw boolean?
@@ -143,7 +143,7 @@ function PEARL.AddFunctionPreCall(name, precb, t, noraw)
     )
 end
 
---- @param name string
+--- @param name any
 --- @param t table
 --- @param postcb function
 --- @param with_res boolean?

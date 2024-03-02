@@ -76,7 +76,8 @@ local joining_clients = {}
 --- @type table<string, boolean>
 local connected_clients = {}
 --- @NOTE: Potential bug when restarting the server with players in caves.
-for _, client in ipairs(TheNet:GetClientTable()) do
+--- @NOTE: "TheNet:GetClientTable()" can return nil when we are not connected!
+for _, client in ipairs(TheNet:GetClientTable() or {}) do
     connected_clients[client.userid] = true
 end
 
@@ -460,7 +461,7 @@ end
 function ServerNetwork:GetConnectedClientsCount()
     -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
     -- We decrement this by one because of the host client for dedicated servers.
-    return #TheNet:GetClientTable() - (TheNet:IsDedicated() and 1 or 0)
+    return #(TheNet:GetClientTable() or {}) - (TheNet:IsDedicated() and 1 or 0)
 end
 
 function ServerNetwork:GetConnectingClientIDs()
@@ -469,7 +470,7 @@ end
 
 function ServerNetwork:GetHostTable()
     -- For dedicated servers the first index is reserved for the "host" machine.
-    return TheNet:GetClientTable()[1]
+    return (TheNet:GetClientTable() or {})[1]
 end
 
 function ServerNetwork:GetUserFlags(userid)

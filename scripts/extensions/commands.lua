@@ -988,7 +988,8 @@ AddCommand("kill", {
     --- @param ctx CommandContext
     --- @param player PlayerInst
     fn = function(ctx, player)
-        player:PushEvent("death", {cause = ctx.author.name})
+        player:PushEvent("death", {cause =(ctx.author.name or STRINGS.NAMES.SHENANIGANS)
+                        .." "..STRINGS.PEARL.UI.CMD_INFO.BY_COMMAND})
     end,
 })
 
@@ -1001,7 +1002,14 @@ AddCommand("revive", {
     --- @param ctx CommandContext
     --- @param player string
     fn = function(ctx, player)
-        player:PushEvent("respawnfromghost", {})
+        player:PushEvent("respawnfromghost", {
+            user = {
+                GetDisplayName = function()
+                    return (ctx.author.name or STRINGS.NAMES.SHENANIGANS)
+                        .." "..STRINGS.PEARL.UI.CMD_INFO.BY_COMMAND
+                end
+            }
+        })
     end,
 })
 
@@ -1116,7 +1124,8 @@ AddCommand("system", {
 
 AddCommand("notify", {
     permission = COMMAND_PERMISSION.ADMIN,
-    options = {PARAMS.PLAYER, {name = "message"}, {name = "title", optional = true}},
+    --- @TODO: allow changing the title for discord slash commands.
+    options = {PARAMS.PLAYER, {name = "message"}},--, {name = "title", optional = true}},
 
     --- @param ctx CommandContext
     --- @param userid string

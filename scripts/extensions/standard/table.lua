@@ -65,6 +65,7 @@ end
 -- This is a safe alternative to IsTableEmpty
 -- Returns a boolean whether the table you have provided is empty or not.
 -- Returns nil if the provided table is not actually a table...
+--- @param self any
 --- @return boolean? empty
 function table:empty()
     if type(self) ~= "table" then

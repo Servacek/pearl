@@ -116,9 +116,10 @@ local function OnError(traceback)
 end
 
 ----------------------------------
--- Post Constuctor
+-- Pre/Post Calls
 ----------------------------------
 
+-- "DisplayError" is called from the engine (most of the time) for non-catched errors.
 PEARL.AddGlobalFunctionPreCall("DisplayError", function(traceback)
     -- We do not want more errors
     local success, err = pcall(OnError, traceback)
@@ -126,6 +127,18 @@ PEARL.AddGlobalFunctionPreCall("DisplayError", function(traceback)
         PEARL.error("Error while handling an error!\n", err)
     end
 end)
+
+-- "debug.traceback" is used for errors catched by the game.
+PEARL.AddFunctionPostCall("traceback", function(data, thread, message)
+    local traceback = type(data[1]) == "string" and data[1] or "No Traceback"
+    if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
+        PEARL.DiscordReporter:ReportCatchedLuaError(traceback)
+    elseif PEARL.ClientNetwork then
+        PEARL.ClientNetwork:SendErrorTracebackToServer(traceback, true)
+    end
+
+    --TheSim:ResetError() -- The game is still frozen anyway.
+end, debug, true)
 
 ----------------------------------
 -- RPC

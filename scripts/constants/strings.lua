@@ -665,6 +665,7 @@ local STRINGS = {
         CMD_INFO = {
             SENT_TO_THIRDPARTY = "The response was sent to discord.",
             RECEIVED_FROM_THIRDPARTY = "Command was successfully received and processed!",
+            BY_COMMAND = "using an command"
         },
 
         -- Add more translations

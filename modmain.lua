@@ -76,6 +76,8 @@
 
     - CWD - Current Working Directory
 
+    - TheNet:Disconnect() is REALLY unstable!
+
     - Built-in utf8 library:
         string.utf8char = utf8char -- decode a codepoint
         string.utf8sub = utf8substr -- "byte-aware" string.sub
@@ -689,30 +691,6 @@ if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
             Networking_LeaveAnnouncement("Fi7iP", client.colour)
         end)
     end
-
-    -- for _, dependency in ipairs(PEARL.MOD_INFO.mod_dependencies) do
-    --     TheSim:QueueDownloadTempMod(dependency.workshop)
-    -- end
-
-    -- TheSim:StartDownloadTempMods(function( success, msg )
-    --     for _, dependency in ipairs(PEARL.MOD_INFO.mod_dependencies) do
-    --         KnownModIndex:TempEnable(dependency.workshop)
-
-    --         local initenv = KnownModIndex:GetModInfo(dependency.workshop)
-	-- 		local env = CreateEnvironment(dependency.workshop, ModManager.worldgen)
-	-- 		env.modinfo = initenv
-
-    --         print("INSTALLING MOD", dependency.workshop)
-    --         ModManager:InitializeModMain(env.modname, env, "modmain.lua")
-    --     end
-
-    --     print("DOWNLOADED!", success, msg)
-    --     PEARL.WallScheduler:ExecuteInTime(0, function()
-    --         PEARL.ClientLoader:RemoveDeferant("dependencies")
-    --     end)
-    -- end)
-
-    -- PEARL.ClientLoader:AddDeferant("dependencies")
 
     PEARL.info("Loading mod FE done.")
 end
