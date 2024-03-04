@@ -69,6 +69,7 @@ local function AddEmojiMenuButton(menu)
     -- Let's handle the scaling ourselves.
     -- Make the background bigger so it can be clicked on easier.
     local btn = TEMPLATES.EmojiButton(START_BUTTON_SIZE, false, 20)
+    --- @TODO: Add a nice hover text we have control over.
     btn.hover = btn:AddChild(HoverText(ThePlayer))
     btn.hover.text:SetString("View Emojis\n".."(CTRL + Y)")
     --btn:SetHoverText("View Emojis\n".."(CTRL + Y)",{font = NEWFONT_OUTLINE, offset_y = 60, colour = {1,1,1,1}})
