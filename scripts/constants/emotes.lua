@@ -10,10 +10,10 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]] -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
---- @class EMOTES
-local EMOTES = {
-    -- Game utf-8 formatted emotes accessed by name
-    --- @class EMOTES.GAME
+--- @class EMOJIS
+local EMOJIS = {
+    -- Game utf-8 formatted emotes accessed by name (from code)
+    --- @class EMOJIS.GAME
     GAME = {
         ABIGAIL = "󰀜",
         ALCHEMY = "󰀝",
@@ -68,7 +68,7 @@ local EMOTES = {
         RMB = STRINGS.RMB
     },
 
-    CUSTOM_GAME = {
+    DISCORD = { -- These are not used in code so the lowered down version is enough.
         ["anojdgurl"] = "󰂡",
         ["cat_angry"] = "󰂢",
         ["catto"] = "󰂣",
@@ -110,7 +110,7 @@ local EMOTES = {
 
     --- @class EMOTES.DISCORD
     -- Converts a game utf-8 formatted emote to a discord emoji
-    MAP_DISCORD = {
+    UTF_TO_DISCORD = {
         ["󰀜"] = "<a:abigail:997498948161900584>", -- :abigail:
         ["󰀝"] = "<a:alchemy:997498961675960470>", -- :alchemy:
         ["󰀞"] = "<a:backpack:997498991094800510>", -- :backpack:
@@ -205,20 +205,30 @@ local EMOTES = {
 }
 
 -- Game Icon Name -> Discord Emoji
---- @class EMOTES.GAME
-EMOTES.DISCORD = {}
-for name, symbol in pairs(EMOTES.GAME) do
-    EMOTES.DISCORD[name] = EMOTES.MAP_DISCORD[symbol]
+--- @class EMOJIS.GAME
+EMOJIS.GAME_TO_DISCORD = {}
+for name, utf in pairs(EMOJIS.GAME) do
+    EMOJIS.GAME_TO_DISCORD[name] = EMOJIS.UTF_TO_DISCORD[utf]
 end
 
-EMOTES.MAP_GAME = {}
-for game, discord in pairs(EMOTES.MAP_DISCORD) do
-    EMOTES.MAP_GAME[discord] = game
+EMOJIS.DISCORD_TO_UTF = {}
+for utf, discord in pairs(EMOJIS.UTF_TO_DISCORD) do
+    EMOJIS.DISCORD_TO_UTF[discord] = utf
 end
 
-EMOTES.ALL = MergeMaps(EMOTES.GAME, EMOTES.CUSTOM_GAME)
+EMOJIS.GAME_LOWERED = {}
+for name, utf in pairs(EMOJIS.GAME) do
+    EMOJIS.GAME_LOWERED[name:lower()] = utf
+end
 
-function EMOTES.GetOwnedVanillaEmojis(userid)
+EMOJIS.ALL = MergeMaps(EMOJIS.GAME_LOWERED, EMOJIS.DISCORD)
+
+EMOJIS.UTF_TO_NAME = {}
+for name, utf in pairs(EMOJIS.ALL) do
+    EMOJIS.UTF_TO_NAME[utf] = name
+end
+
+function EMOJIS.GetOwnedVanillaEmojis(userid)
     local has_ownership = nil
     if TheWorld ~= nil and userid ~= nil and TheWorld.ismastersim then
         has_ownership = function(item_type)
@@ -246,4 +256,4 @@ end
 -- [[ Return ]]
 --------------------------------
 
-return EMOTES
+return EMOJIS

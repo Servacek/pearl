@@ -41,6 +41,9 @@ function table.size(t)
     return size
 end
 
+--- @param checkfn fun(key: any, value: any): boolean
+--- @param count integer?
+--- @return boolean success, integer count
 function table:find(checkfn, count)
     count = count or 1
     for k, v in pairs(self) do
@@ -78,6 +81,18 @@ end
 function table.join(t1, t2)
     for _, val in ipairs(t2) do
         table.insert(t1, val)
+    end
+end
+
+function table.update(old, new)
+    for key, value in pairs(new) do
+        if type(value) == "table" and type(old[key]) == "table" then
+            -- If both the source and target have subtables, recursively update them
+            table.update(old[key], value)
+        else
+            -- Update or add the key-value pair in the target table
+            old[key] = value
+        end
     end
 end
 
@@ -179,6 +194,19 @@ function table:getkey(value)
     end
 end
 
+--- Returns the all keys for the specified value found in the the specified table.
+--- @return key? any
+function table:getallkeys(value)
+    local keys = {}
+    for k, v in pairs(self) do
+        if v == value then
+            keys[#keys + 1] = k
+        end
+    end
+
+    return keys
+end
+
 function table.pathget(t, path)
     local value = t
     for key in path:gmatch("[^%.]+") do
@@ -269,10 +297,17 @@ function table.max(t)
     return maxk, maxv
 end
 
-function table.keys(t)
+function table.keys(t, unique)
+    local values = unique and {} or nil
     local keys = {}
-    for k, _ in pairs(t) do
-        keys[#keys + 1] = k
+    for k, v in pairs(t) do
+        if not values or values[v] == nil then
+            keys[#keys + 1] = k
+
+            if values then
+                values[v] = true
+            end
+        end
     end
 
     return keys

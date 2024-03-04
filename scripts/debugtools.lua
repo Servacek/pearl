@@ -162,8 +162,8 @@ end
 
 function PEARL.TESTS.GameEmoteTest()
     local result = ""
-    for name, val in pairs(PEARL.EMOTES.GAME) do
-        result = result.."\n"..tostring(name).." -> "..(PEARL.EMOTES.MAP_DISCORD[val] or "MISSING")
+    for name, val in pairs(PEARL.EMOJIS.GAME) do
+        result = result.."\n"..tostring(name).." -> "..(PEARL.EMOJIS.UTF_TO_DISCORD[val] or "MISSING")
     end
 
     if string.len(result) <= 0 then

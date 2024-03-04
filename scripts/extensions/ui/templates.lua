@@ -135,10 +135,6 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
         btn.ongainfocus = btn.ongainfocus or function() end
         PEARL.AddFunctionPostCall("ongainfocus", fn, btn)
     end
-    btn.SetOnControl = function(self, fn)
-        btn.OnControl = btn.OnControl or function() end
-        PEARL.AddClassFunctionPostCall("OnControl", fn, btn)
-    end
     -------------------------
 
     return btn

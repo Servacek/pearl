@@ -91,11 +91,11 @@ local function _ConvertIconToType(icon, target_type)
 
     local icon_str = icon_type == PEARL.ICONS.TYPE.UNKNOWN and icon or nil
     if icon_type == PEARL.ICONS.TYPE.DISCORD then
-        icon_str = target_type == CommandContext.TYPE.SLASH and PEARL.EMOTES.MAP_GAME[icon] or (
+        icon_str = target_type == CommandContext.TYPE.SLASH and PEARL.EMOJIS.DISCORD_TO_UTF[icon] or (
             target_type == CommandContext.TYPE.DISCORD and icon or nil
         )
     elseif icon_type == PEARL.ICONS.TYPE.INGAME then
-        icon_str = target_type == CommandContext.TYPE.DISCORD and PEARL.EMOTES.MAP_DISCORD[icon] or (
+        icon_str = target_type == CommandContext.TYPE.DISCORD and PEARL.EMOJIS.UTF_TO_DISCORD[icon] or (
             target_type == CommandContext.TYPE.SLASH and icon or nil
         )
     end

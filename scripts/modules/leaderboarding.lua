@@ -92,7 +92,7 @@ local function AnnounceNewPOTM(userid, month, year)
         mention = MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
     end
 
-    PEARL.DiscordLeaderBoarder:Announce(PEARL.EMOTES.DISCORD.TROPHY.." "..STRINGS.PEARL.UI.POTM_ANNOUNCEMENT:format(
+    PEARL.DiscordLeaderBoarder:Announce(PEARL.EMOJIS.GAME_TO_DISCORD.TROPHY.." "..STRINGS.PEARL.UI.POTM_ANNOUNCEMENT:format(
         MARKDOWN.bold(monthfullname), mention or PEARL.NetProfileLink(name, netid) or MARKDOWN.bold(name)
     ))
 end

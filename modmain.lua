@@ -74,7 +74,7 @@
 
     - Do not use "return PEARL.log(...)" because that counts as a new scope.
 
-    - CWD - Current Working Directory
+    - CWD - Current Working Directory (global C defined constant)
 
     - TheNet:Disconnect() is REALLY unstable!
 
@@ -539,8 +539,8 @@ end)
 
 -- Load emotes before icons
 --- @readonly
---- @type EMOTES table<table<string, string>>
-PEARL.EMOTES = PEARL.loadfile("constants/emotes")
+--- @type EMOJIS table<table<string, string>>
+PEARL.EMOJIS = PEARL.loadfile("constants/emotes")
 
 if not PEARL.INIT then
 
@@ -615,18 +615,20 @@ if PEARL.CONFIG.DEBUG_MODE then
         PEARL.OverrideVariable("BRANCH", "dev")
         PEARL.OverrideVariable("CHEATS_ENABLED", true)
         PEARL.OverrideVariable("VERBOSITY_LEVEL", VERBOSITY.DEBUG)
+
+        --- @NOTE: DoReload doesn't really affect these...
+        --- Maybe this would require some further investigation
+        local modmain_fp = PEARL.ROOTDIR.."modmain.lua"
+        local modmain_ft = TheSim:GetFileModificationTime(modmain_fp)
+        local worldgenmain_fp = PEARL.ROOTDIR.."modworldgenmain.lua"
+        local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
+        RequiredFilesForReload[modmain_fp] = modmain_ft
+        RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
+
+        PEARL.loadfile("debugtools")
     end
 
-    PEARL.loadfile("debugtools")
-
-    --- @NOTE: DoReload doesn't really affect these...
-    --- Maybe this would require some further investigation
-    local modmain_fp = PEARL.ROOTDIR.."modmain.lua"
-    local modmain_ft = TheSim:GetFileModificationTime(modmain_fp)
-    local worldgenmain_fp = PEARL.ROOTDIR.."modworldgenmain.lua"
-    local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
-    RequiredFilesForReload[modmain_fp] = modmain_ft
-    RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp
+    PEARL.OverrideVariable("PRINT_SOURCE", true)
 end
 
 --------------------------------
@@ -665,7 +667,6 @@ end
 if TheNet:IsDedicated() and not TheNet:GetIsClient() then
     PEARL.info("Loading mod BE...")
     PEARL.loadfile("backend")
-
     PEARL.info("Loading mod BE done.")
 end
 
@@ -678,26 +679,8 @@ end
 if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
-
-    PEARL.Saying = function()
-        --Networking_Say(guid, userid, name, prefab, message, colour, whisper, isemote, user_vanity)
-        Networking_Say("123", "KU_TEST", "Borb", nil, "F", PLAYERCOLOURS.PINK)
-        Networking_Say("123", "KU_TEST", "Gertrúda", nil, "󰂰󰂰", PLAYERCOLOURS.RED)
-        Networking_Say("123", "KU_TEST", "Mlaskal", nil, "f 󰂲 󰂴", PLAYERCOLOURS.BLUE)
-        TheNet:Say("󰂷")
-
-        PEARL.StaticScheduler:ExecuteInTime(2, function()
-            local client = TheNet:GetClientTableForUser(ThePlayer.userid)
-            Networking_LeaveAnnouncement("Fi7iP", client.colour)
-        end)
-    end
-
     PEARL.info("Loading mod FE done.")
 end
-
-PEARL.AddGlobalFunctionPreCall("ProcessJsonMessage", function(message)
-    PEARL.debug("ProcessJsonMessage:", message)
-end)
 
 --------------------------------
 -- [[ Commmon Modules ]]

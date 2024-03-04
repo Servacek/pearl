@@ -173,8 +173,27 @@ if PEARL.CONFIG.DEBUG_MODE then
 
     PEARL.AddPlayerPostInit(function(player)
         player:PushEvent("respawnfromghost", {})
-        c_godmode(player)
+
+        PEARL.StaticScheduler:ExecuteInTime(1, function()
+            c_supergodmode(player)
+            PEARL.StaticScheduler:ExecuteInTime(5, function()
+                c_supergodmode(player)
+            end)
+        end)
     end)
+
+    PEARL.Saying = function()
+        --Networking_Say(guid, userid, name, prefab, message, colour, whisper, isemote, user_vanity)
+        Networking_Say("123", "KU_TEST", "Borb", nil, "F", PLAYERCOLOURS.PINK)
+        Networking_Say("123", "KU_TEST", "Gertrúda", nil, "󰂰󰂰", PLAYERCOLOURS.RED)
+        Networking_Say("123", "KU_TEST", "Mlaskal", nil, "f 󰂲 󰂴", PLAYERCOLOURS.BLUE)
+        TheNet:Say("󰂷")
+
+        PEARL.StaticScheduler:ExecuteInTime(2, function()
+            local client = TheNet:GetClientTableForUser(ThePlayer.userid)
+            Networking_LeaveAnnouncement("Fi7iP", client.colour)
+        end)
+    end
 
 --     PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)

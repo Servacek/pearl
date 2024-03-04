@@ -27,6 +27,10 @@ local EmojiMenu = PEARL.loadfile("widgets/emojimenu")
 
 local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
+local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+
+local HoverText = require("widgets/hoverer")
+
 ---------------------------
 -- [[ Constants ]]
 ---------------------------
@@ -36,11 +40,6 @@ local START_BUTTON_FOCUS_SIZE = 45
 
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
-
-local EMOJI_SET = {
-    ["Vanilla"] = PEARL.EMOTES.GetOwnedVanillaEmojis(TheNet:GetUserID()),
-    ["Discord"] = PEARL.EMOTES.CUSTOM_GAME,
-}
 
 -- Usually, we want the autocompletion to be shown right after the delimeter was typed in.
 local COMMAND_PREDICTION_CHARS = 0 -- Commands do not have usually under 2 characters.
@@ -52,10 +51,6 @@ local last_slash_command = nil
 ---------------------------
 -- [[ Local Functions ]]
 ---------------------------
-
-local function GetRandomEmoji(set)
-    return GetRandomItem(GetRandomItem(set))
-end
 
 local function AddWhisperWarning(self)
     local control = CONTROL_TOGGLE_SAY
@@ -72,12 +67,16 @@ end
 
 local function AddEmojiMenuButton(menu)
     -- Let's handle the scaling ourselves.
+    -- Make the background bigger so it can be clicked on easier.
     local btn = TEMPLATES.EmojiButton(START_BUTTON_SIZE, false, 20)
-    btn:SetText(GetRandomEmoji(menu.emoji_sets))
+    btn.hover = btn:AddChild(HoverText(ThePlayer))
+    btn.hover.text:SetString("View Emojis\n".."(CTRL + Y)")
+    --btn:SetHoverText("View Emojis\n".."(CTRL + Y)",{font = NEWFONT_OUTLINE, offset_y = 60, colour = {1,1,1,1}})
+    btn:SetText(ClientEmojis:GetRandomEmoji())
     btn:SetOnGainFocus(function()
         if not menu:IsOpen() then
             btn:SetTextSize(START_BUTTON_FOCUS_SIZE)
-            btn:SetText(GetRandomEmoji(menu.emoji_sets))
+            btn:SetText(ClientEmojis:GetRandomEmoji())
         end
     end)
     btn:SetOnLoseFocus(function()
@@ -90,7 +89,7 @@ local function AddEmojiMenuButton(menu)
 
         local pos_x = btn:GetPositionXYZ()
         local w, h = menu.menu.mid_center:GetSize()
-        menu:SetPosition(pos_x + w / 2.2, h - 17)
+        menu:SetPosition(pos_x + w / 2.5, h - 25)
     end)
 
     return btn
@@ -128,7 +127,7 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         AddWhisperWarning(self)
     end
 
-    if PEARL.CONFIG.EMOJI_MENU then
+    if PEARL.CONFIG.EMOJI_MENU and ClientEmojis:HasAnyEmojis() then
         local _bg = self.chat_edit:AddChild(ImageButton("images/global.xml", "square.tex"))
         _bg.image:SetVRegPoint(ANCHOR_MIDDLE)
         _bg.image:SetHRegPoint(ANCHOR_MIDDLE)
@@ -140,7 +139,8 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         _bg:MoveToFront()
         _bg:Hide()
 
-        self.emoji_menu = self.screen_root:AddChild(EmojiMenu(EMOJI_SET, self.chat_edit))
+        self.emoji_menu = self.screen_root:AddChild(EmojiMenu())
+        self.emoji_menu:LoadEmojiCategories(ClientEmojis.CATEGORIES_ORDERED)
         self.emoji_menu:MoveToFront()
 
         _bg:SetOnClick(function()
@@ -163,20 +163,43 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         self.emoji_menu_button:SetPosition(x, 0)
         self.emoji_menu_button:MoveToFront()
 
+        self.chat_edit._insert_index = 1
         self.emoji_menu.onopen = function()
+            self.chat_edit:SetEditing(false)
+            self.chat_edit:ClearFocus()
+
+            if self.emoji_menu_button.hovertext_root then
+                self.emoji_menu_button.hovertext_root:Hide()
+            end
+
+            self.chat_edit._insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
             _bg:Show()
         end
 
         self.emoji_menu.onclose = function()
+            self.chat_edit:SetEditing(true)
+            self.chat_edit.inst.TextEditWidget:SetEditCursorPos(self.chat_edit._insert_index)
+
             _bg:Hide()
 
             -- The button is in it's focused state until the menu is closed.
             if not self.emoji_menu_button.focus then
                 self.emoji_menu_button:OnLoseFocus()
             end
+
+            if self.emoji_menu_button.hovertext_root and self.emoji_menu_button.focus then
+                self.emoji_menu_button.hovertext_root:Show()
+            end
+        end
+
+        self.emoji_menu.onemojichosen = function(emoji)
+            local str = self.chat_edit:GetString()
+            self.chat_edit:SetString(str:sub(1, self.chat_edit._insert_index)..emoji.." "..str:sub(self.chat_edit._insert_index + 1))
+            self.chat_edit._insert_index = self.chat_edit._insert_index + emoji:len() + 1
         end
 
         if TheInput:IsKeyDown(KEY_CTRL) then
+            -- Make sure this widget is completely initialized.
             PEARL.StaticScheduler:ExecuteInTime(0, self.emoji_menu_button.onclick)
         end
     end
@@ -234,20 +257,10 @@ PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
     end
 end, UserCommands)
 
--- TheInput:AddKeyHandler(function(key, down)
---     print("KEY INPUT HANDLER")
---     print(TheInput:IsKeyDown(KEY_CTRL), key, KEY_E)
---     if not down and TheInput:IsKeyDown(KEY_CTRL) and key == KEY_E then
---         local screen = TheFrontEnd:GetActiveScreen()
---         if not ChatInputScreen.is_instance(screen) then
---             screen = ChatInputScreen(false)
---             TheFrontEnd:PushScreen(screen)
---         end
-
---         if screen then
---             screen.emoji_menu_button.onclick()
---         end
-
---         return false
---     end
--- end)
+PEARL.EventProcessor:AddSafeEventHandler("emojis_used", function(emojis)
+    local emoji_data_cache = EmojiMenu.GetCachedData()
+    local target_cache = emoji_data_cache[ClientEmojis.CATEGORIES_ORDERED]
+    if target_cache then
+        EmojiMenu.UpdateEmojiCategory(ClientEmojis.BASIC_CATEGORY.FREQUENTLY_USED, target_cache)
+    end
+end)

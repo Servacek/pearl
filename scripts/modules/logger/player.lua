@@ -543,7 +543,7 @@ RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
-        :SetIcon(PEARL.EMOTES.DISCORD.SHOVEL)
+        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.SHOVEL)
         :SetIsSilent(true)
         :AddTarget(target)
 end)
@@ -554,7 +554,7 @@ local OnPlant = RegisterPlayerActionHandler(ACTIONS.PLANT, function(doer, target
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.PLANT[target and "IN" or "GENERIC"], doer,
         QueuedLogAction.FIELDS.SOURCE, target)
-        :SetIcon(PEARL.EMOTES.DISCORD.FARM)
+        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.FARM)
         :SetIsSilent(true)
         :AddTarget(item, 1)
 end)
@@ -562,9 +562,9 @@ end)
 RegisterPlayerActionHandler(ACTIONS.PLANTWEED,
 RegisterPlayerActionHandler(ACTIONS.PLANTSOIL,
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
-    local icon = PEARL.EMOTES.DISCORD.EYEPLANT
+    local icon = PEARL.EMOJIS.GAME_TO_DISCORD.EYEPLANT
     if item:HasTag("deployedplant") or item:HasTag("plant") then
-        icon = PEARL.EMOTES.DISCORD.BERRY
+        icon = PEARL.EMOJIS.GAME_TO_DISCORD.BERRY
         if item:HasTag("witherable") then
             Rep:EarnFor(doer.userid, REPUTATIONS.PLANT_WITHERABLE)
         else
@@ -573,7 +573,7 @@ RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
     end
 
     if target ~= nil then
-        icon = PEARL.EMOTES.DISCORD.FARM
+        icon = PEARL.EMOJIS.GAME_TO_DISCORD.FARM
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
@@ -583,12 +583,12 @@ end)))
 
 RegisterPlayerActionHandler(ACTIONS.DEPLOY_TILEARRIVE,
 RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
-    local icon = PEARL.EMOTES.DISCORD.RMB
+    local icon = PEARL.EMOJIS.GAME_TO_DISCORD.RMB
     local pt = STRINGS.PEARL.ACTIONS.USED[target and "ON" or "GENERIC"]
     if not item or item.components.fertilizer then
         Rep:EarnFor(doer.userid, REPUTATIONS.FERTILIZED)
 
-        icon = PEARL.EMOTES.DISCORD.POOP
+        icon = PEARL.EMOJIS.GAME_TO_DISCORD.POOP
         pt = STRINGS.PEARL.ACTIONS.FERTILIZE.FIELD
         if target then
             pt = STRINGS.PEARL.ACTIONS.FERTILIZE.WITH
@@ -611,7 +611,7 @@ end)
 RegisterPlayerActionHandler(ACTIONS.DRY, function(doer, target, item)
     AL:EntityAct(STRINGS.PEARL.ACTIONS.DRIED.GENERIC, doer,
         QueuedLogAction.FIELDS.TARGET, target)
-        :SetIcon(PEARL.EMOTES.DISCORD.MEAT)
+        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.MEAT)
         :AddToStackableField(QueuedLogAction.FIELDS.ITEM, item, 1)
 end)
 
@@ -665,7 +665,7 @@ local function OnAreaCast(doer, item, target, entities, tp, nosilent)
     })
 
     return AL:Log(
-        doer, tp, pt, nosilent ~= true and (not tp or #entities < 3), PEARL.EMOTES.DISCORD.ARCANE)
+        doer, tp, pt, nosilent ~= true and (not tp or #entities < 3), PEARL.EMOJIS.GAME_TO_DISCORD.ARCANE)
 end
 
 -- Regular casting with or without a target.
@@ -683,7 +683,7 @@ local function OnCast(doer, item, target, tp)
         {item = item and item:GetStandardizedName(), owner = owner})
         :AddTarget(target)
         :SetIsSilent(not tp or not prohibited)
-        :SetIcon(PEARL.EMOTES.DISCORD.ARCANE)
+        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.ARCANE)
 end
 
 local function OnCastFire(doer, item, target, pos, radius)
@@ -1121,7 +1121,7 @@ local function onplayerconstructed(doer, target)
     end
 
     AL:EntityAct(pt, doer, QueuedLogAction.FIELDS.TARGET, target)
-        :SetIcon(PEARL.EMOTES.DISCORD.REFINE)
+        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.REFINE)
 end
 
 -------------------
@@ -1144,7 +1144,7 @@ local function onhoundwarning(player, level)
     if wave_type ~= nil then
         AL:Log(nil, nil, STRINGS.PEARL.LOGS.WAVE_WARNING:format(
             wave_type
-        ), true, PEARL.EMOTES.DISCORD.HORN)
+        ), true, PEARL.EMOJIS.GAME_TO_DISCORD.HORN)
     end
 
     wave_level = level
@@ -1230,7 +1230,7 @@ local function onfinishedlooting(doer, data)
     local loot_string = PEARL.BuildFancyStringForEntities(data.items)
     AL:Log(doer, PEARL.CONSTS.ANN_TYPE.TAKE, STRINGS.PEARL.ACTIONS.TAKE_ITEM.FROM:nformat({
         doer = doer:GetDisplayName(), target = loot_string, source = data.container:GetFancyName()
-    }), false, PEARL.EMOTES.DISCORD.CHEST) --data.items.rare)
+    }), false, PEARL.EMOJIS.GAME_TO_DISCORD.CHEST) --data.items.rare)
 end
 
 -------------------------------

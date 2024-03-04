@@ -576,6 +576,13 @@ local STRINGS = {
             },
         },
 
+        EMOJI_CATEGORIES = {
+            FREQUENTLY_USED = "Frequently Used",
+
+            DISCORD = "Discord",
+            VANILLA = "Vanilla",
+        },
+
         STATIC_BAN_REASONS = {
             NONE = "Reason not specified.",
             AUTO = "Auto-Banned for repeated violation of the rules.",

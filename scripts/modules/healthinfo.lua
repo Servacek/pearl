@@ -20,7 +20,7 @@ local Health = require("components/health")
 -- [[ Constants ]]
 -------------------------------
 
-local HEALTH_NOTE_PT = PEARL.EMOTES.GAME.HEART.." %d/%d"
+local HEALTH_NOTE_PT = PEARL.EMOJIS.GAME.HEART.." %d/%d"
 local HEALTH_INFO_POS = Vector3(0, 80, 0)
 local HEATLH_INFO_FONT = UIFONT
 local HEALTH_INFO_FSIZE = 24

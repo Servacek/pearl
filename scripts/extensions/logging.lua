@@ -12,6 +12,8 @@
 
 -- Do not use "return PEARL.log(...)" because that counts as a tail call and doesn't provide the source info.
 
+-- Use as little mod dependencies here as possible.
+
 local TheSim = TheSim
 local toarrayornil, tostring  = toarrayornil, tostring
 
@@ -35,6 +37,8 @@ local ENABLED = PEARL.CONFIG.LOGGING and PEARL.CONFIG.LOGGING.ENABLED or true
 
 local DEBUG_FILE_PATH = PEARL.MODROOT.."logs/debug_log.txt"
 local MAX_DEBUG_FILE_LEN = 10000
+
+local IS_CLIENT = TheNet:GetIsClient()
 
 ---------------------------
 -- [[ Locals]]
@@ -74,10 +78,24 @@ function PEARL.log(lv, ...)
     local log = (PEARL.CONFIG.DEBUG_MODE and src) and
         PATTERN_DEBUG:format(lv, src, content) or PATTERN:format(lv, content)
 
-    -- Using the lower level engine function for more control
-    TheSim:LuaPrint(log)
-    if _debug_file and (lv == LOG_LEVELS.ERROR or lv == LOG_LEVELS.WARN) then
+    if IS_CLIENT then
+        local _PRINT_SOURCE
+        if PEARL.CONFIG.DEBUG_MODE and PRINT_SOURCE == true then
+            -- We already implement this for our logs
+            rawset(_G, "PRINT_SOURCE", false)
+            _PRINT_SOURCE = true
+        end
 
+        print(log) -- Prefer classic "print" on clients so it shows up in the console output screen.
+
+        if _PRINT_SOURCE then
+            rawset(_G, "PRINT_SOURCE", _PRINT_SOURCE)
+        end
+    else
+        TheSim:LuaPrint(log) -- More optimized version of "print"
+    end
+
+    if _debug_file and (lv == LOG_LEVELS.ERROR or lv == LOG_LEVELS.WARN) then
         _debug_file:write(log.."\n")
         _debug_file:write("") -- This will flush the line.
     end

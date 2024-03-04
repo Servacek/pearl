@@ -108,7 +108,7 @@ end
 
 -- Replaces all known dst emoticons in a string with discord emojis
 function string:emojify()
-    for utf8_str, emoji in pairs(PEARL.EMOTES.MAP_DISCORD) do
+    for utf8_str, emoji in pairs(PEARL.EMOJIS.UTF_TO_DISCORD) do
         self = self:gsub(utf8_str, emoji)
     end
 
@@ -117,7 +117,7 @@ end
 
 -- Returns a discord emoji string or the input string if no result was found
 function string.toemoji(utf8_icon)
-    return PEARL.EMOTES.MAP_DISCORD[utf8_icon] or utf8_icon
+    return PEARL.EMOJIS.UTF_TO_DISCORD[utf8_icon] or utf8_icon
 end
 
 -- longline -> ltake(3) -> lon
