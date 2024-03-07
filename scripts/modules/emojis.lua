@@ -25,9 +25,23 @@ local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
 local DELIM = PEARL.CONSTS.DELIMS.EMOJI
 local PATTERN = DELIM.."([%S]+)"..DELIM
 
-local EMOJI_USED_PATTERN = "[\243][\176][\144-\191][\128-\191]"
+local EMOJI_USED_PATTERN = "[\243][\176][\128-\191][\128-\191]"
 
 local DISCORD_EMOJIS = PEARL.FONTS.CUSTOM.NAMES.DISCORD_EMOJIS
+
+local EMOJI_FONT_FILES = {
+    [DISCORD_EMOJIS] = PEARL.MODROOT.."fonts/discord_emojis.zip"
+}
+
+--------------------------------
+-- [[ Assets ]]
+--------------------------------
+
+for name, filepath in pairs(EMOJI_FONT_FILES) do
+    table.insert(PEARL.ENV.Assets, Asset("FONT", filepath))
+
+    table.insert(GLOBAL.FONTS, {filename = filepath, alias = name, disable_color = true})
+end
 
 --------------------------------
 -- [[ Setup ]]
@@ -47,35 +61,10 @@ for _, data in pairs(EMOJI_ITEMS) do
     PEARL.EMOJIS.DISCORD[data.input_name] = nil
 end
 
---- @TODO: Rework this for the new beta.
---- If the player already uses some mod to add icons, the icons added by the mod will be overriden.
--- PEARL.AddSimPostInit(function()
---     local apply = PEARL.GameInstParams:GetModParam("font_apply")
---     if apply == false then
---         return
---     end
-
---     -- Doesn't need the font to be loaded.
---     TheSim:UnloadFont(DISCORD_EMOJIS)
-
---     -- Make sure the font assets are loaded.
---     local Assets = {}
---     AddFontAssets(Assets, PEARL.FONTS.CUSTOM.ASSETS)
---     local FontsPrefab = Prefab(PEARL.FONTS_PREFAB, nil, Assets)
---     TheSim:UnloadPrefabs({PEARL.FONTS_PREFAB})
--- 	RegisterSinglePrefab(FontsPrefab)
--- 	TheSim:LoadPrefabs({PEARL.FONTS_PREFAB})
-
---     TheSim:LoadFont(PEARL.MODROOT.."fonts/discord_emojis.zip", DISCORD_EMOJIS, true)
---     for _, font in pairs(FONTS) do
---         if font.fallback and font.fallback ~= "" then
---             -- Reload the font fallbacks to apply the changes.
---             TheSim:SetupFontFallbacks(font.alias, font.fallback)
---         end
---     end
-
---     PEARL.GameInstParams:SetModParam("font_apply", false)
--- end)
+--- This should work after the beta is released.
+if (tonumber(APP_VERSION) or 0) > 595714 then
+    AddSimPostInit(LoadFonts)
+end
 
 --------------------------------
 -- [[ Autocomplete ]]
@@ -110,7 +99,7 @@ _Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
     end
 
     local needs_saving = false
-    for match in message:gmatch("[\243][\176][\128-\191][\128-\191]") do
+    for match in message:gmatch(EMOJI_USED_PATTERN) do
         local emoji_name = PEARL.EMOJIS.UTF_TO_NAME[match]
         if emoji_name then
             ClientEmojis:OnEmojiUsed(match, emoji_name)
@@ -121,7 +110,7 @@ _Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
     if needs_saving then
         ClientEmojis:SavePersistentData()
 
-        PEARL.EventProcessor:HandleEvent("emojis_used")
+        PEARL.INST:PushEvent("emojis_used")
     end
 
     return _Say(self, message, ...)

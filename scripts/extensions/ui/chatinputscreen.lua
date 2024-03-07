@@ -35,8 +35,10 @@ local HoverText = require("widgets/hoverer")
 -- [[ Constants ]]
 ---------------------------
 
-local START_BUTTON_SIZE = 35
-local START_BUTTON_FOCUS_SIZE = 45
+local EMOJI_MENU_BUTTON_SIZE = 35
+local EMOJI_MENU_BUTTON_FOCUS_SIZE = 45
+local EMOJI_MENU_BUTTON_OFFSET_X = 0
+local EMOJI_MENU_BUTTON_OFFSET_Y = 60
 
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
@@ -52,45 +54,73 @@ local last_slash_command = nil
 -- [[ Local Functions ]]
 ---------------------------
 
-local function AddWhisperWarning(self)
+local function GetSayControl()
     local control = CONTROL_TOGGLE_SAY
     local controllerid = TheInput:GetControllerID()
     local controltocheck = TheInput:ControllerAttached() and LOADING_SCREEN_CONTROLLER_ID_LOOKUP[control] or control
-    local controlstring = TheInput:GetLocalizedControl(controllerid, controltocheck)
+    return TheInput:GetLocalizedControl(controllerid, controltocheck)
+end
 
+local function AddWhisperWarning(self)
     local whisper_warn_label = self.root:AddChild(Text(TALKINGFONT, WARN_TEXT_SIZE))
     whisper_warn_label:SetPosition(-200, -30, 0)
     whisper_warn_label:SetHAlign(ANCHOR_RIGHT)
-    whisper_warn_label:SetString(STRINGS.PEARL.UI.WHISPER_WARN_TEXT:format(controlstring))
+    whisper_warn_label:SetString(STRINGS.PEARL.UI.WHISPER_WARN_TEXT:format(GetSayControl()))
     whisper_warn_label:SetColour(WARN_TEXT_COLOUR)
 end
 
+local last_button_emoji
+local followhandler = TheInput:AddMoveHandler(function(x, y) end)
 local function AddEmojiMenuButton(menu)
     -- Let's handle the scaling ourselves.
     -- Make the background bigger so it can be clicked on easier.
-    local btn = TEMPLATES.EmojiButton(START_BUTTON_SIZE, false, 20)
-    --- @TODO: Add a nice hover text we have control over.
-    btn.hover = btn:AddChild(HoverText(ThePlayer))
-    btn.hover.text:SetString("View Emojis\n".."(CTRL + Y)")
-    --btn:SetHoverText("View Emojis\n".."(CTRL + Y)",{font = NEWFONT_OUTLINE, offset_y = 60, colour = {1,1,1,1}})
-    btn:SetText(ClientEmojis:GetRandomEmoji())
+    local btn = TEMPLATES.EmojiButton(EMOJI_MENU_BUTTON_SIZE, false, 20)
+    btn._hovertext = menu.parent:AddChild(Text(UIFONT, 30))
+    btn._hovertext:SetString(STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER:format(GetSayControl()))
+    btn._hovertext:SetScaleMode(SCALEMODE_PROPORTIONAL)
+    btn._hovertext:Hide()
+
+    btn._time = GetTime()
+
+    followhandler.fn = function(x, y)
+        if btn._hovertext:IsVisible() then
+            btn._hovertext:SetPosition(
+                x + EMOJI_MENU_BUTTON_OFFSET_X, y + EMOJI_MENU_BUTTON_OFFSET_Y, 0
+            )
+        end
+    end
+
+    last_button_emoji = last_button_emoji or ClientEmojis:GetRandomEmoji()
+    btn:SetText(last_button_emoji)
     btn:SetOnGainFocus(function()
         if not menu:IsOpen() then
-            btn:SetTextSize(START_BUTTON_FOCUS_SIZE)
-            btn:SetText(ClientEmojis:GetRandomEmoji())
+            if not menu.closing then
+                btn:SetTextSize(EMOJI_MENU_BUTTON_FOCUS_SIZE)
+
+                if GetTime() - btn._time > 1 then
+                    local new_emoji = ClientEmojis:GetRandomEmoji()
+                    btn:SetText(last_button_emoji)
+
+                    last_button_emoji = new_emoji
+                end
+            end
+
+            btn._hovertext:Show()
         end
     end)
     btn:SetOnLoseFocus(function()
-        if not menu:IsOpen() then
-            btn:SetTextSize(START_BUTTON_SIZE)
+        if not menu:IsOpen() and not menu.closing then
+            btn:SetTextSize(EMOJI_MENU_BUTTON_SIZE)
         end
+
+        btn._hovertext:Hide()
     end)
     btn:SetOnClick(function()
         menu:Toggle()
 
         local pos_x = btn:GetPositionXYZ()
         local w, h = menu.menu.mid_center:GetSize()
-        menu:SetPosition(pos_x + w / 2.5, h - 25)
+        menu:SetPosition(pos_x + w / 2.5, h)
     end)
 
     return btn
@@ -187,10 +217,6 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
             if not self.emoji_menu_button.focus then
                 self.emoji_menu_button:OnLoseFocus()
             end
-
-            if self.emoji_menu_button.hovertext_root and self.emoji_menu_button.focus then
-                self.emoji_menu_button.hovertext_root:Show()
-            end
         end
 
         self.emoji_menu.onemojichosen = function(emoji)
@@ -257,11 +283,3 @@ PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
         last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..tostring(input)
     end
 end, UserCommands)
-
-PEARL.EventProcessor:AddSafeEventHandler("emojis_used", function(emojis)
-    local emoji_data_cache = EmojiMenu.GetCachedData()
-    local target_cache = emoji_data_cache[ClientEmojis.CATEGORIES_ORDERED]
-    if target_cache then
-        EmojiMenu.UpdateEmojiCategory(ClientEmojis.BASIC_CATEGORY.FREQUENTLY_USED, target_cache)
-    end
-end)

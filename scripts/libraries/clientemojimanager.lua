@@ -22,6 +22,8 @@ local EMOJI_ALIAS_FORMAT = DELIM.."%s"..DELIM
 
 local MAX_ALIAS_LEN = 32
 
+local MAX_FU_EMOJIS = 32
+
 -------------------------------------
 -- [[ Class Declaration ]]
 -------------------------------------
@@ -37,44 +39,84 @@ end
 --- @class ClientEmojiManager
 local ClientEmojiManager = {
     _persistdata = {
-        frequently_used_emojis = {}
+        frequently_used = {}
     },
 
-    _frequently_used_cat = {},
-
     _encode_save_data = not PEARL.CONFIG.DEBUG_MODE,
-
-    _emoji_names_map = nil,
 }
 
 -------------------------------------
 -- [[ Static ]]
 -------------------------------------
 
-ClientEmojiManager.CATEGORIES_ORDERED = {
-    {
+ClientEmojiManager.CATEGORY = {
+    FREQUENTLY_USED = {
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED,
-        emojis = ClientEmojiManager._frequently_used_cat,
+        emojis = ClientEmojiManager._persistdata.frequently_used,
+        searchable = false, -- Do not allow the emojis in this category to be searchable since they are dupes.
+        maxrows = 2,
     },
-    {
+
+    VANILLA = {
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA,
         emojis = table.keys(PEARL.EMOJIS.GetOwnedVanillaEmojis(TheNet:GetUserID()), true),
     },
-}
 
-if PEARL.CONFIG.CUSTOM_EMOJIS then
-    -- Custom emojis should be right after the frequently used ones
-    -- (similiar to how discord implements this)
-    table.insert(ClientEmojiManager.CATEGORIES_ORDERED, 2, {
+    DISCORD = {
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.DISCORD,
         emojis = table.keys(PEARL.EMOJIS.DISCORD, true),
-    })
+    },
+}
+
+ClientEmojiManager.CATEGORIES_ORDERED = {
+    ClientEmojiManager.CATEGORY.FREQUENTLY_USED,
+    ClientEmojiManager.CATEGORY.VANILLA,
+}
+
+ClientEmojiManager.ALL_EMOJIS = deepcopy(ClientEmojiManager.CATEGORY.VANILLA.emojis)
+if PEARL.CONFIG.CUSTOM_EMOJIS then
+    ConcatArrays(ClientEmojiManager.ALL_EMOJIS, ClientEmojiManager.CATEGORY.DISCORD.emojis)
+
+    -- Custom emojis should be right after the frequently used ones
+    -- (similiar to how discord implements this)
+    table.insert(
+        ClientEmojiManager.CATEGORIES_ORDERED, 2, ClientEmojiManager.CATEGORY.DISCORD
+    )
 end
 
-ClientEmojiManager.BASIC_CATEGORY = {
-    -- Display frequently used emojis on the top.
-    FREQUENTLY_USED = ClientEmojiManager.CATEGORIES_ORDERED[1],
-}
+-- Use just one list of choices so all emojis have the same probability.
+ClientEmojiManager.RANDOM_EMOJI_CHOICES = deepcopy(ClientEmojiManager.ALL_EMOJIS)
+
+-------------------------------------
+-- [[ Private Methods ]]
+-------------------------------------
+
+function ClientEmojiManager:_EnsureBounderies(t, limit)
+    while #t > limit do
+        t[#t] = nil
+    end
+end
+
+function ClientEmojiManager:_ValidatePersistantData(data)
+    self:_EnsureBounderies(data.frequently_used, MAX_FU_EMOJIS)
+
+    local names = {}
+    for i, emoji_data in ipairs(data.frequently_used) do
+        local emoji_names = {}
+        for ii, emoji_name in ipairs(emoji_data.names) do
+            if emoji_names[emoji_name] then
+                -- This emoji name is already contained on the the list of names.
+                table.remove(emoji_data.names, ii)
+            elseif names[emoji_name] then
+                -- Emoji with this name already on the emoji list.
+                table.remove(data.frequently_used, i)
+            end
+
+            emoji_names[emoji_name] = true
+            names[emoji_name] = true
+        end
+    end
+end
 
 -------------------------------------
 -- [[ Getters ]]
@@ -122,10 +164,10 @@ function ClientEmojiManager:HasAnyEmojis()
     return false
 end
 
-function ClientEmojiManager:GetEmojiData(name, emoji)
-    for i, emoji_data in ipairs(self._persistdata.frequently_used_emojis) do
+function ClientEmojiManager:GetEmojiData(emoji, name)
+    for i, emoji_data in ipairs(self._persistdata.frequently_used) do
         -- In case we have added a new alias to this emoji. We need to find it.
-        if emoji_data.emoiji == emoji then
+        if emoji_data.emoji == emoji then
             return i, emoji_data
         end
 
@@ -137,8 +179,19 @@ function ClientEmojiManager:GetEmojiData(name, emoji)
     end
 end
 
+local last_random_emoji
 function ClientEmojiManager:GetRandomEmoji()
-    return PEARL.EMOJIS.ALL[GetRandomItem(GetRandomItem(ClientEmojiManager.CATEGORIES_ORDERED).emojis)]
+    local choices = ClientEmojiManager.RANDOM_EMOJI_CHOICES
+    if last_random_emoji ~= nil then
+        -- Do not make the last random emoji a choice.
+        table.removearrayvalue(choices, last_random_emoji)
+    end
+
+    local new_random_emoji = PEARL.EMOJIS.ALL[GetRandomItem(choices)]
+    table.insert(ClientEmojiManager.RANDOM_EMOJI_CHOICES, new_random_emoji)
+    last_random_emoji = new_random_emoji
+
+    return new_random_emoji
 end
 
 -------------------------------------
@@ -157,9 +210,7 @@ function ClientEmojiManager:LoadPersistentData()
     if type(data) == "table" then
         table.update(self._persistdata, data)
 
-        for _, emoji_data in ipairs(self._persistdata.frequently_used_emojis) do
-            self._frequently_used_cat[#self._frequently_used_cat + 1] = emoji_data.names[1]
-        end
+        self:_ValidatePersistantData(self._persistdata)
 
         table.dump(self._persistdata)
     end
@@ -170,6 +221,8 @@ end
 -------------------------------------
 
 function ClientEmojiManager:OnEmojiUsed(emoji, name)
+    PEARL.debug("ClientEmojiManager:OnEmojiUsed", emoji, name)
+
     local i, emoji_data = self:GetEmojiData(emoji, name)
     emoji_data = emoji_data or {
         names = self:GetAllNamesFromEmoji(emoji),
@@ -180,12 +233,11 @@ function ClientEmojiManager:OnEmojiUsed(emoji, name)
     emoji_data.count = (emoji_data.count or 0) + 1
 
     if i ~= nil then
-        table.remove(self._persistdata.frequently_used_emojis, i)
+        table.remove(self._persistdata.frequently_used, i)
     end
+    table.insort(self._persistdata.frequently_used, emoji_data, compare_emoji)
 
-    local index = table.insort(self._persistdata.frequently_used_emojis, emoji_data, compare_emoji)
-    -- Since the indexes should be synced.
-    table.insert(self._frequently_used_cat, index, emoji_data.names[1])
+    self:_EnsureBounderies(self._persistdata.frequently_used, MAX_FU_EMOJIS)
 end
 
 -------------------------------------

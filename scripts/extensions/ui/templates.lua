@@ -135,6 +135,12 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
         btn.ongainfocus = btn.ongainfocus or function() end
         PEARL.AddFunctionPostCall("ongainfocus", fn, btn)
     end
+
+    --- @TODO:
+    PEARL.AddClassFunctionPostCall("SetHoverText", function(self)
+        self.OnGainFocus = function() end
+
+    end, btn.bg)
     -------------------------
 
     return btn

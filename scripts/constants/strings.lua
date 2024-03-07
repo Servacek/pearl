@@ -570,6 +570,15 @@ local STRINGS = {
 
         CONSOLE_DISABLED = "Disabled :)",
 
+        EMOJI_MENU = {
+            NO_EMOJIS_FOUND = "No emojis match your search", -- from discord
+
+            OPEN_BUTTON_HOVER = "View Emojis\n(Ctrl + %s)",
+            CLEAR_BUTTON_HOVER = "Clear\n(Ctrl + X)",
+
+            SEARCH = "Search"
+        },
+
         OPTION_CHOICES = {
             LEADERBOARD = {
                 MONTHLY = "Monthly", ABSOLUTE = "Absolute"

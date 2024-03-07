@@ -584,6 +584,16 @@ PEARL.AddAnnouncementIcon("mine")
 end
 
 --------------------------------
+-- [[ Global Mod Instance ]]
+--------------------------------
+
+PEARL.INST = CreateEntity("MOD_"..tostring(PEARL.MODID).."_GLOBAL_INSTANCE")
+PEARL.INST.entity:AddTransform()
+PEARL.INST.entity:SetCanSleep(false)
+PEARL.INST.persists = false
+PEARL.INST:AddTag("CLASSIFIED")
+
+--------------------------------
 -- [[ Instance Param Manager ]]
 --------------------------------
 
