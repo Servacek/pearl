@@ -62,7 +62,7 @@ for _, data in pairs(EMOJI_ITEMS) do
 end
 
 --- This should work after the beta is released.
-if (tonumber(APP_VERSION) or 0) > 595714 then
+if (tonumber(APP_VERSION) or 0) >= 597344 then
     AddSimPostInit(LoadFonts)
 end
 
@@ -116,21 +116,21 @@ _Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
     return _Say(self, message, ...)
 end, TheNet)
 
-PEARL.AddClassPostConstruct("screens/chatinputscreen", function(self)
-    PEARL.AddClassFunctionPostCall("OnTextInput", function(res, self, char)
-        if char ~= DELIM or res[1] ~= true then
-            return
-        end
+-- PEARL.AddClassPostConstruct("screens/chatinputscreen", function(self)
+--     PEARL.AddClassFunctionPostCall("OnTextInput", function(res, self, char)
+--         if char ~= DELIM or res[1] ~= true then
+--             return
+--         end
 
-        self:SetString(EmojifyString(self:GetString()))
-    end, self.chat_edit, true)
+--         self:SetString(EmojifyString(self:GetString()))
+--     end, self.chat_edit, true)
 
-    if self.chat_edit.prediction_widget then
-        PEARL.AddClassFunctionPostCall("ResolvePrediction", function(res)
-            local new_text = res[1]
-            if new_text then
-                res[1] = EmojifyString(new_text)
-            end
-        end, self.chat_edit.prediction_widget, true)
-    end
-end)
+--     if self.chat_edit.prediction_widget then
+--         PEARL.AddClassFunctionPostCall("ResolvePrediction", function(res)
+--             local new_text = res[1]
+--             if new_text then
+--                 res[1] = EmojifyString(new_text)
+--             end
+--         end, self.chat_edit.prediction_widget, true)
+--     end
+-- end)

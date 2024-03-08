@@ -13,6 +13,8 @@
 
 PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
     if reason == "ID_DST_SERVER_CRASHED" and TheMixer ~= nil then
+        PEARL.debug("Starting to play the server error music!")
+
         local emittor = (TheFocalPoint and TheFocalPoint.SoundEmitter) or (TheFrontEnd and TheFrontEnd:GetSound())
         local music_volume = math.max(TheMixer:GetLevel("set_music"), 0.5)
         emittor:KillAllSounds()

@@ -78,6 +78,8 @@ local function AddEmojiMenuButton(menu)
     btn._hovertext = menu.parent:AddChild(Text(UIFONT, 30))
     btn._hovertext:SetString(STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER:format(GetSayControl()))
     btn._hovertext:SetScaleMode(SCALEMODE_PROPORTIONAL)
+    local pos = TheInput:GetScreenPosition()
+    btn._hovertext:SetPosition(pos.x, pos.y)
     btn._hovertext:Hide()
 
     btn._time = GetTime()
@@ -90,27 +92,28 @@ local function AddEmojiMenuButton(menu)
         end
     end
 
+    btn.ScaleUp = function() btn:SetTextSize(EMOJI_MENU_BUTTON_FOCUS_SIZE)end
+    btn.ScaleDown = function() btn:SetTextSize(EMOJI_MENU_BUTTON_SIZE) end
+
     last_button_emoji = last_button_emoji or ClientEmojis:GetRandomEmoji()
     btn:SetText(last_button_emoji)
     btn:SetOnGainFocus(function()
         if not menu:IsOpen() then
-            if not menu.closing then
-                btn:SetTextSize(EMOJI_MENU_BUTTON_FOCUS_SIZE)
-
-                if GetTime() - btn._time > 1 then
-                    local new_emoji = ClientEmojis:GetRandomEmoji()
-                    btn:SetText(last_button_emoji)
-
-                    last_button_emoji = new_emoji
-                end
-            end
-
+            btn:ScaleUp()
             btn._hovertext:Show()
+
+            -- So this wont flicker in case the cursor is over right from the start.
+            if not menu.closing and GetTime() - btn._time > 1 then
+                local new_emoji = ClientEmojis:GetRandomEmoji()
+                btn:SetText(new_emoji)
+
+                last_button_emoji = new_emoji
+            end
         end
     end)
     btn:SetOnLoseFocus(function()
-        if not menu:IsOpen() and not menu.closing then
-            btn:SetTextSize(EMOJI_MENU_BUTTON_SIZE)
+        if not menu:IsOpen() then
+            btn:ScaleDown()
         end
 
         btn._hovertext:Hide()
@@ -120,7 +123,7 @@ local function AddEmojiMenuButton(menu)
 
         local pos_x = btn:GetPositionXYZ()
         local w, h = menu.menu.mid_center:GetSize()
-        menu:SetPosition(pos_x + w / 2.5, h)
+        menu:SetPosition(pos_x + w / 2.8, h)
     end)
 
     return btn
@@ -168,6 +171,8 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         _bg.image:SetTint(0,0,0,0)
         _bg:SetHelpTextMessage("")
         _bg:MoveToFront()
+        _bg:Select() -- So no hover sound
+        _bg.AllowOnControlWhenSelected = true
         _bg:Hide()
 
         self.emoji_menu = self.screen_root:AddChild(EmojiMenu())
@@ -283,3 +288,13 @@ PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
         last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..tostring(input)
     end
 end, UserCommands)
+
+TheInput:AddKeyHandler(function(key, down)
+    if down then
+        local screen = TheFrontEnd:GetActiveScreen()
+        if key == KEY_Y and TheInput:IsKeyDown(KEY_CTRL) and screen.emoji_menu_button then
+            screen.emoji_menu_button.onclick()
+            return true
+        end
+    end
+end)

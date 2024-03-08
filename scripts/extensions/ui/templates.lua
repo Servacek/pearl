@@ -136,11 +136,26 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
         PEARL.AddFunctionPostCall("ongainfocus", fn, btn)
     end
 
-    --- @TODO:
-    PEARL.AddClassFunctionPostCall("SetHoverText", function(self)
-        self.OnGainFocus = function() end
+    btn.ShowHover = function(self)
+        return btn.hovertext_root and (btn.hovertext_root._Show or btn.hovertext_root.Show)(btn.hovertext_root)
+    end
 
-    end, btn.bg)
+    btn.HideHover = function(self)
+        return btn.hovertext_root and (btn.hovertext_root._Hide or btn.hovertext_root.Hide)(btn.hovertext_root)
+    end
+
+    btn.AddHoverText = function()
+        if btn.hovertext_root then
+            return
+        end
+
+        btn:SetHoverText(" ", {offset_y = 45})
+    end
+
+    PEARL.AddClassFunctionPostCall("OnHide", function()
+        btn:HideHover()
+    end, btn)
+
     -------------------------
 
     return btn

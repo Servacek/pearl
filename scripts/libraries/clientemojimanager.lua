@@ -179,19 +179,22 @@ function ClientEmojiManager:GetEmojiData(emoji, name)
     end
 end
 
-local last_random_emoji
+local last_random_emoji_name
 function ClientEmojiManager:GetRandomEmoji()
     local choices = ClientEmojiManager.RANDOM_EMOJI_CHOICES
-    if last_random_emoji ~= nil then
+    if last_random_emoji_name ~= nil then
         -- Do not make the last random emoji a choice.
-        table.removearrayvalue(choices, last_random_emoji)
+        table.removearrayvalue(choices, last_random_emoji_name)
     end
 
-    local new_random_emoji = PEARL.EMOJIS.ALL[GetRandomItem(choices)]
-    table.insert(ClientEmojiManager.RANDOM_EMOJI_CHOICES, new_random_emoji)
-    last_random_emoji = new_random_emoji
+    local new_random_name = GetRandomItem(choices)
+    if last_random_emoji_name ~= nil then
+        table.insert(ClientEmojiManager.RANDOM_EMOJI_CHOICES, last_random_emoji_name)
+    end
 
-    return new_random_emoji
+    last_random_emoji_name = new_random_name
+
+    return PEARL.EMOJIS.ALL[new_random_name]
 end
 
 -------------------------------------

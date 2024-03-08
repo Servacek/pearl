@@ -99,7 +99,7 @@ local function check_and_yield()
 end
 
 local function is_emoji(widget, emoji)
-    return widget.data and (
+    return widget and widget.data and (
         (emoji and widget.data.emoji == emoji) or (emoji == nil and widget.data.emoji ~= nil)
     )
 end
@@ -201,12 +201,15 @@ function EmojiMenu:_CreateSearchBox(width, height)
     searchbox.textbox:SetPassControlToScreen(CONTROL_SCROLLFWD, true)
     searchbox.textbox._TryUpdateTextPrompt = function(_self)
         if _self.prompt then
+            local visible = _self.prompt:IsVisible()
             if searchbox.HasAnyInput() then
                 _self.prompt:Hide()
-                searchbox.button_clear:Show()
             else
                 _self.prompt:Show()
-                searchbox.button_clear:Hide()
+            end
+
+            if visible ~= _self.prompt:IsVisible() then
+                self:OnSearchPromptUpdated(_self.prompt)
             end
         end
     end
@@ -260,6 +263,8 @@ function EmojiMenu:_CreateSearchBox(width, height)
 end
 
 function EmojiMenu:_ChooseEmoji(emoji)
+    PEARL.debug("EmojiMenu:_ChooseEmoji", emoji)
+
     if type(self.onemojichosen) == "function" then
         self.onemojichosen(emoji)
     end
@@ -272,6 +277,7 @@ function EmojiMenu:_CreateEmojiList()
         local w = Widget("emoji_item"..tostring(index))
 
         w.button = w:AddChild(TEMPLATES.EmojiButton(ITEM_SIZE, false, SCROLLER_ITEM_MARGIN))
+        w.button:AddHoverText()
         w.button.AllowOnControlWhenSelected = true -- So we handle clicks even when selected
         w.focus_forward = w.button
 
@@ -283,24 +289,30 @@ function EmojiMenu:_CreateEmojiList()
         w.category_label:SetRegionSize(SCROLLIST_WIDGET_WIDTH * SCROLLER_VISIBLE_COLS, SCROLLIST_WIDGET_HEIGHT)
         ----------------
 
+        w.button.hovertext_root.OnShow = function()
+            if self.searchbox.textbox.prompt:IsVisible() then
+                w.button:HideHover()
+            end
+        end
+
         w.button:SetOnGainFocus(function()
-            print("ON GAIN FOCUS", w.data.name_full, is_emoji(w), self.selected_widget ~= w)
-            if is_emoji(w) then
-                print("SELECT EMOJI")
+            if is_emoji(w) and self.selected_widget ~= w then
                 self:SelectEmojiWidget(w)
             end
         end)
 
-        w.button:SetOnLoseFocus(function()
-
-        end)
-
         w.button:SetOnSelect(function()
             w.button.bg:SetTint(.4, .4, .4, .5)
+
+            if not self.searchbox.textbox.prompt:IsVisible() and w.focus then
+                w.button:ShowHover()
+            end
         end)
 
         w.button:SetOnUnselect(function()
             w.button.bg:SetTint(0, 0, 0, 0)
+
+            w.button:HideHover()
         end)
 
         w.button:SetOnClick(function()
@@ -326,20 +338,19 @@ function EmojiMenu:_CreateEmojiList()
         if data.header then
             widget.button:Hide()
 
-            widget.button:ClearHoverText()
-            widget.category_label:SetString(data.category)
-            widget.category_label:Show()
+            if type(data.category) == "string" then
+                widget.category_label:SetString(data.category)
+                widget.category_label:Show()
+            end
         elseif type(data.emoji) == "string" then
             widget.category_label:Hide()
             widget.button:SetText(data.emoji)
-            widget.button.bg:SetHoverText(data.name_full)
-            widget.button.bg.OnGainFocus = function() end
-            widget.button.bg.OnLoseFocus = function() end
+            widget.button:SetHoverText(data.name_full)
             widget.button:Show()
 
             if self:IsEmojiSelected(data.emoji, data.category) and not widget:IsSelected() then
                 self:SelectEmojiWidget(widget)
-            elseif not self:IsEmojiSelected(data.emoji, data.category) and widget:IsSelected() then
+            elseif not self:IsEmojiSelected(data.emoji, data.category) and widget:IsSelected() and not widget.focus then
                 self:UnselectEmojiWidget(widget)
             end
         end
@@ -421,6 +432,14 @@ function EmojiMenu:GetFirstEmojiWidget()
     end
 end
 
+function EmojiMenu:GetFocusedEmojiWidget()
+    for _, widget in pairs(self.scroll_list:GetListWidgets()) do
+        if widget.focus then
+            return widget
+        end
+    end
+end
+
 function EmojiMenu:UnselectEmojiWidget(widget)
     if widget ~= nil and not is_emoji(widget) then
         return
@@ -431,6 +450,7 @@ end
 
 --- @param widget Widget?
 function EmojiMenu:SelectEmojiWidget(widget)
+    PEARL.debug("EmojiMenu:SelectEmojiWidget", widget and widget.data and widget.data.name_full)
     if widget ~= nil and not is_emoji(widget) then
         return
     end
@@ -439,10 +459,11 @@ function EmojiMenu:SelectEmojiWidget(widget)
     local emoji = data and data.emoji
     local category = data and data.category
     if self.selected_emoji == emoji and (widget and widget:IsSelected()) then
-        return
+        return print("NOT GOOD FOR SELECTION", widget.data.name_full)
     end
 
     if self.selected_widget then
+        print("UNSELECT")
         self.selected_widget.button:Unselect()
     end
 
@@ -484,7 +505,7 @@ function EmojiMenu:RefreshSearching()
     end
 
     -- If no widget has focus (the cursor is outside the grid) select the first widget.
-    local focused_widget = self.scroll_list:GetFocusChild() or self:GetFirstEmojiWidget()
+    local focused_widget = self:GetFirstEmojiWidget() --self:GetFocusedEmojiWidget() or self:GetFirstEmojiWidget()
     self:SelectEmojiWidget(focused_widget) -- Accept even nil - representing no results
 end
 
@@ -555,7 +576,7 @@ function EmojiMenu:Open()
         self.onopen()
     end
 
-    self.searchbox.textbox:SetString("")
+    self.searchbox:Clear()
     self.searchbox.textbox:SetFocus(true)
     self.searchbox.textbox:SetEditing(true)
 
@@ -597,6 +618,20 @@ end
 ---------------------------
 -- [[ Event Handlers ]]
 ---------------------------
+
+function EmojiMenu:OnSearchPromptUpdated(prompt)
+    if not self.selected_widget or not self.selected_widget.button or not self.selected_widget.button.hovertext_root then
+        return
+    end
+
+    if prompt:IsVisible() then
+        self.selected_widget.button:HideHover()
+        self.searchbox.button_clear:Hide()
+    else
+        self.selected_widget.button:ShowHover()
+        self.searchbox.button_clear:Show()
+    end
+end
 
 function EmojiMenu:OnControl(control, down, ...)
     if EmojiMenu._base.OnControl(self, control, down, ...) then return true end

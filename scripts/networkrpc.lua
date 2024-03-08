@@ -51,7 +51,7 @@ PEARL.RPC = {
 }
 
 function PEARL.IsRPCSenderListValid(sender_list)
-    return type(sender_list) == "string" or (
+    return sender_list == nil or type(sender_list) == "string" or (
         type(sender_list) == "table" and not table.empty(sender_list)
     )
 end

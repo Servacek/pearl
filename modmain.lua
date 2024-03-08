@@ -638,7 +638,8 @@ if PEARL.CONFIG.DEBUG_MODE then
         PEARL.loadfile("debugtools")
     end
 
-    PEARL.OverrideVariable("PRINT_SOURCE", true)
+    --- A bit spammy
+    --PEARL.OverrideVariable("PRINT_SOURCE", true)
 end
 
 --------------------------------
