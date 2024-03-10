@@ -273,14 +273,26 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         num_chars = NAME_PREDICTION_CHARS,
     })
 
-    PEARL.AddClassFunctionPreCall("OnRawKey", function(self, key, down)
+    local _OnRawKey = self.chat_edit.OnRawKey
+    self.chat_edit.OnRawKey = function(chat_edit, key, down)
         if key == KEY_UP then
-            if down and self:GetString() == "" then
-                self:SetString(last_slash_command)
+            if down and chat_edit:GetString() == "" then
+                chat_edit:SetString(last_slash_command)
             end
             return true
         end
-    end, self.chat_edit)
+
+        --- @TODO: Implement this in some way.
+        if key == KEY_Y and TheInput:IsKeyDown(KEY_CTRL) and self.emoji_menu_button then
+            if down then
+                self.emoji_menu_button.onclick()
+            end
+
+            return true
+        end
+
+        return _OnRawKey(chat_edit, key, down)
+    end
 end)
 
 PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
@@ -288,13 +300,3 @@ PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
         last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..tostring(input)
     end
 end, UserCommands)
-
-TheInput:AddKeyHandler(function(key, down)
-    if down then
-        local screen = TheFrontEnd:GetActiveScreen()
-        if key == KEY_Y and TheInput:IsKeyDown(KEY_CTRL) and screen.emoji_menu_button then
-            screen.emoji_menu_button.onclick()
-            return true
-        end
-    end
-end)

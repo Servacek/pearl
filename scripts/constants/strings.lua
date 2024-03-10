@@ -257,6 +257,7 @@ local STRINGS = {
                 REP_COL     = "Reputation",
                 MONTH       = "Month",
                 CREATED     = "Data From",
+                DAY_PLAYER  = "Player of the Day",
             },
 
             FD_VALUES = {
@@ -607,8 +608,10 @@ local STRINGS = {
         ALLOWED = "Allowed",
         BLOCKED = "Blocked",
 
-        POTM_ANNOUNCEMENT = "Best player of the month %s is %s! New month begins from today!",
-        POTM_AGAIN_ANNOUNCEMENT = "Best player of the month %s is again %s! New month begins from today!",
+        POTM_ANNOUNCEMENT = "Best player of the month {month} is {leader}! New month begins today!",
+        POTM_AGAIN_ANNOUNCEMENT = "Best player of the month {month} is again {leader}! New month begins today!",
+        POTM_MULTIPLE_ANNOUNCEMENT = "Best player of the month {month} is for the {times}. time {leader}! New month begins today!",
+        MONTHLY_LEADERBOARD_RESET = "The monthly leaderboard was reset!",
 
         EMPTY_SERVER_POPUP = {
             TITLE = "The Server is Empty! For now...",
@@ -724,7 +727,7 @@ local STRINGS = {
                 PRETTYNAME  = "Show My Stats",
                 DESC        = "Shows your current statistics and place on the leaderboard.",
 
-                RESULT      = "#%s - %s:\nReputation: %d\nGains for today: %d\nGains for this month: %d",
+                RESULT      = "#%s/#%s - %s:\nReputation: %d\nGains for today: %d\nGains for this month: %d",
             },
 
             GIVEALL = {
@@ -1019,7 +1022,9 @@ local STRINGS = {
                 PRETTYNAME = "Add Note",
                 DESC       = "Adds a note to the player's profile visible only by the staff.",
 
-                ON_SUCCESS = "Note successfully added!",
+                ON_ADDED = "Note successfully added!",
+                ON_REMOVED = "Note removed!",
+                NO_CHANGES = "No changes...",
                 ON_FAILURE = "Failed to add the specified note..."
             },
 

@@ -108,6 +108,10 @@ function Leaderboard:GetIndex()
     return self.index
 end
 
+function Leaderboard:GetPlayers()
+    return self.data.players
+end
+
 function Leaderboard:GetPlayerOnPosition(position)
     return self.data.players[position]
 end

@@ -630,42 +630,49 @@ AddCommand("stats", {
     targetselfbydefault = true,
     options = {
         PARAMS.PLAYER{optional = true, permission = UserCommands.PERMISSION.ADMIN},
-        {name = "typ", optional = true, choices = STATIC_CHOICES.LEADERBOARD_TYPE}
     },
 
     --- @param ctx CommandContext
     --- @param userid string
-    --- @param typ string?
-    fn = function(ctx, userid, typ)
+    fn = function(ctx, userid)
         if not userid then
             ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
             return
         end
 
-        typ = typ or Leaderboard.TYPE.MONTHLY
         local reputation = PEARL.Reputation:GetOf(userid)
         local daygains   = PEARL.Reputation:GetTodayGainsOf(userid)
         local monthgains = PEARL.Reputation:GetMonthGainsOf(userid)
         local username   = PEARL.DB:GetField(userid, "username", userid)
-        local board      = PEARL.LeaderboardService:GetLeaderboard(typ)
-        local place      = board and board:GetPositionFor(userid) or "?"
-        local minvalue   = PEARL.Reputation:GetLowestOf(userid)
-        local maxvalue   = PEARL.Reputation:GetPeakOf(userid)
+        local lowest     = PEARL.Reputation:GetLowestOf(userid)
+        local peak       = PEARL.Reputation:GetPeakOf(userid)
+
+        local m_board    = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)
+        local m_place    = m_board and m_board:GetPositionFor(userid) or nil
+
+        local a_board    = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.ABSOLUTE)
+        local a_place    = a_board and a_board:GetPositionFor(userid) or nil
 
         if ctx.type == CommandContext.TYPE.DISCORD then
             return ctx:ReplyDiscordData({
                 value = reputation,
                 daygains = daygains,
                 monthgains = monthgains,
-                rank = place,
                 username = username,
-                minvalue = minvalue,
-                maxvalue = maxvalue,
+                peak = peak,
+                lowest = lowest,
+                starting_rep = PEARL.Reputation.STARTING_VALUE,
+                bad_rep_threshold = PEARL.Reputation.BAD_REP_THRESHOLD,
+                position = {
+                    absolute = a_place,
+                    monthly = m_place,
+                    prev_month = PEARL.DB:GetField(userid, "last_monthly_position")
+                }
             })
         end
 
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT:format(
-            place, username, reputation, daygains, monthgains
+            m_place, a_place, username, reputation, daygains, monthgains
         ))
     end,
 })
@@ -1253,8 +1260,16 @@ AddCommand("note", {
     --- @param userid string
     --- @param note string?
     fn = function(ctx, userid, note)
+        if PEARL.DB:GetField(userid, "modnote") == note then
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.NO_CHANGES)
+        end
+
         if PEARL.DB:SetField(userid, "modnote", note) then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.ON_SUCCESS)
+            if note ~= nil then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.ON_ADDED)
+            else
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.ON_REMOVED)
+            end
         end
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.NOTE.ON_FAILURE)

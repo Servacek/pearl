@@ -92,13 +92,27 @@ local function AnnounceNewPOTM(userid, month, year)
         mention = MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
     end
 
-    PEARL.DiscordLeaderBoarder:Announce(PEARL.EMOJIS.GAME_TO_DISCORD.TROPHY.." "..STRINGS.PEARL.UI.POTM_ANNOUNCEMENT:format(
-        MARKDOWN.bold(monthfullname), mention or PEARL.NetProfileLink(name, netid) or MARKDOWN.bold(name)
-    ))
+    local leader_months_count = table.size(PEARL.DB:GetField(userid, "leader_months", {}))
+    local pt = leader_months_count > 1 and STRINGS.PEARL.UI.POTM_MULTIPLE_ANNOUNCEMENT or STRINGS.PEARL.UI.POTM_ANNOUNCEMENT
+    pt = pt.."\n"..STRINGS.PEARL.UI.MONTHLY_LEADERBOARD_RESET
+    PEARL.DiscordLeaderBoarder:Announce(MARKDOWN.header(PEARL.EMOJIS.GAME_TO_DISCORD.TROPHY.." "..pt:nformat{
+        month = MARKDOWN.codeline(monthfullname),
+        times = leader_months_count,
+        leader = mention or PEARL.NetProfileLink(name, netid) or MARKDOWN.bold(name)
+    }, MARKDOWN.HEADER_LEVELS.MEDIUM))
 end
 
 function PEARL.UpdateLeaderboard()
     PEARL.LeaderboardService:UpdateUI()
+end
+
+local function SaveLeaderboardPositionFor(userid, position)
+    local was_cached = PEARL.DB:IsRecordCachedFor(userid)
+    PEARL.DB:SafeSetField(userid, "last_monthly_position", position)
+    if not was_cached then
+        PEARL.DB:SaveRecordFor(userid)
+        PEARL.DB:UnloadRecord(userid)
+    end
 end
 
 --------------------------------
@@ -110,8 +124,6 @@ local function OnClientBanned(userid)
         -- Do this for all leaderboards.
         leaderboard:RemovePlayer(userid)
     end
-
-    --UpdateUIIfNeeded()
 end
 
 local function OnClientUnbanned(userid)
@@ -119,8 +131,6 @@ local function OnClientUnbanned(userid)
         -- Do this for all leaderboards.
         leaderboard:AddPlayer(userid)
     end
-
-    --UpdateUIIfNeeded()
 end
 
 --- @type table<string, Task>
@@ -143,9 +153,6 @@ local function OnBufferDone()
             leaderboard:OnReputationChanged(userid)
         end
     end
-
-    -- SaveChangesIfNeeded()
-    -- UpdateUIIfNeeded()
 end
 
 local function OnReputationChanged(userid, old, new)
@@ -166,6 +173,7 @@ end
 
 local function OnNewDay()
     PEARL.debug("OnNewDay")
+
     monthly_leaderboard:SetDayLeaderUserID(nil)
     SaveChangesIfNeeded()
 end
@@ -177,21 +185,29 @@ local function OnNewMonth(stb)
     -- choosing the player of the month is automatically enabled.
     local leaderid = monthly_leaderboard:GetLeaderUserID()
     if monthly_leaderboard:IsPlayerVisible(leaderid) then
+        local monthname = PEARL.GetMonthFancyName(stb.month)
+        local month_fullname = STRINGS.PEARL.FULL_MONTH_NAME:format(monthname, stb.year)
+        local leader_months = PEARL.DB:GetField(leaderid, "leader_months", {})
+        month_fullname = month_fullname..tostring(table.size(leader_months))
+        leader_months[month_fullname] = PEARL.Reputation:GetMonthGainsOf(leaderid)
+        PEARL.DB:SetField(leaderid, "leader_months", leader_months)
+
         AnnounceNewPOTM(leaderid, stb.month, stb.year)
     end
 
     -- Since we are creating a new updating message, archive the old one.
     -- Do NOT update the other embeds so the data do match the date.
+    PEARL.LeaderboardService:UpdateLeaderboardEmbeds()
     PEARL.LeaderboardService:ArchiveLeaderboardEmbed(absolute_leaderboard)
     PEARL.DiscordLeaderBoarder:UpdateMessage()
+
+    for position, userid in ipairs(monthly_leaderboard:GetPlayers()) do
+        SaveLeaderboardPositionFor(userid, position)
+    end
 
     -- Clear all the player data and start again.
     monthly_leaderboard:Reset()
     PEARL.LeaderboardService:StartNewSession()
-end
-
-function PEARL.OnNewMonth()
-    OnNewMonth(PEARL.TimestampToTable(os.time()))
 end
 
 --------------------------------
@@ -237,8 +253,6 @@ end)
 PEARL.AddGamePostInit(function()
     if PEARL.LeaderboardService:IsAnySessionActive() then
         if PEARL.LeaderboardService:NeedsToUpdateUI() then
-            PEARL.debug("UpdateUI")
-
             PEARL.LeaderboardService:UpdateUI()
         end
 

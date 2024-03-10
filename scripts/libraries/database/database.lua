@@ -207,7 +207,7 @@ function DB:SetField(userid, name, value)
     end
 
     local prev = record[name]
-    if prev == value then
+    if prev == value and type(value) ~= "table" then
         return true, prev -- No changes
     end
 
@@ -351,19 +351,7 @@ function DB:SaveRecordFor(userid, record)
     return false
 end
 
-------------------------------------------
--- [[ Debugging ]]
-------------------------------------------
-
-function DB:PrintDebugInfo()
-    table.dump(self._records)
-end
-
-------------------------------------------
--- [[ Event Handlers ]]
-------------------------------------------
-
-local function OnSave()
+function DB:SaveUnsavedRecords()
     if DB:IsDisabled() then
         return
     end
@@ -385,6 +373,22 @@ local function OnSave()
 
         DB:SaveRecordFor(userid, record)
     end
+end
+
+------------------------------------------
+-- [[ Debugging ]]
+------------------------------------------
+
+function DB:PrintDebugInfo()
+    table.dump(self._records)
+end
+
+------------------------------------------
+-- [[ Event Handlers ]]
+------------------------------------------
+
+local function OnSave()
+    return DB:SaveUnsavedRecords()
 end
 
 ------------------------------------------

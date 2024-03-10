@@ -428,7 +428,7 @@ function Message:ToTable()
         -- Setting parse to an empty array disables all mentions in the message.
         -- That's what we want by default.
         allowed_mentions = table.empty(self._allowed_mentions) == false and self._allowed_mentions or DEFAULT_ALLOWED_MENTIONS,
-        components = table.empty(self._components) == false and self._components or nil
+        components = table.empty(self._components) == false and self._components or nil,
     }
 end
 

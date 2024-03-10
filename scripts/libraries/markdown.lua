@@ -84,6 +84,13 @@ local MARKDOWN = {
         SHORT_DATE_TIME = "f", -- 28 November 2018 09:01
         LONG_DATE_TIME  = "F", -- Wednesday, 28 November 2018 09:01
         RELATIVE_TIME   = "R", -- 3 years ago
+    },
+
+    HEADER_LEVELS = {
+        DEFAULT = 0,
+        BIG     = 1,
+        MEDIUM  = 2,
+        SMALL   = 3,
     }
 }
 

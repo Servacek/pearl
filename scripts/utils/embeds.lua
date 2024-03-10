@@ -222,13 +222,13 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             local netid = PEARL.DB:GetField(data.dayleader, "netid")
             local username = tostring(PEARL.DB:GetField(data.dayleader, "username") or "UNKNOWN")
             local gains = PEARL.Reputation:GetTodayGainsOf(data.dayleader)
-            local reputation = PEARL.Reputation:GetOf(data.dayleader)
-            local percent = math.round(gains / reputation, 4) * 100
+            --local reputation = PEARL.Reputation:GetOf(data.dayleader)
+            --local percent = math.round(gains / math.max(reputation - gains, 1), 4) * 100
 
-            embed:AddField("Hráč Dňa", string.format("%s %s +%s (%s%%)",
+            embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.DAY_PLAYER, string.format("%s %s +%s",
                 PEARL.ICONS.ARROW_UP, MARKDOWN.hlink(
                 MARKDOWN.codeline(tostring(username)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
-            ), gains, percent))
+            ), gains))
         end
     end
 

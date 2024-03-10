@@ -29,7 +29,12 @@ local function ResetFieldForActivePlayers(field)
 end
 
 PEARL.EventProcessor:AddSafeEventHandler("newmonth", function()
-    ResetFieldForActivePlayers("monthgains")
+    -- Give some time to the other handlers so they can use the value if needed.
+    PEARL.WallScheduler:ExecuteInTime(0, function()
+        ResetFieldForActivePlayers("monthgains")
+
+        PEARL.DB:SaveUnsavedRecords()
+    end)
 end)
 
 -- In case the players are playing on the server when this event occurs.

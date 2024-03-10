@@ -368,9 +368,6 @@ end
 --- @param fn? _StatusCodeHandle
 --- @return Request
 function Request:AddOnComplete(fn)
-    -- self:_SetField("oncompletefn", oncompletefn, PEARL.LUATYPES.FUNCTION, true, false)
-    -- self:_SetField("oncompletefn_args", toarrayornil(...), PEARL.LUATYPES.TABLE, true, false)
-
     self:AddStatusCodeHandle(Request.GENERIC_CODES.COMPLETE, fn)
 
     return self
@@ -379,9 +376,6 @@ end
 --- @param fn? _StatusCodeHandle
 --- @return Request
 function Request:AddOnSuccess(fn)
-    -- self:_SetField("onsuccessfn", onsuccessfn, PEARL.LUATYPES.FUNCTION, true, false)
-    -- self:_SetField("onsuccessfn_args", toarrayornil(...), PEARL.LUATYPES.TABLE, true, false)
-
     self:AddStatusCodeHandle(Request.GENERIC_CODES.SUCCESS, fn)
 
     return self
@@ -390,9 +384,6 @@ end
 --- @param fn? _StatusCodeHandle
 --- @return Request self
 function Request:AddOnError(fn)
-    -- self:_SetField("errfn", errfn, "function", true, false)
-    -- self:_SetField("errfn_args", toarrayornil(...), "table", true, false)
-
     self:AddStatusCodeHandle(Request.GENERIC_CODES.ERROR, fn)
 
     return self

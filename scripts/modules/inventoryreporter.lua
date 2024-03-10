@@ -365,10 +365,10 @@ local function CheckPlayersInventory(world, player)
             drop_type = DROP_TYPE.RARE
         end
 
-        -- If none is playing make sure to save the server in case of a restart.
-        if #AllPlayers == 0 then
+        -- Save the deposited items in case of a restart or rollback
+        --if #AllPlayers == 0 then
             TheWorld:PushEvent("ms_save")
-        end
+        --end
     end
 
     -- Anounce this after dropping so we have the info
@@ -434,7 +434,17 @@ local function OnInputProxyEvent(event)
         return
     end
 
-    PEARL.DiscordReporter:SendRawReportString("Feedback recevied!")
+    -- Not really needed
+    -- local id = event.application_id
+    -- --- @TODO: /webhooks/{application.id}/{interaction.token}
+    -- print(PEARL.HTTPClient:POST(
+    --     ("https://discord.com/api/v10/webhooks/%s/%s"):format(
+    --         id, event.interaction_token
+    --     ), nil, {
+    --         content = "Feedback Received!"
+    --     }):Send().url)
+    -- --PEARL.DiscordReporter:SendRawReportString("Feedback recevied!")
+
     OnPredictionFeedback(tostring(event.message_id), positive)
 end
 

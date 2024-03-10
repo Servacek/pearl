@@ -73,12 +73,7 @@ end)
 -- [[ Constants ]]
 ------------------------------------------
 
-LogLine.SIZES = {
-    DEFAULT = 0,
-    BIG     = 1,
-    MEDIUM  = 2,
-    SMALL   = 3,
-}
+LogLine.SIZES = deepcopy(MARKDOWN.HEADER_LEVELS)
 
 ------------------------------------------
 -- [[ Meta Methods ]]

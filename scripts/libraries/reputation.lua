@@ -80,6 +80,8 @@ Reputation.LIMIT = {
 --- @type number
 Reputation.STARTING_VALUE = PEARL.CONSTS.STARTING_REPUTATION
 
+Reputation.BAD_REP_THRESHOLD = BAD_REP_THRESHOLD
+
 --------------------------------------
 -- [[ Getters ]]
 --------------------------------------

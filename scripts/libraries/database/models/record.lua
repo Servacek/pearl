@@ -24,12 +24,15 @@ local rawget, rawset =  rawget, rawset
 --- In case the value is function (functions cannot be JSON serialized) the function
 --- is called and it's return value is used as the default value instead.
 --- This allows for dynamic default values.
---- @type table<string, number|boolean|string|table|fun(userid: string): number|boolean|string|table>
+--- @type table<string, number|boolean|string|table>
 local DEFAULT_FIELD_VALUES = {
     totaldays = 0,
     daysalive = 0,
     deathscount = 0,
+}
 
+--- @type table<string, fun(userid: string): number|boolean|string|table>
+local DEFAULT_FIELD_FALLBACKS = {
     joinedtime = function(userid) return os.time() end,
     netid = function(userid) return TheNet:GetNetIdForUser(userid) end,
     userid = function(userid) return userid end,
@@ -85,7 +88,7 @@ function PlayerRecord:__newindex(field, value, ...)
         return PEARL.error("Attempted to modify a read-only record!")
     end
 
-    if rawget(self._data, field) ~= value then
+    if rawget(self._data, field) ~= value or type(value) == "table" then
         rawset(self._data, field, value)
 
         self:SetIsUpToDate(false)
@@ -188,6 +191,12 @@ function PlayerRecord:Validate(userid)
             else
                 self._data[field] = value
             end
+        end
+    end
+
+    for field, value in pairs(DEFAULT_FIELD_FALLBACKS) do
+        if self._data[field] == nil then
+            self._data[field] = value(userid)
         end
     end
 end

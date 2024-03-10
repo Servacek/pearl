@@ -130,6 +130,26 @@ function PEARL.AddDebugRecord(userid, name, reputation)
     PEARL.DB:SaveRecordFor(userid, record)
 end
 
+function PEARL.AddBasicDebugRecords()
+    PEARL.AddDebugRecord("KU_12345671", "Borb", 212)
+    PEARL.AddDebugRecord("KU_12345672", "Gertruda", 102)
+    PEARL.AddDebugRecord("KU_12345673", "Škleb", 132)
+    PEARL.AddDebugRecord("KU_12345674", "Tonda", 290)
+    PEARL.AddDebugRecord("KU_12345675", "Xi", 76)
+end
+
+function PEARL.OnNewMonth()
+    PEARL.EventProcessor:HandleEvent(
+        "newmonth", PEARL.TimestampToTable(os.time()), PEARL.TimestampToTable(os.time())
+    )
+end
+
+function PEARL.OnNewDay()
+    PEARL.EventProcessor:HandleEvent(
+        "newday", PEARL.TimestampToTable(os.time()), PEARL.TimestampToTable(os.time())
+    )
+end
+
 --------------------------------
 -- [[ Discord Webhook Tests ]]
 --------------------------------
