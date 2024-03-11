@@ -510,6 +510,17 @@ configuration_options = {
     },
 
     {
+        name="EMOJI_SERVER",
+        default = {
+            ENABLED = false,
+            AUTOUPDATE = false,
+            URL = nil,
+            FILENAME = nil,
+        },
+        type = "table",
+    },
+
+    {
         name="COMMON_MOD_CONFIG",
         default = true,
         general = true,

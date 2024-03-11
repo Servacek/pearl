@@ -106,13 +106,11 @@ function string:endswith(suffix)
     return suffix and self:utf8sub(-suffix:len()) == suffix
 end
 
--- Replaces all known dst emoticons in a string with discord emojis
+-- Replaces all known dst emoticons in a string with discord emojis or vice versa.
 function string:emojify()
-    for utf8_str, emoji in pairs(PEARL.EMOJIS.UTF_TO_DISCORD) do
-        self = self:gsub(utf8_str, emoji)
-    end
-
     return self
+        :gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, PEARL.EMOJIS.UTF_TO_DISCORD)
+        :gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
 end
 
 -- Returns a discord emoji string or the input string if no result was found

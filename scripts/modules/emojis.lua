@@ -25,8 +25,6 @@ local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
 local DELIM = PEARL.CONSTS.DELIMS.EMOJI
 local PATTERN = DELIM.."([%S]+)"..DELIM
 
-local EMOJI_USED_PATTERN = "[\243][\176][\128-\191][\128-\191]"
-
 local DISCORD_EMOJIS = PEARL.FONTS.CUSTOM.NAMES.DISCORD_EMOJIS
 
 local EMOJI_FONT_FILES = {
@@ -99,7 +97,7 @@ _Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
     end
 
     local needs_saving = false
-    for match in message:gmatch(EMOJI_USED_PATTERN) do
+    for match in message:gmatch(PEARL.CONSTS.UTF_EMOJI_PATTERN) do
         local emoji_name = PEARL.EMOJIS.UTF_TO_NAME[match]
         if emoji_name then
             ClientEmojis:OnEmojiUsed(match, emoji_name)

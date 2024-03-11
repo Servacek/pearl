@@ -200,7 +200,7 @@ GLOBAL.PEARL = setmetatable({
 
     -- Whether this is the initial launch of the mod or not.
     -- We only care about this on dedicated servers.
-    INIT                = TheSim:GetNumLaunches() == 1,
+    INIT                = TheSim:GetNumLaunches() == 1, -- i.e. First launch of the game.
     INIT_FULL           = TheSim:GetNumLaunches() == 2,
     LAUNCHES            = TheSim:GetNumLaunches(),
 
@@ -331,6 +331,9 @@ PEARL.CONSTS = {
     -- the prefix and the actual content
     KLEI_DATA_PREFIX            = "KLEI     1",
     KLEI_ENCODED_DATA_PREFIX    = "KLEI     1D",
+
+    UTF_EMOJI_PATTERN = "[\243][\176][\128-\191][\128-\191]",
+    DISCORD_EMOJI_PATTERN = "^<a?:%S+:%d+>$",
 
     DELIMS = {
         SLASH_COMMAND         = "/",

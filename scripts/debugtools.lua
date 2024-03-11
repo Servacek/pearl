@@ -220,15 +220,18 @@ function PEARL.TESTS.AnnouncementIconTest()
     return PEARL.DiscordLogger:LogStringRaw(result)
 end
 
+local ICON_SET_SKIP_LIST = {["INVENTORY"] = true}
 function PEARL.TESTS.IconTest()
     local result = ""
 
     local function traverse_icons(t)
         for name, icon in pairs(t) do
-            if type(icon) == "table" then
-               traverse_icons(icon)
-            else
-                result = result.."\n"..icon.." -> "..name
+            if not ICON_SET_SKIP_LIST[name] then
+                if type(icon) == "table" then
+                traverse_icons(icon)
+                elseif type(icon) == "string" then
+                    result = result.."\n"..icon.." -> "..name
+                end
             end
         end
     end

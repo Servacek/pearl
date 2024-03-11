@@ -16,24 +16,13 @@
 -- So these icons should work on all discord servers.
 
 --------------------------------
--- [[ Constants ]]
---------------------------------
-
-local DISCORD_EMOJI_PATTERN = "^<a?:%S+:%d+>$"
-
--- First 3 bytes of the emoji are the same always.
--- The last one is from range 156-255
--- This is true only for original game emojis.
-local GAME_EMOTE_PATTERN    = "^\243\176\128[\156-\255]$"
-
---------------------------------
 -- [[ Class Delcaration ]]
 --------------------------------
 
 --- @class ICONS
 local ICONS = {
-    X = "<:x_:999294448045408277>",
-    CHECK = "<:check:999294412972625940>",
+    X = "<:cross_mark_red:1216798178934784013>",
+    CHECK = "<:check_mark_green:1216798148559769680>",
     PING = "<:connection:1064114008698916864>",
     STEAM = "<:steam:1076608091656814643>",
     LOCAL = "<:local:1076609330905878588>",
@@ -53,7 +42,7 @@ local ICONS = {
     INFO = "<:announcement:997492667422351360>",
     WARN = "<:warn:1076451075126734878>",
 
-    UNKNOWN = "<:unknown:990652780496695406>",
+    UNKNOWN = "<:unknown:1216793239449763850>",
 
     PLAYER_PREFABS = {
         ["walter"] =             "<:avatar_walter:1152542346253180938>",
@@ -82,15 +71,15 @@ local ICONS = {
         -- like Tropical Experience, etc...
 
         -- Shipwrecked
-        wilbur =            "<:wilbur:988081746975272980>",
-        woodlegs =          "<:woodlegs:988081763236585522>",
+        wilbur =            "<:wilbur:1216817791315869820>",
+        woodlegs =          "<:woodlegs:1216817827546136757>",
 
         -- Hamlet
-        wilba =             "<:wilba:988081734933434368>",
-        wheeler =           "<:wheeler:988081715325059083>",
+        wilba =             "<:wilba:1216817803382882335>",
+        wheeler =           "<:wheeler:1216817776971354163>",
 
         -- Server
-        ["server"] =        "<:dedicated:1001104949524041788>",
+        ["server"] =        "<:dedicated:1216801199144304691>",
 
         -- Ghost Prefabs
         ["ghost_wilson"]        = "<:ghost_wilson:1150182509926174740>",
@@ -127,7 +116,7 @@ local ICONS = {
         -- Fallbacks
         ["unknown"]             = "<:unknown:1151231676891005070>",
         ["ghost_unknown"]       = "<:ghost_unknown:1150182868279099432>",
-        [""]                    = "<:unknown:990652780496695406>",
+        [""]                    = "<:unknown:1151231676891005070>",
         ["ghost_"]              = "<:ghost_unknown:1150182868279099432>",
     },
 
@@ -182,7 +171,7 @@ local ICONS = {
     },
 
     PLAYER_VANITY = {
-        [PEARL.CONSTS.PROFILE_FLAIRS.DISCORD] = "<:discord:1135176871655522374>",
+        [PEARL.CONSTS.PROFILE_FLAIRS.DISCORD] = "<:discord:1216802467787051211>",
     },
 
     SIM_STATE = {
@@ -221,7 +210,7 @@ local ICONS = {
         ["defeat"]=     PEARL.EMOJIS.UTF_TO_DISCORD[PEARL.EMOJIS.GAME.TROPHY],
         ["deploy"]=     PEARL.EMOJIS.UTF_TO_DISCORD[PEARL.EMOJIS.GAME.EYEPLANT],
         ["welcome"]=    PEARL.EMOJIS.UTF_TO_DISCORD[PEARL.EMOJIS.GAME.WAVE],
-        ["read"]=       "<:pravidla:1152668369544286268>",
+        ["read"]=       "<:rules:1216802390578036776>",
 
         ["extinguish"]= "<:extinguish:1133083578381643818>",
         ["build"]=      "<:build:1133086015146438686>",
@@ -261,11 +250,11 @@ ICONS.TYPE = {
 --- @param icon string
 --- @return integer ICONS.TYPE
 function ICONS.GetType(icon)
-    if icon:match(DISCORD_EMOJI_PATTERN) then
+    if icon:match(PEARL.CONSTS.DISCORD_EMOJI_PATTERN) or PEARL.EMOJIS.DISCORD_TO_UTF[icon] ~= nil then
         return ICONS.TYPE.DISCORD
     end
 
-    if icon:match(GAME_EMOTE_PATTERN) or PEARL.EMOJIS.UTF_TO_DISCORD[icon] ~= nil then
+    if icon:match(PEARL.CONSTS.UTF_EMOJI_PATTERN) or PEARL.EMOJIS.UTF_TO_DISCORD[icon] ~= nil then
         return ICONS.TYPE.INGAME
     end
 
@@ -275,6 +264,8 @@ end
 --------------------------------
 -- [[ Inventory Icons ]]
 --------------------------------
+
+ICONS.INVENTORY = {}
 
 if TheNet:GetIsServer() and PEARL.CONFIG.INVENTORY_ICONS then
     ICONS.INVENTORY = json.load(PEARL.MODROOT.."/data/inventory_icons.json")

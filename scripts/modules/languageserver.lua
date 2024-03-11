@@ -19,7 +19,7 @@
 local URL = PEARL.CONFIG.LANGUAGE_SERVER.URL
 local LANGUAGE = tostring(PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
 local FILENAME = tostring(PEARL.CONFIG.LANGUAGE_SERVER.FILENAME or LANGUAGE.."_cache.po")
-local FILE_PATH = io.extensure(PEARL.SRCDIR.."/languages/cache/"..tostring(FILENAME), ".po")
+local FILEPATH = io.extensure(PEARL.SRCDIR.."/languages/cache/"..tostring(FILENAME), ".po")
 
 local DEFERANT = "translation"
 
@@ -32,9 +32,9 @@ local IS_JOINING = not PEARL.ClientNetwork:HasSentCFD()
 local function SaveTranslation(podata)
     PEARL.info("Saving downloaded translation to local file...")
 
-    local wf = io.open(FILE_PATH, "w")
+    local wf = io.open(FILEPATH, "w")
     if not wf then
-        return PEARL.error("Failed to open", FILE_PATH)
+        return PEARL.error("Failed to open", FILEPATH)
     end
 
     wf:write(podata)
@@ -44,7 +44,7 @@ end
 local function LoadTranslation()
     PEARL.info("Loading and applying translations from local file...")
 
-    return LoadPOFile(FILE_PATH, LANGUAGE)
+    return LoadPOFile(FILEPATH, LANGUAGE)
 end
 
 local function OnDownloadQueryCompleted()
@@ -68,7 +68,7 @@ end
 --------------------------------------
 
 --- If we have not yet sent the CFD data to the server it means we are joining the server.
-if (IS_JOINING and PEARL.CONFIG.LANGUAGE_SERVER.AUTOUPDATE) or not io.exists(FILE_PATH) then
+if (IS_JOINING and PEARL.CONFIG.LANGUAGE_SERVER.AUTOUPDATE) or not io.exists(FILEPATH) then
     PEARL.info("Requesting newest version of the translation from the configured server...")
 
     PEARL.HTTPClient:GET(URL, OnTranslationDownloaded)
