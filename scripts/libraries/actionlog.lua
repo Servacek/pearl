@@ -116,13 +116,13 @@ end
 --- @param sv string? The value of the "sn" field, if provided.
 --- @return QueuedLogAction action The current action for the given pattern built up from the static data provided.
 function ActionLog:Act(p, sn, sv)
-    if sn then
+    if sn and (type(sn) == "string" or (table.empty(sn) == false and sn._ctor == nil)) then
         -- Handle sv being an entity
         if sv and EntityScript.is_instance(sv) then
             sv = sv:GetFancyName()
         end
 
-        -- Handle sn being a table of entities
+        -- Handle sn being a table of entities (Not a class!)
         if type(sn) == "table" then
             for name, value in pairs(sn) do
                 if type(value) == "table" then
@@ -133,6 +133,8 @@ function ActionLog:Act(p, sn, sv)
 
         -- This will handle the case where "sn" is a table of fields as well.
         p = p:nformat(sn, sv)
+    elseif sn ~= nil then
+        PEARL.error("Invalid static field name provided, string expected got", sn)
     end
 
     local queued = self:GetQueuedAction(p)
@@ -147,6 +149,10 @@ end
 -- [[ Wrapper Methods ]]
 --------------------------------
 
+--- @param p string
+--- @param ent EntityScript|string?
+--- @param sn string?
+--- @param sv any
 --- @return QueuedLogAction
 function ActionLog:EntityAct(p, ent, sn, sv)
     if ent then

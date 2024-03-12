@@ -127,7 +127,6 @@ local function RegisterActionHandler(action, handler, checkfn, pre, postevent)
             PEARL.error("Error while executing an action handler!\n Reason: "..tostring(result), "error")
         end
 
-        print("SUCCESS", success)
         return unpack(action_res)
     end
 
@@ -172,11 +171,9 @@ local function OnIgniteNear(doer, near, pos)
         end
     end
 
-    Rep:EarnFor(doer.userid, #structures * REPUTATIONS.IGNITED_STRUCTURE
+    local rep_delta = #structures * REPUTATIONS.IGNITED_STRUCTURE
         + #plants * REPUTATIONS.IGNITED_PLANT
-        + #other * REPUTATIONS.IGNITED_ENTITY,
-        Rep.LIMIT.WORST
-    )
+        + #other * REPUTATIONS.IGNITED_ENTITY
 
     --- For now this is enough since griefing is not that big of a problem as it was.
     if doer.Transform and (
@@ -186,29 +183,29 @@ local function OnIgniteNear(doer, near, pos)
     ) then
         PEARL.info("Extinguishing the fires!")
 
-        Rep:EarnFor(
-            doer.userid, REPUTATIONS.IGNITING_AT_BASE, Rep.LIMIT.WORST, "pyromaniac"
-        )
+        rep_delta = rep_delta + REPUTATIONS.IGNITING_AT_BASE
 
         local doername = doer:GetDisplayName()
         -- Extinguish fires near the doer.
         -- Use WallScheduler in case the server gets paused after this.
         PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_EXTINGUISH, function()
-            PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS)
+            if PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS) == 0 then
+                return -- No fires were actually extinguished.
+            end
 
             if type(doername) ~= "string" then
                 return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH)
             end
 
-            if doername then
-                TheNet:SystemMessage(
-                    STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(
-                        doername
-                    )
-                )
-            end
+            TheNet:SystemMessage(
+                STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(doername)
+            )
         end)
     end
+
+    Rep:EarnFor(
+        doer.userid, rep_delta, Rep.LIMIT.WORST, "pyromaniac"
+    )
 end
 
 -- Announce when an object gets set on fire and who set it on fire.
@@ -1173,10 +1170,11 @@ end
 
 -- Note: This causes quite a lot of spam when using some mods
 -- like Too Many Items etc...
+local last_command -- To prevent spam.
 local function oncommandexecuted(doer, fnstr)
     -- It's totally normal when the command is just an empty string.
     -- This happens for example when you just open and then close the console.
-    if not doer or not (type(fnstr) == "string" and #fnstr > 0) then
+    if not doer or not (type(fnstr) == "string" and #fnstr > 0) or last_command == fnstr then
         return
     end
 
@@ -1184,6 +1182,8 @@ local function oncommandexecuted(doer, fnstr)
     if TheNet:GetUserID() == doer.userid then
         return
     end
+
+    last_command = fnstr
 
     if #fnstr > MAX_COMMAND_LENGTH then
         fnstr = fnstr:ltake(MAX_COMMAND_LENGTH, nil, "...")
@@ -1312,9 +1312,11 @@ end)
 PEARL.EventProcessor:AddSafeEventHandler("afk_statechanged", onafkstatechanged)
 
 PEARL.EventProcessor:AddSafeEventHandler("playerwarnedforbadrep", function(player)
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.WARNED:format(
-        player:GetDisplayName()), PEARL.ICONS.WARN
-    )
+    PEARL.WallScheduler:ExecuteInTime(0, function()
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.WARNED:format(
+            player:GetDisplayName()), PEARL.ICONS.WARN
+        )
+    end)
 end)
 
 PEARL.EventProcessor:AddSafeEventHandler("constructionfinished", function(doer, target)

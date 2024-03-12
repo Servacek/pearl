@@ -106,18 +106,6 @@ function string:endswith(suffix)
     return suffix and self:utf8sub(-suffix:len()) == suffix
 end
 
--- Replaces all known dst emoticons in a string with discord emojis or vice versa.
-function string:emojify()
-    return self
-        :gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, PEARL.EMOJIS.UTF_TO_DISCORD)
-        :gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
-end
-
--- Returns a discord emoji string or the input string if no result was found
-function string.toemoji(utf8_icon)
-    return PEARL.EMOJIS.UTF_TO_DISCORD[utf8_icon] or utf8_icon
-end
-
 -- longline -> ltake(3) -> lon
 --
 --- @BYTEAWARE

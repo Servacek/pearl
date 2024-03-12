@@ -333,7 +333,9 @@ PEARL.CONSTS = {
     KLEI_ENCODED_DATA_PREFIX    = "KLEI     1D",
 
     UTF_EMOJI_PATTERN = "[\243][\176][\128-\191][\128-\191]",
-    DISCORD_EMOJI_PATTERN = "^<a?:%S+:%d+>$",
+    DISCORD_EMOJI_PATTERN = "<a?:%S+:%d+>",
+    HYBRID_EMOJI_PATTERN = ":%S+:",
+    UNICODE_EMOJI_PATTERN = "[\240][\159][\141-\145][\128-\191]", -- Used by discord for default emojis.
 
     DELIMS = {
         SLASH_COMMAND         = "/",

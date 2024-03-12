@@ -58,6 +58,7 @@ function PEARL.EXT(testset_name, testname)
             success_count = success_count + 1
         else
             PEARL.info("Test", name, "failed! Reason:\n", errmsg)
+            StackTraceToLog()
         end
 
         print(string.rep("-", 30))

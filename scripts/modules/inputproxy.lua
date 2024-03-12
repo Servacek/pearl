@@ -99,7 +99,7 @@ local function HandleChatMessage(data)
     end
 
     --- @type ChatMessage
-    local message = ChatMessage(data.content)
+    local message = ChatMessage(PEARL.EMOJIS.EmojifyForGame(data.content))
     message:SetAuthor(a_name, a_colour)
     message:SetColour(PMESSAGE_COLOR)
     message:SetIcon(PEARL.CONSTS.PROFILE_FLAIRS.DISCORD)

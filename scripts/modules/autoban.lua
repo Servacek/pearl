@@ -20,6 +20,7 @@ local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
 local CONFIG = PEARL.CONFIG.AUTOBAN
 
 local UNTIL_BAN_ANIM = 2
+local BAN_AMIM_LENGTH = 3
 
 local WARNING_HEALTH_PENALTY = 10
 local WARNING_ATTACK_TYPE = "electric"
@@ -49,6 +50,11 @@ local function PreparePlayerForBan(player, onprepared)
     end
 
     player.bantask = player:DoTaskInTime(UNTIL_BAN_ANIM, function()
+        if player.Transform then
+            -- Make sure the fires are extinguished.
+            PEARL.ExtinguishFires(player.Transform:GetWorldPosition())
+        end
+
         if player.components then
             if player.components.talker then
                 player.components.talker:Say(STRINGS.PEARL.GRIEFER_WARNINGS.BAN)
@@ -60,10 +66,12 @@ local function PreparePlayerForBan(player, onprepared)
             end
         end
 
-        -- Let's ban them in style
-        player.sg:GoToState("teleportato_teleport")
+        if player.sg then
+            -- Let's ban them in style
+            player.sg:GoToState("teleportato_teleport")
+        end
 
-        onprepared()
+        player:DoTaskInTime(BAN_AMIM_LENGTH, onprepared)
     end)
 end
 
@@ -125,6 +133,7 @@ local function CheckForBanableRep(userid, rep)
 end
 
 local function OnReputationChanged(userid, old, new)
+    print("OnReputationChanged", new, old)
     if old <= new or IsPlayerUntouchable(userid) then
         return
     end
@@ -135,17 +144,20 @@ end
 local function OnReputationEarned(userid, old, new)
     -- This player has too much reputation for being penalized in any way.
     -- Keeping this after ban since the threshold can be any number configured.
-    if WARNING_THRESHOLDS[1] < new or IsPlayerUntouchable(userid) then
+    if IsPlayerUntouchable(userid) then
         return
     end
 
     local warning_level = 0
     for i = 1, #WARNING_THRESHOLDS do
-        -- We have just crossed the threshold
-        if WARNING_THRESHOLDS[i] < old and WARNING_THRESHOLDS[i] > new then
-            warning_level = i
-        else
+        print("CHECKING THRESHOLD", WARNING_THRESHOLDS[i], old, new)
+        if WARNING_THRESHOLDS[i] < new then
             break -- No other threshold will meet the criteria.
+        end
+
+        -- We have just crossed the threshold
+        if WARNING_THRESHOLDS[i] < old then
+            warning_level = i
         end
     end
 
@@ -156,6 +168,21 @@ local function OnReputationEarned(userid, old, new)
         end
     end
 end
+
+--------------------------------------
+-- [[ Limiters ]]
+--------------------------------------
+
+--- @DEBUG
+PEARL.Reputation:AddDeltaLimiter(function(userid, rep, delta, limit)
+    for _, threshold in ipairs(WARNING_THRESHOLDS) do
+        if rep > threshold then
+            return threshold
+        end
+    end
+
+    return limit
+end)
 
 --------------------------------------
 -- [[ Connection Filters ]]

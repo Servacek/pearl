@@ -50,6 +50,8 @@ local Reputation = {
 
     --- @type table<string, table<any, integer>>
     sources         = {},
+
+    limiters        = {},
 }
 
 --------------------------------------
@@ -228,6 +230,10 @@ end
 --- 2. By contributing to the server.
 --- 3. By a player who gives it to you using /giverep
 
+function Reputation:AddDeltaLimiter(fn)
+    table.insert(self.limiters, fn)
+end
+
 --- @param userid string
 --- @param delta number
 --- @param limit number?
@@ -235,6 +241,14 @@ end
 function Reputation:DoDeltaTo(userid, delta, limit)
     PEARL.debug("DoDeltaTo", userid, delta, limit)
     local rep = self:GetOf(userid)
+    for _, limitfn in ipairs(self.limiters) do
+        local new_limit = limitfn(userid, rep, delta, limit)
+        if not limit or new_limit > limit then -- Get the highest limit possible
+            limit = new_limit
+        end
+    end
+
+    print("REP", rep, "LIMIT", limit)
     if limit and rep <= limit then
         return rep
     end

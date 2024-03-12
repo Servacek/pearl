@@ -299,10 +299,10 @@ function ServerNetwork:BanUser(userid, seconds, reason, author)
             userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
         )
 
-
-        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
-            PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
-        )
+        --- @DEBUG
+        -- PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
+        --     PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
+        -- )
         return
     end
 

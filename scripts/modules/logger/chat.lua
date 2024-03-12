@@ -84,7 +84,7 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon, receive
         -- This is all user input so it can contain some encoded stuff.
         -- This should be handled when we encode the message as JSON string.
         MARKDOWN.escape(name),
-        content:emojify()
+        PEARL.EMOJIS.EmojifyForDiscord(content)
     ), icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end
 
@@ -111,7 +111,7 @@ local function OnSystemMessage(message)
     end
 
     PEARL.DiscordLogger:LogStringRaw(STRINGS.PEARL.LOGS.SAY:format(
-        "[Server]", MARKDOWN.escape(message):emojify()
+        "[Server]", PEARL.EMOJIS.EmojifyForDiscord(MARKDOWN.escape(message))
     ), PEARL.ICONS.PLAYER_PREFABS["server"])
 end
 

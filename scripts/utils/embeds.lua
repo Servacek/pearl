@@ -64,7 +64,7 @@ function EMBEDS.Inventory(pmd, highlighted)
         max_count_size = max_count_size or PEARL.GetMaxStringSize(inventory)
         local line = MARKDOWN.codeline(string.rep(" ", max_count_size - #icount)..icount.."x").." "
 
-        if PEARL.CONFIG.INVENTORY_ICONS then
+        if table.empty(PEARL.ICONS.INVENTORY) == false then
             local icon = PEARL.ICONS.INVENTORY[iprefab]
             if icon then
                 line = line..icon
@@ -369,7 +369,7 @@ function EMBEDS.PlayerInfo()
     end
 
     if description:blank() then
-        description = STRINGS.PEARL.EMBEDS.PLAYERS.EMPTY
+        description = MARKDOWN.italic(STRINGS.PEARL.EMBEDS.PLAYERS.EMPTY)
     end
 
     return Embed()

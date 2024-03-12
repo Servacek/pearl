@@ -727,7 +727,7 @@ local STRINGS = {
                 PRETTYNAME  = "Show My Stats",
                 DESC        = "Shows your current statistics and place on the leaderboard.",
 
-                RESULT      = "#%s/#%s - %s:\nReputation: %d\nGains for today: %d\nGains for this month: %d",
+                RESULT      = "#%s/#%s - %s:\nReputation: %s\nGains for today: %s\nGains for this month: %s",
             },
 
             GIVEALL = {
@@ -1097,7 +1097,7 @@ local STRINGS = {
     GRIEFER_WARNINGS        = {
         [1] = {
             [1] = "Oops?!",
-            [2] = "Does Charlie saw that?!",
+            [2] = "Has Charlie seen that?!",
             [3] = "Wait, isn't this griefing?",
             [4] = "Maybe I should calm down a bit...",
             [5] = "My compatriots would be mad at me!",

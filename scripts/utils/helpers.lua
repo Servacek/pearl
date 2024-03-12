@@ -475,7 +475,7 @@ end
 --- @param entity string|EntityScript
 --- @return string
 function PEARL.GetStandardizedNameFor(entity, noprefix)
-    if type(entity) ~= "table" then
+    if not EntityScript.is_instance(entity) then
         return tostring(entity)
     end
 

@@ -470,6 +470,21 @@ configuration_options = {
     },
 
     {
+        -- Function returning a table of emoji aliases in the following format:
+        --[[
+            {
+                "<EMOJI_ALIAS>": <ROOT_EMOJI>,
+            }
+        --]]
+        -- The first parameter to the function is the main PEARL table providing all the needed
+        -- emojis that can be aliased.
+        -- Key and Values should be always of the oposite type.
+        name="EMOJI_ALIASES",
+        default = function() end,
+        type = "function",
+    },
+
+    {
         name="EMOJI_MENU",
         default = true,
         type = "boolean",
@@ -552,12 +567,6 @@ configuration_options = {
             ENABLED = true,
         },
         type = "table",
-    },
-
-    {
-        name="INVENTORY_ICONS",
-        default = false,
-        type = "boolean",
     },
 
     {

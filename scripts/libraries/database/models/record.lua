@@ -56,7 +56,8 @@ local PlayerRecord = Class(function(self, userid, data)
     assert(type(data) == "table", "Invalid data provided!")
 
     rawset(self, "_data", data)
-    rawset(self, "_uptodate", true)
+    --- @TODO: See __newindex fn
+    rawset(self, "_uptodate", false) --rawset(self, "_uptodate", true)
 
     self._data.userid = userid
 end)
@@ -83,17 +84,19 @@ end
 -- [[ Meta Methods ]]
 ------------------------------------------
 
-function PlayerRecord:__newindex(field, value, ...)
-    if not self:IsWriteable() then
-        return PEARL.error("Attempted to modify a read-only record!")
-    end
+--- @TODO: Disabled until we figure out how to handle nested tables.
+--- Flatting is also an option but it would be a pain in the ass for stuff like arrays.
+-- function PlayerRecord:__newindex(field, value, ...)
+--     if not self:IsWriteable() then
+--         return PEARL.error("Attempted to modify a read-only record!")
+--     end
 
-    if rawget(self._data, field) ~= value or type(value) == "table" then
-        rawset(self._data, field, value)
+--     if rawget(self._data, field) ~= value or type(value) == "table" then
+--         rawset(self._data, field, value)
 
-        self:SetIsUpToDate(false)
-    end
-end
+--         self:SetIsUpToDate(false)
+--     end
+-- end
 
 function PlayerRecord:__index(field, ...)
     if self._data[field] ~= nil then
@@ -175,7 +178,8 @@ function PlayerRecord:SetData(data)
 end
 
 function PlayerRecord:SetIsUpToDate(uptodate)
-    self._uptodate = uptodate
+    --- @TODO: See __newindex fn
+    --self._uptodate = uptodate
 end
 
 ------------------------------------------
