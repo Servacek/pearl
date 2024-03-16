@@ -133,7 +133,6 @@ local function CheckForBanableRep(userid, rep)
 end
 
 local function OnReputationChanged(userid, old, new)
-    print("OnReputationChanged", new, old)
     if old <= new or IsPlayerUntouchable(userid) then
         return
     end
@@ -150,7 +149,6 @@ local function OnReputationEarned(userid, old, new)
 
     local warning_level = 0
     for i = 1, #WARNING_THRESHOLDS do
-        print("CHECKING THRESHOLD", WARNING_THRESHOLDS[i], old, new)
         if WARNING_THRESHOLDS[i] < new then
             break -- No other threshold will meet the criteria.
         end

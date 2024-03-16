@@ -139,9 +139,6 @@ local function GetContributions(weights, normalized_value)
         contributions[prefab] = normalized_weight / normalized_value
     end
 
-    table.dump(contributions)
-    print("MAX CONTRIBUTOR:", table.max(contributions))
-
     return contributions
 end
 
@@ -423,7 +420,6 @@ local function OnPredictionFeedback(id, positive)
 end
 
 local function OnInputProxyEvent(event)
-    print("OnInputProxyEvent")
     if event.name ~= "button_pressed" or not event.message_id then
         return
     end

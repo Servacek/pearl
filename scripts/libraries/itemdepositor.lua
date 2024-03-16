@@ -231,29 +231,22 @@ function ItemDepositor:DepositItem(inventory, item)
     local target_prefab = item.prefab
     for depo in self:GetDepoForItem(item) do
         if item == nil then
-            print("ITEM SUCCESSFULLY DEPLOYED!")
             return -- We have managed to add the whole item to the container.
         end
 
-        print("CHECKING DEPO:", depo, item)
         local container = depo.components and depo.components.container
         if not container then
-            print("Dropping the item at depo position", item)
             if inventory:DropItem(item, true, true, depo:GetPosition()) then
                 item = nil
             end
         elseif container:CanTakeItemInSlot(item) and container:AcceptsStacks() then
             local slot = container:GetSlotForItem(item.prefab)
-            print("GOT SLOT:", slot)
             local dest = container:GetItemInSlot(slot)
             if dest and dest.components.stackable then
-                print("Adding item to stack...")
                 item = dest.components.stackable:Put(item)
             else
-                print("Putting the item in the container...")
                 item = item.components.inventoryitem:RemoveFromOwner(true)
                 if container:GiveItem(item, nil, nil, false) then
-                    print("SUCCESS")
                     item = nil
                 end
             end
@@ -265,7 +258,6 @@ function ItemDepositor:DepositItem(inventory, item)
     -- if not owner or not owner:HasValidWorldPosition() then
     --     pos = owner:GetPosition()
     -- end
-    print("Dropping on the ground...")
     -- If no depo existed for this item.
     inventory:DropItem(item, true, true)
 end

@@ -177,6 +177,11 @@ local STRINGS = {
             GENERIC     = "{doer} constructed {target}."
         },
 
+        DESTROY = {
+            GENERIC     = "{doer} destroyed {target}.",
+            IN          = "{doer} destroyed {target} in {source}."
+        },
+
         BURNTUP = {
             GENERIC     = "{target} burnt up!",
             OWNED       = "{target} burnt up! Owner: {owner}"

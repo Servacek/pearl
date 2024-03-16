@@ -17,6 +17,8 @@
 Temporary solution for logging.
 --]]
 
+local containers = require("containers")
+
 --- @type ActionLog
 local AL = PEARL.loadfile("libraries/actionlog")
 local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
@@ -423,7 +425,8 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
         tool, item = item, tool
     end
 
-    local prohibited = false
+    --- @TODO: Maybe execute cooking in a crockpot immediately?
+    local prohibited, execute = false, false
     local rarity = PEARL.GetRarityForPrefab(item and item.prefab)
     if rarity > 0 then
         prohibited = true
@@ -960,6 +963,23 @@ onburntup = function(target)
         :SetIsSilent(not wasbuilt)
         :AddTarget(target, nil, true)
 end
+
+PEARL.AddFunctionPreCall("fn", function(inst, doer)
+    if inst and inst.components.container then
+        local items, veryrare = {}, false
+        inst.components.container:ForEachItem(function(item)
+            items[#items+1] = item
+            if item.components.inventoryitem:IsVeryRare() then
+                veryrare = true
+            end
+        end)
+
+        return AL:EntityAct(STRINGS.PEARL.ACTIONS.DESTROY.IN, doer, "source", inst)
+            :SetIcon(PEARL.ICONS.TRASHCAN)
+            :SetIsSilent(not veryrare)
+            :AddTargets(items)
+    end
+end, containers.params.dragonflyfurnace.widget.buttoninfo)
 
 --- @param inst EntityScript
 PEARL.AddComponentPostInit("burnable", function(self, inst)

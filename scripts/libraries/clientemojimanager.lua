@@ -214,8 +214,6 @@ function ClientEmojiManager:LoadPersistentData()
         table.update(self._persistdata, data)
 
         self:_ValidatePersistantData(self._persistdata)
-
-        table.dump(self._persistdata)
     end
 end
 

@@ -160,7 +160,6 @@ function EmojiMenu:_LoadEmojiCategory(category)
             rows, cols = rows + 1, 1
         end
 
-        print(rows, cols)
         if category.maxrows and rows > category.maxrows then
             break
         end
@@ -198,6 +197,7 @@ function EmojiMenu:_CreateSearchBox(width, height)
     searchbox.textbox:SetTextPrompt("", UICOLOURS.GREY)
     searchbox.textbox:SetPassControlToScreen(CONTROL_CANCEL, true)
     searchbox.textbox:SetPassControlToScreen(CONTROL_SCROLLBACK, true)
+    searchbox.textbox:SetPassControlToScreen(CONTROL_SCROLLFWD, true)
     searchbox.textbox:SetPassControlToScreen(CONTROL_SCROLLFWD, true)
     searchbox.textbox._TryUpdateTextPrompt = function(_self)
         if _self.prompt then
@@ -272,6 +272,10 @@ function EmojiMenu:_ChooseEmoji(emoji)
     self:Close()
 end
 
+function EmojiMenu:_DoFocusHookups()
+    ---
+end
+
 function EmojiMenu:_CreateEmojiList()
     local function ScrollWidgetsCtor(context, index)
         local w = Widget("emoji_item"..tostring(index))
@@ -297,7 +301,7 @@ function EmojiMenu:_CreateEmojiList()
 
         w.button:SetOnGainFocus(function()
             if is_emoji(w) and self.selected_widget ~= w then
-                self:SelectEmojiWidget(w)
+                self:SelectEmojiWidget(w, true)
             end
         end)
 
@@ -398,6 +402,8 @@ function EmojiMenu:_CreateEmojiList()
 	grid.no_emojis_msg:Hide()
 
 	grid.custom_focus_check = function() return self.focus end
+    --- @TODO: Add support for arrow keys and controlers.
+    grid.OnFocusMove = function() end
 
 	return grid
 end
@@ -417,6 +423,8 @@ function EmojiMenu:_BuildExplorer()
     self.searchbox:MoveToFront()
 
     self.default_focus = self.searchbox
+
+    self:_DoFocusHookups()
 
     return self.menu
 end
@@ -449,7 +457,7 @@ function EmojiMenu:UnselectEmojiWidget(widget)
 end
 
 --- @param widget Widget?
-function EmojiMenu:SelectEmojiWidget(widget)
+function EmojiMenu:SelectEmojiWidget(widget, focus)
     PEARL.debug("EmojiMenu:SelectEmojiWidget", widget and widget.data and widget.data.name_full)
     if widget ~= nil and not is_emoji(widget) then
         return
@@ -459,15 +467,14 @@ function EmojiMenu:SelectEmojiWidget(widget)
     local emoji = data and data.emoji
     local category = data and data.category
     if self.selected_emoji == emoji and (widget and widget:IsSelected()) then
-        return print("NOT GOOD FOR SELECTION", widget.data.name_full)
+        return
     end
 
     if self.selected_widget then
-        print("UNSELECT")
         self.selected_widget.button:Unselect()
     end
 
-    if self.searchbox.textbox:GetString():len() <= 0 and self.selected_emoji ~= emoji and widget then
+    if not self.searchbox:HasAnyInput() and self.selected_emoji ~= emoji and widget and focus then
         self.searchbox.textbox.prompt:SetString(widget.data.name_full)
     end
 
@@ -481,6 +488,7 @@ function EmojiMenu:SelectEmojiWidget(widget)
 end
 
 function EmojiMenu:RefreshSearching()
+    PEARL.debug("EmojiMenu:RefreshSearching")
     self.scroll_list.no_emojis_msg:Hide()
     self.scroll_list:ResetScroll()
 
@@ -535,6 +543,7 @@ function EmojiMenu:LoadEmojiCategories(categories)
     end
 
     self.loaded_data = {} -- Create a new table, since the old one is cached.
+    emoji_data_cache[self.categories] = self.loaded_data -- Cache the table right away to prevent dupes
     StartStaticThread(function()
         _last_check = os.clock()
 
@@ -549,9 +558,6 @@ function EmojiMenu:LoadEmojiCategories(categories)
         if self.scroll_list and self:IsOpen() then
             self:RefreshSearching()
         end
-
-        -- So each set has it's own cached value.
-        emoji_data_cache[self.categories] = self.loaded_data
     end, self.inst.GUID)
 end
 
@@ -576,13 +582,11 @@ function EmojiMenu:Open()
         self.onopen()
     end
 
+    self:RefreshSearching()
+
     self.searchbox:Clear()
     self.searchbox.textbox:SetFocus(true)
     self.searchbox.textbox:SetEditing(true)
-
-    self:RefreshSearching()
-
-    self.searchbox.textbox.prompt:SetString(STRINGS.UI.SERVERCREATIONSCREEN.SEARCH)
 end
 
 function EmojiMenu:Close()
@@ -634,6 +638,7 @@ function EmojiMenu:OnSearchPromptUpdated(prompt)
 end
 
 function EmojiMenu:OnControl(control, down, ...)
+    PEARL.debug("EmojiMenu:OnControl", control, down)
     if EmojiMenu._base.OnControl(self, control, down, ...) then return true end
 
     if not self:IsOpen() then
@@ -645,9 +650,15 @@ function EmojiMenu:OnControl(control, down, ...)
 
         return true
     end
+
+    if self.scroll_list then
+        return self.scroll_list:OnControl(control, down, ...)
+    end
 end
 
 function EmojiMenu:OnRawKey(key, down, ...)
+    PEARL.debug("EmojiMenu:OnRawKey", key, down)
+
     if EmojiMenu._base.OnRawKey(self, key, down, ...) then return true end
 
     if not self:IsOpen() then
@@ -657,6 +668,12 @@ function EmojiMenu:OnRawKey(key, down, ...)
     -- This is here for cases where the searchbox is not focused.
     if down and key == KEY_ENTER and self.selected_emoji then
         self:_ChooseEmoji(self.selected_emoji)
+
+        return true
+    end
+
+    if not down and key == KEY_X and self.searchbox then
+        self.searchbox:Clear()
 
         return true
     end

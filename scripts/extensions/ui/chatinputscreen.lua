@@ -14,6 +14,8 @@
 --- @class ChatInputScreen
 local ChatInputScreen = require("screens/chatinputscreen")
 
+require("frontend")
+
 local ImageButton = require("widgets/imagebutton")
 local Text = require("widgets/text")
 --- @type TEMPLATES
@@ -28,8 +30,6 @@ local EmojiMenu = PEARL.loadfile("widgets/emojimenu")
 local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
-
-local HoverText = require("widgets/hoverer")
 
 ---------------------------
 -- [[ Constants ]]
@@ -48,7 +48,40 @@ local COMMAND_PREDICTION_CHARS = 0 -- Commands do not have usually under 2 chara
 local NAME_PREDICTION_CHARS = 0
 local USERID_PREDICTION_CHARS = 0
 
-local last_slash_command = nil
+---------------------------
+-- [[ Local Variables ]]
+---------------------------
+
+local last_slash_command, _
+local _OnRawKey, _RunTextUserCommand, _OnControl
+
+---------------------------
+-- [[ Handler Extensions ]]
+---------------------------
+
+local function ExtendRunTextCommand(input)
+    if type(input) == "string" then
+        last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..input
+    end
+end
+
+local function ExtendedOnRawKey(self, key, down, ...)
+    local active_screen = self:GetActiveScreen()
+    if active_screen and ChatInputScreen.is_instance(active_screen) then
+        if TheInput:IsKeyDown(KEY_CTRL) then
+            if not down and key == KEY_Y and active_screen.emoji_menu_button then
+                active_screen.emoji_menu_button.onclick()
+            else
+                return active_screen.emoji_menu:OnRawKey(key, down, ...)
+            end
+
+            return true
+        end
+
+    end
+
+    return _OnRawKey(self, key, down, ...)
+end
 
 ---------------------------
 -- [[ Local Functions ]]
@@ -78,17 +111,26 @@ local function AddEmojiMenuButton(menu)
     btn._hovertext = menu.parent:AddChild(Text(UIFONT, 30))
     btn._hovertext:SetString(STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER:format(GetSayControl()))
     btn._hovertext:SetScaleMode(SCALEMODE_PROPORTIONAL)
-    local pos = TheInput:GetScreenPosition()
-    btn._hovertext:SetPosition(pos.x, pos.y)
     btn._hovertext:Hide()
 
     btn._time = GetTime()
 
+    btn._hovertext._UpdatePosition = function(self, x, y)
+        if not x or y then
+            local pos = TheInput:GetScreenPosition()
+            x, y = pos.x, pos.y
+        end
+
+        self:SetPosition(
+            x + EMOJI_MENU_BUTTON_OFFSET_X, y + EMOJI_MENU_BUTTON_OFFSET_Y, 0
+        )
+    end
+
+    btn._hovertext:_UpdatePosition()
+
     followhandler.fn = function(x, y)
-        if btn._hovertext:IsVisible() then
-            btn._hovertext:SetPosition(
-                x + EMOJI_MENU_BUTTON_OFFSET_X, y + EMOJI_MENU_BUTTON_OFFSET_Y, 0
-            )
+        if btn._hovertext.inst.widget ~= nil then
+            btn._hovertext:_UpdatePosition(x, y)
         end
     end
 
@@ -98,8 +140,9 @@ local function AddEmojiMenuButton(menu)
     last_button_emoji = last_button_emoji or ClientEmojis:GetRandomEmoji()
     btn:SetText(last_button_emoji)
     btn:SetOnGainFocus(function()
+        btn:ScaleUp()
+
         if not menu:IsOpen() then
-            btn:ScaleUp()
             btn._hovertext:Show()
 
             -- So this wont flicker in case the cursor is over right from the start.
@@ -123,8 +166,12 @@ local function AddEmojiMenuButton(menu)
 
         local pos_x = btn:GetPositionXYZ()
         local w, h = menu.menu.mid_center:GetSize()
-        menu:SetPosition(pos_x + w / 2.8, h)
+        menu:SetPosition(pos_x + w / 4.5, h)
     end)
+
+    if FrontEnd.OnRawKey ~= ExtendedOnRawKey then
+        _OnRawKey = PEARL.OverrideValue(FrontEnd, "OnRawKey", ExtendedOnRawKey)
+    end
 
     return btn
 end
@@ -152,103 +199,7 @@ local function ExpandWordPredictorWithCustomCommands(predictor, commands)
     end
 end
 
----------------------------
--- [[ Overrides ]]
----------------------------
-
-AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
-    if whisper == true and PEARL.CONFIG.WHISPER_WARNING == true then
-        AddWhisperWarning(self)
-    end
-
-    if PEARL.CONFIG.EMOJI_MENU and ClientEmojis:HasAnyEmojis() then
-        local _bg = self.chat_edit:AddChild(ImageButton("images/global.xml", "square.tex"))
-        _bg.image:SetVRegPoint(ANCHOR_MIDDLE)
-        _bg.image:SetHRegPoint(ANCHOR_MIDDLE)
-        _bg.image:SetVAnchor(ANCHOR_MIDDLE)
-        _bg.image:SetHAnchor(ANCHOR_MIDDLE)
-        _bg.image:SetScaleMode(SCALEMODE_FILLSCREEN)
-        _bg.image:SetTint(0,0,0,0)
-        _bg:SetHelpTextMessage("")
-        _bg:MoveToFront()
-        _bg:Select() -- So no hover sound
-        _bg.AllowOnControlWhenSelected = true
-        _bg:Hide()
-
-        self.emoji_menu = self.screen_root:AddChild(EmojiMenu())
-        self.emoji_menu:LoadEmojiCategories(ClientEmojis.CATEGORIES_ORDERED)
-        self.emoji_menu:MoveToFront()
-
-        _bg:SetOnClick(function()
-            if self.emoji_menu:IsOpen() then
-                self.emoji_menu:Close()
-            end
-        end)
-
-        self.focus_forward = function()
-            if self.emoji_menu:IsOpen() then
-                return self.emoji_menu
-            end
-        end
-
-        self.emoji_menu_button = self.chat_edit:AddChild(AddEmojiMenuButton(self.emoji_menu))
-        local x = -465
-        if self.chat_type then
-            x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
-        end
-        self.emoji_menu_button:SetPosition(x, 0)
-        self.emoji_menu_button:MoveToFront()
-
-        self.chat_edit._insert_index = 1
-        self.emoji_menu.onopen = function()
-            self.chat_edit:SetEditing(false)
-            self.chat_edit:ClearFocus()
-
-            if self.emoji_menu_button.hovertext_root then
-                self.emoji_menu_button.hovertext_root:Hide()
-            end
-
-            self.chat_edit._insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
-            _bg:Show()
-        end
-
-        self.emoji_menu.onclose = function()
-            self.chat_edit:SetEditing(true)
-            self.chat_edit.inst.TextEditWidget:SetEditCursorPos(self.chat_edit._insert_index)
-
-            _bg:Hide()
-
-            -- The button is in it's focused state until the menu is closed.
-            if not self.emoji_menu_button.focus then
-                self.emoji_menu_button:OnLoseFocus()
-            end
-        end
-
-        self.emoji_menu.onemojichosen = function(emoji)
-            local str = self.chat_edit:GetString()
-            self.chat_edit:SetString(str:sub(1, self.chat_edit._insert_index)..emoji.." "..str:sub(self.chat_edit._insert_index + 1))
-            self.chat_edit._insert_index = self.chat_edit._insert_index + emoji:len() + 1
-        end
-
-        if TheInput:IsKeyDown(KEY_CTRL) then
-            -- Make sure this widget is completely initialized.
-            PEARL.StaticScheduler:ExecuteInTime(0, self.emoji_menu_button.onclick)
-        end
-    end
-
-    -- Setup prediction for our custom slash commands
-    local prediction_widget = self.chat_edit and self.chat_edit.prediction_widget
-    local predictor = prediction_widget and prediction_widget.word_predictor
-    if prediction_widget and predictor and predictor.dictionaries then
-        local expandfn = prediction_widget.expand_btn and prediction_widget.expand_btn.onclick
-        if prediction_widget.expanded == true and type(expandfn) == "function" then
-            expandfn() -- Minimize the expand widget by default.
-        end
-
-        local commands = UserCommands.GetCustomCommandsWithFlag("slash")
-        ExpandWordPredictorWithCustomCommands(predictor, commands)
-    end
-
+local function AutocompletePlayersForCommands(chat_edit)
     local userids = {}
     local names = {}
     for _, v in ipairs(AllPlayers) do
@@ -260,32 +211,41 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     end
 
     -- Auto-complete for user ids
-    self.chat_edit:AddWordPredictionDictionary({
+    chat_edit:AddWordPredictionDictionary({
         delim = PEARL.CONSTS.DELIMS.KLEI_ID,
         words = userids,
         num_chars = USERID_PREDICTION_CHARS,
     })
 
     -- Auto-complete for player names
-    self.chat_edit:AddWordPredictionDictionary({
+    chat_edit:AddWordPredictionDictionary({
         delim = PEARL.CONSTS.DELIMS.PLAYER_NAME,
         words = names,
         num_chars = NAME_PREDICTION_CHARS,
     })
+end
 
-    local _OnRawKey = self.chat_edit.OnRawKey
-    self.chat_edit.OnRawKey = function(chat_edit, key, down)
-        if key == KEY_UP then
-            if down and chat_edit:GetString() == "" then
-                chat_edit:SetString(last_slash_command)
-            end
-            return true
+local function AutocompleteCustomCommands(chat_edit)
+    -- Setup prediction for our custom slash commands
+    local prediction_widget = chat_edit.prediction_widget
+    local predictor = prediction_widget and prediction_widget.word_predictor
+    if prediction_widget and predictor and predictor.dictionaries then
+        local expandfn = prediction_widget.expand_btn and prediction_widget.expand_btn.onclick
+        if prediction_widget.expanded == true and type(expandfn) == "function" then
+            expandfn() -- Minimize the expand widget by default.
         end
 
-        --- @TODO: Implement this in some way.
-        if key == KEY_Y and TheInput:IsKeyDown(KEY_CTRL) and self.emoji_menu_button then
-            if down then
-                self.emoji_menu_button.onclick()
+        local commands = UserCommands.GetCustomCommandsWithFlag(UserCommands.FLAG.SLASH)
+        ExpandWordPredictorWithCustomCommands(predictor, commands)
+    end
+end
+
+local function AddSlashCommandHistory(chat_edit)
+    local _OnRawKey = chat_edit.OnRawKey
+    chat_edit.OnRawKey = function(self, key, down)
+        if key == KEY_UP and chat_edit:IsEditing() then
+            if down and chat_edit:GetString() == "" then
+                chat_edit:SetString(last_slash_command)
             end
 
             return true
@@ -293,10 +253,114 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
 
         return _OnRawKey(chat_edit, key, down)
     end
-end)
 
-PEARL.AddFunctionPostCall("RunTextUserCommand", function(input)
-    if input then
-        last_slash_command = PEARL.CONSTS.DELIMS.SLASH_COMMAND..tostring(input)
+    if _RunTextUserCommand == nil then
+        _, _RunTextUserCommand = PEARL.AddFunctionPostCall(
+            "RunTextUserCommand", ExtendRunTextCommand, UserCommands
+        )
     end
-end, UserCommands)
+end
+
+local function AddEmojiMenu(self)
+    local _bg = self.chat_edit:AddChild(ImageButton("images/global.xml", "square.tex"))
+    _bg.image:SetVRegPoint(ANCHOR_MIDDLE)
+    _bg.image:SetHRegPoint(ANCHOR_MIDDLE)
+    _bg.image:SetVAnchor(ANCHOR_MIDDLE)
+    _bg.image:SetHAnchor(ANCHOR_MIDDLE)
+    _bg.image:SetScaleMode(SCALEMODE_FILLSCREEN)
+    _bg.image:SetTint(0,0,0,0)
+    _bg:SetHelpTextMessage("")
+    _bg:MoveToFront()
+    _bg:Select() -- So no hover sound
+    _bg.AllowOnControlWhenSelected = true
+    _bg:Hide()
+
+    self.emoji_menu = self.screen_root:AddChild(EmojiMenu())
+    self.emoji_menu:LoadEmojiCategories(ClientEmojis.CATEGORIES_ORDERED)
+    self.emoji_menu:MoveToFront()
+
+    _bg:SetOnClick(function()
+        if self.emoji_menu:IsOpen() then
+            self.emoji_menu:Close()
+        end
+    end)
+
+    _bg.focus_forward = function()
+        if self.emoji_menu:IsOpen() then
+            return self.emoji_menu
+        end
+    end
+
+    self.emoji_menu_button = self.chat_edit:AddChild(AddEmojiMenuButton(self.emoji_menu))
+    local x = -465
+    if self.chat_type then
+        x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
+    end
+    self.emoji_menu_button:SetPosition(x, 0)
+    self.emoji_menu_button:MoveToFront()
+
+    self.chat_edit._insert_index = 1
+    self.emoji_menu.onopen = function()
+        self.chat_edit:SetEditing(false)
+        self.chat_edit:ClearFocus()
+
+        if self.emoji_menu_button.hovertext_root then
+            self.emoji_menu_button.hovertext_root:Hide()
+        end
+
+        self.chat_edit._insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
+        _bg:Show()
+
+        if not self.emoji_menu_button.focus then
+            self.emoji_menu_button:OnGainFocus()
+        end
+    end
+
+    self.emoji_menu.onclose = function()
+        self.chat_edit:SetEditing(true)
+        self.chat_edit.inst.TextEditWidget:SetEditCursorPos(self.chat_edit._insert_index)
+
+        _bg:Hide()
+        _bg:SetFocus()
+
+        -- The button is in it's focused state until the menu is closed.
+        if not self.emoji_menu_button.focus then
+            self.emoji_menu_button:OnLoseFocus()
+        end
+    end
+
+    self.emoji_menu.onemojichosen = function(emoji)
+        local str = self.chat_edit:GetString()
+        self.chat_edit:SetString(str:sub(1, self.chat_edit._insert_index)..emoji.." "..str:sub(self.chat_edit._insert_index + 1))
+        self.chat_edit._insert_index = self.chat_edit._insert_index + emoji:len() + 1
+    end
+
+    PEARL.AddClassFunctionPreCall("ValidateChar", function()
+        return not TheInput:IsKeyDown(KEY_CTRL)
+    end, self.chat_edit)
+end
+
+---------------------------
+-- [[ Overrides ]]
+---------------------------
+
+AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
+    if whisper == true and PEARL.CONFIG.WHISPER_WARNING == true then
+        AddWhisperWarning(self)
+    end
+
+    if PEARL.CONFIG.EMOJI_MENU and ClientEmojis:HasAnyEmojis() then
+        AddEmojiMenu(self)
+    end
+
+    -- Setup prediction for our custom slash commands
+    AutocompleteCustomCommands(self.chat_edit)
+
+    if PEARL.CONFIG.CUSTOM_CHAT_AUTOCOMPLETE then
+        AutocompletePlayersForCommands(self.chat_edit)
+    end
+
+    if PEARL.CONFIG.SLASH_COMMAND_HISTORY then
+        AddSlashCommandHistory(self.chat_edit)
+    end
+end)

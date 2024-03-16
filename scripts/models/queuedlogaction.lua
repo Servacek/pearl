@@ -103,7 +103,7 @@ function QueuedLogAction:AddTarget(target, stacksize, ...)
         return self
     end
 
-    if type(target) == "table" then
+    if EntityScript.is_instance(target) then
         if not self.targets then
             self.targets = {}
         elseif self.targets[target.GUID] == true then
@@ -117,6 +117,12 @@ function QueuedLogAction:AddTarget(target, stacksize, ...)
     end
 
     return self:AddToStackableField(self.FIELDS.TARGET, target, stacksize, ...)
+end
+
+function QueuedLogAction:AddTargets(targets, ...)
+    for _, target in ipairs(targets) do
+        self:AddTarget(target, ...)
+    end
 end
 
 --- @return QueuedLogAction

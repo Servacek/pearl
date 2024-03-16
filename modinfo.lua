@@ -635,6 +635,17 @@ configuration_options = {
     },
 
     {
+        name="SLASH_COMMAND_HISTORY",
+        default=true,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+        public = true,
+    },
+
+    {
         name="CONSOLE_COMMANDS",
         default=true,
         options = {

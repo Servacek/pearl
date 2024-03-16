@@ -248,7 +248,6 @@ function Reputation:DoDeltaTo(userid, delta, limit)
         end
     end
 
-    print("REP", rep, "LIMIT", limit)
     if limit and rep <= limit then
         return rep
     end
@@ -281,7 +280,6 @@ function Reputation:EarnFor(userid, amount, limit, source)
     end
 
     local old_rep = self:GetOf(userid)
-    print("OLD REP", old_rep)
     local mult = NEGATIVE_REP_MULTIPLIER
     if amount > 0 then
         local gained = math.max(old_rep - Reputation.STARTING_VALUE, 0)

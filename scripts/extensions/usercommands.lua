@@ -124,6 +124,12 @@ UserCommands.DEFAULT = {
     }
 }
 
+UserCommands.FLAG = { -- Maybe a better way would be to use numbers and bitwise operations.
+    SLASH = "slash",
+    DISCORD = "discord",
+    CONSOLE = "console",
+}
+
 --- Here are defined some commonly used parameters to reduce duplication.
 UserCommands.STD_PARAMS = {
     PLAYER  = {name = "player", type = UserCommands.OPTION_TYPE.STRING},
@@ -340,7 +346,6 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
     local validated_args = ctx:GetValidatedArguments()
     local n = validated_args and table.size(validated_args) or 0
     if not validated_args then
-        table.dump(ctx.params)
         local count
         validated_args, count = ProccessParams(ctx, ctx.params)
         if not count then

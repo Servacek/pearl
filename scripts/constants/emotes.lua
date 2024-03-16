@@ -258,7 +258,9 @@ end
 
 function EMOJIS.EmojifyForGame(s)
     return s:gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
-            :gsub(PEARL.CONSTS.UNICODE_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
+            :gsub(PEARL.CONSTS.UNICODE_EMOJI_PATTERN, function(match)
+                return PEARL.EMOJIS.DISCORD_TO_UTF[match] or ":UNKNOWN_EMOJI:"
+            end)
 end
 
 --------------------------------
@@ -270,7 +272,7 @@ PEARL.info("Loading custom emoji aliases...")
 local ALIASES = PEARL.CONFIG.EMOJI_ALIASES(EMOJIS)
 if type(ALIASES) == "table" then
     for alias_emoji, root_emoji in pairs(ALIASES) do
-        if root_emoji:find(PEARL.CONSTS.UTF_EMOJI_PATTERN) then
+        if alias_emoji:find(PEARL.CONSTS.UNICODE_EMOJI_PATTERN) or alias_emoji:find(PEARL.CONSTS.DISCORD_EMOJI_PATTERN) then
             EMOJIS.DISCORD_TO_UTF[alias_emoji] = root_emoji
         elseif root_emoji:find(PEARL.CONSTS.DISCORD_EMOJI_PATTERN) or root_emoji:find(PEARL.CONSTS.HYBRID_EMOJI_PATTERN) then
             EMOJIS.GAME_TO_DISCORD[alias_emoji] = root_emoji
