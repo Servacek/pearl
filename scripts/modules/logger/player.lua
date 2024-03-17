@@ -964,22 +964,25 @@ onburntup = function(target)
         :AddTarget(target, nil, true)
 end
 
-PEARL.AddFunctionPreCall("fn", function(inst, doer)
-    if inst and inst.components.container then
-        local items, veryrare = {}, false
-        inst.components.container:ForEachItem(function(item)
-            items[#items+1] = item
-            if item.components.inventoryitem:IsVeryRare() then
-                veryrare = true
-            end
-        end)
+--- This is only available after the March beta of 2024
+if containers.params and containers.params.dragonflyfurnace and containers.params.dragonflychest.widget then
+    PEARL.AddFunctionPreCall("fn", function(inst, doer)
+        if inst and inst.components.container then
+            local items, veryrare = {}, false
+            inst.components.container:ForEachItem(function(item)
+                items[#items+1] = item
+                if item.components.inventoryitem:IsVeryRare() then
+                    veryrare = true
+                end
+            end)
 
-        return AL:EntityAct(STRINGS.PEARL.ACTIONS.DESTROY.IN, doer, "source", inst)
-            :SetIcon(PEARL.ICONS.TRASHCAN)
-            :SetIsSilent(not veryrare)
-            :AddTargets(items)
-    end
-end, containers.params.dragonflyfurnace.widget.buttoninfo)
+            return AL:EntityAct(STRINGS.PEARL.ACTIONS.DESTROY.IN, doer, "source", inst)
+                :SetIcon(PEARL.ICONS.TRASHCAN)
+                :SetIsSilent(not veryrare)
+                :AddTargets(items)
+        end
+    end, containers.params.dragonflyfurnace.widget.buttoninfo)
+end
 
 --- @param inst EntityScript
 PEARL.AddComponentPostInit("burnable", function(self, inst)

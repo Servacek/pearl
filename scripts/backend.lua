@@ -425,7 +425,7 @@ PEARL.info("Loading the Steam Web API wrapper...")
 
 --- @type SteamAPI
 --- @class SteamAPI
-PEARL.SteamAPI = PEARL.loadfile("libraries/steamapi")
+PEARL.SteamAPI = PEARL.loadfile("libraries/steam/steamapi")
 
 --------------------------------
 -- [[ Klei Accounts ]]
