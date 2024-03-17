@@ -207,7 +207,7 @@ GLOBAL.PEARL = setmetatable({
     PREFAB              = "MOD_"..modname,
     FONTS_PREFAB        = "MODFONTS_"..modname,
 
-    BACKUP_ID           = "3122299418",--"2924921999",
+    BACKUP_ID           = "2924921999",
 
     --- @type string?
     SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
