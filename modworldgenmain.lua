@@ -83,7 +83,7 @@ if wg_overrides then do
     local taskset_name = (wg_overrides and wg_overrides.task_set) or "default"
     --- @type table?
     local required_tasks = GetModConfigData("REQUIRED_WORLDGEN_TASKS")
-    if type(required_tasks) ~= "table" or GLOBAL.next(required_tasks) ~= nil then
+    if type(required_tasks) ~= "table" or GLOBAL.next(required_tasks) == nil then
         return
     end
 

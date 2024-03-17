@@ -207,10 +207,11 @@ function ModConfig:LoadBackendOverride(option)
         end
     end
 
+    --- @TODO: Do these checks somewhere else so it counts with commonconfig.lua overrides.
     -- If it's a required option then check if we have configured it.
-    if option.warn == true and option.saved == nil then
-        PEARL.warn("Option", option.name, "is not configured! Some functionality may not work.")
-    end
+    -- if option.warn == true and option.saved == nil then
+    --     PEARL.warn("Option", option.name, "is not configured! Some functionality may not work.")
+    -- end
 
     if option.experimental == true and (
             option.saved == true or
