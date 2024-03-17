@@ -52,6 +52,19 @@ function Container:GetRareItems()
     return items
 end
 
+function Container:GetItems()
+    local veryrare, items = false, {}
+    self:ForEachItem(function(item)
+        if item.components.inventoryitem:IsVeryRare() then
+            veryrare = true
+        end
+
+        items[#items+1] = item
+    end)
+
+    return items, veryrare
+end
+
 function Container:CountItem(prefab)
     local count = 0
 

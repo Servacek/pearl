@@ -258,9 +258,10 @@ function ModConfig:ApplyConfig(name, value, _loaded)
     end
 
     if type(value) == "table" then
-        for sub_name, sub_value in pairs(value) do
-            self:ApplyConfig(sub_name, sub_value, _loaded[name])
-        end
+        table.update(_loaded[name], value)
+        -- for sub_name, sub_value in pairs(value) do
+        --     self:ApplyConfig(sub_name, sub_value, _loaded[name])
+        -- end
     else
         _loaded[name] = value
     end

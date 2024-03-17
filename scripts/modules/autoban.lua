@@ -171,7 +171,6 @@ end
 -- [[ Limiters ]]
 --------------------------------------
 
---- @DEBUG
 PEARL.Reputation:AddDeltaLimiter(function(userid, rep, delta, limit)
     for _, threshold in ipairs(WARNING_THRESHOLDS) do
         if rep > threshold then

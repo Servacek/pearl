@@ -9,7 +9,6 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @DEBUG The discord feedback stuff needs some debugging...
 
 --[[
     Checks the content of an inventory when it's owner despawns.
@@ -432,7 +431,7 @@ local function OnInputProxyEvent(event)
 
     -- Not really needed
     -- local id = event.application_id
-    -- --- @TODO: /webhooks/{application.id}/{interaction.token}
+    -- /webhooks/{application.id}/{interaction.token}
     -- print(PEARL.HTTPClient:POST(
     --     ("https://discord.com/api/v10/webhooks/%s/%s"):format(
     --         id, event.interaction_token

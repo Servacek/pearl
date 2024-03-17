@@ -119,7 +119,7 @@ local function OnClientConnected(world, player)
     PEARL.DB:SafeSetField(player.userid, "lastjoinedtime", os.time())
     SaveSessionInfoFor(player.userid)
 
-    local client = TheNet:GetClientTableForUser(player.userid)
+    local client = player.userid and TheNet:GetClientTableForUser(player.userid)
     if not client or not client.name then
         return
     end

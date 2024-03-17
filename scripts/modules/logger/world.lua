@@ -205,7 +205,7 @@ local function OnClientDisconnected(userid, expected, reason, reason_title)
         reason = "ID_DST_DYNAMIC_REASON"
     end
 
-    local client = TheNet:GetClientTableForUser(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
     local name = client and client.name
     local pattern_spec = (type(name) ~= "string" or #name < 3) and "DISCONNECT_GENERIC" or
                     (type(reason) == "string" and #reason > 1) and "DISCONNECT_REASON" or

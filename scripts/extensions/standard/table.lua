@@ -371,14 +371,21 @@ function table.values(t)
 end
 
 -- For some reason this cannot be used as a method :/
-function table.dump(t, _i, _r)
+function table.dump(t, _i, _r, _visited)
     if type(t) ~= "table" then
         return print("Invalid table")
     end
 
-    -- if _r and _r >= MAX_RECURSIONS then
-    --     return print("...")
-    -- end
+    _visited = _visited or {}  -- Initialize visited tables set
+
+    -- Check if table has been visited
+    if _visited[t] then
+        print("Circular reference detected")
+        return
+    end
+
+    -- Add current table to visited set
+    _visited[t] = true
 
     if type(_i) ~= "number" then
         _i = nil
@@ -395,7 +402,7 @@ function table.dump(t, _i, _r)
         if type(v) == "table" then
             print(fm.."{")
             if _i < MAX_DUMP_LEVEL then
-                table.dump(v, _i + 1, _r)
+                table.dump(v, _i + 1, _r, _visited)
             else
                 print("...")
             end

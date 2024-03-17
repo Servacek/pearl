@@ -345,12 +345,19 @@ end
 
 --- @return string
 function PEARL.GetUserName(userid)
-    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
     return client and client.name or PEARL.DB:GetField(userid, "username", userid) or "UNKNOWN"
 end
 
-function PEARL.PrefabToName(prefab)
-    return STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
+--- @param prefab string
+--- @param stacksize number?
+function PEARL.PrefabToName(prefab, stacksize)
+    local name = STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
+    if stacksize  and stacksize > 1 then
+        return STRINGS.PEARL.LOGS.ITEM:format(stacksize, name)
+    end
+
+    return name
 end
 
 local TRUE = {

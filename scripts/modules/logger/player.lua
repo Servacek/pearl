@@ -250,6 +250,35 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         :AddTarget(target)
 end)
 
+RegisterActionHandler(ACTIONS.PICKUP, function(doer, target, item)
+    if not doer:HasTag("player") and not doer:HasTag("companion") and not doer:HasTag("storagerobot") then
+        local items
+        local veryrare = target.components.inventoryitem and target.components.inventoryitem:IsVeryRare()
+        if target.components.container then
+            items, veryrare = target.components.container:GetItems()
+        elseif target.components.unwrappable then
+            for _, itemdata in pairs(target.components.unwrappable.itemdata) do
+                if PEARL.GetRarityForPrefab(itemdata.prefab) >= 1 then
+                    veryrare = true
+                end
+
+                items = items or {}
+                items[#items+1] = PEARL.PrefabToName(itemdata.prefab, PEARL.GetStackSize(itemdata))
+            end
+        end
+
+        if not veryrare then
+            return -- Announce only very rare stuff being picked up by a mob to prevent spam.
+        end
+
+        local pt = items and STRINGS.PEARL.ACTIONS.TAKE_ITEM.WITH or STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC
+        AL:EntityAct(pt, doer, "source", target)
+            :SetLogType(PEARL.CONSTS.ANN_TYPE.TAKE)
+            :SetIsSilent(not veryrare)
+            :AddTargets(items or target)
+    end
+end)
+
 -- Track also mobs eating rare stuff.
 RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
     local food = item or target
@@ -289,6 +318,10 @@ RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
             local health_delta = doer.components.health.currenthealth - pre_health
             local actual = hunger_delta + sanity_delta + health_delta
             local waste = 1 - actual / max -- Max is always > 0
+            if rarity >= 1 then
+                waste = waste + 1
+            end
+
             if waste > MAX_WASTE_TOLERANCE then
                 atyp = PEARL.CONSTS.ANN_TYPE.SWALLOW
                 pt = STRINGS.PEARL.ACTIONS.EAT.FULL
@@ -296,8 +329,12 @@ RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
             end
         end
 
-        if rarity > 0 then
+        if doer.userid and rarity > 0 then
             Rep:EarnFor(doer.userid, REPUTATIONS.EAT_RARE * rarity, Rep.LIMIT.VERY_BAD)
+
+            if rarity >= 1 then
+                Rep:EarnFor(doer.userid, REPUTATIONS.EAT_VERY_RARE, Rep.LIMIT.WORST, "big_eater")
+            end
         end
 
         AL:EntityAct(pt, doer)
@@ -360,14 +397,14 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         -- This makes sure we only log when a base structure get's hammered.
         if not workable:HasBuilder() or workable:IsBuildBy(doer.userid) then
             silent = true
-            mult = .8
+            mult = .6
         end
 
         -- Ignore burned structures
-        if target:HasTag("burnt") then
+        if target:HasTag("burnt") or target:HasTag("wall") or not target:HasTag("structure") then
             silent = true
         else
-            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.WORST)
+            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.WORST, "destroyer")
         end
 
         local action
@@ -401,6 +438,16 @@ RegisterPlayerActionHandler(ACTIONS.READ, function(doer, target, item)
         :SetIsSilent(not prohibited)
         :AddTarget(item, 1)
 end)
+
+if ACTIONS.WAX then
+    RegisterPlayerActionHandler(ACTIONS.WAX, function(doer, target, item)
+        local pt = item and STRINGS.PEARL.ACTIONS.WAX.WITH or STRINGS.PEARL.ACTIONS.WAX.GENERIC
+        AL:EntityAct(pt, doer, "tool", item)
+            :SetIcon(PEARL.ICONS.BEEWAX)
+            :SetIsSilent(true)
+            :AddTarget(target)
+    end)
+end
 
 RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target, item)
     local thing = target or item
@@ -1230,7 +1277,7 @@ local function ontookrareitem(doer, item)
     AL:EntityAct(STRINGS.PEARL.ACTIONS.TAKE_ITEM.GENERIC, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.TAKE)
         :SetIsSilent(not veryrare)
-        :AddTarget(item:GetDisplayName())
+        :AddTarget(item)
 end
 
 local function ontookrarecontainer(doer, data)

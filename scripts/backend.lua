@@ -114,8 +114,9 @@ PEARL.SafeModTableExtend("CONSTS", {
         READ_OFFENSIVE_BOOK = -5,
         REPAIR_ITEM         = 1, -- For 100% repaired durability
         EAT_RARE            = -10, -- For 100% rarity
+        EAT_VERY_RARE       = -20,
         WASTE_FOOD          = -5, -- For 100% of foods nutrition wasted (> 50%)
-        HAMMER_STRUCTURE    = -7,
+        HAMMER_STRUCTURE    = -4,
         IGNITED_STRUCTURE   = -6, -- Per One Structure
         IGNITED_PLANT       = -3,
         IGNITED_ENTITY      = -1.5,
@@ -205,9 +206,9 @@ PEARL.info("Loading BE configurations...")
 --- Load backend specific configuration options.
 --- This has to be loaded here in order to run all the important checks.
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-    if not option.general and PEARL.CONFIG[option.name] == nil then
+    --if not option.general and PEARL.CONFIG[option.name] == nil then
         PEARL.ModConfig:LoadBackendOverride(option)
-    end
+    --end
 end
 
 --------------------------------

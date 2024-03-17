@@ -14,7 +14,9 @@
 
 -- Note: Prefer %s over %d because sometimes we want to format
 -- the number variables as a codeline.
---- @TODO: Maybe most of the markdown should be added here instead of dynamically.
+
+--- Maybe most of the markdown should be added here instead of dynamically.
+--- Probably not because it decreases flexibility...
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
@@ -85,6 +87,11 @@ local STRINGS = {
         READ = {
             GENERIC     = "{doer} read {target}.",
             NEAR        = "{doer} read {target} near {near}!",
+        },
+
+        WAX = {
+            GENERIC     = "{doer} waxed {target}.",
+            WITH        = "{doer} waxed {target} with {tool}.",
         },
 
         TEACH = {
@@ -679,7 +686,7 @@ local STRINGS = {
             VALUE_TOO_LOW = "The value of the parameter \"%s\" must be higher than or equal to %s!",
             VALUE_TOO_HIGH = "The value of the parameter \"%s\" must be lower than or equal to %s!",
             VALUE_TOO_SHORT = "The value of the parameter \"%s\" must be at least %s characters!",
-            VALUE_TOO_LONG = "The value of the parameter \"%s\" must be lower than or equal to %s!",
+            VALUE_TOO_LONG = "The value of the parameter \"%s\" must be at most %s characters!",
         },
 
         CMD_WARN = {

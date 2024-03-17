@@ -82,6 +82,8 @@ end
 
 --- @param action QueuedLogAction
 function ActionLog:QueueAction(action)
+    PEARL.debug("ActionLog:QueueAction")
+
     self._queue[action.pattern] = action
     self._queueindex[#self._queueindex+1] = action.pattern
 end
@@ -94,7 +96,7 @@ end
 
 --- @param action QueuedLogAction
 function ActionLog:LogAction(action)
-    PEARL.debug("ActionLog:LogAction")
+    PEARL.debug("ActionLog:LogAction", PEARL.CalledFrom())
     local index = self:GetQueuedActionIndex(action.pattern) or 1
     for i = 1, index do
         local queued = self._queue[self._queueindex[i]]

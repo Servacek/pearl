@@ -299,10 +299,9 @@ function ServerNetwork:BanUser(userid, seconds, reason, author)
             userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
         )
 
-        --- @DEBUG
-        -- PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
-        --     PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
-        -- )
+        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
+            PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
+        )
         return
     end
 
@@ -552,14 +551,14 @@ end
 -- Migration doesn't count here.
 -- True only from the JoinServerFilter/clientauthenticationcomplete -> ms_playerjoined
 function ServerNetwork:IsClientJoining(userid)
-    local client = TheNet:GetClientTableForUser(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
     return joining_clients[userid] == true and self:IsClientLoading(userid) and
         -- Ensures this is true only on initial join.
         client and client.prefab == "" and client.lobbycharacter == ""
 end
 
 function ServerNetwork:IsAdmin(userid)
-    local client = TheNet:GetClientTableForUser(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid)
     return client and client.admin == true or PEARL.AdminList:Contains(userid)
 end
 

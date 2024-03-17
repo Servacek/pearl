@@ -567,6 +567,8 @@ end
 ---@param silent? boolean Whether the announcement should be sent to game or not.
 ---@param icon? string The specific icon for silent announcements.
 function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
+    PEARL.debug("PEARL.AnnounceWithType", tp)
+
     tp = tp and string.lower(tp) or "default"
 
     local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true

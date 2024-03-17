@@ -56,7 +56,7 @@ local PlayerRecord = Class(function(self, userid, data)
     assert(type(data) == "table", "Invalid data provided!")
 
     rawset(self, "_data", data)
-    --- @TODO: See __newindex fn
+    --- See __newindex fn
     rawset(self, "_uptodate", false) --rawset(self, "_uptodate", true)
 
     self._data.userid = userid
@@ -178,7 +178,7 @@ function PlayerRecord:SetData(data)
 end
 
 function PlayerRecord:SetIsUpToDate(uptodate)
-    --- @TODO: See __newindex fn
+    --- See __newindex fn
     --self._uptodate = uptodate
 end
 

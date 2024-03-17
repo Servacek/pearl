@@ -120,9 +120,15 @@ function QueuedLogAction:AddTarget(target, stacksize, ...)
 end
 
 function QueuedLogAction:AddTargets(targets, ...)
+    if EntityScript.is_instance(targets) then
+        return self:AddTarget(targets, ...)
+    end
+
     for _, target in ipairs(targets) do
         self:AddTarget(target, ...)
     end
+
+    return self
 end
 
 --- @return QueuedLogAction

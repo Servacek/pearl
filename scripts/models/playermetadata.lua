@@ -239,7 +239,7 @@ end
 function PlayerMetadata:LoadPlayerData()
     local userid = self:GetUserID()
     -- Do not prefer the cached client table since it doesn't have to be up-to-date.
-    local client = TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
+    local client = userid and TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
     if client then
         self:SetName(client.name)
         self:SetAge(client.playerage)

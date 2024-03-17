@@ -269,7 +269,7 @@ end
 --- @param limit number?
 --- @param source any
 function Reputation:EarnFor(userid, amount, limit, source)
-    if PEARL.CONFIG.PERMISSIVE_MODE == true or amount == 0 then
+    if PEARL.CONFIG.PERMISSIVE_MODE == true or amount == 0 or not userid then
         return
     end
 
@@ -328,6 +328,8 @@ end
 
 -- So the constants are not hardcoded.
 function Reputation:LoadReputationTables()
+    PEARL.info("Loading reputation tables...")
+
     local ROOT_DIR = PEARL.ModPersistance:GetRootDirectoryPath()
     local REP_TABLES_PATH = ROOT_DIR.."/reputation_tables.json"
     local data = PEARL.ModPersistance:LoadDataFromFile(REP_TABLES_PATH, true)
@@ -336,6 +338,7 @@ function Reputation:LoadReputationTables()
             PEARL.CONSTS.REPUTATION_TABLES[k] = v
         end
     end
+
     PEARL.ModPersistance:SaveDataToFile(REP_TABLES_PATH, PEARL.CONSTS.REPUTATION_TABLES, true, false)
 end
 

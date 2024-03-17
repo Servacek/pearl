@@ -287,7 +287,7 @@ local function load_default_config()
             PEARL.DEFAULT_CONFIG[option.name] = option.default
 
             -- Make sure we always have at least the defaults.
-            PEARL.CONFIG[option.name] = type(option.default) and deepcopy(option.default) or option.default
+            PEARL.CONFIG[option.name] = deepcopy(option.default)
         end
     end
 end
@@ -479,7 +479,7 @@ if TheNet:GetIsServer() then
 end
 
 --------------------------------
--- [[ RPCS ]]
+-- [[ RPCs ]]
 --------------------------------
 
 PEARL.info("Loading RPC handlers...")

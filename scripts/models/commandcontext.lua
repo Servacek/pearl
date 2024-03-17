@@ -206,7 +206,6 @@ function CommandContext:ReplyDiscordMessage(message)
             request = PEARL.DiscordReporter:SendRawReportMessage(message)
         end
 
-        --- @DEBUG
         if request then
             request:AddOnComplete(function()
                 if request.ok then

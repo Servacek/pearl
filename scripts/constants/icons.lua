@@ -33,6 +33,7 @@ local ICONS = {
     UNSYNC = "<:disconnect:1030926979463135313>",
 
     TRASHCAN = "<:trashcan:1218550122082734170>",
+    BEEWAX = "<:beeswax:1218883727036383272>",
 
     ONLINE = ":green_circle:",
     OFFLINE = ":red_circle:",
