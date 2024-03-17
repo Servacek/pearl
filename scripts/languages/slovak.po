@@ -1,7 +1,17 @@
 msgid ""
 msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: sk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Application: Don't Starve Together\n"
 "POT Version: 2.0\n"
+"X-Generator: Poedit 3.4.2\n"
 
 #. STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.MOD_V
 msgctxt "STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.MOD_V"
@@ -190,8 +200,12 @@ msgstr "%s vyhodený/á z hry."
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_CLIENT"
-msgid "Catched exception on client (%s) %s:\n%s"
-msgstr "Zachytená výnimka klienta (%s) %s:\n%s"
+msgid ""
+"Catched exception on client (%s) %s:\n"
+"%s"
+msgstr ""
+"Zachytená výnimka klienta (%s) %s:\n"
+"%s"
 
 #. STRINGS.PEARL.UI.AGREEMENT_VERSION_LABEL
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_VERSION_LABEL"
@@ -205,8 +219,12 @@ msgstr "December"
 
 #. STRINGS.PEARL.LOGS.EXC_MOD_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_SERVER"
-msgid "Mod %s caused uncatched exception:\n%s"
-msgstr "Mod %s spôsobil výnimku:\n%s"
+msgid ""
+"Mod %s caused uncatched exception:\n"
+"%s"
+msgstr ""
+"Mod %s spôsobil výnimku:\n"
+"%s"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.ON_NOTFOUND"
@@ -555,8 +573,12 @@ msgstr "Proxy server bol úspešne spustený!"
 
 #. STRINGS.PEARL.LOGS.EXC_MOD_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_CLIENT"
-msgid "Mod %s caused uncatched exception on client (%s) %s:\n%s"
-msgstr "Mod %s spôsobil výnimku klienta (%s) %s:\n%s"
+msgid ""
+"Mod %s caused uncatched exception on client (%s) %s:\n"
+"%s"
+msgstr ""
+"Mod %s spôsobil výnimku klienta (%s) %s:\n"
+"%s"
 
 #. STRINGS.PEARL.ACTIONS.KILL.REMAINING
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.REMAINING"
@@ -605,8 +627,16 @@ msgstr "Počet slotov servera bol aktualizovaný."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT"
-msgid "#%s/#%s - %s:\nReputation: %s\nGains for today: %s\nGains for this month: %s"
-msgstr "#%s/#%s - %s:\nReputácia: %s\nDnešné zisky: %s\nZisky za posledný mesiac: %s"
+msgid ""
+"#%s/#%s - %s:\n"
+"Reputation: %s\n"
+"Gains for today: %s\n"
+"Gains for this month: %s"
+msgstr ""
+"#%s/#%s - %s:\n"
+"Reputácia: %s\n"
+"Dnešné zisky: %s\n"
+"Zisky za posledný mesiac: %s"
 
 #. STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLATFORM
 msgctxt "STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLATFORM"
@@ -655,8 +685,12 @@ msgstr "Dúfam, že hráš s priateľmi, alebo máš niečo na oživenie priprav
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_SERVER"
-msgid "Catched exception:\n%s"
-msgstr "Zachytená výnimka:\n%s"
+msgid ""
+"Catched exception:\n"
+"%s"
+msgstr ""
+"Zachytená výnimka:\n"
+"%s"
 
 #. STRINGS.PEARL.LOGS.DAYSBACK_AFTER
 msgctxt "STRINGS.PEARL.LOGS.DAYSBACK_AFTER"
@@ -730,8 +764,12 @@ msgstr ". Teraz je z neho desivý duch!"
 
 #. STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER
 msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER"
-msgid "View Emojis\n(Ctrl + %s)"
-msgstr "Zobraziť Smajlíky\n(Ctrl + %s)"
+msgid ""
+"View Emojis\n"
+"(Ctrl + %s)"
+msgstr ""
+"Zobraziť Smajlíky\n"
+"(Ctrl + %s)"
 
 #. STRINGS.PEARL.ACTIONS.DEPLOY.NEAR
 msgctxt "STRINGS.PEARL.ACTIONS.DEPLOY.NEAR"
@@ -890,8 +928,14 @@ msgstr "{doer} zasadil/a {target}."
 
 #. STRINGS.PEARL.EMBEDS.PROFILE.FD_VALUES.LAST_BAN
 msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.FD_VALUES.LAST_BAN"
-msgid "> `Author:` %s\n> `From:` %s\n> `Reason:` %s"
-msgstr "> `Autor:` %s\n> `Od:` %s\n> `Dôvod:` %s"
+msgid ""
+"> `Author:` %s\n"
+"> `From:` %s\n"
+"> `Reason:` %s"
+msgstr ""
+"> `Autor:` %s\n"
+"> `Od:` %s\n"
+"> `Dôvod:` %s"
 
 #. STRINGS.PEARL.LOGS.DAY
 msgctxt "STRINGS.PEARL.LOGS.DAY"
@@ -965,8 +1009,12 @@ msgstr "November"
 
 #. STRINGS.PEARL.LOGS.EXC_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_SERVER"
-msgid "Uncatched exception:\n%s"
-msgstr "Neočakávaná výnimka hry:\n%s"
+msgid ""
+"Uncatched exception:\n"
+"%s"
+msgstr ""
+"Neočakávaná výnimka hry:\n"
+"%s"
 
 #. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
 msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
@@ -1070,8 +1118,12 @@ msgstr "Vloží všetky item na zadanom zoznam do inventára hráča."
 
 #. STRINGS.PEARL.REPORTS.INVALID_RPC
 msgctxt "STRINGS.PEARL.REPORTS.INVALID_RPC"
-msgid "Received invalid RPC on shard `%s` from client `%s`:```lua\n%s```"
-msgstr "Doručené neplatné RPC na shard `%s` od hráča `%s`:```lua\n%s```"
+msgid ""
+"Received invalid RPC on shard `%s` from client `%s`:```lua\n"
+"%s```"
+msgstr ""
+"Doručené neplatné RPC na shard `%s` od hráča `%s`:```lua\n"
+"%s```"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS"
@@ -1180,8 +1232,12 @@ msgstr "{doer} pohnojil/a {target} s {item}."
 
 #. STRINGS.PEARL.LOGS.EXC_ENABLED_MODS
 msgctxt "STRINGS.PEARL.LOGS.EXC_ENABLED_MODS"
-msgid "Enabled Mods (%s):\n%s"
-msgstr "Aktívne Mody (%s):\n%s"
+msgid ""
+"Enabled Mods (%s):\n"
+"%s"
+msgstr ""
+"Aktívne Mody (%s):\n"
+"%s"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC"
@@ -1285,8 +1341,12 @@ msgstr "Server bude vrátený o %s záznam/y/ov späť."
 
 #. STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER
 msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER"
-msgid "Clear\n(Ctrl + X)"
-msgstr "Vymazať\n(Ctrl + X)"
+msgid ""
+"Clear\n"
+"(Ctrl + X)"
+msgstr ""
+"Vymazať\n"
+"(Ctrl + X)"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REVIVE.DESC"
@@ -1375,8 +1435,12 @@ msgstr "{doer} použil/a {item} na {target} pri {near}!"
 
 #. STRINGS.PEARL.LOGS.STATUS_CODE_REPORT
 msgctxt "STRINGS.PEARL.LOGS.STATUS_CODE_REPORT"
-msgid "STATUS_CODE -> %d:\n%s"
-msgstr "STATUS_CODE -> %d:\n%s"
+msgid ""
+"STATUS_CODE -> %d:\n"
+"%s"
+msgstr ""
+"STATUS_CODE -> %d:\n"
+"%s"
 
 #. STRINGS.PEARL.LOGS.MIGRATING
 msgctxt "STRINGS.PEARL.LOGS.MIGRATING"
@@ -1495,8 +1559,12 @@ msgstr "Po prvý krát prišiel/a %s! Radi ťa tu vidíme."
 
 #. STRINGS.PEARL.LOGS.EXC_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_SHARD"
-msgid "Uncatched exception on shard %s:\n%s"
-msgstr "Neočakávaná výnimka hry shardu %s:\n%s"
+msgid ""
+"Uncatched exception on shard %s:\n"
+"%s"
+msgstr ""
+"Neočakávaná výnimka hry shardu %s:\n"
+"%s"
 
 #. STRINGS.PEARL.LOGS.GAME_LOADED
 msgctxt "STRINGS.PEARL.LOGS.GAME_LOADED"
@@ -1630,8 +1698,12 @@ msgstr "Dočasne vypne/zapne všetky penalizácie a odmeny pre hráčov servera.
 
 #. STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY
 msgctxt "STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY"
-msgid "You are alone here but surviving is much more fun in multiple people!\nDo not hesitate to invite your friends!"
-msgstr "Ste tu sami ale prežívanie je zábavnejšie v partii!\nNeváhajte zavolať svojich priateľov a známych na pomoc!"
+msgid ""
+"You are alone here but surviving is much more fun in multiple people!\n"
+"Do not hesitate to invite your friends!"
+msgstr ""
+"Ste tu sami ale prežívanie je zábavnejšie v partii!\n"
+"Neváhajte zavolať svojich priateľov a známych na pomoc!"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.DESC"
@@ -1795,8 +1867,14 @@ msgstr "Skoré"
 
 #. STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY_DISCORD
 msgctxt "STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY_DISCORD"
-msgid "You are alone here but surviving is much more fun in multiple people!\nDo not hesitate to invite your friends or visit our Discod community\nto find some people to play with!"
-msgstr "Ste tu sami ale prežívanie je zábavnejšie v partii!\nNeváhajte zavolať svojich priateľov alebo hráčov z našej Discord komunity\nna pomoc!"
+msgid ""
+"You are alone here but surviving is much more fun in multiple people!\n"
+"Do not hesitate to invite your friends or visit our Discod community\n"
+"to find some people to play with!"
+msgstr ""
+"Ste tu sami ale prežívanie je zábavnejšie v partii!\n"
+"Neváhajte zavolať svojich priateľov alebo hráčov z našej Discord komunity\n"
+"na pomoc!"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.NOT_FOUND
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.LEADERBOARD.NOT_FOUND"
@@ -1875,8 +1953,12 @@ msgstr "`Do:` %s"
 
 #. STRINGS.PEARL.LOGS.AUTO_UPDATE_SECOND
 msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_SECOND"
-msgid "Server will be automatically updated in 15 seconds.\nAll your progress will remain untouched. Don't forget to update your game as well :)"
-msgstr "Server bude automaticky aktualizovaný o 15 sekúnd.\nVšetok progres bude zachovaný. Nezabudnite si aktualizovať aj vašu hru :)"
+msgid ""
+"Server will be automatically updated in 15 seconds.\n"
+"All your progress will remain untouched. Don't forget to update your game as well :)"
+msgstr ""
+"Server bude automaticky aktualizovaný o 15 sekúnd.\n"
+"Všetok progres bude zachovaný. Nezabudnite si aktualizovať aj vašu hru :)"
 
 #. STRINGS.PEARL.LOGS.REPAIR_NEAR_ALL
 msgctxt "STRINGS.PEARL.LOGS.REPAIR_NEAR_ALL"
@@ -2120,8 +2202,14 @@ msgstr "lunárne krupobitie"
 
 #. STRINGS.PEARL.LOGS.CONSOLE_CMD
 msgctxt "STRINGS.PEARL.LOGS.CONSOLE_CMD"
-msgid "`%s executed remote command:`\n```lua\n%s```"
-msgstr "`%s použil/a príkaz v konzole:`\n```lua\n%s```"
+msgid ""
+"`%s executed remote command:`\n"
+"```lua\n"
+"%s```"
+msgstr ""
+"`%s použil/a príkaz v konzole:`\n"
+"```lua\n"
+"%s```"
 
 #. STRINGS.PEARL.ACTIONS.HAMMER.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.HAMMER.GENERIC"
@@ -2200,8 +2288,12 @@ msgstr "Neplatný prefab itemu!"
 
 #. STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST
 msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST"
-msgid "Server's version is outdated, new players aren't able to connect.\nIt will be automatically updated in %s minute(s)."
-msgstr "Verzia servera je zastaralá, nový hráči sa nebudú môcť pripojiť.\nServer bude automaticky aktualizovaný o %s minút(y/u)."
+msgid ""
+"Server's version is outdated, new players aren't able to connect.\n"
+"It will be automatically updated in %s minute(s)."
+msgstr ""
+"Verzia servera je zastaralá, nový hráči sa nebudú môcť pripojiť.\n"
+"Server bude automaticky aktualizovaný o %s minút(y/u)."
 
 #. STRINGS.PEARL.MONTHS.5
 msgctxt "STRINGS.PEARL.MONTHS.5"
@@ -2405,8 +2497,12 @@ msgstr "{doer} položil/a {item}!"
 
 #. STRINGS.PEARL.LOGS.EXC_SELF_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SHARD"
-msgid "Caused uncatched exception on shard %s:\n%s"
-msgstr "Neočakávaná výnimka modifikácie shardu %s:\n%s"
+msgid ""
+"Caused uncatched exception on shard %s:\n"
+"%s"
+msgstr ""
+"Neočakávaná výnimka modifikácie shardu %s:\n"
+"%s"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT"
@@ -2426,7 +2522,9 @@ msgstr "Pozastavenie servera bolo zrušené."
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DAYSBACK.DESC"
 msgid ""
-msgstr "Vráti server späť o zadaný počet dní namiesto snapshotov.\nZmeny v aktuálnom snapshote budú zahodené!"
+msgstr ""
+"Vráti server späť o zadaný počet dní namiesto snapshotov.\n"
+"Zmeny v aktuálnom snapshote budú zahodené!"
 
 #. STRINGS.PEARL.ACTIONS.KILL.BOSS_DOERS
 msgctxt "STRINGS.PEARL.ACTIONS.KILL.BOSS_DOERS"
@@ -2475,7 +2573,9 @@ msgstr "Pomoc s Príkazmi"
 
 #. STRINGS.PEARL.LOGS.EXC_SELF_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SERVER"
-msgid "Caused uncatched exception:\n%s"
+msgid ""
+"Caused uncatched exception:\n"
+"%s"
 msgstr "Systém spôsobil neočakávanú výnimku: %s"
 
 #. STRINGS.PEARL.COMMAND_RESPONSES.INVALID
@@ -2645,8 +2745,12 @@ msgstr "{doer} rozbil/a {target}! Majiteľ: {owner}"
 
 #. STRINGS.PEARL.EMBEDS.PROFILE.MOD_NOTE
 msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.MOD_NOTE"
-msgid "**Staff Note**\n```%s```"
-msgstr "**Moderátorská Poznámka**\n```%s```"
+msgid ""
+"**Staff Note**\n"
+"```%s```"
+msgstr ""
+"**Moderátorská Poznámka**\n"
+"```%s```"
 
 #. STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_BODY
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_BODY"
@@ -2790,8 +2894,12 @@ msgstr "Hodnota parametru \"%s\" môže obsahovať najviac %s znakov!"
 
 #. STRINGS.PEARL.LOGS.EXC_SELF_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_CLIENT"
-msgid "Caused uncatched exception on client (%s) %s:\n%s"
-msgstr "Neočakávaná výnimka modifikácie klienta (%s) %s:\n%s"
+msgid ""
+"Caused uncatched exception on client (%s) %s:\n"
+"%s"
+msgstr ""
+"Neočakávaná výnimka modifikácie klienta (%s) %s:\n"
+"%s"
 
 #. STRINGS.PEARL.ACTIONS.PLANT.IN
 msgctxt "STRINGS.PEARL.ACTIONS.PLANT.IN"
@@ -2900,8 +3008,12 @@ msgstr "Inventár hráča bol odoslaný na discord."
 
 #. STRINGS.PEARL.LOGS.EXC_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_CLIENT"
-msgid "Uncatched exception on client (%s) %s:\n%s"
-msgstr "Neočakávaná výnimka hráča (%s) %s:\n%s"
+msgid ""
+"Uncatched exception on client (%s) %s:\n"
+"%s"
+msgstr ""
+"Neočakávaná výnimka hráča (%s) %s:\n"
+"%s"
 
 #. STRINGS.PEARL.UI.CONNECTION_FAILED
 msgctxt "STRINGS.PEARL.UI.CONNECTION_FAILED"
@@ -3150,8 +3262,12 @@ msgstr "{doer} uvaril/a {target}!"
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING"
-msgid "In order to use this command you need to pair your account! Lern more at:\n%s"
-msgstr "Tento príkaz vyžaduje prepojenie herného účtu s účtom discord. Pre viac informácií navštívte:\n%s"
+msgid ""
+"In order to use this command you need to pair your account! Lern more at:\n"
+"%s"
+msgstr ""
+"Tento príkaz vyžaduje prepojenie herného účtu s účtom discord. Pre viac informácií navštívte:\n"
+"%s"
 
 #. STRINGS.PEARL.LOGS.SPAWN_AT
 msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT"
@@ -3186,7 +3302,9 @@ msgstr "Pozastavné"
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.ON_SUCCESS"
 msgid "Mod added to the blocklist."
-msgstr "Mod bol pridaný do zoznamu blokovaných.\nNeprivilegovaný hráči ho po reštartovaní servera už nebudú môcť používať."
+msgstr ""
+"Mod bol pridaný do zoznamu blokovaných.\n"
+"Neprivilegovaný hráči ho po reštartovaní servera už nebudú môcť používať."
 
 #. STRINGS.PEARL.UI.BLOCKED
 msgctxt "STRINGS.PEARL.UI.BLOCKED"
@@ -3205,8 +3323,12 @@ msgstr "{doer} použil/a {item} na {target}! Majiteľ: {owner}"
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD"
-msgid "Catched exception on shard %s:\n%s"
-msgstr "Zachytená výnimka shardu %s:\n%s"
+msgid ""
+"Catched exception on shard %s:\n"
+"%s"
+msgstr ""
+"Zachytená výnimka shardu %s:\n"
+"%s"
 
 #. STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO
 msgctxt "STRINGS.PEARL.UI.STATIC_BAN_REASONS.AUTO"
@@ -3275,8 +3397,12 @@ msgstr "Uloží aktuálny progres sveta."
 
 #. STRINGS.PEARL.LOGS.STEAM_LOCALE_MISMATCH
 msgctxt "STRINGS.PEARL.LOGS.STEAM_LOCALE_MISMATCH"
-msgid "Mismatch between the IP locale (`%s`) and the locale set on Steam Profile (`%s`) for user %s.\nMaybe they are using a VPN?"
-msgstr "Lokácia podľa IP adresy (`%s`) a lokácia uvedené na profile služby Steam (`%s`) sa nezhodujú pre hráča %s\nMožno používa VPN?"
+msgid ""
+"Mismatch between the IP locale (`%s`) and the locale set on Steam Profile (`%s`) for user %s.\n"
+"Maybe they are using a VPN?"
+msgstr ""
+"Lokácia podľa IP adresy (`%s`) a lokácia uvedené na profile služby Steam (`%s`) sa nezhodujú pre hráča %s\n"
+"Možno používa VPN?"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS"
@@ -3365,8 +3491,12 @@ msgstr "Pozastavili ste hru."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_RARITY.ON_DISABLED
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_RARITY.ON_DISABLED"
-msgid "The Inventory Reporter module is disabled!\nYou need to enable it in the settings in order to use this command."
-msgstr "Modul na hlásenie inventárov je vypnutý!\n\vPre správne fungovanie tohto príkazu ho prosím zapnite v nastavaniach modifikácie."
+msgid ""
+"The Inventory Reporter module is disabled!\n"
+"You need to enable it in the settings in order to use this command."
+msgstr ""
+"Modul na hlásenie inventárov je vypnutý!\n"
+"\vPre správne fungovanie tohto príkazu ho prosím zapnite v nastavaniach modifikácie."
 
 #. STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTETITLEFMT
 msgctxt "STRINGS.UI.BUILTINCOMMANDS.REGENERATE.VOTETITLEFMT"
@@ -3405,12 +3535,18 @@ msgstr "Mesiac"
 
 #. STRINGS.PEARL.LOGS.SERVER_REPORT
 msgctxt "STRINGS.PEARL.LOGS.SERVER_REPORT"
-msgid "**<@&%s> Server Report:\n**```%s```"
-msgstr "**<@&%s> Hlásenie Servera:\n**```%s```"
+msgid ""
+"**<@&%s> Server Report:\n"
+"**```%s```"
+msgstr ""
+"**<@&%s> Hlásenie Servera:\n"
+"**```%s```"
 
 #. STRINGS.PEARL.LOGS.HTTP_ERROR
 msgctxt "STRINGS.PEARL.LOGS.HTTP_ERROR"
-msgid "HTTP Error status code on shard %s:\n%s"
+msgid ""
+"HTTP Error status code on shard %s:\n"
+"%s"
 msgstr "Chybový kód odpovede protokolu HTTP pre shard %s: %s"
 
 #. STRINGS.UI.HUD.DEATH_ANNOUNCEMENT_1
@@ -3450,8 +3586,12 @@ msgstr "Vráti zadaný item alebo celý inventára do základne."
 
 #. STRINGS.PEARL.LOGS.EXC_MOD_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_SHARD"
-msgid "Mod %s caused uncatched exception on shard %s:\n%s"
-msgstr "Mod %s spôsobil výnimku shardu %s:\n%s"
+msgid ""
+"Mod %s caused uncatched exception on shard %s:\n"
+"%s"
+msgstr ""
+"Mod %s spôsobil výnimku shardu %s:\n"
+"%s"
 
 #. STRINGS.PEARL.EMBEDS.PROFILE.PLAYING
 msgctxt "STRINGS.PEARL.EMBEDS.PROFILE.PLAYING"
@@ -3576,12 +3716,12 @@ msgstr ""
 #. STRINGS.PEARL.ACTIONS.WAX.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.WAX.GENERIC"
 msgid "{doer} waxed {target}."
-msgstr ""
+msgstr "{doer} navoskoval/a {target}."
 
 #. STRINGS.PEARL.ACTIONS.WAX.WITH
 msgctxt "STRINGS.PEARL.ACTIONS.WAX.WITH"
 msgid "{doer} waxed {target} with {tool}."
-msgstr ""
+msgstr "{doer} navoskoval/a {target} pomocou {tool}."
 
 #. STRINGS.PEARL.POSITION
 msgctxt "STRINGS.PEARL.POSITION"
@@ -3750,7 +3890,7 @@ msgstr ""
 
 #. STRINGS.PEARL.LOGS.INV_REPORT_ITEM_RARE
 msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM_RARE"
-msgid "**%dx	%s (\"%s\")**"
+msgid "**%dx\t%s (\"%s\")**"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.TAG
@@ -3790,7 +3930,7 @@ msgstr ""
 
 #. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
 msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
-msgid "`%dx`	%s				`%s`"
+msgid "`%dx`\t%s\t\t\t\t`%s`"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.ITEM
@@ -3810,7 +3950,9 @@ msgstr ""
 
 #. STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF
 msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF"
-msgid "The error was reported to the server owner.\nWe will make sure to take a look into it!"
+msgid ""
+"The error was reported to the server owner.\n"
+"We will make sure to take a look into it!"
 msgstr ""
 
 #. STRINGS.PEARL.UI.MODS_BLOCKED_TITLE
@@ -3852,4 +3994,3 @@ msgstr ""
 msgctxt "STRINGS.PEARL.UI.ONLINE"
 msgid "Online"
 msgstr ""
-
