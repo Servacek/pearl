@@ -986,7 +986,7 @@ configuration_options = {
         implicit = true,
     },
 
-    {
+    { --- @TODO: Look into this why it is nil on clients.
         name="CUSTOM_LOADING_TIPS_DATA",
         default = {},
         type = "table",

@@ -98,9 +98,9 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     if option.public == true then
         -- No ZIPing in debug mode.
         if option.zip and type(PEARL.CONFIG[option.name]) == "string" and not PEARL.CONFIG.DEBUG_MODE then
-            PEARL.CONFIG[option.name] = UnzipConfigData(option)
+            PEARL.CONFIG[option.name] = UnzipConfigData(option) or PEARL.CONFIG[option.name]
         else
-            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name) or PEARL.CONFIG[option.name]
         end
     end
 end

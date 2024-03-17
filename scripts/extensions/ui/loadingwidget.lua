@@ -32,6 +32,7 @@ local CUSTOM_LOADING_IMAGES = {
     "space",
 }
 
+local CUSTOM_LOADING_TIPS_ENABLED = table.empty(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == false
 local CUSTOM_LOADING_TIPS = {}
 local CUSTOM_DISCONNECT_TIPS = {
     ["ID_DST_SERVER_CRASHED"] = {STRINGS.PEARL.UI.LOADING_ERROR, LT_TYPES.CONTROLS},
@@ -70,7 +71,7 @@ end
 local function GetWelcomeLoadingTips()
     local tips = {}
 
-    for i, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
+    for _, lt in ipairs(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) do
         lt.type = lt.type and string.upper(lt.type)
 
         if lt.type == LT_TYPES.WELCOME then
@@ -224,12 +225,13 @@ local function ShowIntroMovie(self, movie_path)
     PEARL.ClientLoader:AddDeferant("intromovie")
 end
 
-PEARL.AddClassPreConstruct("widgets/redux/loadingwidget", nil, function(self, ...)
-    if TheLoadingTips and PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
-        PEARL.info("Overriding the loading tip picker...")
-        PEARL.OverrideValue(TheLoadingTips, "PickLoadingTip", OverrideLoadingTipPicker)
+local function ShowWelcomeLoadingTip(self)
+    local welcome_tips = GetWelcomeLoadingTips()
+    local loading_tip = welcome_tips[math.random(#welcome_tips)]
+    if loading_tip then
+        self:SetLoadingTip(loading_tip.text, loading_tip.type)
     end
-end)
+end
 
 --- We have some additional functionality here aside from the custom images
 --- so this should be loaded always.
@@ -270,10 +272,8 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function()
 
         -- Show nice welcome loading tips for newcomers.
         if PEARL.ClientNetwork:JoinedFirstTime() then
-            local welcome_tips = GetWelcomeLoadingTips()
-            local loading_tip = welcome_tips[math.random(#welcome_tips)]
-            if loading_tip then
-                self:SetLoadingTip(loading_tip.text, loading_tip.type)
+            if CUSTOM_LOADING_TIPS_ENABLED then
+                ShowWelcomeLoadingTip(self)
             end
 
             -- Also show our custom loading screen if provided
@@ -329,6 +329,13 @@ SetLoadingTipCategoryIcon(
     <controltipdata> is a table containing input control bindings to be used in the tip string. Refer to LOADING_SCREEN_CONTROL_TIP_KEYS in constants.lua and LOADING_SCREEN_CONTROL_TIPS in strings.lua for an example usage.
 ]]
 -- Loading screen tips setup
-if type(PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA) == "table" and #PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA > 0 then
+if CUSTOM_LOADING_TIPS_ENABLED then
+    PEARL.AddClassPreConstruct("widgets/redux/loadingwidget", nil, function(self, ...)
+        if TheLoadingTips and PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA and PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
+            PEARL.info("Overriding the loading tip picker...")
+            PEARL.OverrideValue(TheLoadingTips, "PickLoadingTip", OverrideLoadingTipPicker)
+        end
+    end)
+
     LoadCustomTips()
 end

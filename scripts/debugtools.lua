@@ -840,26 +840,6 @@ end
 -- [[ Stack Debuging ]]
 --------------------------------
 
-local function getfiltersource(src)
-    return (src == nil and "[?]")
-        or (src:sub(1, 1) == "@" and src:sub(2))
-        or src
-end
-
-local function getformatinfo(info)
-    return info ~= nil
-        and string.format("@%s%s in %s",
-                getfiltersource(info.source),
-                info.currentline ~= nil and (":"..info.currentline) or "",
-                info.name or "?")
-        or "**error**"
-end
-
-function PEARL.CalledFrom(level)
-    local info = debug.getinfo(level or 3)
-    return getformatinfo(info)
-end
-
 local charset = "%d%a"
 function PEARL.GenerateRandomKleiID()
     return "KU_"..string.random(8, charset)
