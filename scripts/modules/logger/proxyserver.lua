@@ -12,15 +12,27 @@
 
 
 --------------------------------
+-- [[ Local Variables ]]
+--------------------------------
+
+local running, unreachable = false, false
+
+--------------------------------
 -- [[ Event Handlers ]]
 --------------------------------
 
 local function OnProxyServerStart()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
+    if not running then
+        running = true
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
+    end
 end
 
 local function OnProxyServerStop()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
+    if running then
+        running = false
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
+    end
 end
 
 local function OnProxyServerRestarted()
@@ -32,7 +44,6 @@ local function OnProxyServerError()
     PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR)
 end
 
-local unreachable = false
 local function OnProxyServerUnreachable()
     if not unreachable then
         unreachable = true

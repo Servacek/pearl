@@ -35,6 +35,17 @@ function io.line(fp)
     return f and f:close() and line or ""
 end
 
+function io.empty(fp)
+    local empty
+    local f = io.open(fp, "r")
+    if f then
+        empty = f:read("*a") == ""
+        f:close()
+    end
+
+    return empty
+end
+
 -- True when successfully created.
 function io.ensure(fp, init_txt)
     return not io.exists(fp) and io.create(fp, init_txt)

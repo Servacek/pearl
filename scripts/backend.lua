@@ -186,8 +186,6 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     SERVER_TOKEN_PATH           = "../../cluster_token.txt",
 
-    UGC_MODS_FOLDER = "../../../workshop/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID),
-
     ------------------------------------
 
     KLEI_ID_PATTERN     = "KU_"..string.rep("[%d%a%p]", 8),
@@ -263,12 +261,12 @@ if PEARL.CONFIG.INTRO_SCREEN then
     PEARL.CONFIG.WELCOME_POPUP_CONTENT = ParseTxt("welcome.txt", true, false)
 
     if type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) then
-        PEARL.warn("The body and content for the agreement screen are not setuped!")
+        PEARL.warn("The body and content for the agreement screen are not set!")
         PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = nil
     end
 
     if type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.WELCOME_POPUP_CONTENT) then
-        PEARL.warn("The body and content for the welcome popup are not setuped!")
+        PEARL.warn("The body and content for the welcome popup are not set!")
         PEARL.CONFIG.WELCOME_POPUP_CONTENT = nil
     end
 end

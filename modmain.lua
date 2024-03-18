@@ -130,11 +130,11 @@ setupenv()
 GLOBAL.PEARL = setmetatable({
     -- expose these to all the components
 
-    ROOTDIR             = MODROOT,
     SRCDIR              = MODROOT.."scripts/",
     DATADIR             = MODROOT.."data/",
 
     BANNER_PATH         = "banner.txt",
+    COMMONCONFIG_PATH   = "../../commonconfig.lua",
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
@@ -270,7 +270,7 @@ end
 -- [[ Banner ]]
 --------------------------------
 
-local bf = io.open(PEARL.ROOTDIR..""..PEARL.BANNER_PATH, "r")
+local bf = io.open(MODROOT..""..PEARL.BANNER_PATH, "r")
 if bf then
     print("\n"..bf:read("*a"))
 end
@@ -316,6 +316,66 @@ local function load_config_overrides()
 end
 
 load_config_overrides()
+
+--------------------------------
+-- [[ FileLoader ]]
+--------------------------------
+
+local loaders = require("libraries/loaders/fileloaders")
+
+--- Check the validity of the loaders
+for name, loader in pairs(loaders) do
+    if type(loader) ~= "function" then
+        return error("Failed to load "..name.."! "..tostring(PEARL.loader))
+    end
+
+    if PEARL[name] ~= nil and PEARL.CONFIG.DEBUG_MODE then
+        error("Loader "..name.." already exists in the namespace table?!")
+    end
+end
+
+--- Adding it manually here instead of the loop for autocomplete to be smarter.
+PEARL.loadfilefn    = loaders.loadfilefn
+PEARL.loadfile      = loaders.loadfile
+PEARL.loadlib       = loaders.loadlib
+
+--------------------------------
+-- [[ Standard Libs ]]
+--------------------------------
+
+PEARL.loadfile("extensions/standard/basic")
+PEARL.loadfile("extensions/standard/table")
+PEARL.loadfile("extensions/standard/math")
+PEARL.loadfile("extensions/standard/io")
+PEARL.loadfile("extensions/standard/string")
+PEARL.loadfile("extensions/standard/os")
+PEARL.loadfile("extensions/standard/debug")
+
+PEARL.loadfile("extensions/json")
+
+--------------------------------
+-- [[ Persistance Libs ]]
+--------------------------------
+
+--- This has to load this soon because some of the following files use it.
+--- @class ClusterPersistance
+PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance/clusterio")
+
+--- @class ModPersistance
+PEARL.ModPersistance = PEARL.loadlib("wrappers/persistance/modio")
+
+--------------------------------
+-- [[ Common Config ]]
+--------------------------------
+
+-- This has to be loaded before we start to use the configurations.
+-- Also it requires ClusterPersistance
+if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
+    local configs = PEARL.ModConfig:LoadCommmonConfig()
+    if type(configs) == "table" then
+        PEARL.ModConfig:ApplyConfigs(configs)
+    end
+end
 
 --------------------------------
 -- [[ General Mod Constants]]
@@ -364,77 +424,26 @@ PEARL.CONSTS = {
         --- Custom
         WELCOME     = "WELCOME",
     },
-
-    COMMON_CONFIG_PATH = "../../commonconfig.lua",
 }
 
---------------------------------
--- [[ FileLoader ]]
---------------------------------
-
-local loaders = require("libraries/loaders/fileloaders")
-
---- Check the validity of the loaders
-for name, loader in pairs(loaders) do
-    if type(loader) ~= "function" then
-        return error("Failed to load "..name.."! "..tostring(PEARL.loader))
-    end
-
-    if PEARL[name] ~= nil and PEARL.DEBUG_MODE then
-        error("Loader "..name.." already exists in the namespace table?!")
-    end
+local FOLDERS = PEARL.CONFIG.SERVER_FOLDERS
+if TheNet:IsDedicated() then
+    PEARL.UGC_MODS_FOLDER = "../"..FOLDERS.UGC_MODS_ROOT.."/"..FOLDERS.CLUSTER.."/"..FOLDERS.SHARD.."/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID)
+else
+    PEARL.UGC_MODS_FOLDER = "../../../workshop/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID)
 end
 
---- Adding it manually here instead of the loop for autocomplete to be smarter.
-PEARL.loadfilefn    = loaders.loadfilefn
-PEARL.loadfile      = loaders.loadfile
-PEARL.loadlib       = loaders.loadlib
-
---------------------------------
--- [[ Standard Libs ]]
---------------------------------
-
-PEARL.loadfile("extensions/standard/basic")
-PEARL.loadfile("extensions/standard/table")
-PEARL.loadfile("extensions/standard/math")
-PEARL.loadfile("extensions/standard/io")
-PEARL.loadfile("extensions/standard/string")
-PEARL.loadfile("extensions/standard/os")
-PEARL.loadfile("extensions/standard/debug")
-
-PEARL.loadfile("extensions/json")
+--- No need for any type of such conversion since this is already done by the IO handlers.
+-- if PEARL.IS_WORKSHOP then
+--     MODROOT = PEARL.UGC_MODS_FOLDER
+-- end
 
 --------------------------------
 -- [[ Logging ]]
 --------------------------------
 
+--- Even logging uses configurations!
 PEARL.loadfile("extensions/logging")
-
---------------------------------
--- [[ Persistance Libs ]]
---------------------------------
-
---- This has to load this soon because some of the following files use it.
---- @class ClusterPersistance
-PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance/clusterio")
-
---- @class ModPersistance
-PEARL.ModPersistance = PEARL.loadlib("wrappers/persistance/modio")
-
---------------------------------
--- [[ Common Config ]]
---------------------------------
-
--- This has to be loaded before we start to use the configurations.
--- Also it requires ClusterPersistance
-if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
-    PEARL.info("Loading commonconfig...")
-
-    local configs = PEARL.ModConfig:LoadCommmonConfig()
-    if type(configs) == "table" then
-        PEARL.ModConfig:ApplyConfigs(configs)
-    end
-end
 
 ----------------------------------
 -- [[ Static Scheduler ]]
@@ -633,9 +642,9 @@ if PEARL.CONFIG.DEBUG_MODE then
 
         --- @NOTE: DoReload doesn't really affect these...
         --- Maybe this would require some further investigation
-        local modmain_fp = PEARL.ROOTDIR.."modmain.lua"
+        local modmain_fp = MODROOT.."modmain.lua"
         local modmain_ft = TheSim:GetFileModificationTime(modmain_fp)
-        local worldgenmain_fp = PEARL.ROOTDIR.."modworldgenmain.lua"
+        local worldgenmain_fp = MODROOT.."modworldgenmain.lua"
         local worldgenmain_tp = TheSim:GetFileModificationTime(modmain_fp)
         RequiredFilesForReload[modmain_fp] = modmain_ft
         RequiredFilesForReload[worldgenmain_fp] = worldgenmain_tp

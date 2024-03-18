@@ -139,6 +139,7 @@ end
 
 -- We should keep this file open until the program ends.
 if PEARL.CONFIG.LOGGING.DEBUG_FILE and ENABLED and TheNet:IsDedicated() then
+    PEARL.debug("Loading debug log file...")
     local rfile = io.open(DEBUG_FILE_PATH, "r")
     if rfile then
         _debug_file_content = (rfile and rfile:read("*a") or _debug_file_content):rtake(MAX_DEBUG_FILE_LEN)

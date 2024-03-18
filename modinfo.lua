@@ -117,20 +117,19 @@ configuration_options = {
         }
     },
 
-    -- --------------------
-    -- -- Folders
-    -- --------------------
+    --------------------
+    -- Folders
+    --------------------
 
-    -- {
-    --     name = "SERVER_FOLDERS",
-    --     default = {
-    --         SERVER_FOLDERS = {
-    --             CLUSTER = "MyDediServer",
-    --             SHARD = "Master",
-    --         },
-    --     },
-    --     type = "table<string, string?>"
-    -- },
+    {
+        name = "SERVER_FOLDERS",
+        default = {
+            CLUSTER = "MyDediServer",
+            SHARD = "Master",
+            UGC_MODS_ROOT = "ugc_mods",
+        },
+        type = "table<string, string?>"
+    },
 
     --------------------
     -- Social Links

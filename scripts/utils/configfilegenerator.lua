@@ -10,7 +10,7 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-local FILE_PATH = PEARL.ROOTDIR..PEARL.DATA_DIR_NAME.."/modoverrides.lua"
+local FILE_PATH = MODROOT..PEARL.DATA_DIR_NAME.."/modoverrides.lua"
 
 local function options_string(options)
     return options and table.concat(options, ", ") or ""

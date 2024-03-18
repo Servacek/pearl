@@ -29,7 +29,7 @@ local PEARL = PEARL
 
 return function(ifile, ofile)
     -- Search for the file in the local data directory
-    local rfile = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..ifile, "r")
+    local rfile = io.open(MODROOT..""..PEARL.DATA_DIR_NAME.."/"..ifile, "r")
     if not rfile then
         return PEARL.error("File not found!")
     end

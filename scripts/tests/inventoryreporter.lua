@@ -55,12 +55,12 @@ local function CreateThief(inventory)
 end
 
 function SusInv()
-    local rfile, success = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/d_inventories.txt", "r")
+    local rfile, success = io.open(MODROOT..""..PEARL.DATA_DIR_NAME.."/d_inventories.txt", "r")
     if not rfile then
         return PEARL.error("Failed to open the inventories file!", success)
     end
 
-    local wfile, success = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/d_result.txt", "w")
+    local wfile, success = io.open(MODROOT..""..PEARL.DATA_DIR_NAME.."/d_result.txt", "w")
     if not wfile then
         return PEARL.error("Failed to open the result file!", success)
     end

@@ -99,7 +99,7 @@ end
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return boolean
 function DB:HasRecordFile(userid)
-    return userid and io.exists(self:GetRecordFilePathFor(userid))
+    return userid and io.empty(self:GetRecordFilePathFor(userid)) == false
 end
 
 --- Supports Steam ID as well as Klei ID.
@@ -251,15 +251,23 @@ function DB:CreateRecordFile(userid)
         return PEARL.error("Record file for", userid, "already exists...")
     end
 
-    PEARL.debug("Creating database record for", userid)
+    local cached_record = self:GetRecordFor(userid)
+    if cached_record then
+        PEARL.error("Record cached but no valid file exists! Creating one...")
+        self:SaveRecordFor(userid, cached_record)
+        return
+    end
+
+    PEARL.info("Creating database record for", userid)
 
     local record = Record.New(userid)
-    if type(record) ~= "table" or not self:CacheRecord(userid, record) then
+    if type(record) ~= "table" then
         return PEARL.error("Failed to create record for", userid)
     end
 
     -- Make sure the file exists
     -- And the initial data are always recorded.
+    self:CacheRecord(userid, record)
     self:SaveRecordFor(userid, record)
 
     -- Apply default bindings

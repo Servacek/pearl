@@ -134,7 +134,7 @@ function ModPersistance:SaveDataToFile(fp, data, ensure, encode)
         data_str = DataDumper(data, nil, false, 2)
     else
         local success, str = pcall(json.encode, data)
-        if not success or type(str) == "string" then
+        if not success or type(str) ~= "string" then
             return false
         end
 

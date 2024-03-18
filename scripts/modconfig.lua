@@ -226,7 +226,7 @@ function ModConfig:LoadBackendOverride(option)
 end
 
 function ModConfig:LoadCommmonConfig()
-    local success, config_str = PEARL.ClusterPersistance:GetFileContent(PEARL.CONSTS.COMMON_CONFIG_PATH, true)
+    local success, config_str = PEARL.ClusterPersistance:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
     if not success or type(config_str) ~= "string" then
         return error("Failed to load common config!")
     end

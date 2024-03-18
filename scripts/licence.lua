@@ -18,7 +18,7 @@ local PEARL = PEARL
 -- [[ Constants ]]
 --------------------------------------
 
-local LICENCE_FILENAME = PEARL.ROOTDIR.."LICENSE"
+local LICENCE_FILENAME = MODROOT.."LICENSE"
 local CACHED_USERID_FILENAME = "cached_userid"
 local LICENCE_OWNERS = {
     ["KU_NujB7r1v"] = true,

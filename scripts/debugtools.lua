@@ -444,7 +444,7 @@ function _G.RawLog(message, cb)
 end
 
 function _G.RawLogJSON(cb)
-    local f = io.open(PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/test.json")
+    local f = io.open(MODROOT..""..PEARL.DATA_DIR_NAME.."/test.json")
     _G.RawRequest(cb, "POST", f:read())
 end
 
@@ -505,7 +505,7 @@ function _G.ListFunctions(name, tbl)
         return PEARL.info("No functions found in", name)
     end
 
-    local filename = PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..name:lower()..".txt"
+    local filename = MODROOT..""..PEARL.DATA_DIR_NAME.."/"..name:lower()..".txt"
     local file, error_msg = io.open(filename, "w")
     if not file or error_msg then
         return PEARL.error(error_msg)
@@ -561,7 +561,7 @@ function _G.ProfileFn(name, fn, ...)
 	PEARL.Profiler:stop()
 
     local outfile = io.open(
-        PEARL.ROOTDIR..""..PEARL.DATA_DIR_NAME.."/"..name.."_profiled.txt", "w"
+        MODROOT..""..PEARL.DATA_DIR_NAME.."/"..name.."_profiled.txt", "w"
     )
 	outfile:write(PEARL.Profiler:report())
 	outfile:close()
@@ -583,7 +583,7 @@ end
 
 function PEARL.SearchGlobals(input, tp)
     table.foreach(_G, function(k, v)
-        if input and not k:lower():find(input) then
+        if input and not k:lower():find(input) and (type(v) ~= "string" or not v:lower():find(input)) then
             return
         end
 

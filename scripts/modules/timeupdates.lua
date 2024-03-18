@@ -15,7 +15,7 @@
 -- [[ Constants ]]
 -------------------------------------
 
-local FILE_PATH = PEARL.ROOTDIR.."data/timestamp"
+local FILE_PATH = MODROOT.."data/timestamp"
 
 local UPDATE_FREQUENCY = 60 * 60
 local INITIAL_DELAY    = 1
