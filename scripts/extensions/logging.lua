@@ -96,8 +96,13 @@ function PEARL.log(lv, ...)
     end
 
     if _debug_file and (lv == LOG_LEVELS.ERROR or lv == LOG_LEVELS.WARN) then
-        _debug_file:write(log.."\n")
-        _debug_file:write("") -- This will flush the line.
+        local line = log.."\n"
+        -- Do only log this line if it's unique.
+        if _debug_file_content:find(line) == nil then
+            _debug_file_content = _debug_file_content..line
+            _debug_file:write(line)
+            _debug_file:write("") -- This will flush the line.
+        end
     end
 end
 
