@@ -1513,6 +1513,7 @@ UserCommands.CustomizeCommand("regenerate", function(command)
 
     table.insert(command.aliases, "regen")
 
+    command.exectime = 0
     command.serverfn = nil -- Ensure that we are using our custom handler
     command.fn = function(ctx, shardid, seed)
         if seed then

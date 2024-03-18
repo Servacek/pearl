@@ -423,7 +423,12 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
         -- Maybe do not execute at all?
     end
 
-    command.fn(ctx, PEARL.unpack(validated_args, 1, n))
+    local function run() command.fn(ctx, PEARL.unpack(validated_args, 1, n)) end
+    if type(command.exectime) == "number" and command.exectime >= 0 then
+        PEARL.WallScheduler:ExecuteInTime(command.exectime, run)
+    else
+        run()
+    end
 
     if not ctx:WasReplied() and command.async ~= true and ctx.type == CommandContext.TYPE.DISCORD then
         ctx:Reply(STRINGS.PEARL.UI.CMD_INFO.RECEIVED_FROM_THIRDPARTY, PEARL.ICONS.CHECK)

@@ -334,6 +334,7 @@ local function OnClientDataRecevied(userid, cfd)
         return
     end
 
+    PEARL.info("Player has not all the required profile data! Fetching...")
     CalculateProfileData(userid, cfd, function(resultdata)
         PEARL.EventProcessor:HandleEvent("clientprofiledata", userid, resultdata)
     end)
