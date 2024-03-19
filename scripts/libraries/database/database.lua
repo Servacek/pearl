@@ -239,10 +239,9 @@ end
 ------------------------------------------
 
 --- Returns the record and a boolean determining whether the record was created or not.
---- This doesn't cache the newly created record.
 --- @param userid string
 --- @return PlayerRecord? record
-function DB:CreateRecordFile(userid)
+function DB:CreateRecordFor(userid)
     if not PEARL.IsKleiIDValid(userid) then
         return PEARL.error("Invalid Klei ID provided!")
     end
@@ -278,6 +277,8 @@ function DB:CreateRecordFile(userid)
         -- This should ALWAYS be string but just in case it's not...
         PEARL.AccountBindings:AddBinding(userid, tostring(netid), PEARL.AccountBindings.BINDING_TYPE.STEAM)
     end
+
+    PEARL.EventProcessor:HandleEvent("db_recordcreated", userid, record)
 
     return record
 end

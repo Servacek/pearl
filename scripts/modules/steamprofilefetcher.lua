@@ -168,7 +168,12 @@ local function HasAllRequiredProfileData(record)
     return true
 end
 
-local function CalculateProfileData(profile_userid, cfd, cb)
+local function CalculateProfileData(profile_userid, cb)
+    local record = PEARL.DB:GetRecordFor(profile_userid)
+    if not record then
+        return PEARL.error("Calculating profile data failed! No record exists for", profile_userid)
+    end
+
     local steamid = profile_userid and TheNet:GetNetIdForUser(profile_userid)
     if not steamid then
         return PEARL.error("Failed to get steam ID for", profile_userid)
@@ -228,7 +233,7 @@ local function CalculateProfileData(profile_userid, cfd, cb)
         if banned_count > 0 then
             PEARL.info("Banned friends detected for user!")
             OnBannedFriendsDetected(
-                cfd.username, steamid, banned_count, table.size(friends)
+                record.username, steamid, banned_count, table.size(friends)
             )
 
             data.profilerep = data.profilerep + (banned_count * REP_PER_BANNED_FRIEND)
@@ -240,7 +245,7 @@ local function CalculateProfileData(profile_userid, cfd, cb)
             return
         end
 
-        local comment_rep = CalculateRepInComments(str, cfd.username)
+        local comment_rep = CalculateRepInComments(str, record.username)
         if comment_rep < MIN_COMMENT_REP then
             data.profilerep = -MAX_COMMENT_REP
         else
@@ -262,12 +267,12 @@ local function CalculateProfileData(profile_userid, cfd, cb)
         -- set on the steam profile (only if set).
         if (
             type(player.loccountrycode) == "string" and
-            type(cfd.locale) == "string" and
-            player.loccountrycode:lower() ~= cfd.locale:lower()
+            type(record.lastlocale) == "string" and
+            player.loccountrycode:lower() ~= record.lastlocale:lower()
         ) then
             OnCountryInfoMismatch(
-                player.personaname or cfd.username or "UNKNOWN", steamid,
-                player.loccountrycode, cfd.locale
+                player.personaname or record.username or "UNKNOWN", steamid,
+                player.loccountrycode, record.lastlocale
             )
 
             data.profilerep = data.profilerep + REP_PER_UNMATCHED_LOCALE
@@ -328,20 +333,20 @@ end
 -- [[ Event Handlers ]]
 --------------------------------
 
-local function OnClientDataRecevied(userid, cfd)
-    local record = PEARL.DB:GetRecordFor(userid)
-    if not record or HasAllRequiredProfileData(record) then
-        return
-    end
+local function OnDatabaseRecordLoaded(userid, record)
+    if not HasAllRequiredProfileData(record) then
+        PEARL.info("Player has not all the required profile data! Fetching...")
+        CalculateProfileData(userid, function(resultdata)
+            PEARL.info("Player profile data fetched!")
 
-    PEARL.info("Player has not all the required profile data! Fetching...")
-    CalculateProfileData(userid, cfd, function(resultdata)
-        PEARL.EventProcessor:HandleEvent("clientprofiledata", userid, resultdata)
-    end)
+            PEARL.EventProcessor:HandleEvent("clientprofiledata", userid, resultdata)
+        end)
+    end
 end
 
 --------------------------------
 -- [[ Event Listeners ]]
 --------------------------------
 
-PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataRecevied)
+PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", OnDatabaseRecordLoaded)
+PEARL.EventProcessor:AddSafeEventHandler("db_recordcreated", OnDatabaseRecordLoaded)

@@ -751,18 +751,18 @@ function ServerNetwork:OnClientFilterDataReceived(userid, cfd)
 
     -- Skip already trusted clients
     local allowed, reason, title = true, nil, nil
-    if not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE then
-        if allowed ~= false and table.empty(conn_filters) == false then
-            allowed, reason, title = self:RunConnectionFiltersFor(userid, conn_filters, cfd)
-        end
+    local run_filters = not self:IsClientPriviliged(userid) or PEARL.CONFIG.DEBUG_MODE
+    if run_filters and allowed ~= false and table.empty(conn_filters) == false then
+        allowed, reason, title = self:RunConnectionFiltersFor(userid, conn_filters, cfd)
+    end
 
-        PEARL.EventProcessor:HandleEvent("synchronousfiltersdone", userid, allowed, cfd)
+    -- Privilidged clients ignore filters that means they have passed them automatically.
+    PEARL.EventProcessor:HandleEvent("synchronousfiltersdone", userid, allowed, cfd)
 
-        if allowed ~= false and table.empty(async_conn_filters) == false then
-            return self:RunAsyncConnectionFilters(
-                userid, async_conn_filters, _OnConnectionFiltersFinished
-            )
-        end
+    if run_filters and allowed ~= false and table.empty(async_conn_filters) == false then
+        return self:RunAsyncConnectionFilters(
+            userid, async_conn_filters, _OnConnectionFiltersFinished
+        )
     end
 
     _OnConnectionFiltersFinished(userid, allowed, reason, title)

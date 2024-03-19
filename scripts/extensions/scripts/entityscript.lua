@@ -223,6 +223,16 @@ function EntityScript:SafeListenForEvent(event, fn, ...)
     end, ...)
 end
 
+--- @param event string The event name.
+--- @param fn function A reference to the handler function.
+--- @param delay integer The delay in seconds for the event handler.
+--- @param ... any Additional parameters to the handler.
+function EntityScript:ListenForEventDelayed(event, fn, delay, ...)
+    return self:ListenForEvent(event, function(...)
+        PEARL.WallScheduler:ExecuteInTime(delay or 0, fn, nil, ...)
+    end, ...)
+end
+
 --- Uses PEARL.SafeRun to call the event handlers.
 --- Do not use for event's registed with 'SafeListenForEvent'.
 ---

@@ -29,7 +29,7 @@ local function OnSynchronousFiltersDoneFor(userid, allowed, data)
 
     -- This is the place where we want to create the record if needed.
     if not PEARL.DB:HasRecordFile(userid) then
-        if not PEARL.DB:CreateRecordFile(userid) then
+        if not PEARL.DB:CreateRecordFor(userid) then
             return -- We have failed to create the record.
         end
 
@@ -176,22 +176,17 @@ local function OnClientProfileData(userid, data)
     end
 end
 
-local function OnPlayerChanged(world, player)
+local function OnPlayerChanged(world, player, ...)
     -- Always save this field since we use it as fallback for the fancy version.
-    local prefab = player.prefab
-    if prefab == nil or player.userid == nil or player.userid == "" then
+    if player.prefab == nil or player.userid == nil or player.userid == "" then
         return
     end
 
-    PEARL.DB:SetField(
-        player.userid, "lastprefab", prefab
-    )
+    PEARL.DB:SetField(player.userid, "lastprefab", player.prefab)
 
     local fancyprefab = player:GetFancyPrefabName()
     if type(fancyprefab) == "string" then
-        PEARL.DB:SetField(
-            player.userid, "lastprefabfancy", fancyprefab
-        )
+        PEARL.DB:SetField(player.userid, "lastprefabfancy", fancyprefab)
     end
 end
 
@@ -311,8 +306,8 @@ PEARL.AddWorldPostInit(function(world)
 
     world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)
 
-    world:SafeListenForEvent("ms_playerdespawn", OnPlayerChanged)
-    world:SafeListenForEvent("ms_playerspawn", OnPlayerChanged)
+    world:ListenForEventDelayed("ms_playerdespawn", OnPlayerChanged)
+    world:ListenForEventDelayed("ms_playerspawn", OnPlayerChanged)
 
     world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
 

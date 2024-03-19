@@ -116,7 +116,7 @@ function PEARL.DebugConnectionFilter(filterfn, userid, expected_result, data)
 end
 
 function PEARL.AddDebugRecord(userid, name, reputation)
-    local record = PEARL.DB:CreateRecordFile(userid)
+    local record = PEARL.DB:CreateRecordFor(userid)
     if not record then
         return
     end
