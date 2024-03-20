@@ -89,13 +89,15 @@ Reputation.BAD_REP_THRESHOLD = BAD_REP_THRESHOLD
 --------------------------------------
 
 function Reputation:GetFieldOf(userid, field)
+    PEARL.debug("Reputation:GetFieldOf", userid, field)
+
     field = field or "value"
 
     if self.sync_rep_table[userid] ~= nil and self.sync_rep_table[userid][field] ~= nil then
         return self.sync_rep_table[userid][field]
     end
 
-    return PEARL.DB:GetSubField(userid, FIELD_NAME, field)
+    return PEARL.DB:GetSubField(userid, FIELD_NAME, field, Reputation.DEFAULT_REP_DATA[field])
 end
 
 --- @return number

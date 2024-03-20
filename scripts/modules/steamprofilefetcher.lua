@@ -50,7 +50,7 @@ local POSITIVE_COMMENT_PATTERNS = {
     "+rep",
 }
 local NEGATIVE_COMMENT_PATTERNS = {
-    "-rep", "griefer", "hacker", "troll",
+    "-rep", "griefer", "hacker", "troll", "cheater", "aimbot"
 }
 
 -- Keep these in sync with the names in the DB.
@@ -125,10 +125,11 @@ local function GetCommentType(comment)
 end
 
 local function CalculateRepInComments(comments_html, profileusername)
-    local ignore = {
+    local ignore = {}
+    if profileusername ~= nil then
         -- Ignore comments from the profile author itself.
-        [profileusername] = true
-    }
+        ignore[profileusername] = true
+    end
 
     local neg_count = 0
     local pos_count = 0
@@ -174,7 +175,7 @@ local function CalculateProfileData(profile_userid, cb)
         return PEARL.error("Calculating profile data failed! No record exists for", profile_userid)
     end
 
-    local steamid = profile_userid and TheNet:GetNetIdForUser(profile_userid)
+    local steamid = profile_userid and TheNet:GetNetIdForUser(profile_userid) or record.netid
     if not steamid then
         return PEARL.error("Failed to get steam ID for", profile_userid)
     end
@@ -240,16 +241,14 @@ local function CalculateProfileData(profile_userid, cb)
         end
     end)
 
-    PEARL.SteamAPI:AddRawQueryToSequence(steamid, QUERIES.P_COMMENTS, function(str)
-        if type(str) ~= "string" then
-            return
-        end
-
-        local comment_rep = CalculateRepInComments(str, record.username)
-        if comment_rep < MIN_COMMENT_REP then
-            data.profilerep = -MAX_COMMENT_REP
-        else
-            data.profilerep = data.profilerep + comment_rep
+    PEARL.SteamAPI:AddQueryToSequence(steamid, QUERIES.P_COMMENTS, function(response)
+        if type(response) == "table" and string.blank(response.comments_html) == false then
+            local comment_rep = CalculateRepInComments(response.comments_html, record.username)
+            if comment_rep < MIN_COMMENT_REP then
+                data.profilerep = -MAX_COMMENT_REP
+            else
+                data.profilerep = data.profilerep + comment_rep
+            end
         end
     end, MAX_COMMENTS_CHECK_COUNT)
 

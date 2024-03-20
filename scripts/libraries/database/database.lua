@@ -240,8 +240,9 @@ end
 
 --- Returns the record and a boolean determining whether the record was created or not.
 --- @param userid string
+--- @param netid string?
 --- @return PlayerRecord? record
-function DB:CreateRecordFor(userid)
+function DB:CreateRecordFor(userid, netid)
     if not PEARL.IsKleiIDValid(userid) then
         return PEARL.error("Invalid Klei ID provided!")
     end
@@ -270,7 +271,7 @@ function DB:CreateRecordFor(userid)
     self:SaveRecordFor(userid, record)
 
     -- Apply default bindings
-    local netid = TheNet:GetNetIdForUser(userid)
+    netid = netid or TheNet:GetNetIdForUser(userid)
     if not netid then
         PEARL.error("Failed to retrive Steam ID for ", userid)
     else

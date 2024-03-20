@@ -115,8 +115,8 @@ function PEARL.DebugConnectionFilter(filterfn, userid, expected_result, data)
     end)
 end
 
-function PEARL.AddDebugRecord(userid, name, reputation)
-    local record = PEARL.DB:CreateRecordFor(userid)
+function PEARL.AddDebugRecord(userid, name, reputation, netid)
+    local record = PEARL.DB:CreateRecordFor(userid, netid)
     if not record then
         return
     end
@@ -126,7 +126,10 @@ function PEARL.AddDebugRecord(userid, name, reputation)
     PEARL.Reputation:InitializeFor(userid)
     PEARL.Reputation:SetFor(userid, reputation or 100)
 
-    PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+    if not netid then
+        PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+    end
+
     PEARL.DB:SaveRecordFor(userid, record)
 end
 

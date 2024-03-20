@@ -173,10 +173,18 @@ function string:raw()
 end
 
 function string:empty()
+    if type(self) ~= "string" then
+        return
+    end
+
     return #self == 0
 end
 
 function string:blank()
+    if type(self) ~= "string" then
+        return
+    end
+
     return self:empty() or self:find(BLANK_PATTERN) ~= nil
 end
 

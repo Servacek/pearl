@@ -174,6 +174,14 @@ local function OnClientProfileData(userid, data)
     for key, value in pairs(data) do
         PEARL.DB:SafeSetField(userid, key, value)
     end
+
+    --- @TODO: Sync profilerep with normal rep so we do not need to do the mapping.
+    if type(data.profilerep) == "number" then
+        ---PEARL.Reputation:DoDeltaTo(userid, math.map(data.profilerep, 0, ))
+    end
+
+    -- These data are quite important so we do not want to lose them!
+    PEARL.DB:SaveRecordFor(userid)
 end
 
 local function OnPlayerChanged(world, player, ...)

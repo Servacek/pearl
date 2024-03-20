@@ -99,8 +99,17 @@ function PlayerRecord:__newindex(field, value, ...)
 end
 
 function PlayerRecord:__index(field, ...)
-    if self._data[field] ~= nil then
-        return self._data[field]
+    local value = self._data[field]
+    if value ~= nil then
+        return value
+    end
+
+    if DEFAULT_FIELD_VALUES[field] ~= nil then
+        return DEFAULT_FIELD_VALUES[field]
+    end
+
+    if DEFAULT_FIELD_FALLBACKS[field] then
+        return DEFAULT_FIELD_FALLBACKS[field](self.userid)
     end
 
     local fn = rawget(PlayerRecord, field)

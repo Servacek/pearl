@@ -80,6 +80,10 @@ Leaderboard = Class(function(self, typ, data)
 
     --- @type function
     self.sortfn = Leaderboard.COMP[self.type]
+
+    if self.loaded then
+        self:OnLoaded()
+    end
 end)
 
 --------------------------------------
@@ -299,6 +303,17 @@ function Leaderboard:Resort()
     self:OnChange(true)
 end
 
+function Leaderboard:Validate()
+    -- Make sure that all players have a valid record file.
+    for i, userid in pairs(self.data.players) do
+        if not PEARL.DB:HasRecordFile(userid) then
+            PEARL.info("Removing player", userid, "from the leaderboard for not having a valid record file!")
+
+            self:Remove(i)
+        end
+    end
+end
+
 function Leaderboard:ToString()
     local abs = self.type == Leaderboard.TYPE.ABSOLUTE
     local FDS = STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES
@@ -352,6 +367,12 @@ function Leaderboard:OnUpdateDone()
 
         self:OnChange(false)
     end
+end
+
+function Leaderboard:OnLoaded()
+    PEARL.debug("Leaderboard:OnLoaded")
+
+    self:Validate()
 end
 
 --- @return table
