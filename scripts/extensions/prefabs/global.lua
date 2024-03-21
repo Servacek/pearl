@@ -42,7 +42,7 @@ local function OnBuilt(builder, data)
         inst:AddComponent("built")
     end
 
-    inst.components.built:SetBuilder(builder.userid, builder.name)
+    inst.components.built:SetBuilderData(builder.userid, builder.name)
     if data.recipe then
         inst.components.built:SetIngredients(GetAllIngredientsForRecipe(data.recipe))
     end

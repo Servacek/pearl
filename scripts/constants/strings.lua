@@ -94,6 +94,11 @@ local STRINGS = {
             WITH        = "{doer} waxed {target} with {tool}.",
         },
 
+        UPGRADE = {
+            GENERIC     = "{doer} upgraded {target}.",
+            WITH        = "{doer} upgraded {target} with {tool}.",
+        },
+
         TEACH = {
             GENERIC     = "{doer} learnt {target}.",
         },
@@ -477,18 +482,19 @@ local STRINGS = {
 
         INVALIDRPC              = "Received invalid RPC %s from client %s!",
 
-        EXTINGUISH              = "Fires were extinguished!",
-        EXTINGUISH_DOER         = "%s extinguished all fires!",
-        EXTINGUISH_NEAR         = "Fires near %s were extinguished!",
-        EXTINGUISH_NEAR_DOER    = "%s extinguished fires near %s!",
-        EXTINGUISH_ALL          = "%s extinguished fires near all players!",
+        EXTINGUISH              = "Fires ({count}) were extinguished!",
+        EXTINGUISH_DOER         = "{doer} extinguished {count} fires!",
+        EXTINGUISH_NEAR         = "Fires ({count}) near {target} were extinguished!",
+        EXTINGUISH_DOER_NEAR    = "{doer} extinguished fires ({count}) near {target}!",
+        EXTINGUISH_ALL          = "All ({count}) were extinguished!",
+        EXTINGUISH_DOER_ALL     = "{doer} extinguished all ({count}) fires!",
 
-        REPAIR                  = "Burnt structures were restored!",
-        REPAIR_NEAR             = "Burnt structures near %s were restored!",
-        REPAIR_NEAR_DOER        = "%s restored burnt structures near %s!",
-        REPAIR_NEAR_ALL         = "%s restored burnt structures near all players!",
-        REPAIR_ALL              = "All burnt structures were restored!",
-        REPAIR_ALL_DOER         = "%s restored all burnt structures!",
+        REPAIR                  = "Burnt structures ({count}) were restored!",
+        REPAIR_DOER             = "{doer} restored ({count}) burnt structure(s)!",
+        REPAIR_NEAR             = "Burnt structures ({count}) near {target} were restored!",
+        REPAIR_DOER_NEAR        = "{doer} restored {count} burnt structures near {target}!",
+        REPAIR_ALL              = "All ({count}) burnt structures were restored!",
+        REPAIR_DOER_ALL         = "{doer} restored all ({count}) burnt structure(s)!",
 
         PROXY_SERVER_STARTED    = "Proxy server has successfully started!",
         PROXY_SERVER_STOPPED    = "Stopping the proxy server...",

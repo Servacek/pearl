@@ -33,7 +33,7 @@ local PlayerStatusScreen = require("screens/playerstatusscreen")
 -- [[ Constants ]]
 -------------------------------
 
-local LINK_BUTTON_X = -420
+local LINK_BUTTON_X = -430
 local LINK_BUTTON_Y = 220 -- Move it over the potentially long server description.
 
 local SCREEN_BUTTONS_OFFSET = 48

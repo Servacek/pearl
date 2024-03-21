@@ -114,21 +114,15 @@ end
 
 function EntityScript:GetRarity()
     local rarity = PEARL.GetRarityForPrefab(self.prefab)
-
-    --- @TODO:
-    print(self.components.built and self.components.built.recipe)
     local recipe = AllRecipes[self.prefab]
-    if recipe then
-        for _, ingredient in ipairs(recipe.ingredients) do
+    local ingredients = self.components.built and self.components.built.ingredients or (recipe and recipe.ingredients)
+    if ingredients then
+        for _, ingredient in ipairs(ingredients) do
             rarity = rarity + PEARL.GetRarityForPrefab(ingredient.type) * (ingredient.amount or 1)
         end
     end
 
-    local mult = 1
-    if self.components.workable and self.components.workable:HasBuilder() then
-        mult = 2
-    end
-
+    local mult = self.components.built and self.components.built.doer and 2 or 1
     return rarity * mult
 end
 
@@ -275,6 +269,6 @@ end
 --             self:AddComponent("built")
 --         end
 
---         self.components.built:SetBuilder(builder.userid, builder.name)
+--         self.components.built:SetBuilderData(builder.userid, builder.name)
 --     end
 -- end, EntityScript)

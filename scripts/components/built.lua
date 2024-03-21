@@ -30,8 +30,12 @@ end)
 -- [[ Setters ]]
 --------------------------------
 
-function Built:SetBuilder(userid, name)
-    PEARL.debug("Built:SetBuilder", userid, name)
+function Built:SetBuilder(builder)
+    self.doer = builder
+end
+
+function Built:SetBuilderData(userid, name)
+    PEARL.debug("Built:SetBuilderData", userid, name)
 
     if not self.doer then
         self.doer = Doer()
@@ -48,8 +52,13 @@ end
 -- [[ Getters ]]
 --------------------------------
 
+--- Ingredients used for building this thing.
 function Built:GetIngredients()
     return self.ingredients
+end
+
+function Built:By(userid)
+    return userid and self.doer and self.doer.userid == userid
 end
 
 --------------------------------
@@ -62,6 +71,9 @@ function Built:OnSave()
     return {
         doer = self.doer:GetData(),
         ingredients = self.ingredients,
+
+        -- Custom flag to ensure this component
+        add_component_if_missing = true,
     }
 end
 

@@ -50,6 +50,8 @@ local AddAsyncCommand = UserCommands.AddCustomAsyncCommand
 -- Constants
 -------------------------------------
 
+local DEFAULT_AOE_RADIUS = 32
+
 local OPTION_TYPE = UserCommands.OPTION_TYPE
 local PARAMS = UserCommands.STD_PARAMS
 
@@ -90,7 +92,57 @@ local function extinguish_near(pos, radius)
         end
     end
 
-    return count --- @TODO: Add the count to the announcement
+    return count
+end
+
+local function repair_near(pos, radius)
+    local burned_entities = TheSim:FindEntities(
+        pos.x, pos.y, pos.z, radius, {"burnt","structure"}, {"INLIMBO"}
+    )
+
+    local count = 0
+    for _, ent in ipairs(burned_entities) do
+        if ent.components.built then
+            -- Inherit the builder for player-made structures.
+            local builder = ent.components.built.doer
+            local inst = ReplacePrefab(ent, ent.prefab, ent.skinname, ent.skin_id)
+            if inst then
+                count = count + 1
+
+                if not inst.components.built then
+                    inst:AddComponent("built")
+                end
+
+                inst.components.built:SetBuilder(builder)
+            end
+        end
+    end
+
+    return count
+end
+
+local function do_aoe_action(author, target, fn, str_base, radius)
+    local pt_postfix = author and "_DOER" or "_ALL"
+    local doer_name = author.name or "Shenanigans"
+
+    if target then
+        pt_postfix = pt_postfix.."_NEAR"
+        local count = fn(target:GetPosition(), radius or DEFAULT_AOE_RADIUS)
+
+        -- Keep it global.
+        return TheNet:Announce(STRINGS.PEARL.LOGS[str_base..pt_postfix]:nformat{
+            doer = doer_name, count = count, target = target.name or STRINGS.PEARL.LOGS.UNKNOWN
+        }, target.entity)
+    end
+
+    local count = fn({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
+
+    -- This is called on all shards so only show the message to the shard players.
+    PEARL.ServerNetwork:AnnounceFor(PEARL.ServerNetwork:GetConnectedClientIDs(),
+        STRINGS.PEARL.LOGS[str_base..pt_postfix]:nformat{
+            doer = doer_name, count = count
+        }, nil, author.colour
+    )
 end
 
 AddCommand("fire", {
@@ -102,51 +154,9 @@ AddCommand("fire", {
     --- @param ctx CommandContext
     --- @param player PlayerInst?
     fn = function(ctx, player)
-        local pt_postfix = ctx.author.userid and "_DOER" or ""
-
-        if player ~= nil then
-            extinguish_near(player:GetPosition(), PEARL.CONSTS.EXTINGUISH_RADIUS)
-
-            -- Keep it global
-            TheNet:Announce(STRINGS.PEARL.LOGS["EXTINGUISH_NEAR"..pt_postfix]:format(
-                ctx.author.name or player.name, player.name
-            ), player.entity)
-
-            return
-        end
-
-        extinguish_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
-
-        PEARL.ServerNetwork:AnnounceFor(PEARL.ServerNetwork:GetConnectedClientIDs(),
-         STRINGS.PEARL.LOGS["EXTINGUISH"..pt_postfix]:format(
-            ctx.author.name or "Shenanigans"
-        ), nil, ctx.author.colour)
+        do_aoe_action(ctx.author, player, extinguish_near, "EXTINGUISH", PEARL.CONSTS.EXTINGUISH_RADIUS)
     end,
 })
-
-local function repair_near(pos, radius)
-    local burned_entities = TheSim:FindEntities(
-        pos.x, pos.y, pos.z, radius, {"burnt","structure"}, {"INLIMBO"}
-    )
-
-    local count = 0
-    for _, ent in ipairs(burned_entities) do
-        if ent.components.workable and ent.components.workable:HasBuilder() then
-            -- Inherit the builder for player-made structures.
-            local builder = ent.components.workable and ent.components.workable:GetBuilder()
-            local inst = ReplacePrefab(ent, ent.prefab, ent.skinname, ent.skin_id)
-            if inst then
-                count = count + 1
-
-                if inst.components.workable then
-                    inst.components.workable:SetBuilder(builder)
-                end
-            end
-        end
-    end
-
-    return count
-end
 
 AddCommand("repair", {
     permission = COMMAND_PERMISSION.ADMIN,
@@ -157,25 +167,7 @@ AddCommand("repair", {
     --- @param ctx CommandContext
     --- @param player PlayerInst?
     fn = function(ctx, player)
-        local pt_postfix = ctx.author.userid and "_DOER" or ""
-
-        if player then
-            repair_near(player:GetPosition(), PEARL.CONSTS.REPAIR_RADIUS)
-
-            -- Keep it global.
-            TheNet:Announce(STRINGS.PEARL.LOGS["REPAIR_NEAR"..pt_postfix]:format(
-                ctx.author.name or "Shenanigans", (player.name or STRINGS.PEARL.LOGS.UNKNOWN)
-            ), player.entity)
-
-            return
-        end
-
-        repair_near({x = 0, y = 0, z = 0}, WORLD_TILES_OCEAN_SIZE)
-
-        PEARL.ServerNetwork:AnnounceFor(PEARL.ServerNetwork:GetConnectedClientIDs(),
-         STRINGS.PEARL.LOGS["REPAIR_ALL"..pt_postfix]:format(
-            ctx.author.name or "Shenanigans"
-        ), nil, ctx.author.colour)
+        do_aoe_action(ctx.author, player, repair_near, "REPAIR", PEARL.CONSTS.REPAIR_RADIUS)
     end,
 })
 

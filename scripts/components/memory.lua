@@ -110,6 +110,9 @@ function Memory:OnSave()
     return {
         data = self.data,
         ttls = self.ttls,
+
+        -- Custom flag to ensure this component
+        add_component_if_missing = true,
     }
 end
 

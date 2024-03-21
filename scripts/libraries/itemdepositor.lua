@@ -374,7 +374,7 @@ for depo_prefab, _ in pairs(DROP_DEPOS) do
                 return
             end
 
-            if inst.components.workable and not inst.components.workable:HasBuilder() then
+            if not inst.components.built then
                 return -- Special case for naturaly generated chests for example.
             end
 

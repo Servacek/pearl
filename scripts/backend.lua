@@ -515,7 +515,6 @@ local function LoadExtensions()
 
     PEARL.info("Loading game component extensions...")
     PEARL.loadfile("extensions/components/inventory")
-    PEARL.loadfile("extensions/components/workable")
     PEARL.loadfile("extensions/components/age")
     PEARL.loadfile("extensions/components/inventoryitem")
     PEARL.loadfile("extensions/components/container")

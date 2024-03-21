@@ -133,12 +133,52 @@ function PEARL.AddDebugRecord(userid, name, reputation, netid)
     PEARL.DB:SaveRecordFor(userid, record)
 end
 
+-- local reset_count = PEARL.GameInstParams:GetModParam("reset_count")
+-- if reset_count then
+--     PEARL.AddGamePostInit(function()
+--         PEARL.WallScheduler:ExecuteInTime(2, function()
+--             PEARL.DebugFontsCrash()
+--         end)
+--     end)
+-- end
+
+-- function PEARL.DebugFontsCrash()
+--     reset_count = reset_count or 0
+--     PEARL.GameInstParams:SetModParam("reset_count", (reset_count or 0) + 1)
+--     TheNet:Announce(("Reset #%s 󰀜"):format(reset_count))
+
+--     PEARL.WallScheduler:ExecuteInTime(18, c_reset)
+-- end
+
 function PEARL.AddBasicDebugRecords()
     PEARL.AddDebugRecord("KU_12345671", "Borb", 212)
     PEARL.AddDebugRecord("KU_12345672", "Gertruda", 102)
     PEARL.AddDebugRecord("KU_12345673", "Škleb", 132)
     PEARL.AddDebugRecord("KU_12345674", "Tonda", 290)
     PEARL.AddDebugRecord("KU_12345675", "Xi", 76)
+end
+
+function PEARL.DebugBuiltDoer()
+    local CHEST = c_findnext("treasurechest") or c_spawn("treasurechest")
+    if not CHEST.components.built then
+        CHEST:AddComponent("built")
+    end
+    CHEST.components.built:SetBuilderData("KU_12345678", "Fi7iP")
+
+    c_save()
+
+    PEARL.GameInstParams:SetModParam("codetorun", [[
+        PEARL.AddGamePostInit(function()
+            -- Make sure everything is loaded
+            PEARL.WallScheduler:ExecuteInTime(0, function()
+                local CHEST = c_findnext("treasurechest")
+                CHEST.components.burnable:Ignite()
+                CHEST.components.burnable.task.fn(CHEST, CHEST.components.burnable)
+            end)
+        end)
+    ]])
+
+    c_reset()
 end
 
 function PEARL.OnNewMonth()
@@ -172,11 +212,6 @@ function PEARL.TESTS.TestRequesterQueue()
             "https://google.com"
         ):SetDecodeResponse(false):Send()
     end
-end
-
-function PEARL.TESTS.TestRequesterShutdown()
-    PEARL.TESTS.TestRequesterQueue()
-    PEARL.HTTPClient:OnShutdown()
 end
 
 --------------------------------
@@ -312,7 +347,7 @@ function PEARL.TESTS.BlacklistMethodTest()
     PEARL.info("---- Init ---")
     PEARL.BlackList:PrintDebugInfo()
     PEARL.info("---- AddPlayerByID ---")
-    PEARL.BlackList:Ban(userid)
+    PEARL.BlackList:Add(userid)
     assert(PEARL.BlackList:Contains(userid))
     PEARL.BlackList:PrintDebugInfo()
     table.foreach(PEARL.BlackList:GetEngineRecordByID(userid), print)
@@ -945,4 +980,10 @@ function PEARL.SpawnBase()
     for k,v in pairs(invitems) do
         c_give(k, v)
     end
+end
+
+local codetorun = PEARL.GameInstParams:GetModParam("codetorun")
+if codetorun then
+    PEARL.debug("Running game instance parameter code!")
+    PEARL.debug(pcall(loadstring(codetorun)))
 end

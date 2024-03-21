@@ -10,8 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
---- @TODO: Log Lureplants eating deerclops eyeballs
-
 
 --[[
 Temporary solution for logging.
@@ -395,7 +393,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         local mult = 1
         -- Only announce hammering when the structure was built by a player
         -- This makes sure we only log when a base structure get's hammered.
-        if not workable:HasBuilder() or workable:IsBuildBy(doer.userid) then
+        if not target.components.built or target.components.built:By(doer.userid) then
             silent = true
             mult = .6
         end
@@ -408,9 +406,9 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         end
 
         local action
-        if workable:HasBuilder() then
+        if target.components.built then
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, doer,
-            QueuedLogAction.FIELDS.OWNER, workable:GetBuilderName())
+            QueuedLogAction.FIELDS.OWNER, target.compoents.built.doer:GetName())
         else
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.GENERIC, doer)
         end
@@ -448,6 +446,15 @@ if ACTIONS.WAX then
             :AddTarget(target)
     end)
 end
+
+--- @TODO: Add reputation for this?
+RegisterPlayerActionHandler(ACTIONS.UPGRADE, function(doer, target, item)
+    local pt = item and STRINGS.PEARL.ACTIONS.UPGRADE.WITH or STRINGS.PEARL.ACTIONS.UPGRADE.GENERIC
+    AL:EntityAct(pt, doer, "tool", item)
+        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.SALT)
+        :SetIsSilent(true)
+        :AddTarget(target)
+end)
 
 RegisterPlayerActionHandler(ACTIONS.ACTIVATE, function(doer, target, item)
     local thing = target or item
@@ -717,8 +724,7 @@ end
 
 -- Regular casting with or without a target.
 local function OnCast(doer, item, target, tp)
-    local workable = target and target.components.workable
-    local owner = workable and workable:GetBuilderName() or nil
+    local owner = target and target.components.built and target.components.built.doer
     local has_owner = owner ~= nil
     local prohibited = target and target:HasTag("structure")
     local pt = STRINGS.PEARL.ACTIONS.CAST.GENERIC
@@ -727,7 +733,7 @@ local function OnCast(doer, item, target, tp)
     end
 
     AL:EntityAct(pt, doer,
-        {item = item and item:GetStandardizedName(), owner = owner})
+        {item = item and item:GetStandardizedName(), owner = owner and owner:GetName()})
         :AddTarget(target)
         :SetIsSilent(not tp or not prohibited)
         :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.ARCANE)
@@ -996,18 +1002,17 @@ onburntup = function(target)
     target:RemoveEventCallback("burntup", onburntup)
 
     local pattern = STRINGS.PEARL.ACTIONS.BURNTUP.GENERIC
-    local workable = target.components and target.components.workable or nil
-    local wasbuilt = workable and workable:HasBuilder()
-    if wasbuilt and workable then
+    local builder = target.components.built and target.components.built.doer
+    if builder then
         pattern = STRINGS.PEARL.ACTIONS.BURNTUP.OWNED:nformat(
-            QueuedLogAction.FIELDS.OWNER, workable:GetBuilderName()
+            QueuedLogAction.FIELDS.OWNER, builder:GetName()
         )
     end
 
     AL:Act(pattern)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
         -- Only announce when a player creation burns up.
-        :SetIsSilent(not wasbuilt)
+        :SetIsSilent(builder == nil)
         :AddTarget(target, nil, true)
 end
 
@@ -1395,6 +1400,6 @@ PEARL.EventProcessor:AddSafeEventHandler("constructionfinished", function(doer, 
     end
 end)
 
---- @TODO: Maybe remove some reputation when being kicked?
---- Maybe rather not since not every kick is meant to be bad.
+--- Maybe remove some reputation when being kicked?
+----- Rather not since not every kick is meant to be bad...
 --PEARL.EventProcessor:AddSafeEventHandler("clientkicked", onplayerkicked)
