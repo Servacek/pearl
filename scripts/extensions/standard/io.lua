@@ -64,6 +64,7 @@ function io.extensure(fp, ext)
     return fp
 end
 
+--- Returns a UNIX timestamp representing the last modification time of the specified file.
 --- @return integer?
 function io.fmtime(fp)
     -- 64bit representation of the last update timestamp in hexdecimal format.

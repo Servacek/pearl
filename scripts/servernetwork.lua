@@ -455,7 +455,6 @@ function ServerNetwork:GetLocalClientIDs()
     return connected_clients
 end
 
---- @TODO: Think of a better alternative.
 --- So far, this is the most reliable approach.
 function ServerNetwork:GetConnectedClientsCount()
     -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
@@ -707,6 +706,8 @@ function ServerNetwork:OnClientJoined(userid)
     end
 
     joining_clients[userid] = nil
+
+    PEARL.EventProcessor:HandleEvent("playerjoinedgame", userid)
 end
 
 function ServerNetwork:OnClientJoining(userid)

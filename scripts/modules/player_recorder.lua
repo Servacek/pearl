@@ -175,9 +175,12 @@ local function OnClientProfileData(userid, data)
         PEARL.DB:SafeSetField(userid, key, value)
     end
 
-    --- @TODO: Sync profilerep with normal rep so we do not need to do the mapping.
     if type(data.profilerep) == "number" then
-        ---PEARL.Reputation:DoDeltaTo(userid, math.map(data.profilerep, 0, ))
+        local FILTER = PEARL.CONFIG.PROFILE_FILTER
+        local profilerep = math.clamp(data.profilerep, FILTER.MIN_REPUTATION, FILTER.MAX_REPUTATION)
+
+        --- So that players with bad profiles are closer to a ban in case they start to be nasty.
+        PEARL.Reputation:DoDeltaTo(userid, profilerep)
     end
 
     -- These data are quite important so we do not want to lose them!
@@ -270,7 +273,15 @@ end
 
 -- Called before the actual saving so we have time to change some of the data.
 local function OnSavingRecordFor(userid)
-    SaveSessionInfoFor(userid)
+    -- Save lastseentime, lastdays here as well, because we may be shutting down,
+    -- or the server may crash during restarting/rollbacking
+
+    if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
+        -- These do only make sense when the player is connected.
+        PEARL.DB:SafeSetField(userid, "lastseentime", os.time())
+
+        SaveSessionInfoFor(userid)
+    end
 end
 
 local function OnCyclesChanged()
@@ -300,7 +311,7 @@ PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
 
-PEARL.EventProcessor:AddSafeEventHandler("savingrecordfor", OnSavingRecordFor)
+PEARL.EventProcessor:AddSafeEventHandler("db_savingrecord", OnSavingRecordFor)
 
 PEARL.EventProcessor:AddSafeEventHandler("seriliaze_user_session", OnUserSessionSerialized)
 

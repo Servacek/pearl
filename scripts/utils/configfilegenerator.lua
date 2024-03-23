@@ -10,6 +10,8 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+local CustomDataDumper = PEARL.loadfile("utils/datadumper")
+
 local FILE_PATH = MODROOT..PEARL.DATA_DIR_NAME.."/modoverrides.lua"
 
 local function options_string(options)
@@ -56,7 +58,7 @@ return function()
 
         local expression = tostring(option.name).." = "..tostring(option.default)
         if type(option.default) == "table" then
-            expression = PEARL.DataDumper(option.default, option.name, false, 4)
+            expression = CustomDataDumper(option.default, option.name, false, 4)
         end
 
         if comment and comment ~= "" then

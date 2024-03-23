@@ -68,12 +68,12 @@ local function CompeteDayLeader(rivalid)
         return
     end
 
-    local rivalgains = PEARL.Reputation:GetTodayGainsOf(rivalid)
+    local rivalgains = PEARL.Reputation:GetFieldOf(rivalid, PEARL.Reputation.FIELD.DAYGAINS)
     if not rivalgains or rivalgains < MIN_DAY_LEADER_GAINS then
         return
     end
 
-    local leadergains = PEARL.Reputation:GetTodayGainsOf(leaderid)
+    local leadergains = PEARL.Reputation:GetFieldOf(leaderid, PEARL.Reputation.FIELD.DAYGAINS)
     if leadergains < rivalgains then
         monthly_leaderboard:SetDayLeaderUserID(rivalid)
     end
@@ -189,7 +189,7 @@ local function OnNewMonth(stb)
         local month_fullname = STRINGS.PEARL.FULL_MONTH_NAME:format(monthname, stb.year)
         local leader_months = PEARL.DB:GetField(leaderid, "leader_months", {})
         month_fullname = month_fullname..tostring(table.size(leader_months))
-        leader_months[month_fullname] = PEARL.Reputation:GetMonthGainsOf(leaderid)
+        leader_months[month_fullname] = PEARL.Reputation:GetFieldOf(leaderid, PEARL.Reputation.FIELD.MONTHGAINS)
         PEARL.DB:SetField(leaderid, "leader_months", leader_months)
 
         AnnounceNewPOTM(leaderid, stb.month, stb.year)

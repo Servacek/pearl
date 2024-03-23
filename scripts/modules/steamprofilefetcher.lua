@@ -9,8 +9,6 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @TODO: Make the profile reputation affect the starting reputation for a player.
---- So that players with bad profiles are closer to a ban in case they start to be nasty.
 
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
@@ -20,8 +18,6 @@ local MARKDOWN = PEARL.loadfile("libraries/markdown")
 -------------------------------------
 
 local QUERIES = PEARL.SteamAPI.QUERIES
-
-local MAX_PROFILE_REP = 100
 
 local MAX_COMMENT_REP = 50
 local MIN_COMMENT_REP = 0
@@ -55,7 +51,7 @@ local NEGATIVE_COMMENT_PATTERNS = {
 
 -- Keep these in sync with the names in the DB.
 local PROFILE_DATA = {
-    profilerep          = MAX_PROFILE_REP,
+    profilerep          = PEARL.CONFIG.PROFILE_FILTER.MAX_REPUTATION,
     -- Let's make it fail safe.
     communityprofile    = true,
     privateprofile      = false, -- Profiles are public by default.

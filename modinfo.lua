@@ -288,6 +288,9 @@ configuration_options = {
         default = {
             ENABLED = true,
             ENSURE_PROFILE = true,
+
+            MAX_REPUTATION = 40,
+            MIN_REPUTATION = -40,
         },
         type = "boolean",
     },
@@ -985,7 +988,7 @@ configuration_options = {
         implicit = true,
     },
 
-    { --- @TODO: Look into this why it is nil on clients.
+    {
         name="CUSTOM_LOADING_TIPS_DATA",
         default = {},
         type = "table",

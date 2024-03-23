@@ -12,12 +12,6 @@
 
 
 -------------------------------------
--- [[ Constants ]]
--------------------------------------
-
-local MIN_PROFILE_REP = 1
-
--------------------------------------
 -- [[ Local Functions ]]
 -------------------------------------
 
@@ -32,7 +26,7 @@ local function RunAsyncProfileFilter(data, filtercb)
         return true
     end
 
-    if data.profilerep < MIN_PROFILE_REP then
+    if data.profilerep < PEARL.CONFIG.PROFILE_FILTER.MIN_REPUTATION then
         filtercb(false, "ID_DST_PROFILE_REP_TOO_LOW")
         return true
     end

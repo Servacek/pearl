@@ -234,7 +234,6 @@ function Logger:LogString(str, icon, ...)
     return self:LogStringRaw(MARKDOWN.codeline(str), icon, ...)
 end
 
---- @TODO?
 function Logger:LogStringAt(str, icon, timestamp)
     if self:IsDisabled() then
         return

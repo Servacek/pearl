@@ -120,7 +120,7 @@ end
 
 local function CheckForBanableRep(userid, rep)
     rep = rep or PEARL.Reputation:GetOf(userid)
-    if rep < PEARL.CONFIG.AUTOBAN.THRESHOLD then -- Ban Time!
+    if rep and rep < PEARL.CONFIG.AUTOBAN.THRESHOLD then -- Ban Time!
         local player = LookupPlayerInstByUserID(userid)
         if player then
             PreparePlayerForBan(player, function()
@@ -189,13 +189,11 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid)
     CheckForBanableRep(userid)
 end)
 
-PEARL.AddPlayerPostInit(function(player)
-    CheckForBanableRep(player.userid)
-end)
-
 --------------------------------------
 -- [[ Event Listeners ]]
 --------------------------------------
 
 PEARL.EventProcessor:AddSafeEventHandler("onreputationchanged", OnReputationChanged)
 PEARL.EventProcessor:AddSafeEventHandler("onreputationearned", OnReputationEarned)
+
+PEARL.EventProcessor:AddSafeEventHandler("playerjoinedgame", CheckForBanableRep)

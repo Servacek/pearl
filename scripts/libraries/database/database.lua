@@ -11,11 +11,6 @@
 --]==]====================================================]]
 
 
---[[
-    @TODOS:
-        - Make database records shard specific (they would be unloaded upon migration despawn)
-]]
-
 --- Save lastactive shard for synchrnous reading between shards.
 --- For other non-active shards, use RPCs to send the data to the active one.
 
@@ -138,11 +133,7 @@ end
 function DB:GetField(userid, name, default)
     local record = self:GetRecordFor(userid)
     if record == nil or record[name] == nil then
-        if default ~= nil then
-            return default
-        end
-
-        return Record.TEMPLATE[name]
+        return default
     end
 
     return record[name]
@@ -185,6 +176,8 @@ end
 --- @param userid string
 --- @return PlayerRecord?
 function DB:UnloadRecord(userid)
+    PEARL.debug("DB:UnloadRecord", userid)
+
     local record = self._records[userid]
     self._records[userid] = nil
 
@@ -289,7 +282,7 @@ end
 --- @param userid string
 --- @param validate boolean?
 --- @return table? record
-function DB:LoadRecordFor(userid, validate)
+function DB:LoadRecordFor(userid, validate, record)
     if not PEARL.IsKleiIDValid(userid) then
         return PEARL.error("Invalid Klei ID provided!")
     end
@@ -301,7 +294,7 @@ function DB:LoadRecordFor(userid, validate)
         return
     end
 
-    local record = Record(userid, data)
+    record = record and record:Init(userid, data) or Record(userid, data)
     if validate == true then
         record:Validate(userid)
     end
@@ -346,8 +339,11 @@ function DB:SaveRecordFor(userid, record)
     -- Called before the actual saving so we have time to change some of the data.
     PEARL.EventProcessor:HandleEvent("db_savingrecord", userid)
 
+    --- We have to set this before the actual saving.
+    --- Make sure we handle the case where saving fails.
     local lastupdate = record.lastupdate
     record.lastupdate = os.time()
+    print(record.lastupdate)
     if PEARL.ModPersistance:SaveDataToFile(
         self:GetRecordFilePathFor(userid), record:GetData(), true
     ) then
@@ -363,25 +359,18 @@ end
 
 function DB:SaveUnsavedRecords()
     if DB:IsDisabled() then
-        return
+        return PEARL.debug("Database disabled!")
     end
 
     PEARL.info("Saving the database...")
 
-    -- Save lastseentime, lastdays here as well, because we may be shutting down,
-    -- or the server may crash during restarting/rollbacking
-    local time_now = os.time()
-    local snapshot = TheNet:GetCurrentSnapshot()
     for userid, record in pairs(DB._records) do
-        if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
-            DB:SafeSetField(userid, "lastseentime", time_now)
-            DB:SafeSetField(userid, "lastsnapshot", snapshot)
-        else
+        DB:SaveRecordFor(userid, record)
+
+        if not record:IsActive() then
             -- Free up the memory since the client is no longer activelly writing to the record.
             DB:UnloadRecord(userid)
         end
-
-        DB:SaveRecordFor(userid, record)
     end
 end
 

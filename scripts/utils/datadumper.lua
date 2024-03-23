@@ -97,7 +97,12 @@ for _,lib in pairs{'_G', 'string', 'table', 'math', 'coroutine', 'package', 'deb
 end
 
 
-local function DataDumper(value, varname, fastmode, ident)
+--- @param value any
+--- @param varname string?
+--- @param fastmode boolean?
+--- @param ident integer?
+--- @param generic boolean?
+local function DataDumper(value, varname, fastmode, ident, generic)
     local defined, dumplua = {}, nil
 
     local sim = USE_SAVEBUFFER and (WorldSim or TheSim) or nil
@@ -215,7 +220,11 @@ local function DataDumper(value, varname, fastmode, ident)
             if test_defined(value, path) then return "nil" end
             -- Table value
             local sep, str, numidx, totallen = " ", {}, 1, 0
-            local meta, metastr = (debug or getfenv()).getmetatable(value)
+            local meta, metastr
+            if not generic then
+                local meta, metastr = (debug or getfenv()).getmetatable(value)
+            end
+
             if meta then
                 ident = ident + 1
                 metastr = dumplua(meta, ident, "getmetatable("..path..")")
@@ -263,6 +272,9 @@ local function DataDumper(value, varname, fastmode, ident)
             end
             return "closure " .. dumplua(res, ident, "closures["..closure_cnt.."]")
         end
+    end
+    if generic then
+        fcts["function"] = function() return "nil" end
     end
     function dumplua(value, ident, path)
         return fcts[type(value)](value, ident, path)

@@ -322,7 +322,7 @@ AddCommand("invf", {
 })
 
 --- @TODO: Migrate to the new cooldown API, keep all cooldowns on the server.
---- Remove the unnecessary RPC call...
+--- Remove the unnecessary RPC call... (can be replaced with a serverfn)
 -- Slash commands only
 AddCommand("admins", {
     aliases = {"staff", "sos"}, -- So it reaches to more players
@@ -458,6 +458,10 @@ AddCommand("setrep", {
     --- @param value number
     --- @param ctx CommandContext
     fn = function(ctx, userid, value)
+        if PEARL.Reputation:GetOf(userid) == value then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_INFO.NO_CHANGES)
+        end
+
         if PEARL.Reputation:SetFor(userid, value) then
             if PEARL.DB:SaveRecordFor(userid) then
                 return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS)
@@ -633,11 +637,9 @@ AddCommand("stats", {
         end
 
         local reputation = PEARL.Reputation:GetOf(userid)
-        local daygains   = PEARL.Reputation:GetTodayGainsOf(userid)
-        local monthgains = PEARL.Reputation:GetMonthGainsOf(userid)
+        local daygains   = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.DAYGAINS)
+        local monthgains = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.MONTHGAINS)
         local username   = PEARL.DB:GetField(userid, "username", userid)
-        local lowest     = PEARL.Reputation:GetLowestOf(userid)
-        local peak       = PEARL.Reputation:GetPeakOf(userid)
 
         local m_board    = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)
         local m_place    = m_board and m_board:GetPositionFor(userid) or nil
@@ -651,8 +653,8 @@ AddCommand("stats", {
                 daygains = daygains,
                 monthgains = monthgains,
                 username = username,
-                peak = peak,
-                lowest = lowest,
+                peak = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.PEAK),
+                lowest = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.LOWEST),
                 starting_rep = PEARL.Reputation.STARTING_VALUE,
                 bad_rep_threshold = PEARL.Reputation.BAD_REP_THRESHOLD,
                 position = {
@@ -1307,6 +1309,16 @@ AddCommand("setdbfield", {
 
         if not PEARL.DB:HasRecordFile(userid) then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND)
+        end
+
+        local old = PEARL.DB:GetField(userid, field)
+        local old_type, _ = type(old), nil
+        if value ~= nil and old ~= nil and old_type ~= type(value) then
+            _, value = PEARL.TryConvertToType(value, old_type)
+        end
+
+        if value == old then
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_INFO.NO_CHANGES)
         end
 
         if PEARL.DB:SetField(

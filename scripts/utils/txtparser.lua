@@ -23,16 +23,32 @@ local TITLE_PREFIX = "#"
 local VERSION_PREFIX = "@v"
 local LMT_PREFIX = "@>"
 
--- local COMMENT_SUBITLES = [[
--- This is a file used for storing content for UI screens.
--- You can specific the version of this file by typing @v{YOUR_VERSION}.
+local COMMENT_SUBITLES = [[
+// This is a file used for storing content for UI screens.
+// You can specify the version of this file by typing @v{YOUR_VERSION}.
 
--- The first line starting with a '#' will be the initial title of the screen.
--- ]]
+// Lines starting with "//" will be automatically ignored when parsing this file (so this text will be ignored as well).
 
--- local COMMENT = [[
+// The "KLEI     1" text in the first line is just a way Klei marks their files. This will be
+// ignored and can be removed if needed.
 
--- ]]
+// The first line starting with a '#' will be the initial title of the screen.
+// The following lines starting with a '#' will be displayed as subtitles.
+
+// You can also specify the last update time of the file.
+]]
+
+local COMMENT = [[
+// This is a file used for storing content for UI screens.
+
+// Lines starting with "//" will be automatically ignored when parsing this file (so this text will be ignored as well).
+
+// The "KLEI     1" text in the first line is just a way Klei marks their files. This will be
+// ignored and can be removed if needed.
+
+// The first line starting with a '#' will be the initial title of the screen.
+// Following lines will be the body text.
+]]
 
 --------------------------------------
 -- [[ Locals ]]
@@ -51,8 +67,9 @@ return function(fname, create_if_needed, subtitles)
         if create_if_needed == true then
             PEARL.info("Creating file", fname)
 
-            --- @TODO: Maybe add some header comments?
-            return TheSim:SetPersistentString(abs_path, "")
+            return TheSim:SetPersistentString(abs_path, "\n"..(
+                subtitles and COMMENT_SUBITLES or COMMENT
+            ))
         end
 
         return PEARL.error("File not found!")
@@ -133,8 +150,7 @@ return function(fname, create_if_needed, subtitles)
     end
 
     result.version = version
-
-    result.lmt = lmt
+    result.lmt = lmt -- Since the file is in the cluster folder, we cannot use "io.fmtime" :/
 
     return result
 end

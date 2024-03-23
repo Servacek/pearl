@@ -19,6 +19,8 @@
     Also since these can use the builtin Lua IO library, it allows for more flexibility.
 --]]
 
+local CustomDataDumper = PEARL.loadfile("utils/datadumper")
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
@@ -131,7 +133,7 @@ function ModPersistance:SaveDataToFile(fp, data, ensure, encode)
     local data_str
     if PEARL.CONFIG.DEBUG_MODE then
         -- In debug mode, we use datadumper with identation for better readability.
-        data_str = DataDumper(data, nil, false, 2)
+        data_str = CustomDataDumper(data, nil, false, 2, true)
     else
         local success, str = pcall(json.encode, data)
         if not success or type(str) ~= "string" then

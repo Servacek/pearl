@@ -620,8 +620,6 @@ if PEARL.CONFIG.DEBUG_MODE then
     end)
 
     PEARL.GenerateConfigFile = PEARL.loadfile("utils/configfilegenerator")
-
-    PEARL.DataDumper = PEARL.loadfile("utils/datadumper")
 end
 
 --------------------------------

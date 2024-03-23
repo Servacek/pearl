@@ -410,6 +410,10 @@ function PEARL.tointeger(x)
     return tonumber(x)
 end
 
+function PEARL.memaddr(referencable)
+    return tostring(referencable):sub(type(referencable):len() + 3)
+end
+
 function PEARL.isvisiblestring(s)
     return type(s) == "string" and not s:blank()
 end

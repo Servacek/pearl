@@ -131,6 +131,8 @@ function PEARL.AddDebugRecord(userid, name, reputation, netid)
     end
 
     PEARL.DB:SaveRecordFor(userid, record)
+
+    return record
 end
 
 -- local reset_count = PEARL.GameInstParams:GetModParam("reset_count")
@@ -833,12 +835,6 @@ function PEARL.TESTS.Queue()
 
     PEARL.info("All tests ran successfully!")
 end
-
---------------------------------
--- [[ Localizer ]]
---------------------------------
-
---- @TODO
 
 --------------------------------
 -- [[ WallScheduler ]]

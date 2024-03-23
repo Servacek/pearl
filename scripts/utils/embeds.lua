@@ -196,7 +196,9 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             local userid = leaderboard:GetPlayerOnPosition(i)
             local name = tostring(PEARL.DB:GetField(userid, "username") or "UNKNOWN")
             local netid = PEARL.DB:GetField(userid, "netid") or nil
-            local rep = tostring(PEARL.Reputation:GetFieldOf(userid, monthly and "monthgains" or "value"))
+            local rep = tostring(PEARL.Reputation:GetFieldOf(userid, (
+                monthly and PEARL.Reputation.FIELD.MONTHGAINS or PEARL.Reputation.FIELD.VALUE)
+            ))
 
             if i == 1 then
                 max_rep_len = #rep
@@ -221,14 +223,14 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         if data.dayleader then
             local netid = PEARL.DB:GetField(data.dayleader, "netid")
             local username = tostring(PEARL.DB:GetField(data.dayleader, "username") or "UNKNOWN")
-            local gains = PEARL.Reputation:GetTodayGainsOf(data.dayleader)
+            local daygains = PEARL.Reputation:GetFieldOf(data.dayleader, PEARL.Reputation.FIELD.DAYGAINS)
             --local reputation = PEARL.Reputation:GetOf(data.dayleader)
             --local percent = math.round(gains / math.max(reputation - gains, 1), 4) * 100
 
             embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.DAY_PLAYER, string.format("%s %s +%s",
                 PEARL.ICONS.ARROW_UP, MARKDOWN.hlink(
                 MARKDOWN.codeline(tostring(username)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
-            ), gains))
+            ), daygains))
         end
     end
 
@@ -249,12 +251,6 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
 
     return embed
 end
-
---- @TODO: Try to replace the embed with a rank card image.
--- function EMBEDS.PlayerStats(userid)
---     local STRINGS = STRINGS.PEARL.EMBEDS.STATS
---     return Embed()
--- end
 
 --- @return Embed
 function EMBEDS.ServerInfo(boot)
@@ -553,7 +549,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
 
     local repvalue = PEARL.Reputation:GetOf(userid)
     local repstring = MARKDOWN.codeline(repvalue)
-    local gains = math.floor(PEARL.Reputation:GetTodayGainsOf(userid))
+    local gains = math.floor(PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.DAYGAINS))
     local postfix = " "
     if gains > 0 then
         postfix = " "..PEARL.ICONS.ARROW_UP.." +"..tostring(gains)

@@ -31,7 +31,7 @@ end
 PEARL.EventProcessor:AddSafeEventHandler("newmonth", function()
     -- Give some time to the other handlers so they can use the value if needed.
     PEARL.WallScheduler:ExecuteInTime(0, function()
-        ResetFieldForActivePlayers("monthgains")
+        ResetFieldForActivePlayers(PEARL.Reputation.FIELD.MONTHGAINS)
 
         PEARL.DB:SaveUnsavedRecords()
     end)
@@ -39,7 +39,7 @@ end)
 
 -- In case the players are playing on the server when this event occurs.
 PEARL.EventProcessor:AddSafeEventHandler("newday", function()
-    ResetFieldForActivePlayers("daygains")
+    ResetFieldForActivePlayers(PEARL.Reputation.FIELD.DAYGAINS)
 end)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientbanned", function(userid)
@@ -57,10 +57,10 @@ PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, rec
             local yearmismatch = lastseentimetbl.year ~= currenttimetbl.year
             local monthmismatch = lastseentimetbl.month ~= currenttimetbl.month
             if lastseentimetbl.day ~= currenttimetbl.day or monthmismatch or yearmismatch then
-                PEARL.Reputation:ResetFieldFor(userid, "daygains")
+                PEARL.Reputation:ResetFieldFor(userid, PEARL.Reputation.FIELD.DAYGAINS)
 
                 if monthmismatch or yearmismatch then
-                    PEARL.Reputation:ResetFieldFor(userid, "monthgains")
+                    PEARL.Reputation:ResetFieldFor(userid, PEARL.Reputation.FIELD.MONTHGAINS)
                 end
             end
         end
@@ -71,7 +71,7 @@ PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", function(userid, rec
             local cycle = TheWorld.state.cycles
             local sessionid = TheNet:GetSessionIdentifier()
             if cycle ~= lastcycle or lastsessionid ~= sessionid then
-                PEARL.Reputation:ResetFieldFor(userid, "cyclegains")
+                PEARL.Reputation:ResetFieldFor(userid, PEARL.Reputation.FIELD.CYCLEGAINS)
             end
         end
     end
@@ -79,6 +79,6 @@ end)
 
 PEARL.AddWorldPostInit(function(world)
     world:SafeListenForEvent("cycleschanged", function()
-        ResetFieldForActivePlayers("cyclegains")
+        ResetFieldForActivePlayers(PEARL.Reputation.FIELD.CYCLEGAINS)
     end)
 end)

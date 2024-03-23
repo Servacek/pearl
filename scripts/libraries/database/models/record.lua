@@ -16,6 +16,8 @@
 ------------------------------------------
 
 local rawget, rawset =  rawget, rawset
+local deepcopy = deepcopy
+local type = type
 
 ------------------------------------------
 -- [[ Constants ]]
@@ -39,7 +41,7 @@ local DEFAULT_FIELD_FALLBACKS = {
     username = function(userid) return PEARL.GetUserName(userid) end,
 }
 
-local TOSTRING_PT = "<DatabaseRecord %s>[uptodate=%s]"
+local TOSTRING_PT = "<DatabaseRecord %s>[uptodate=%s,userid=%s]"
 
 local DAY_IN_SECONDS = 24 * 60 * 60
 
@@ -50,17 +52,72 @@ local DAY_IN_SECONDS = 24 * 60 * 60
 --- @class PlayerRecord
 --- @field _data table
 local PlayerRecord = Class(function(self, userid, data)
-    PEARL.debug("PlayerRecord", userid)
+    --PEARL.debug("PlayerRecord", userid)
 
-    assert(type(userid) == "string", "Invalid userid provided!")
-    assert(type(data) == "table", "Invalid data provided!")
-
-    rawset(self, "_data", data)
-    --- See __newindex fn
-    rawset(self, "_uptodate", false) --rawset(self, "_uptodate", true)
-
-    self._data.userid = userid
+    self:Init(userid, data)
 end)
+
+------------------------------------------
+-- [[ Meta Methods ]]
+------------------------------------------
+--- So the way this is implemented, it doesn't support nested tables.
+--- That means any changes deeper than the first layer won't get tracked.
+--- There is no easy solution for this without terrible complex logic full of bugs.
+--- So the structure of the record should follow the following rules:
+---     1. Flatten everything that can be flatten without losing to much (i. e. arrays).
+---     2. When working with arrays, always "DB:SetField()" them after a change was made.
+---        Since the nature of the data, we do not use much arrays so that's not a problem
+---        and even when an array has to be used the data inside it usually doesn't change much if ever.
+
+function PlayerRecord:__newindex(field, value)
+    print("__newindex")
+    if not self:IsWriteable() then
+        return PEARL.error("Attempted to modify a read-only record!")
+    end
+
+    -- Verify if new field names are valid.
+    if self._data[field] == nil then
+        if rawget(PlayerRecord, field) ~= nil then
+            return error("Naming conflict! Field "..field.." already exists within the class itself!")
+        end
+
+        if not field:islowercase() then
+            return error("Field "..field.." with value "..tostring(value).." is not in the recommended lowercase format!")
+        end
+    end
+
+    if self._data[field] ~= value or type(value) == "table" then
+        self._data[field] = value
+
+        self:SetIsUpToDate(false)
+    end
+end
+
+--- More modern approach to PlayerRecord:Get
+--- Called only for fields not found in the instance table.
+function PlayerRecord:__index(field)
+    local fn = rawget(PlayerRecord, field)
+    if type(fn) == "function" then
+        return fn
+    end
+
+    local value = self._data[field]
+    if value == nil then
+        if DEFAULT_FIELD_VALUES[field] ~= nil then
+            value = deepcopy(DEFAULT_FIELD_VALUES[field])
+        elseif DEFAULT_FIELD_FALLBACKS[field] ~= nil then
+            value = DEFAULT_FIELD_FALLBACKS[field](self._data.userid)
+        end
+    end
+
+    return value
+end
+
+function PlayerRecord:__tostring()
+    return TOSTRING_PT:format(
+        PEARL.memaddr(self._data), tostring(self._uptodate), self._data.userid
+    )
+end
 
 ------------------------------------------
 -- [[ Static Fields ]]
@@ -80,48 +137,8 @@ function PlayerRecord.New(userid)
     return record
 end
 
-------------------------------------------
--- [[ Meta Methods ]]
-------------------------------------------
-
-function PlayerRecord:__newindex(field, value, ...)
-    if not self:IsWriteable() then
-        return PEARL.error("Attempted to modify a read-only record!")
-    end
-
-    --- @TODO: Disabled until we figure out how to handle nested tables.
-    --- Flatting is also an option but it would be a pain in the ass for stuff like arrays.
-    --if rawget(self._data, field) ~= value or type(value) == "table" then
-        rawset(self._data, field, value)
-
-    --    self:SetIsUpToDate(false)
-    --end
-end
-
-function PlayerRecord:__index(field, ...)
-    local value = self._data[field]
-    if value ~= nil then
-        return value
-    end
-
-    if DEFAULT_FIELD_VALUES[field] ~= nil then
-        return DEFAULT_FIELD_VALUES[field]
-    end
-
-    if DEFAULT_FIELD_FALLBACKS[field] then
-        return DEFAULT_FIELD_FALLBACKS[field](self.userid)
-    end
-
-    local fn = rawget(PlayerRecord, field)
-    if type(fn) == "function" then
-        return fn
-    end
-end
-
-function PlayerRecord:__tostring()
-    return TOSTRING_PT:format(
-        self._data.userid, tostring(self._uptodate)
-    )
+function PlayerRecord.AddFieldDefaults(defaults)
+    table.update(DEFAULT_FIELD_VALUES, defaults)
 end
 
 ------------------------------------------
@@ -187,13 +204,26 @@ function PlayerRecord:SetData(data)
 end
 
 function PlayerRecord:SetIsUpToDate(uptodate)
-    --- See __newindex fn
-    --self._uptodate = uptodate
+    PEARL.debug("PlayerRecord:SetIsUpToDate", uptodate)
+    self._uptodate = uptodate
 end
 
 ------------------------------------------
 -- [[ Public Functions ]]
 ------------------------------------------
+
+function PlayerRecord:Init(userid, data)
+    assert(type(userid) == "string", "Invalid userid provided!")
+    assert(type(data) == "table", "Invalid data provided!")
+
+    data.userid = userid
+
+    --- These have to be "rawset" the first time, so they do not push our custom metamethods.
+    rawset(self, "_data", data)
+    rawset(self, "_uptodate", true)
+
+    return self
+end
 
 function PlayerRecord:Validate(userid)
     --- Backwards compatibility in case we add new default fields.

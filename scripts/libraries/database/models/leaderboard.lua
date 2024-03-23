@@ -42,11 +42,11 @@ local function CompRepFields(name, uid1, uid2)
 end
 
 local function CompByTotalRep(...)
-    return CompRepFields("value", ...)
+    return CompRepFields(PEARL.Reputation.FIELD.VALUE, ...)
 end
 
 local function CompByMonthRepGains(...)
-    return CompRepFields("monthgains", ...)
+    return CompRepFields(PEARL.Reputation.FIELD.MONTHGAINS, ...)
 end
 
 --------------------------------------

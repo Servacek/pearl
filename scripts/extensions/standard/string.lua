@@ -180,6 +180,14 @@ function string:empty()
     return #self == 0
 end
 
+function string:islowercase()
+    return not string.match(self, "%u")
+end
+
+function string:isuppercase()
+    return not string.match(self, "%l")
+end
+
 function string:blank()
     if type(self) ~= "string" then
         return
