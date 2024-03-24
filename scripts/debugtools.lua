@@ -123,7 +123,6 @@ function PEARL.AddDebugRecord(userid, name, reputation, netid)
 
     record.username = name or "UNKNOWN"
 
-    PEARL.Reputation:InitializeFor(userid)
     PEARL.Reputation:SetFor(userid, reputation or 100)
 
     if not netid then
@@ -134,23 +133,6 @@ function PEARL.AddDebugRecord(userid, name, reputation, netid)
 
     return record
 end
-
--- local reset_count = PEARL.GameInstParams:GetModParam("reset_count")
--- if reset_count then
---     PEARL.AddGamePostInit(function()
---         PEARL.WallScheduler:ExecuteInTime(2, function()
---             PEARL.DebugFontsCrash()
---         end)
---     end)
--- end
-
--- function PEARL.DebugFontsCrash()
---     reset_count = reset_count or 0
---     PEARL.GameInstParams:SetModParam("reset_count", (reset_count or 0) + 1)
---     TheNet:Announce(("Reset #%s 󰀜"):format(reset_count))
-
---     PEARL.WallScheduler:ExecuteInTime(18, c_reset)
--- end
 
 function PEARL.AddBasicDebugRecords()
     PEARL.AddDebugRecord("KU_12345671", "Borb", 212)
@@ -499,7 +481,7 @@ function _G.DSay(message, whisper, prefab, state)
     local guid = player and player.GUID or 123
     prefab = player and player.prefab or "wilson"
     Networking_Say(guid, "KU_TEST", "Fi8iP",
-        prefab, message, nil, whisper or false,
+        prefab, message, WHITE, whisper or false,
         false, nil
     )
 
@@ -748,6 +730,12 @@ function PEARL.TESTS.TestChatLogs()
 
     -- SYSTEM
     Networking_SystemMessage("Správa servera")
+
+    d_test_skins_announce()
+
+    d_test_skins_announce("waxwell_vampire")
+
+    d_test_skins_announce("puppy_winter")
 end
 
 function PEARL.TESTS.UTF8()

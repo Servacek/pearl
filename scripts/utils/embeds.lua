@@ -11,14 +11,13 @@
 --]==]====================================================]]
 
 
+local TEMPLATES = require("widgets/redux/templates")
+local Customize = require("map/customize")
 
 --- @type Embed
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
-
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
-
-local TEMPLATES = require("widgets/redux/templates")
-local Customize = require("map/customize")
+local Colour = PEARL.loadfile("libraries/datastructures/colour")
 
 -------------------------------------
 -- [[ Constants ]]
@@ -276,6 +275,8 @@ function EMBEDS.ServerInfo(boot)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
+
+        :SetFooter(STRINGS.PEARL.EMBEDS.SERVER.FOOTER:format(TheNet:GetSessionIdentifier() or ""))
 end
 
 --- @return Embed
@@ -446,6 +447,50 @@ function EMBEDS.WorldInfo(world, session_id, regen)
     return embed
 end
 
+function EMBEDS.SkinReceived(username, skin_prefab)
+    local data = GetSkinData(skin_prefab)
+    local collection = GetItemCollectionName(skin_prefab)
+    local rarity = GetRarityForItem(skin_prefab)
+    local target = PEARL.PrefabToName(data.base_prefab)
+
+    local description = MARKDOWN.escape(GetSkinDescription(skin_prefab))
+
+    if IsItemMarketable(skin_prefab) then
+        local url = PEARL.CONSTS.SKINS_MARKET_URL:format(DONT_STARVE_TOGETHER_APPID, skin_prefab:upper())
+        description = description.."\n\n"..MARKDOWN.hlink(
+            STRINGS.PEARL.EMBEDS.SKIN.MARKETABLE_NOTE, url
+        )
+    end
+
+    local embed = Embed()
+        :SetDescription(description)
+        :SetColor(Colour.PercentToDecimal(PEARL.unpack(GetColorForItem(skin_prefab))))
+        :SetThumbnail(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
+            -- Looks like the database uses upper case for naming...
+            string.upper(skin_prefab), "small"
+        ))
+        :SetTimestamp(os.time())
+        :SetTitle(
+            STRINGS.PEARL.EMBEDS.SKIN.TITLE:format(
+                PEARL.ICONS.ANNOUNCEMENTS["skin"], MARKDOWN.codeline(MARKDOWN.escape(username)), MARKDOWN.italic(MARKDOWN.escape(GetSkinName(skin_prefab)))
+            )
+        )
+
+    if collection then
+        embed:AddField(STRINGS.PEARL.EMBEDS.SKIN.FD_NAMES.COLLECTION, collection, true)
+    end
+
+    if rarity then
+        embed:AddField(STRINGS.PEARL.EMBEDS.SKIN.FD_NAMES.RARITY, rarity, true)
+    end
+
+    if target then
+        embed:AddField(STRINGS.PEARL.EMBEDS.SKIN.FD_NAMES.TYPE, target, true)
+    end
+
+    return embed
+end
+
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, userid)
     local owner_name = PEARL.GetUserName(userid)
@@ -569,7 +614,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
     end
 
     local embed = Embed()
-        :SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
+        --:SetTitle(P_STRINGS.TITLE:format(icon, dbr.username or "UNKNOWN"))
         :SetColor(Embed.COLORS.BLUE)
         :SetThumbnail(dbr.avatar)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid or "???"), P_STRINGS.FOOTER_ICON)
@@ -583,8 +628,9 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         :AddField(P_STRINGS.FD_NAMES.GAMEPLAYTIME, gameplayed, true)
         :SetFooter(P_STRINGS.FOOTER:format(userid, dbr.netid or "???"), P_STRINGS.FOOTER_ICON)
 
+    local url
     if dbr.netid then
-        embed:SetUrl(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid))
+        url = PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid)
     end
 
     if dbr[PEARL.AccountBindings.BINDING_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORD]] then
@@ -599,7 +645,16 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         embed:AddField(P_STRINGS.FD_NAMES.ALT_ACCOUNT, PEARL.DB:MentionOrName(dbr.rootuserid))
     end
 
-    if dbr.bans and table.empty(dbr.bans) == false then
+    if dbr.lastsessionid then
+        local cycle = tonumber(dbr.lastcycle)
+        local day = cycle and cycle + 1
+        embed:AddField(P_STRINGS.FD_NAMES.LAST_SESSION, P_STRINGS.FD_VALUES.LAST_SESSION:format(
+            dbr.lastsessionid, day or "N/A", dbr.lastsnapshot or "N/A"
+        ), true)
+    end
+
+    --- Show bans only for admins.
+    if dbr.bans and table.empty(dbr.bans) == false and all then
         local lastban = dbr.bans[#dbr.bans]
         local active = lastban.timestop == nil
         local author = lastban.author
@@ -633,7 +688,14 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         description = description.."\n\n"..P_STRINGS.MOD_NOTE:format(dbr.modnote)
     end
 
-    embed:SetDescription(description)
+    local username = dbr.username or MARKDOWN.italic("UNKNOWN")
+    if url ~= nil then
+        username = MARKDOWN.hlink(username, url)
+    end
+
+    embed:SetDescription(P_STRINGS.TITLE:format(
+        icon, username
+    ).."\n"..description)
 
     return embed
 end

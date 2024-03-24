@@ -16,7 +16,7 @@
 ------------------------------------------
 
 local rawget, rawset =  rawget, rawset
-local deepcopy = deepcopy
+local deepcopy = PEARL.deepcopy
 local type = type
 
 ------------------------------------------
@@ -26,6 +26,7 @@ local type = type
 --- In case the value is function (functions cannot be JSON serialized) the function
 --- is called and it's return value is used as the default value instead.
 --- This allows for dynamic default values.
+--- @enum PlayerRecord.DEFAULT_FIELD_VALUES
 --- @type table<string, number|boolean|string|table>
 local DEFAULT_FIELD_VALUES = {
     totaldays = 0,
@@ -33,6 +34,7 @@ local DEFAULT_FIELD_VALUES = {
     deathscount = 0,
 }
 
+--- @enum PlayerRecord.DEFAULT_FIELD_FALLBACKS
 --- @type table<string, fun(userid: string): number|boolean|string|table>
 local DEFAULT_FIELD_FALLBACKS = {
     joinedtime = function(userid) return os.time() end,
@@ -96,21 +98,17 @@ end
 --- More modern approach to PlayerRecord:Get
 --- Called only for fields not found in the instance table.
 function PlayerRecord:__index(field)
-    local fn = rawget(PlayerRecord, field)
+    local fn = rawget(PlayerRecord, field) -- Handle class method access
     if type(fn) == "function" then
         return fn
     end
 
     local value = self._data[field]
-    if value == nil then
-        if DEFAULT_FIELD_VALUES[field] ~= nil then
-            value = deepcopy(DEFAULT_FIELD_VALUES[field])
-        elseif DEFAULT_FIELD_FALLBACKS[field] ~= nil then
-            value = DEFAULT_FIELD_FALLBACKS[field](self._data.userid)
-        end
+    if value ~= nil then
+        return value
     end
 
-    return value
+    return PlayerRecord.GetDefaultForField(field, self._data.userid)
 end
 
 function PlayerRecord:__tostring()
@@ -122,6 +120,9 @@ end
 ------------------------------------------
 -- [[ Static Fields ]]
 ------------------------------------------
+
+PlayerRecord.DEFAULT_FIELD_VALUES = DEFAULT_FIELD_VALUES
+PlayerRecord.DEFAULT_FIELD_FALLBACKS = DEFAULT_FIELD_FALLBACKS
 
 PlayerRecord.TEMPLATE = DEFAULT_FIELD_VALUES
 
@@ -137,8 +138,20 @@ function PlayerRecord.New(userid)
     return record
 end
 
+--- @param defaults table<string, any>
 function PlayerRecord.AddFieldDefaults(defaults)
     table.update(DEFAULT_FIELD_VALUES, defaults)
+end
+
+--- @param field Reputation.FIELD
+--- @param userid string? The ID of the player this field belongs to (used for dynamic defaults).
+--- @return any
+function PlayerRecord.GetDefaultForField(field, userid)
+    if userid ~= nil and DEFAULT_FIELD_FALLBACKS[field] then
+        return deepcopy(DEFAULT_FIELD_FALLBACKS[field](userid))
+    end
+
+    return deepcopy(DEFAULT_FIELD_VALUES[field])
 end
 
 ------------------------------------------

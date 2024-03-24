@@ -33,7 +33,7 @@ local function OnSynchronousFiltersDoneFor(userid, allowed, data)
             return -- We have failed to create the record.
         end
 
-        PEARL.Reputation:InitializeFor(userid)
+        PEARL.Reputation:ResetFor(userid)
     end
 
     PEARL.DB:SafeSetField(userid, "lastmods", data.enabled_mods)

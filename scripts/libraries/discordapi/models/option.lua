@@ -112,11 +112,7 @@ function Option:ToTable()
                 t.choices[i] = choice:ToTable()
             end
         else
-            if type(v) == "table" then
-                t[k] = deepcopy(v)
-            end
-
-            t[k] = v
+            t[k] = PEARL.deepcopy(v)
         end
     end
 

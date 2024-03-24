@@ -90,11 +90,7 @@ function Embed.FromTable(t)
     --- @type Embed
     local embed = Embed()
     for k, v in pairs(t) do
-        if type(v) == "table" then
-            embed[k] = deepcopy(v)
-        end
-
-        embed[k] = v
+        embed[k] = PEARL.deepcopy(v)
     end
 
     return embed

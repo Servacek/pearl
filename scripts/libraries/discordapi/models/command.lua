@@ -89,11 +89,7 @@ function Command.FromTable(t)
                 command.options[#command.options+1] = Option.FromTable(option_data)
             end
         else
-            if type(v) == "table" then
-                command[k] = deepcopy(v)
-            end
-
-            command[k] = v
+            command[k] = PEARL.deepcopy(v)
         end
     end
 
@@ -146,11 +142,7 @@ function Command:ToTable()
                 t.options[#t.options+1] = option:ToTable()
             end
         else
-            if type(v) == "table" then
-                t[k] = deepcopy(v)
-            end
-
-            t[k] = v
+            t[k] = PEARL.deepcopy(v)
         end
     end
 

@@ -157,6 +157,7 @@ PEARL.SafeModTableExtend("CONSTS", {
 
     ------------------------------------
     SKINS_PREVIEW_URL           = "https://items.kleientertainment.com/images/DST/%s/%s", -- .../DST/<skin prefab>/<size>
+    SKINS_MARKET_URL            = "https://steamcommunity.com/market/listings/%s/%s", -- ../<APPID>/<skin_prefab_UPPER>
     DST_BUILDS                  = "https://s3.amazonaws.com/dstbuilds/builds.json",
     STEAM_ACCOUNT_URL           = "https://steamcommunity.com/profiles/%s",
     WIKI_URL                    = "https://dontstarve.fandom.com/wiki/%s",

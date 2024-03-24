@@ -195,6 +195,24 @@ if PEARL.CONFIG.DEBUG_MODE then
         end)
     end
 
+    local ChatInputScreen = require("screens/chatinputscreen")
+    local reset_count = PEARL.GameInstParams:GetModParam("reset_count")
+    if reset_count then
+        PEARL.AddGamePostInit(function()
+            PEARL.WallScheduler:ExecuteInTime(2, function()
+                PEARL.DebugChatCrash()
+            end)
+        end)
+    end
+
+    function PEARL.DebugChatCrash()
+        reset_count = reset_count or 0
+        PEARL.GameInstParams:SetModParam("reset_count", (reset_count or 0) + 1)
+        TheFrontEnd:PushScreen(ChatInputScreen(false))
+
+        PEARL.WallScheduler:ExecuteInTime(18, c_reset)
+    end
+
 --     PEARL.OverrideGlobal("CONSOLE_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUG_MENU_ENABLED", true)
 --     PEARL.OverrideGlobal("DEBUGRENDER_ENABLED", true)

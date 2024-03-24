@@ -133,19 +133,14 @@ end
 function DB:GetField(userid, name, default)
     local record = self:GetRecordFor(userid)
     if record == nil or record[name] == nil then
-        return default
+        if default ~= nil then
+            return default
+        end
+
+        return Record.GetDefaultForField(name, userid)
     end
 
     return record[name]
-end
-
-function DB:GetSubField(userid, field, name, default)
-    local tbl = self:GetField(userid, field)
-    if not tbl or tbl[name] == nil then
-        return default or Record.TEMPLATE[field] and Record.TEMPLATE[field][name]
-    end
-
-    return tbl[name]
 end
 
 function DB:IsRecordCachedFor(userid)

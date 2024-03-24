@@ -237,6 +237,7 @@ local STRINGS = {
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
             BOOT = "Server Launched",
             TITLE = "Server Properties",
+            FOOTER = "Session: %s",
             FD_NAMES = {
                 PLATFORM    = "Plaform",
                 GAME_V      = "Game Version",
@@ -300,6 +301,16 @@ local STRINGS = {
             },
         },
 
+        SKIN = {
+            TITLE = "%s %s received %s!",
+            MARKETABLE_NOTE = "View in the Steam Market",
+            FD_NAMES = {
+                TYPE = "Reskins",
+                COLLECTION = "Collection",
+                RARITY = "Rarity",
+            }
+        },
+
         MODS = {
             LOC_MODS = "Local Mods",
             PUB_MODS = "Steam Workshop Mods",
@@ -311,7 +322,7 @@ local STRINGS = {
 
         PROFILE = {
             -- Prefab + Username
-            TITLE = "%s %s",
+            TITLE = "# %s %s",
             FOOTER = "Klei ID: %s • Steam ID: %s",
             PLAYING = "Playing Now!",
             UNKNOWN = "No Information",
@@ -324,7 +335,7 @@ local STRINGS = {
             FOOTER_ICON = "https://cdn.discordapp.com/attachments/1066442901380403333/1190652981864042556/authentication.png",
             ACTIVE_BAN_TAG = "[Active]",
             BAN_END = "`To:` %s",
-            FD_NAMES = {
+            FD_NAMES = { -- Max 25 fields!
                 PLAYED          = "Total Days Played/Survived",
                 REP             = "Reputation",
                 JOINED          = "Joined At",
@@ -336,9 +347,11 @@ local STRINGS = {
                 STEAMCREATED    = "Steam Member Since",
                 LAST_BAN        = "Last Ban",
                 ALT_ACCOUNT     = "Alternative Account",
+                LAST_SESSION    = "Last Session",
             },
             FD_VALUES = {
                 LAST_BAN        = "> `Author:` %s\n> `From:` %s\n> `Reason:` %s",
+                LAST_SESSION    = "`%s`\n> Day: `%s`\n> Snapshot: `%s`"
             }
         },
     },

@@ -533,7 +533,7 @@ end
 local function EnsureRequiredFields(command)
     for key, value in pairs(REQUIRED_FIELDS) do
         if command[key] == nil then
-            command[key] = deepcopy(value)
+            command[key] = PEARL.deepcopy(value)
         end
     end
 end

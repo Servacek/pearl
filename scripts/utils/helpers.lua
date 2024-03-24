@@ -418,6 +418,15 @@ function PEARL.isvisiblestring(s)
     return type(s) == "string" and not s:blank()
 end
 
+local deepcopy, type = deepcopy, type
+function PEARL.deepcopy(v) -- Optimized version of the in-game "deepcopy" function.
+    if type(v) ~= "table" then
+        return v
+    end
+
+    return deepcopy(v)
+end
+
 local TYPE_CONVERTERS = {
     ["string"] = tostring,
     ["number"] = tonumber,

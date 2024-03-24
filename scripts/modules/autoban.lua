@@ -75,6 +75,7 @@ local function PreparePlayerForBan(player, onprepared)
     end)
 end
 
+--- @TODO: Make the warnings more noticable.
 local function WarnPlayer(player, level)
     -- Drop the equiped item
     if player.components.inventory then

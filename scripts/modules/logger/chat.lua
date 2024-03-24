@@ -18,9 +18,10 @@ local string = string
 local GetSkinDescription, GetSkinName, GetColorForItem, UserToName = GetSkinDescription, GetSkinName, GetColorForItem, UserToName
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local EMBEDS = PEARL.loadfile("utils/embeds")
 local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
 
-local Colour = PEARL.loadfile("libraries/datastructures/colour")
+
 
 local UserCommands = require("usercommands")
 
@@ -88,6 +89,7 @@ local function OnChatMessage(guid, prefab, name, content, whisper, icon, receive
     ), icon or PEARL.ICONS.PLAYER_PREFABS.unknown)
 end
 
+--- announce_type and colour can be nil!
 local function OnAnnouncement(message, colour, announce_type)
     -- Announcements are broadcasted between all shards
     if not (message and TheShard:IsMaster()) then
@@ -95,7 +97,7 @@ local function OnAnnouncement(message, colour, announce_type)
     end
 
     PEARL.DiscordLogger:LogString(
-        message, PEARL.ICONS.ANNOUNCEMENTS[string.lower(announce_type)]
+        message, PEARL.ICONS.ANNOUNCEMENTS[string.lower(announce_type or "")]
             or PEARL.ICONS.ANNOUNCEMENTS['default']
             or MARKDOWN.codeline(STRINGS.PEARL.LOGS.TAG:format(
                 STRINGS.PEARL.LOGS.ANNOUNCEMENT
@@ -145,28 +147,11 @@ end)
 PEARL.AddGlobalFunctionPreCall("Networking_Announcement", OnAnnouncement)
 
 -- Debug with d_test_skins_announce([skin_name])
-PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (user_name, user_colour, skin_prefab)
+PEARL.AddGlobalFunctionPreCall("Networking_SkinAnnouncement", function (username, user_colour, skin_prefab)
     -- Skin received events are broadcasted between all shards
-    if not (user_name and skin_prefab and TheShard:IsMaster()) then
-        return
+    if username and skin_prefab and TheShard:IsMaster() then
+        PEARL.DiscordLogger:LogEmbed(EMBEDS.SkinReceived(username, skin_prefab))
     end
-
-    PEARL.DiscordLogger:LogEmbed(Embed()
-        :SetDescription(MARKDOWN.escape(GetSkinDescription(skin_prefab)))
-        :SetColor(Colour.PercentToDecimal(
-            PEARL.unpack(GetColorForItem(skin_prefab))
-        ))
-        :SetThumbnail(PEARL.CONSTS.SKINS_PREVIEW_URL:format(
-            -- Looks like the database uses upper case for naming...
-            string.upper(skin_prefab), "small"
-        ))
-        :SetTitle(
-            PEARL.ICONS.ANNOUNCEMENTS["skin"].." "..STRINGS.PEARL.LOGS.SKIN_RECEIVED
-            :format(
-                MARKDOWN.escape(user_name), MARKDOWN.escape(GetSkinName(skin_prefab))
-            )
-        )
-    )
 end)
 
 PEARL.AddGlobalFunctionPreCall("Networking_Say", function (guid, userid, name, prefab, message, colour, whisper, isemote, vanity)

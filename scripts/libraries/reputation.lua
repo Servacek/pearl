@@ -313,15 +313,6 @@ function Reputation:GiveTo(userid, amount)
     return self:DoDeltaTo(userid, amount, Reputation.START_WARNINGS_AT)
 end
 
---- @param userid string
---- @param value number?
-function Reputation:InitializeFor(userid, value)
-    local data = deepcopy(Reputation.DEFAULT_REP_DATA)
-    if PEARL.DB:SetField(userid, BASE_FIELD_NAME, data) then
-        PEARL.EventProcessor:HandleEvent("onreputationchanged", userid, 0, tonumber(value) or data.value)
-    end
-end
-
 -- So the constants are not hardcoded.
 function Reputation:LoadReputationTables()
     PEARL.info("Loading reputation tables...")
