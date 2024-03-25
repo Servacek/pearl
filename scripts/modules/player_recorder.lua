@@ -118,14 +118,6 @@ end
 local function OnClientConnected(world, player)
     PEARL.DB:SafeSetField(player.userid, "lastjoinedtime", os.time())
     SaveSessionInfoFor(player.userid)
-
-    local client = player.userid and TheNet:GetClientTableForUser(player.userid)
-    if not client or not client.name then
-        return
-    end
-
-    -- Update this on every connect since it could possibly change.
-    PEARL.DB:SafeSetField(player.userid, "username", client.name)
 end
 
 local function OnRecordLoadedFor(userid, record)
@@ -146,6 +138,14 @@ local function OnClientAuthenticationComplete(world, data)
         PEARL.DB:SafeSetField(userid, "lastshardid", tostring(PEARL.SHARDID))
         PEARL.DB:SaveRecordFor(userid)
     end
+
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    if not client or not client.name then
+        return
+    end
+
+    -- Update this on every authentication since it could possibly change.
+    PEARL.DB:SafeSetField(userid, "username", client.name)
 end
 
 local function OnClientDisconnected(world, data)
@@ -285,7 +285,7 @@ local function OnSavingRecordFor(userid)
 end
 
 local function OnCyclesChanged()
-    for userid, _ in ipairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
+    for userid, _ in pairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
         OnWorldLoadedForClient(userid)
     end
 end
@@ -330,7 +330,7 @@ PEARL.AddWorldPostInit(function(world)
 
     world:SafeListenForEvent("cycleschanged", OnCyclesChanged)
 
-    for userid, _ in ipairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
+    for userid, _ in pairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
         OnWorldLoadedForClient(userid)
     end
 end)

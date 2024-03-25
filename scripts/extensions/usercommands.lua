@@ -425,7 +425,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
 
     local function run() command.fn(ctx, PEARL.unpack(validated_args, 1, n)) end
     if type(command.exectime) == "number" and command.exectime >= 0 then
-        PEARL.WallScheduler:ExecuteInTime(command.exectime, run)
+        ctx:ExecuteAfter(command.exectime, run)
     else
         run()
     end
@@ -596,12 +596,18 @@ function UserCommands.RegisterCustomCommand(name, command)
 end
 
 --- @param name string
---- @param fn fun(command: table): any
-function UserCommands.CustomizeCommand(name, fn)
+--- @param pre fun(command: table): any
+function UserCommands.CustomizeCommand(name, pre, post)
     PEARL.AddUserCommandPreInit(name, function(command)
-        fn(command)
+        if pre then
+            pre(command)
+        end
 
         UserCommands.AddCustomCommand(name, command)
+
+        if post then
+            post(command)
+        end
     end)
 end
 
@@ -756,7 +762,24 @@ end
 
 --- @return string userid The client's Klei ID or nil on failure.
 function UserCommands.InputToUserID(input)
-    return input and (UserToClientID(input) or PEARL.AccountBindings:MapToKleiID(input)) or input
+    local result_case_insensitive
+    local userid = input and (UserToClientID(input) or PEARL.AccountBindings:MapToKleiID(input))
+    if not userid and type(input) == "string" then
+        --- So we support name as parameter even when the player is offline.
+        local cfd_cache = PEARL.ServerNetwork:GetCFDCache()
+
+        local input_lower = string.lower(input)
+        for id, cfd in pairs(cfd_cache) do
+            if cfd.username == input then
+                return id
+            elseif type(cfd.username) == "string" and string.lower(cfd.username) == input_lower then
+                -- Store it and continue looping in the hope of finding a better match
+                result_case_insensitive = id
+            end
+        end
+    end
+
+    return userid or result_case_insensitive or input
 end
 
 --- @return table? client The client's table or nil on failure.
@@ -825,8 +848,7 @@ PEARL.AddShardRPCHandler("RouteHybridCommand", function(shardid, name, datastr)
 
     local context = CommandContext.FromTable(data)
     context:SetCommand(command)
-
-    PEARL.WallScheduler:ExecuteInTime(0, function()
+    context:ExecuteAfter(0, function()
         UserCommands.RunHybridCommand(command, context, true)
     end)
 end)

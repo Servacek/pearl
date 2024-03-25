@@ -731,11 +731,10 @@ function PEARL.TESTS.TestChatLogs()
     -- SYSTEM
     Networking_SystemMessage("Správa servera")
 
-    d_test_skins_announce()
-
-    d_test_skins_announce("waxwell_vampire")
-
-    d_test_skins_announce("puppy_winter")
+    d_test_skins_announce() -- birdcage (item based)
+    d_test_skins_announce("waxwell_vampire") -- character based
+    d_test_skins_announce("puppy_winter") -- marketable
+    d_test_skins_announce("feet_loafers_tan_khaki") -- No base_prefab
 end
 
 function PEARL.TESTS.UTF8()

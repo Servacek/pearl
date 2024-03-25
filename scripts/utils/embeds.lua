@@ -451,7 +451,7 @@ function EMBEDS.SkinReceived(username, skin_prefab)
     local data = GetSkinData(skin_prefab)
     local collection = GetItemCollectionName(skin_prefab)
     local rarity = GetRarityForItem(skin_prefab)
-    local target = PEARL.PrefabToName(data.base_prefab)
+    local target = data.base_prefab and PEARL.PrefabToName(data.base_prefab)
 
     local description = MARKDOWN.escape(GetSkinDescription(skin_prefab))
 

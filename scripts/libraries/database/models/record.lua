@@ -72,7 +72,6 @@ end)
 ---        and even when an array has to be used the data inside it usually doesn't change much if ever.
 
 function PlayerRecord:__newindex(field, value)
-    print("__newindex")
     if not self:IsWriteable() then
         return PEARL.error("Attempted to modify a read-only record!")
     end

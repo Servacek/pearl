@@ -77,7 +77,7 @@ local joining_clients = {}
 local connected_clients = {}
 --- @NOTE: Potential bug when restarting the server with players in caves.
 --- @NOTE: "TheNet:GetClientTable()" can return nil when we are not connected!
-for _, client in ipairs(TheNet:GetClientTable() or {}) do
+for _, client in ipairs(GetPlayerClientTable() or {}) do
     connected_clients[client.userid] = true
 end
 
@@ -412,6 +412,11 @@ end
 ----------------------------------
 -- Getters
 ----------------------------------
+
+--- @return table<string, table<any, any>>
+function ServerNetwork:GetCFDCache()
+    return conn_data_cache
+end
 
 function ServerNetwork:GetCachedCFDFor(userid)
     return conn_data_cache[userid]

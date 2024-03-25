@@ -338,7 +338,7 @@ function DB:SaveRecordFor(userid, record)
     --- Make sure we handle the case where saving fails.
     local lastupdate = record.lastupdate
     record.lastupdate = os.time()
-    print(record.lastupdate)
+
     if PEARL.ModPersistance:SaveDataToFile(
         self:GetRecordFilePathFor(userid), record:GetData(), true
     ) then

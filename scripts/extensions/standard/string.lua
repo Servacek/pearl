@@ -28,11 +28,21 @@ local pairs = pairs
 local rep = string.rep
 local utf8upper = string.utf8upper
 
+local type = type
+
 -------------------------------------
 -- [[ Constants ]]
 -------------------------------------
 
 local BLANK_PATTERN = "^[%s%c\t\n\r]*$"
+
+-------------------------------------
+-- [[ Static Variables ]]
+-------------------------------------
+
+string.NFORMAT_PATTERN  = "{([^}]+)}"
+string.NFORMAT_TEMPLATE = "{%s}"
+
 
 -------------------------------------
 -- [[ Public Functions ]]
@@ -208,16 +218,22 @@ end
 --- @param value string?
 function string:nformat(name, value)
     if type(name) == "table" then
-        return (self:gsub("{([^}]+)}", name))
+        return (self:gsub(string.NFORMAT_PATTERN, name))
     end
 
     if name == nil or value == nil then
         return self
     end
 
-    return self:gsub("{"..name.."}", value, 1)
+    return self:gsub(string.NFORMAT_TEMPLATE:format(name), value, 1)
 end
 
+--- Checks whether the provided string can be "nformated".
+--- @param self string
+--- @return boolean
+function string:nformatable()
+    return self:find(string.NFORMAT_PATTERN) ~= nil
+end
 
 function string:iformat(index, value, pattern)
     pattern = pattern or "%s"

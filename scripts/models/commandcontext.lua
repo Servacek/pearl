@@ -150,6 +150,15 @@ end
 -- [[ Public Methods ]]
 --------------------------------------
 
+function CommandContext:ExecuteAfter(time, fn, ...)
+    local task = PEARL.WallScheduler:ExecuteInTime(time, fn, nil, ...)
+    if task then
+        task:seterrfn(function()
+            self:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.EXECUTION)
+        end)
+    end
+end
+
 --- @param content string
 --- @param icon string? Optional icon (emoji) to the content. Displayed only on discord.
 function CommandContext:Reply(content, icon)

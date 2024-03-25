@@ -44,7 +44,7 @@ end
 --- @param checkfn fun(key: any, value: any): boolean
 --- @param count integer?
 --- @return boolean success, integer count
-function table:find(checkfn, count)
+function table:findall(checkfn, count)
     count = count or 1
     for k, v in pairs(self) do
         if checkfn(k, v) then
@@ -56,6 +56,16 @@ function table:find(checkfn, count)
     end
 
     return false, count
+end
+
+--- @param checkfn fun(key: any, value: any): boolean
+--- @return any result
+function table:find(checkfn)
+    for k, v in pairs(self) do
+        if checkfn(k, v) then
+            return v
+        end
+    end
 end
 
 -- Fancy Table Concatenation

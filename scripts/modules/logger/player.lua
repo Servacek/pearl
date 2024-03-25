@@ -189,16 +189,19 @@ local function OnIgniteNear(doer, near, pos)
         -- Extinguish fires near the doer.
         -- Use WallScheduler in case the server gets paused after this.
         PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_EXTINGUISH, function()
-            if PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS) == 0 then
+            local count = PEARL.ExtinguishFires(pos.x, pos.y, pos.z, EXTINGUISHER_RADIUS)
+            if not count or count == 0 then
                 return -- No fires were actually extinguished.
             end
 
             if type(doername) ~= "string" then
-                return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH)
+                return TheNet:SystemMessage(STRINGS.PEARL.LOGS.EXTINGUISH:nformat("count", count))
             end
 
             TheNet:SystemMessage(
-                STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:format(doername)
+                STRINGS.PEARL.LOGS.EXTINGUISH_NEAR:nformat{
+                    target = doername, count = count
+                }
             )
         end)
     end
@@ -222,7 +225,7 @@ RegisterPlayerActionHandler(ACTIONS.LIGHT, function(doer, target)
         target:HasTag("structure") or type(AllRecipes[target.prefab]) == "table"
     ) or (
         -- Or the target is anything but it's near some plant's or structures
-        near and (#near > 4 or table.find(near, structuresearchfn))
+        near and (#near > 4 or table.findall(near, structuresearchfn))
     )) then
         silent = true
     end
@@ -878,7 +881,7 @@ local function onfirespreaderdeath(doer, target)
     end
 
     local pt = STRINGS.PEARL.ACTIONS.KILL[prefix]
-    local prohibited = #near >= 4 or table.find(near, structuresearchfn)
+    local prohibited = #near >= 4 or table.findall(near, structuresearchfn)
     AL:EntityAct(pt, doer,
     {target = target, near = PEARL.BuildFancyStringForEntities(near)})
         :SetIsSilent(not prohibited)
@@ -1165,7 +1168,7 @@ local function onbuildstructure(doer, data)
         if near and #near > 0 then
             Rep:EarnFor(doer.userid, REPUTATIONS.BURNABLE_NEAR_FIRE * #near)
 
-            silent = not (#near > 2 or table.find(near, structuresearchfn))
+            silent = not (#near > 2 or table.findall(near, structuresearchfn))
             type = PEARL.CONSTS.ANN_TYPE.BURN
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.BUILD.NEAR, doer, "near", PEARL.BuildFancyStringForEntities(near))
         end

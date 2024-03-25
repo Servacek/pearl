@@ -23,7 +23,7 @@ end
 
 local function ResetFieldForActivePlayers(field)
     -- For active players within the shard (writable records)
-    for userid, _ in ipairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
+    for userid, _ in pairs(PEARL.ServerNetwork:GetLocalClientIDs()) do
         PEARL.Reputation:ResetFieldFor(userid, field)
     end
 end

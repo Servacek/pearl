@@ -37,8 +37,8 @@ end
 -- [[ Class Declaration ]]
 --------------------------------
 
---- @class QueuedLogAction
-local QueuedLogAction = Class(function(self, pattern)
+--- @class RepeatableLogAction
+local RepeatableLogAction = Class(function(self, pattern)
     --- Represents the identity of the string.
     --- The static, unique, non-stackable part.
     --- This cannot be changed after the first init!
@@ -71,7 +71,13 @@ local QueuedLogAction = Class(function(self, pattern)
     --- @type integer
     self.queuetimemult = QUEUE_REPEAT_MULT
 
-    self.queued = false
+    self.logged = false
+    self.initialized = false
+
+    --- @type fun(action: RepeatableLogAction)
+    self.logfn = nil
+    --- @type fun(action: RepeatableLogAction)
+    self.initfn = nil
 
     --- @type Task?
     self.task = nil
@@ -81,7 +87,7 @@ end)
 -- [[ Static ]]
 --------------------------------
 
-QueuedLogAction.FIELDS  = {
+RepeatableLogAction.FIELDS  = {
     DOER        = "doer",
     OWNER       = "owner",
     SOURCE      = "source",
@@ -92,13 +98,21 @@ QueuedLogAction.FIELDS  = {
 }
 
 --------------------------------
+-- [[ Meta Methods ]]
+--------------------------------
+
+function RepeatableLogAction:__tostring()
+    return "RepeatableLogAction["..(self.pattern or "").."]"
+end
+
+--------------------------------
 -- [[ Setters ]]
 --------------------------------
 
 --- @param target string|EntityScript
 --- @param stacksize integer? Optional stacksize override for case where the target's stacksize cannot be used.
---- @return QueuedLogAction
-function QueuedLogAction:AddTarget(target, stacksize, ...)
+--- @return RepeatableLogAction
+function RepeatableLogAction:AddTarget(target, stacksize, ...)
     if not target then
         return self
     end
@@ -119,7 +133,7 @@ function QueuedLogAction:AddTarget(target, stacksize, ...)
     return self:AddToStackableField(self.FIELDS.TARGET, target, stacksize, ...)
 end
 
-function QueuedLogAction:AddTargets(targets, ...)
+function RepeatableLogAction:AddTargets(targets, ...)
     if EntityScript.is_instance(targets) then
         return self:AddTarget(targets, ...)
     end
@@ -131,8 +145,8 @@ function QueuedLogAction:AddTargets(targets, ...)
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:SetColorEntity(entity)
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetColorEntity(entity)
     if EntityScript.is_instance(entity) then
         self.colorentity = entity
     elseif type(entity) == "table" then
@@ -142,20 +156,8 @@ function QueuedLogAction:SetColorEntity(entity)
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:SetQueueTask(task)
-    if self.task then
-        PEARL.warn("Queue task already!")
-    end
-
-    --- @type Task
-    self.task = task
-
-    return self
-end
-
---- @return QueuedLogAction
-function QueuedLogAction:SetIsSilent(silent)
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetIsSilent(silent)
     -- By default silent is set to true.
     -- Non-silent announcements have higher priority than silent ones,
     -- so when stacking actions keep that in mind so they are not overriden.
@@ -166,8 +168,8 @@ function QueuedLogAction:SetIsSilent(silent)
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:SetQueueTime(time)
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetQueueTime(time)
     if self.queuetime ~= time then
         self.queuetime = time
 
@@ -180,15 +182,19 @@ function QueuedLogAction:SetQueueTime(time)
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:SetQueueTimeMult(mult)
+--- The multiplier used to calculate the new queuetime
+--- after an action was repeated.
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetQueueTimeMult(mult)
     self.queuetimemult = mult
 
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:AddToStackableField(field, key, stacksize, noprefix)
+--- @return RepeatableLogAction
+function RepeatableLogAction:AddToStackableField(field, key, stacksize, noprefix)
+    PEARL.debug("RepeatableLogAction:AddToStackableField", field)
+
     -- Ensure that the field exists
     if not self:HasStackableField(field) then
         self:SetStackableField(field, {})
@@ -212,8 +218,8 @@ function QueuedLogAction:AddToStackableField(field, key, stacksize, noprefix)
 end
 
 --- Always overrides the value provided for the name.
---- @return QueuedLogAction
-function QueuedLogAction:SetStackableField(field, value)
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetStackableField(field, value)
     PEARL.debug("QueuedLogAction:SetStackableField", field, value)
     if EntityScript.is_instance(value) then
         value = value:GetStandardizedName()
@@ -228,15 +234,17 @@ function QueuedLogAction:SetStackableField(field, value)
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:SetLogType(ltp)
+--- Not only that this can set the predefined icon on discord,
+--- but it also changes the icon used in the game.
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetLogType(ltp)
     self.logtype = ltp
 
     return self
 end
 
---- @return QueuedLogAction
-function QueuedLogAction:SetIcon(icon)
+--- @return RepeatableLogAction
+function RepeatableLogAction:SetIcon(icon)
     self.icon = icon
 
     return self
@@ -246,11 +254,11 @@ end
 -- [[ Getters ]]
 --------------------------------
 
-function QueuedLogAction:HasStackableField(field)
+function RepeatableLogAction:HasStackableField(field)
     return self.stackable and self.stackable[field] ~= nil or false
 end
 
-function QueuedLogAction:GetString()
+function RepeatableLogAction:GetString()
     if table.empty(self.stackable) ~= false then
         return self.pattern -- No changes
     end
@@ -264,82 +272,48 @@ function QueuedLogAction:GetString()
     return str
 end
 
---- @return boolean
-function QueuedLogAction:IsInQueue()
-    return self.queued
-end
-
 --- Stackable actions are defined as action with at least one dynamic field.
 --- @return boolean
-function QueuedLogAction:IsStackable()
+function RepeatableLogAction:IsStackable()
     return self.stackable and not table.empty(self.stackable)
-end
-
-function QueuedLogAction:IsExecutable()
-    return self.task ~= nil
 end
 
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
 
-function QueuedLogAction:CancelQueueTask()
+function RepeatableLogAction:CancelTask()
     if self.task then
         self.task:cancel()
         self.task = nil
     end
 end
 
---- @param cb function
-function QueuedLogAction:StartQueueTask(cb)
+--- @param timeoutfn function Called after "queuetime" when no repetition happened.
+function RepeatableLogAction:WaitForRepetition(timeoutfn)
     if self.task then
         self.task:settime(self.queuetime)
-        self.task:setcb(cb)
+        self.task:setcb(timeoutfn)
         self.task:restart()
+    else
+        self.task = PEARL.WallScheduler:ExecuteInTime(self.queuetime, timeoutfn)
     end
 end
 
-function QueuedLogAction:Repeat()
-    if not self.task or not self.timestart then
-        return self
-    end
-
-    if (os.time() - self.timestart) < MAX_DELAY then
+--- @return boolean success
+function RepeatableLogAction:Repeat()
+    if self.task and self.timestart and (os.time() - self.timestart) < MAX_DELAY then
         self.task:settime(self.queuetime * self.queuetimemult)
         self.task:restart()
 
-        return self
+        return true
     end
 
-    -- Log it immediately.
-    self:Execute()
-
-    return self
-end
-
-function QueuedLogAction:Queue()
-    if self.queued then
-        return self
-    end
-
-    if type(self.queuefn) == "function" then
-        self.queuefn(self, self.queuefninst)
-    end
-
-    self.queued = true
-
-    return self
-end
-
-function QueuedLogAction:Execute()
-    if self.task then
-        self.task:run()
-        self:CancelQueueTask()
-    end
+    return false
 end
 
 --------------------------------
 -- [[ Return ]]
 --------------------------------
 
-return QueuedLogAction
+return RepeatableLogAction

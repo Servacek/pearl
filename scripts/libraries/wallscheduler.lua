@@ -149,6 +149,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         running = true, -- The task is running from the start by default
         id = id,
         _args = toarrayornil(...),
+        _errfn = nil, --- @type function?
     }
 
     if PEARL.CONFIG.DEBUG_MODE then
@@ -243,6 +244,14 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         self._args = toarrayornil(...)
     end
 
+    function task:seterrfn(errfn)
+        if type(errfn) ~= "function" then
+            return PEARL.error("Attempted to set task callback to an invalid value!")
+        end
+
+        self._errfn = errfn
+    end
+
     function task:stop()
         if not self.running then
             return PEARL.warn("Task already stopped!")
@@ -266,6 +275,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
     function task:cancel()
         self._time = 0
         self._fn = nil
+        self._errfn = nil
         self._ext = -1 -- This will ensure the task will get to the back eventually.
         self._limit = 0 -- Disable the task.
         self.id = nil
@@ -327,9 +337,16 @@ local function OnWallUpdate()
             if success == false then
                 PEARL.error("Failed to run task:", task:tostring())
                 PEARL.HandleError(result)
-                PEARL.error("Cancelling...")
+
+                if task._errfn then
+                    local _errfn_success, _errfn_result = pcall(task._errfn)
+                    if _errfn_success == false then
+                        PEARL.error("Failed to handle task error:", _errfn_result)
+                    end
+                end
 
                 -- Make sure the task is going to be removed immediately this tick.
+                PEARL.error("Cancelling...")
                 task:cancel()
             end
         end

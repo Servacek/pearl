@@ -367,7 +367,7 @@ end
 --- @param prefab string
 --- @param stacksize number?
 function PEARL.PrefabToName(prefab, stacksize)
-    local name = STRINGS.NAMES[string.upper(prefab)] or prefab or "MISSING_NAME"
+    local name = STRINGS.NAMES[prefab and string.upper(prefab)] or prefab or "MISSING_NAME"
     if stacksize  and stacksize > 1 then
         return STRINGS.PEARL.LOGS.ITEM:format(stacksize, name)
     end

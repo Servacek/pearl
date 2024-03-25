@@ -11,112 +11,173 @@
 --]==]====================================================]]
 
 
-local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
+local RepeatableLogAction = PEARL.loadfile("models/queuedlogaction")
 
 --------------------------------
 -- [[ Class Declaration ]]
 --------------------------------
 
+--- @singleton
 --- @class ActionLog
 local ActionLog = {
-    --- @type table<string, table<string, any>>
-    _queue = {},
-    _queueindex = {},
+    _pattern_to_action = {},    --- @type table<string, RepeatableLogAction>
+    _dynamic_queue     = {},    --- @type table<number, string>
+    _uninitialized     = setmetatable({}, {
+        __mode = "v" -- Let the values be garbage collected if needed.
+    }),    --- @type table<number, RepeatableLogAction>
+
+    _init_task         = nil,   --- @type Task?
 }
 
 --------------------------------
 -- [[ Private Methods ]]
 --------------------------------
 
---- @param action QueuedLogAction
-local function _OnActionInitialized(action)
-    if not action:IsExecutable() then
-        return
+local function _LogActionRaw(action)
+    ActionLog:DequeueAction(action.pattern)
+    ActionLog:Log(
+        action.colorentity, action.logtype, action:GetString(), action.silent, action.icon
+    )
+
+    action:CancelTask()
+end
+
+local function _InitTaskDone()
+    if ActionLog._init_task then
+        ActionLog._init_task:stop()
     end
 
-    -- The action did not manage to become stackable during its construction,
-    -- so it won't be added to the queue but logged right away.
-    if not action:IsStackable() then
-        ActionLog:LogAction(action)
-        return
-    end
+    for i = #ActionLog._uninitialized, 1, -1 do
+        local action = ActionLog._uninitialized[i]
+        ActionLog:InitializeAction(action)
 
-    ActionLog:QueueAction(action)
-    action:StartQueueTask(function()
-        ActionLog:LogAction(action)
-    end)
+        if action.logged or action.initialized then
+            table.remove(ActionLog._uninitialized, i)
+        end
+    end
 end
 
 --- @param pattern string
---- @return QueuedLogAction
-local function _InitializeAction(pattern)
-    local action = QueuedLogAction(pattern)
+--- @return RepeatableLogAction
+local function _CreateNewAction(pattern)
+    PEARL.debug("_CreateNewAction", pattern)
 
-    -- Wait a tick until the action is fully constructed.
-    return action:SetQueueTask(PEARL.WallScheduler:ExecutePeriodic(0, function()
-        _OnActionInitialized(action)
-    end, 2)) -- 1. Initialization, 2. Queue (optional)
+    local action = RepeatableLogAction(pattern)
+    if string.nformatable(pattern) then
+        if not ActionLog._init_task then
+            ActionLog._init_task = PEARL.WallScheduler:ExecutePeriodic(0, _InitTaskDone)
+        elseif not ActionLog._init_task.running then
+            --- Interesting way would be to use the "task._args"
+            --- but that would be kinda... hacky...
+            ActionLog._init_task:restart()
+        end
+
+        --- @TODO: Maybe our custom queue would fit better here?
+        table.insert(ActionLog._uninitialized, 1, action)
+        --ActionLog._uninitialized[#ActionLog._uninitialized + 1] = action
+    else
+        ActionLog:InitializeAction(action)
+    end
+
+    return action
 end
 
 --------------------------------
--- [[ Public Methods ]]
+-- [[ Getters ]]
 --------------------------------
+
+--- @return RepeatableLogAction
+function ActionLog:GetRepeatableActionAt(index)
+    return self._pattern_to_action[self._dynamic_queue[index]]
+end
 
 --- @param pattern string Retrive the specific action bound to the provided pattern.
 --- Pattern should be always unique per action.
 function ActionLog:GetQueuedAction(pattern)
-    return self._queue[pattern]
+    return self._pattern_to_action[pattern]
 end
 
 --- @param pattern string Retrive the specific actions index.
 --- @return integer?
 function ActionLog:GetQueuedActionIndex(pattern)
-    return table.index(self._queueindex, pattern)
+    return table.index(self._dynamic_queue, pattern)
 end
+
+-- --- @param pattern string Retrive the specific actions index.
+-- --- @return boolean
+-- function ActionLog:IsActionQueued(pattern)
+--     return self.queue[pattern] ~= nil
+-- end
+
+--------------------------------
+-- [[ Public Methods ]]
+--------------------------------
 
 --- @param pattern string Removes from the queue action with the provided pattern.
 function ActionLog:DequeueAction(pattern)
-    self._queue[pattern] = nil
-    table.remove(self._queueindex, self:GetQueuedActionIndex(pattern))
+    self._pattern_to_action[pattern] = nil
+    table.remove(self._dynamic_queue, self:GetQueuedActionIndex(pattern))
 end
 
---- @param action QueuedLogAction
+--- Stores the action in our table so we can look it up in case of the action being repeated.
+--- @param action RepeatableLogAction
 function ActionLog:QueueAction(action)
-    PEARL.debug("ActionLog:QueueAction")
-
-    self._queue[action.pattern] = action
-    self._queueindex[#self._queueindex+1] = action.pattern
+    self._pattern_to_action[action.pattern] = action
+    self._dynamic_queue[#self._dynamic_queue + 1] = action.pattern
 end
 
 function ActionLog:Log(ent, tp, str, slt, icon)
-    return PEARL.AnnounceWithType(
-        str, tp, (ent and ent.entity or ent), slt, icon
-    )
+    return PEARL.AnnounceWithType(str, tp, (ent and ent.entity or ent), slt, icon)
 end
 
---- @param action QueuedLogAction
+--- Called when an action is fully constructed and we can say if an action is stackable.
+--- @param action RepeatableLogAction
+function ActionLog:InitializeAction(action)
+    --PEARL.debug("ActionLog:InitializeAction", action)
+
+    if action.initialized ~= false or action.logged ~= false then
+        return
+    end
+    action.initialized = true
+
+    if action:IsStackable() then
+        self:QueueAction(action)
+        action:WaitForRepetition(function() self:LogAction(action) end)
+        return
+    end
+
+    -- The action did not manage to become stackable during its construction,
+    -- so it won't be added to the queue but logged right away.
+    self:LogAction(action)
+end
+
 function ActionLog:LogAction(action)
-    PEARL.debug("ActionLog:LogAction")
-    local index = self:GetQueuedActionIndex(action.pattern) or 1
-    for i = 1, index do
-        local queued = self._queue[self._queueindex[i]]
+    PEARL.debug("ActionLog:LogAction", action)
+
+    if action.logged then
+        return
+    end
+    action.logged = true
+    action.initialized = true
+
+    local queued_index = self:GetQueuedActionIndex(action.pattern)
+    local stop = queued_index and queued_index - 1 or #self._dynamic_queue
+
+    --- Log all the actions that were created before us!
+    for i = stop, 1, -1 do
+        local queued = self:GetRepeatableActionAt(i)
         if queued then
-            self:DequeueAction(queued.pattern)
-
-            -- Prevent the action from being logged twice.
-            queued:CancelQueueTask()
-
-            self:Log(
-                queued.colorentity, queued.logtype, queued:GetString(), queued.silent, queued.icon
-            )
+            _LogActionRaw(queued)
         end
     end
+
+    _LogActionRaw(action)
 end
 
 --- @param p string The initial pattern of the action.
 --- @param sn string|table? The name of the static field in the pattern or the formatting table for the given pattern.
 --- @param sv string? The value of the "sn" field, if provided.
---- @return QueuedLogAction action The current action for the given pattern built up from the static data provided.
+--- @return RepeatableLogAction action The current action for the given pattern built up from the static data provided.
 function ActionLog:Act(p, sn, sv)
     if sn and (type(sn) == "string" or (table.empty(sn) == false and sn._ctor == nil)) then
         -- Handle sv being an entity
@@ -141,10 +202,15 @@ function ActionLog:Act(p, sn, sv)
 
     local queued = self:GetQueuedAction(p)
     if queued then
-        return queued:Repeat()
+        if queued:Repeat() ~= true then
+            --- Repeating failed, log immediatelly (no point in waiting any longer).
+            self:LogAction(queued)
+        end
+
+        return queued
     end
 
-    return _InitializeAction(p)
+    return _CreateNewAction(p)
 end
 
 --------------------------------
@@ -155,10 +221,10 @@ end
 --- @param ent EntityScript|string?
 --- @param sn string?
 --- @param sv any
---- @return QueuedLogAction
+--- @return RepeatableLogAction
 function ActionLog:EntityAct(p, ent, sn, sv)
     if ent then
-        p = p:nformat(QueuedLogAction.FIELDS.DOER,
+        p = p:nformat(RepeatableLogAction.FIELDS.DOER,
             EntityScript.is_instance(ent) and ent:GetStandardizedName() or ent
         )
     end

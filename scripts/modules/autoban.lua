@@ -25,6 +25,7 @@ local BAN_AMIM_LENGTH = 3
 local WARNING_HEALTH_PENALTY = 10
 local WARNING_ATTACK_TYPE = "electric"
 local WARNING_SANITY_PENALTY = TUNING.SANITY_MED
+local WARNING_GROGINNESS = 7
 
 local WARNING_THRESHOLDS = {
     [1] = PEARL.Reputation.LIMIT.BAD,
@@ -75,7 +76,6 @@ local function PreparePlayerForBan(player, onprepared)
     end)
 end
 
---- @TODO: Make the warnings more noticable.
 local function WarnPlayer(player, level)
     -- Drop the equiped item
     if player.components.inventory then
@@ -93,7 +93,7 @@ local function WarnPlayer(player, level)
     end
 
     -- Change state
-    if not player.sg:HasStateTag("busy") then
+    if player.sg then
         player.sg:GoToState("hit")
     end
 

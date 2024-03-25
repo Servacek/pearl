@@ -90,9 +90,9 @@ local function _OnErrorStatusCode(response, request)
     end
 
     if request.code == RestAPI.STATUS_CODES.NOT_FOUND then
-        PEARL.error("Invalid endpoint url.")
+        PEARL.error("Invalid endpoint url.", request.url)
 
-        return request:SetMaxRetries(0)
+        return
     end
 
     if request.code == RestAPI.STATUS_CODES.GATEWAY_UNAVAILABLE then

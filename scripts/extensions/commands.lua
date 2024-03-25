@@ -58,7 +58,9 @@ local PARAMS = UserCommands.STD_PARAMS
 local COMMAND_PERMISSION = UserCommands.PERMISSION
 
 --local DAYSBACK_DELAY = 3
-local ROLLBACK_DELAY = 3
+local DEFAULT_ROLLBACK_DELAY    = 3
+local MAX_ROLLBACK_DELAY        = 600
+local MIN_ROLLBACK_DELAY        = 0
 
 local GIVEREP_AMOUNT = 25
 
@@ -432,6 +434,7 @@ AddCommand("reboot", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
     console = false,
+    exectime = 0,
 
     fn = function()
         PEARL.Reboot()
@@ -442,6 +445,7 @@ AddCommand("shutdown", {
     permission = COMMAND_PERMISSION.ADMIN,
     slash = false,
     console = false, -- already implemented by the game
+    exectime = 0,
 
     fn = function()
         -- Make sure the world is being saved before shutdown!
@@ -585,7 +589,7 @@ AddCommand("boost", {
         task:settime(PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL_FAST)
         task:restart()
 
-        PEARL.WallScheduler:ExecuteInTime(PEARL.CONFIG.DISCORD.PROXY.BOOST_DELAY, function()
+        ctx:ExecuteAfter(PEARL.CONFIG.DISCORD.PROXY.BOOST_DELAY, function()
             task:settime(_time or PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL)
             task:restart()
 
@@ -666,7 +670,7 @@ AddCommand("stats", {
         end
 
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.RESULT:format(
-            m_place, a_place, username, reputation, daygains, monthgains
+            m_place or "???", a_place or "???", username, reputation, daygains, monthgains
         ))
     end,
 })
@@ -1485,7 +1489,7 @@ UserCommands.CustomizeCommand("rollback", function(command)
 
     command.serverfn = nil -- Ensure that we are using our custom handler
     command.fn = function(ctx, numsaves, after)
-        after = after or ROLLBACK_DELAY
+        after = after or DEFAULT_ROLLBACK_DELAY
 
         --- @TODO:
         -- local days = ctx.params.days ~= nil and tonumber(ctx.params.days)
@@ -1495,10 +1499,30 @@ UserCommands.CustomizeCommand("rollback", function(command)
 
         local snapshots = numsaves or 1
         TheNet:Announce(STRINGS.PEARL.LOGS.ROLLBACK_AFTER:format(snapshots, after))
-        PEARL.WallScheduler:ExecuteInTime(after, function()
+        ctx:ExecuteAfter(after, function()
             -- Starting from zero
             TheNet:SendWorldRollbackRequestToServer(snapshots - 1)
         end)
+    end
+end,
+function(command)
+    local numsaves = table.find(command.options, function(_, option)
+        return option.name == "numsaves"
+    end)
+
+    if numsaves then
+        numsaves.type = OPTION_TYPE.INTEGER
+        numsaves.min_value = 0
+    end
+
+    local after = table.find(command.options, function(_, option)
+        return option.name == "after"
+    end)
+
+    if after then
+        after.min_value = MIN_ROLLBACK_DELAY
+        after.max_value = MAX_ROLLBACK_DELAY
+        after.type      = OPTION_TYPE.INTEGER
     end
 end)
 

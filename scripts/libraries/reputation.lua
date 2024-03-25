@@ -180,13 +180,13 @@ function Reputation:SetFieldFor(userid, field, value, sync)
         local delta = value - old
 
         local monthgains = self:GetFieldOf(userid, Reputation.FIELD.MONTHGAINS)
-        self:SetFieldFor(userid, Reputation.FIELD.MONTHGAINS, math.floor(monthgains + delta))
+        self:SetFieldFor(userid, Reputation.FIELD.MONTHGAINS, monthgains + delta)
         local daygains = self:GetFieldOf(userid, Reputation.FIELD.DAYGAINS)
-        self:SetFieldFor(userid, Reputation.FIELD.DAYGAINS, math.floor(daygains + delta))
+        self:SetFieldFor(userid, Reputation.FIELD.DAYGAINS, daygains + delta)
 
         if PEARL.ServerNetwork:IsClientConnectedAny(userid) then
             local cyclegains = self:GetFieldOf(userid, Reputation.FIELD.CYCLEGAINS)
-            self:SetFieldFor(userid, Reputation.FIELD.CYCLEGAINS, math.floor(cyclegains + delta))
+            self:SetFieldFor(userid, Reputation.FIELD.CYCLEGAINS, cyclegains + delta)
         end
 
         if self:GetFieldOf(userid, Reputation.FIELD.PEAK) < value then
@@ -208,6 +208,7 @@ function Reputation:SetFor(userid, value, sync)
 end
 
 function Reputation:ResetFieldFor(userid, field)
+    PEARL.debug("Reputation:ResetFieldFor", userid, field,Reputation.FIELD_DEFAULT[field])
     return self:SetFieldFor(userid, field, Reputation.FIELD_DEFAULT[field])
 end
 
@@ -248,7 +249,7 @@ function Reputation:DoDeltaTo(userid, delta, limit)
     end
 
     delta = math.max(math.min(delta, MAX_REP_EARN), MAX_REP_LOSE)
-    local new_rep = math.floor(rep + delta)
+    local new_rep = rep + delta -- No flooring here so we do not lose information
     if limit then
         new_rep = math.max(new_rep, limit)
     end
