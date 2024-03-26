@@ -73,6 +73,8 @@ local EMOJI_ALIAS_FORMAT = DELIM.."%s"..DELIM
 
 local EMOJI_CHARACTER_FALLBACK = "?"
 
+local CLEAR_BUTTON_CONTROLS = "Ctrl + X"
+
 ---------------------------
 -- [[ Local Variables ]]
 ---------------------------
@@ -251,7 +253,9 @@ function EmojiMenu:_CreateSearchBox(width, height)
     local atlas = resolvefilepath(CRAFTING_ATLAS)
     searchbox.button_clear = searchbox.textbox:AddChild(ImageButton(atlas, "pinslot_unpin_button.tex"))
     searchbox.button_clear:SetScale(0.2)
-    searchbox.button_clear:SetHoverText(STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER, {offset_y = 50})
+    searchbox.button_clear:SetHoverText(STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER:format(
+        CLEAR_BUTTON_CONTROLS
+    ), {offset_y = 50})
     searchbox.button_clear:SetPosition(SEARCHBOX_WIDTH / 2 - 20, 0)
     searchbox.button_clear:Hide()
 

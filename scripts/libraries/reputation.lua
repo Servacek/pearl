@@ -43,6 +43,8 @@ local GAIN_COOLDOWN = 60
 local BASE_FIELD_NAME = "reputation"
 local BASE_FIELD_PATTERN = BASE_FIELD_NAME..".%s"
 
+local DISPLAY_DECIMAL_PLACES = 2
+
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
@@ -56,12 +58,14 @@ local Reputation = {
 }
 
 --------------------------------------
--- [[ Static ]]
+-- [[ Static ]]s
 --------------------------------------
 
-Reputation.STARTING_VALUE       = PEARL.CONSTS.STARTING_REPUTATION  --- @type number
-Reputation.BAD_REP_THRESHOLD    = BAD_REP_THRESHOLD                 --- @type number
-Reputation.START_WARNINGS_AT    = BAD_REP_THRESHOLD                 --- @type number
+Reputation.STARTING_VALUE           = PEARL.CONSTS.STARTING_REPUTATION  --- @type number
+Reputation.BAD_REP_THRESHOLD        = BAD_REP_THRESHOLD                 --- @type number
+Reputation.START_WARNINGS_AT        = BAD_REP_THRESHOLD                 --- @type number
+
+Reputation.DISPLAY_DECIMAL_PLACES   = 2                                 --- @type number
 
 --- @enum Reputation.LIMIT
 Reputation.LIMIT = {
@@ -104,6 +108,17 @@ PlayerRecord.AddFieldDefaults(Reputation.FIELD_DEFAULT)
 -- [[ Getters ]]
 --------------------------------------
 
+--- Returns a field normalized and ready to be displayed.
+--- @param userid string
+--- @param field Reputation.FIELD Defaults to Reputation.FIELD.VALUE
+--- @return any
+function Reputation:GetDisplayField(userid, field)
+    PEARL.debug("Reputation:GetFieldOf", userid, field)
+
+    local value = self:GetFieldOf(userid, field)
+    return type(value) == "number" and math.round(value, DISPLAY_DECIMAL_PLACES) or value
+end
+
 --- @param userid string
 --- @param field Reputation.FIELD Defaults to Reputation.FIELD.VALUE
 --- @return any
@@ -119,20 +134,9 @@ function Reputation:GetFieldOf(userid, field)
 end
 
 --- @return number
-function Reputation:GetOf(userid)
-    return PEARL.Reputation:GetFieldOf(userid, Reputation.FIELD.VALUE)
-end
-
-function Reputation:GetGamePlayTime(userid)
-    return PEARL.DB:GetField(userid, "gameplaytime")
-end
-
---- @TODO: Why is this even here?
--- Returns time in minutes spent actively playing on the server.
---- @return number
-function Reputation:GetLocalGamePlayTime(userid)
-    local totaldays = PEARL.DB:GetField(userid, "totaldays", 0)
-    return (totaldays * TUNING.TOTAL_DAY_TIME) / 60
+function Reputation:GetOf(userid, dp)
+    local value = PEARL.Reputation:GetFieldOf(userid, Reputation.FIELD.VALUE)
+    return dp ~= nil and math.round(value, dp) or value
 end
 
 --------------------------------------

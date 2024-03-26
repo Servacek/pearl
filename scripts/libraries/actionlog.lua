@@ -63,7 +63,8 @@ local function _CreateNewAction(pattern)
     PEARL.debug("_CreateNewAction", pattern)
 
     local action = RepeatableLogAction(pattern)
-    if string.nformatable(pattern) then
+    --- It cannot be logged immediatelly because we are not yet initialized!
+    -- if string.nformatable(pattern) then
         if not ActionLog._init_task then
             ActionLog._init_task = PEARL.WallScheduler:ExecutePeriodic(0, _InitTaskDone)
         elseif not ActionLog._init_task.running then
@@ -75,9 +76,9 @@ local function _CreateNewAction(pattern)
         --- @TODO: Maybe our custom queue would fit better here?
         table.insert(ActionLog._uninitialized, 1, action)
         --ActionLog._uninitialized[#ActionLog._uninitialized + 1] = action
-    else
-        ActionLog:InitializeAction(action)
-    end
+    -- else
+    --     ActionLog:InitializeAction(action)
+    -- end
 
     return action
 end
@@ -158,6 +159,10 @@ function ActionLog:LogAction(action)
         return
     end
     action.logged = true
+
+    if not action.initialized then
+        PEARL.warn("Logging an uninitialized action!", action)
+    end
     action.initialized = true
 
     local queued_index = self:GetQueuedActionIndex(action.pattern)

@@ -40,6 +40,8 @@ local EMOJI_MENU_BUTTON_FOCUS_SIZE = 45
 local EMOJI_MENU_BUTTON_OFFSET_X = 0
 local EMOJI_MENU_BUTTON_OFFSET_Y = 60
 
+local CONTROL_MODIFIER = "Ctrl"
+
 local WARN_TEXT_SIZE = 20
 local WARN_TEXT_COLOUR = Colour.FromRGBA(255, 114, 118)
 
@@ -109,7 +111,9 @@ local function AddEmojiMenuButton(menu)
     -- Make the background bigger so it can be clicked on easier.
     local btn = TEMPLATES.EmojiButton(EMOJI_MENU_BUTTON_SIZE, false, 20)
     btn._hovertext = menu.parent:AddChild(Text(UIFONT, 30))
-    btn._hovertext:SetString(STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER:format(GetSayControl()))
+    btn._hovertext:SetString(STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER:format(
+        CONTROL_MODIFIER.." + "..GetSayControl()
+    ))
     btn._hovertext:SetScaleMode(SCALEMODE_PROPORTIONAL)
     btn._hovertext:Hide()
 

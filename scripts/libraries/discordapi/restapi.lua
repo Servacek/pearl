@@ -222,6 +222,17 @@ function RestAPI:DeleteWebhookMessage(wurl, message_id)
 end
 
 --- @param wurl string The URL of the target webhook.
+--- @param message_id string The snowflake of the target message.
+--- @return Request? request The request send for this action.
+function RestAPI:GetWebhookMessage(wurl, message_id)
+    --PEARL.debug("GetWebhookMessage", message_id)
+
+    return self:DoWebhookMessageAction(
+        wurl, message_id, WEBHOOK_ACTIONS.GET, nil
+    )
+end
+
+--- @param wurl string The URL of the target webhook.
 --- @return Request? request The request send for this action.
 function RestAPI:FetchWebhookData(wurl)
     --PEARL.debug("FetchWebhookData", message_id)

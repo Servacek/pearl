@@ -31,6 +31,7 @@ local ID_FILE_PATH = ROOT.."/"..PEARL.CONFIG.LEADERBOARD.DIRECTORY.."/discord_id
 
 local MAX_MESSAGE_POST_RETRIES = 3
 local MAX_MESSAGE_UPDATE_RETRIES = 3
+local MAX_MESSAGE_VERIFY_RETRIES = 2
 
 local POST_MESSAGE_PARAMS = { ["wait"] = true }
 
@@ -98,6 +99,9 @@ function LeaderBoarder:UpdateMessage()
     local request = self._webhook:EditMessage(self:GetUpdatingMessageID(), self:GetMessage())
     if request ~= nil then
         request:SetMaxRetries(MAX_MESSAGE_UPDATE_RETRIES)
+        request:AddStatusCodeHandle(404, function()
+            self:SetUpdatingMessageID(nil)
+        end)
     end
 
     return request
@@ -131,6 +135,18 @@ function LeaderBoarder:PostUpdatingMessage()
     end
 
     return (request:Send())
+end
+
+function LeaderBoarder:VerifyUpdatingMessageExists()
+    local request = self._webhook:GetMessage(self:GetUpdatingMessageID())
+    if request ~= nil then
+        request:SetMaxRetries(MAX_MESSAGE_VERIFY_RETRIES)
+        request:AddStatusCodeHandle(404, function()
+            self:SetUpdatingMessageID(nil)
+        end)
+    end
+
+    return request
 end
 
 function LeaderBoarder:Announce(text)

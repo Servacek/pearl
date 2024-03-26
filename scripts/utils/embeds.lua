@@ -195,7 +195,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             local userid = leaderboard:GetPlayerOnPosition(i)
             local name = tostring(PEARL.DB:GetField(userid, "username") or "UNKNOWN")
             local netid = PEARL.DB:GetField(userid, "netid") or nil
-            local rep = tostring(PEARL.Reputation:GetFieldOf(userid, (
+            local rep = tostring(PEARL.Reputation:GetDisplayField(userid, (
                 monthly and PEARL.Reputation.FIELD.MONTHGAINS or PEARL.Reputation.FIELD.VALUE)
             ))
 
@@ -222,7 +222,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         if data.dayleader then
             local netid = PEARL.DB:GetField(data.dayleader, "netid")
             local username = tostring(PEARL.DB:GetField(data.dayleader, "username") or "UNKNOWN")
-            local daygains = PEARL.Reputation:GetFieldOf(data.dayleader, PEARL.Reputation.FIELD.DAYGAINS)
+            local daygains = PEARL.Reputation:GetDisplayField(data.dayleader, PEARL.Reputation.FIELD.DAYGAINS)
             --local reputation = PEARL.Reputation:GetOf(data.dayleader)
             --local percent = math.round(gains / math.max(reputation - gains, 1), 4) * 100
 
@@ -307,7 +307,7 @@ function EMBEDS.PlayerInfo()
         local cur_days = tostring(client.playerage)
         local tot_days = PEARL.DB:IsEnabled() and tostring(PEARL.DB:GetField(client.userid, "totaldays")) or "???"
         local ping = tostring(client.netscore or "???")
-        local rep = PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(userid)
+        local rep = PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(userid, PEARL.Reputation.DISPLAY_DECIMAL_PLACES)
 
         max_index_size = max_index_size or PEARL.GetMaxStringSize(clients, true)
         max_name_size = max_name_size or PEARL.GetMaxStringSize(clients, nil, "name")
@@ -317,7 +317,7 @@ function EMBEDS.PlayerInfo()
             return PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "totaldays") or ""
         end)
         max_rep_size = max_rep_size or PEARL.GetMaxStringSize(clients, nil, nil, function(k, v)
-            return PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(v.userid) or ""
+            return PEARL.DB:IsEnabled() and PEARL.Reputation:GetOf(v.userid, PEARL.Reputation.DISPLAY_DECIMAL_PLACES) or ""
         end)
 
         local istr = tostring(i)
@@ -584,7 +584,10 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         last_seen_time = P_STRINGS.UNKNOWN
     end
 
-    local gametime = PEARL.Reputation:GetGamePlayTime(userid) or PEARL.Reputation:GetLocalGamePlayTime(userid)
+    local gametime = PEARL.DB:GetField(userid, "gameplaytime")
+    if not gametime then
+        gametime = (PEARL.DB:GetField(userid, "totaldays", 0) * TUNING.TOTAL_DAY_TIME) / 60
+    end
     local hours = math.floor(gametime / 60)
     local minutes = gametime - (hours * 60)
 
@@ -592,7 +595,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
     local totaldays = PEARL.DB:GetField(userid, "totaldays")
     local deathscount = PEARL.DB:GetField(userid, "deathscount")
 
-    local repvalue = PEARL.Reputation:GetOf(userid)
+    local repvalue = PEARL.Reputation:GetOf(userid, PEARL.Reputation.DISPLAY_DECIMAL_PLACES)
     local repstring = MARKDOWN.codeline(repvalue)
     local gains = math.floor(PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.DAYGAINS))
     local postfix = " "

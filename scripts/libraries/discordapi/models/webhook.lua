@@ -103,6 +103,11 @@ function Webhook:DeleteMessage(message_id)
     return PEARL.DiscordRestAPI:DeleteWebhookMessage(self.url, message_id)
 end
 
+--- @param message_id string The ID of webhook's message to be edited.
+function Webhook:GetMessage(message_id)
+    return PEARL.DiscordRestAPI:DeleteWebhookMessage(self.url, message_id)
+end
+
 --- Retrive webhook information.
 function Webhook:FetchData()
     PEARL.info("Retrieving webhook data...")

@@ -250,14 +250,28 @@ end)
 -- [[ Init ]]
 --------------------------------
 
-PEARL.AddGamePostInit(function()
+local verified = false
+local function OnInit()
     if PEARL.LeaderboardService:IsAnySessionActive() then
-        if PEARL.LeaderboardService:NeedsToUpdateUI() then
+        --if PEARL.LeaderboardService:NeedsToUpdateUI() then
             PEARL.LeaderboardService:UpdateUI()
-        end
+        --elseif not verified then
+        --     local request = PEARL.DiscordLeaderBoarder:VerifyUpdatingMessageExists()
+        --     if request then
+        --         request:AddStatusCodeHandle(404, function()
+        --             PEARL.LeaderboardService:StartNewSession()
+        --         end)
+
+        --         verified = true
+        --     end
+        -- end
 
         return
     end
 
     PEARL.LeaderboardService:StartNewSession()
-end)
+end
+
+PEARL.AddGamePostInit(OnInit)
+
+PEARL.EventProcessor:AddSafeEventHandler("proxy_server_start", OnInit)

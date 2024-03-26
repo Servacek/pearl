@@ -127,7 +127,7 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
 end
 
 local function filter_comp(a, b)
-
+    return a.priority > b.priority
 end
 
 ----------------------------------
@@ -604,10 +604,10 @@ local function AddFilter(tbl, filter, priority, timeout, name)
         error("Invalid filter function")
     end
 
-    -- Keep the filters sorted.
+    -- Keep the filters sorted. (filters with higher priority will be higher)
     table.insort(tbl, {
         fn = filter,
-        priority = type(priority) == "number" and priority or math.huge,
+        priority = type(priority) == "number" and priority or 0,
         timeout = type(timeout) == "number" and timeout or ASYNC_FILTER_TIMEOUT,
         name = type(name) == "string" and name or nil,
     }, filter_comp)

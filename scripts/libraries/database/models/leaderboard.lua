@@ -352,6 +352,9 @@ function Leaderboard:OnChange(visible)
     end
 end
 
+--- Every leaderboard has to manage it's own "updating" state since the changes are individual
+--- as well. In case a change happens during the leaderboard being updated, the "updated" flag
+--- won't be falsely overriden.
 function Leaderboard:OnUpdateStart()
     PEARL.debug("OnUpdateStart", self.updating)
 

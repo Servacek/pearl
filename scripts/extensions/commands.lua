@@ -462,10 +462,6 @@ AddCommand("setrep", {
     --- @param value number
     --- @param ctx CommandContext
     fn = function(ctx, userid, value)
-        if PEARL.Reputation:GetOf(userid) == value then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_INFO.NO_CHANGES)
-        end
-
         if PEARL.Reputation:SetFor(userid, value) then
             if PEARL.DB:SaveRecordFor(userid) then
                 return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SETREP.ON_SUCCESS)
@@ -546,6 +542,7 @@ AddCommand("reload", {
     --- This function is being automatically routed to the target shard.
     routing = UserCommands.SHARD_ROUTING.AUTO,
     options = {PARAMS.SHARD{optional = true}},
+    exectime = 0,
 
     --- @param ctx CommandContext
     --- @param shardid string?
@@ -640,9 +637,9 @@ AddCommand("stats", {
             return
         end
 
-        local reputation = PEARL.Reputation:GetOf(userid)
-        local daygains   = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.DAYGAINS)
-        local monthgains = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.MONTHGAINS)
+        local reputation = PEARL.Reputation:GetOf(userid, PEARL.Reputation.DISPLAY_DECIMAL_PLACES)
+        local daygains   = PEARL.Reputation:GetDisplayField(userid, PEARL.Reputation.FIELD.DAYGAINS)
+        local monthgains = PEARL.Reputation:GetDisplayField(userid, PEARL.Reputation.FIELD.MONTHGAINS)
         local username   = PEARL.DB:GetField(userid, "username", userid)
 
         local m_board    = PEARL.LeaderboardService:GetLeaderboard(Leaderboard.TYPE.MONTHLY)

@@ -603,6 +603,25 @@ function PEARL.PrintLUAMemoryUsage()
     ).." MB")
 end
 
+
+function PEARL.DumpZip(path)
+    path = path or "databundles/scripts.zip"
+    local count = 0
+    local zipf, errmsg = io.open(path, "rb")
+    if not zipf then return error(errmsg) end
+
+    for line in zipf:lines(path, "rb") do
+        if count == 10 then
+            break
+        end
+
+        print(string.byte(line, 1, #line))
+        count = count + 1
+
+        print(TheSim:DecodeAndUnzipString(line))
+    end
+end
+
 function PEARL.SearchGlobals(input, tp)
     table.foreach(_G, function(k, v)
         if input and not k:lower():find(input) and (type(v) ~= "string" or not v:lower():find(input)) then

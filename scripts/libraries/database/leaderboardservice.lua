@@ -34,6 +34,8 @@ local LeaderboardService = {
     --- @type table<string, Leaderboard>
     leaderboards = {},
     ui_webhook = PEARL.DiscordLeaderBoarder,
+
+    updating = false,
 }
 
 --- @type LeaderboardService
@@ -84,8 +86,12 @@ function LeaderboardService:ForEach(fn)
 end
 
 function LeaderboardService:NeedsToUpdateUI()
+    if self.updating then
+        return false
+    end
+
     for _, leaderboard in pairs(self.leaderboards) do
-        if not leaderboard:IsUIUpToDate() and not leaderboard:IsUpdatingUI() then
+        if not leaderboard:IsUIUpToDate() then
             return true
         end
     end
@@ -121,6 +127,10 @@ end
 function LeaderboardService:UpdateUI()
     PEARL.debug("Updating the leaderboard...")
 
+    if self.updating then
+        return PEARL.debug("UI is already being updated!")
+    end
+
     self:UpdateLeaderboardEmbeds()
 
     local update_request = self.ui_webhook:UpdateMessage()
@@ -129,6 +139,7 @@ function LeaderboardService:UpdateUI()
         return
     end
 
+    self.updating = true
     self:ForEach(function(leaderboard)
         leaderboard:OnUpdateStart()
     end)
@@ -138,6 +149,14 @@ function LeaderboardService:UpdateUI()
             leaderboard:OnUpdateDone()
             self:Save()
         end)
+    end)
+
+    update_request:AddOnComplete(function()
+        self.updating = false
+    end)
+
+    update_request:AddStatusCodeHandle(404, function()
+        self:StartNewSession()
     end)
 end
 
