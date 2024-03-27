@@ -27,7 +27,7 @@ local FONTS = {
 
     CUSTOM = {
         ASSETS = {
-            {filename = PEARL.ENV.MODROOT.."fonts/discord_emojis.zip", alias = CUSTOM_FONT_NAMES.DISCORD_EMOJIS, disable_colour = true}
+            {filename = resolvefilepath("fonts/discord_emojis.zip"), alias = CUSTOM_FONT_NAMES.DISCORD_EMOJIS, disable_colour = true}
         },
         NAMES = CUSTOM_FONT_NAMES,
     },
@@ -50,6 +50,28 @@ RunInEnvironmentSafe(fn, env)
 for k, v in pairs(env) do
     if type(v) == "string" and type(k) == "string" and k:find("FONT") then
         FONTS.VANILLA.NAMES[k] = v
+    end
+end
+
+--------------------------------
+-- [[ Overrides ]]
+--------------------------------
+
+--- Credits to Aly and Whaskalmanik
+--- https://steamcommunity.com/sharedfiles/filedetails/?id=3033694168
+if PEARL.CONFIG.BETTER_WORMWOOD_FONT then
+    local font = table.find(_G.FONTS, function(index, font) return font.alias == TALKINGFONT_WORMWOOD end)
+    if font then
+        PEARL.info("Overriding default wormwood talking font to a fixed version...")
+        font.filename = resolvefilepath("fonts/talkingfont_wormwood__0.zip")
+        font.alias = "better_"..TALKINGFONT_WORMWOOD
+        table.insert(PEARL.ENV.Assets, Asset("FONT", font.filename))
+
+        AddSimPostInit(LoadFonts)
+
+        _G.TALKINGFONT_WORMWOOD = font.alias
+    else
+        PEARL.error("Wormwood talking font not found!")
     end
 end
 

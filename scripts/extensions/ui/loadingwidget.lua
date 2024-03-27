@@ -103,7 +103,7 @@ local function OverrideLoadingTipPicker(self)
         id      = tipid,
         atlas   = assets.atlas,
         icon    = assets.icon,
-        text    = lt_table[tipid]
+        text    = self:GenerateControlTipText(tipid) or lt_table[tipid]
     } or nil
 end
 

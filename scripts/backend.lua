@@ -314,7 +314,12 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     end
 
     -- Normalization
-    for i, lt in ipairs(data) do
+    for i = #data, 1, -1 do
+        local lt = data[i]
+        if lt.enabled == false then
+            table.remove(data, i)
+        end
+
         lt.type = lt.type and string.upper(lt.type)
         if not PEARL.CONSTS.LT_TYPES[lt.type] then
             PEARL.error("Invalid type provided for loading tip!", lt.type)

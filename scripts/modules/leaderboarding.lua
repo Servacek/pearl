@@ -250,6 +250,7 @@ end)
 -- [[ Init ]]
 --------------------------------
 
+--- @TODO: Make sure everyone from the DB is on the leaderboard (in case it was disabled for while)
 local verified = false
 local function OnInit()
     if PEARL.LeaderboardService:IsAnySessionActive() then

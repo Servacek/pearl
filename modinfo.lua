@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Beta 3.0"
+version = "Release 3.0"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -463,6 +463,13 @@ configuration_options = {
     --------------------
     -- Other Modules
     --------------------
+
+    {
+        name="BETTER_WORMWOOD_FONT",
+        default = true,
+        type = "boolean",
+        public = true,
+    },
 
     {
         name="CUSTOM_EMOJIS",
