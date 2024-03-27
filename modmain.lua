@@ -90,6 +90,7 @@ GLOBAL.assert(GLOBAL.rawget(GLOBAL, "PEARL") == nil, "Multiple instances of the 
 
 local GLOBAL = GLOBAL
 local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
+local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
 --------------------------------
 -- [[ Local Constants ]]
