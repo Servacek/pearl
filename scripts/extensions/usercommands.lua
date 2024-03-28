@@ -764,7 +764,7 @@ end
 function UserCommands.InputToUserID(input)
     local result_case_insensitive
     local userid = input and (UserToClientID(input) or PEARL.AccountBindings:MapToKleiID(input))
-    if not userid and type(input) == "string" then
+    if not userid and type(input) == "string" then --- @TODO: Improve this a bit.
         --- So we support name as parameter even when the player is offline.
         local cfd_cache = PEARL.ServerNetwork:GetCFDCache()
 

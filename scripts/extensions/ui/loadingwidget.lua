@@ -82,7 +82,6 @@ local function GetWelcomeLoadingTips()
     return tips
 end
 
---- @TODO: Debug all loading tips.
 -- Use our biased loading tip picker in override mode.
 local function OverrideLoadingTipPicker(self)
     if Profile:GetLoadingTipsOption() == LOADING_SCREEN_TIP_OPTIONS.NONE then
@@ -100,11 +99,17 @@ local function OverrideLoadingTipPicker(self)
     local assets = LOADING_SCREEN_TIP_ICONS[tipcat] or LOADING_SCREEN_TIP_ICONS.SURVIVAL
     local lt_table = PEARL.CONSTS.LT_TYPE_TABLES[tipcat]
 
+    local text = lt_table[tipid]
+    if table.empty(LOADING_SCREEN_CONTROL_TIP_KEYS[tipid]) == false then
+        --- This can be called only for loading tips which have some control data!
+        text = self:GenerateControlTipText(tipid)
+    end
+
     return tipid ~= nil and tipcat ~= nil and {
         id      = tipid,
         atlas   = assets.atlas,
         icon    = assets.icon,
-        text    = self:GenerateControlTipText(tipid) or lt_table[tipid]
+        text    = text,
     } or nil
 end
 

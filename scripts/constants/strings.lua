@@ -615,6 +615,9 @@ local STRINGS = {
             LEADERBOARD = {
                 MONTHLY = "Monthly", ABSOLUTE = "Absolute"
             },
+            YES_NO = {
+                YES = "Yes", NO = "No",
+            }
         },
 
         EMOJI_CATEGORIES = {

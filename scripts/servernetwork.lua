@@ -563,7 +563,7 @@ end
 
 function ServerNetwork:IsAdmin(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
-    return client and client.admin == true or PEARL.AdminList:Contains(userid)
+    return client and client.admin == true or PEARL.AdminList:Contains(userid) or TheNet:GetUserID() == userid
 end
 
 function ServerNetwork:IsClientPriviliged(userid)

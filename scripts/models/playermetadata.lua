@@ -220,37 +220,23 @@ function PlayerMetadata:OnSessionLoaded(data)
 
     self:SetSessionData(data)
 
-    self:SetAge(data.age or self._age)
-    self:SetPrefab(data.prefab)
+    local client = self._userid and TheNet:GetClientTableForUser(self._userid) or PEARL.ServerNetwork:GetCachedClientTableFor(self._userid)
+    self:SetAge((client and client.playerage) or data.age or self._age)
+    self:SetPrefab(client and client.prefab or data.prefab)
 
     if not self._name then
-        self:SetName(PEARL.DB:GetField(self._userid, "username"))
+        self:SetName(PEARL.DB:GetField(self._userid, "username", client and client.name))
     end
 
     if not self._netid then
-        self:SetNetID(PEARL.DB:GetField(self._userid, "netid"))
+        self:SetNetID(PEARL.DB:GetField(self._userid, "netid", client and client.netid))
     end
-
-    self:SetSessionData(data)
 
     self._loaded = true
 end
 
 function PlayerMetadata:LoadPlayerData()
     local userid = self:GetUserID()
-    -- Do not prefer the cached client table since it doesn't have to be up-to-date.
-    local client = userid and TheNet:GetClientTableForUser(userid) or PEARL.ServerNetwork:GetCachedClientTableFor(userid)
-    if client then
-        self:SetName(client.name)
-        self:SetAge(client.playerage)
-        self:SetPrefab(client.prefab)
-        self:SetNetID(client.netid)
-
-        self._loaded = true
-
-        return true
-    end
-
     local sessionid = TheNet:GetSessionIdentifier()
     local file = TheNet:GetUserSessionFile(sessionid, userid)
     if not file then

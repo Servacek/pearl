@@ -260,7 +260,7 @@ if PEARL.CONFIG.INTRO_SCREEN then
 
     -- These are arrays of sections.
     -- Each section has two fields, a description and a title.
-    -- A welcome popup has only 1 section but the agreement screen can have many.¨
+    -- A welcome popup has only 1 section but the agreement screen can have many.
     local ParseTxt = PEARL.loadfile("utils/txtparser")
     PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = ParseTxt("agreement.txt", true, true)
     PEARL.CONFIG.WELCOME_POPUP_CONTENT = ParseTxt("welcome.txt", true, false)

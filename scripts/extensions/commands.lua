@@ -71,7 +71,11 @@ local STATIC_CHOICES = {
     LEADERBOARD_TYPE = {
         OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.LEADERBOARD.MONTHLY, Leaderboard.TYPE.MONTHLY),
         OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.LEADERBOARD.ABSOLUTE, Leaderboard.TYPE.ABSOLUTE),
-    }
+    },
+    YES_NO = {
+        OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.YES_NO.YES, true),
+        OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.YES_NO.NO, false),
+    },
 }
 
 ------------------------------------
@@ -237,13 +241,14 @@ AddCommand("inv", {
     privateresponse = true,
     options = {
         PARAMS.PLAYER{validate = false},
-        {name = "raw", type = OPTION_TYPE.BOOLEAN, optional = true}
+        {name = "raw", type = OPTION_TYPE.BOOLEAN, optional = true, choices = STATIC_CHOICES.YES_NO}
     },
 
     --- @param ctx CommandContext
     --- @param userid string
     --- @param raw boolean?
     fn = function(ctx, userid, raw)
+        print(userid)
         local reference = PEARL.GetPlayerMetadataFor(userid)
         local inventory = reference and reference:GetInventory()
         if table.empty(inventory) then
@@ -1024,8 +1029,9 @@ AddCommand("permissive", {
     fn = function(ctx)
         PEARL.CONFIG.PERMISSIVE_MODE = not PEARL.CONFIG.PERMISSIVE_MODE
         if PEARL.CONFIG.PERMISSIVE_MODE == true then
-            -- implicit reply via public announcement
-            TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
+            if TheShard:IsMaster() then -- Only announcing on the main shard is enough
+                TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
+            end
 
             -- Save it for next game instance.
             PEARL.GameInstParams:SetModParam(PEARL.INSTANCE_PARAMS.PERMISSIVE_MODE, PEARL.CONFIG.PERMISSIVE_MODE)

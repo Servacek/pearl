@@ -235,11 +235,11 @@ function Reporter:ReportClientLuaError(userid, data)
         content = pattern:format(MARKDOWN.codeline(userid), MARKDOWN.codeline(client_name), traceback)
     end
 
-    if type(data.enabled_mods) == "table" and #data.enabled_mods > 0 then
+    if table.empty(data.enabled_mods) == false then
         content = content..STRINGS.PEARL.LOGS.EXC_ENABLED_MODS:format(
-            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.codeline("\""..table.concat(
-                data.enabled_mods, "\" "
-            ).."\"")
+            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.codeline("`\""..table.concat(
+                data.enabled_mods, "\"`, `\""
+            ).."\"`")
         )
 
         if type(data.mod) == "table" and data.mod.disabled then
