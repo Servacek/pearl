@@ -226,11 +226,15 @@ do
     end
 end
 
-PEARL.AddWorldPostInit(function()
-    if PEARL.CONFIG.PERMISSIVE_MODE and (PEARL.CONFIG.AUTOBAN or PEARL.CONFIG.INVENTORY_REPORTER.ENABLED) then
-        TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
-    end
-end)
+if TheShard:IsMaster() then
+    local announced = false
+    PEARL.AddWorldPostInit(function()
+        if not announced and PEARL.CONFIG.PERMISSIVE_MODE and (PEARL.CONFIG.AUTOBAN or PEARL.CONFIG.INVENTORY_REPORTER.ENABLED) then
+            TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
+            announced = true
+        end
+    end)
+end
 
 --------------------------------
 -- [[ Server Token ]]
@@ -318,15 +322,16 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
         local lt = data[i]
         if lt.enabled == false then
             table.remove(data, i)
-        end
+        else
+            lt.enabled = nil
+            lt.type = lt.type and string.upper(lt.type)
+            if not PEARL.CONSTS.LT_TYPES[lt.type] then
+                PEARL.error("Invalid type provided for loading tip!", lt.type)
+                lt.type = PEARL.CONSTS.LT_TYPES.OTHER
+            end
 
-        lt.type = lt.type and string.upper(lt.type)
-        if not PEARL.CONSTS.LT_TYPES[lt.type] then
-            PEARL.error("Invalid type provided for loading tip!", lt.type)
-            lt.type = PEARL.CONSTS.LT_TYPES.OTHER
+            lt.name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
         end
-
-        lt.name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))
     end
 
     PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA = data
@@ -418,7 +423,6 @@ PEARL.loadfile("networkhandlers")
 
 PEARL.info("Loading Discord Proxy wrapper...")
 
---- @type DiscordProxy
 --- @class DiscordProxy
 PEARL.DiscordProxy = PEARL.loadlib("discordapi/discordproxy")
 
@@ -666,10 +670,12 @@ ModuleManager:AddModule("filters/platformfilter", PEARL.CONFIG.SUPPORTED_CLIENT_
 ModuleManager:AddModule("filters/customfilters.lua", PEARL.CONFIG.CUSTOM_CONNECTION_FILTERS)
 ModuleManager:AddModule("filters/profilefilter", PEARL.CONFIG.PROFILE_FILTER.ENABLED)
 
+--- Load input proxy on all shards for the state netvars.
+ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD_PROXY_ENABLED)
+
 --- Master-only Modules
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
-    ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD_PROXY_ENABLED)
     ModuleManager:AddModule("leaderboarding", PEARL.LeaderboardService:IsEnabled())
 
     -- Do only download the emojis from Master and save them to some file so other shards can access it from that.

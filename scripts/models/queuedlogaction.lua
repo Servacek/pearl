@@ -18,7 +18,8 @@
 local QUEUE_TIME               = 4
 local QUEUE_REPEAT_MULT        = 1.5
 
-local MAX_DELAY                = 9
+--- Keep this very long for extremly repetetive actions like fertilizing a big garden.
+local MAX_DELAY                = 60
 
 --------------------------------
 -- [[ Local Functions ]]

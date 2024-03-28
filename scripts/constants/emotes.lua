@@ -77,7 +77,6 @@ local EMOJIS = {
         ["doge"] = "󰂦",
         ["doge_kek"] = "󰂧",
         ["doublefacepalm"] = "󰂨",
-        ["noice"] = "󰂩",
         ["facepalm"] = "󰂪",
         ["free_real_estate"] = "󰂫",
         ["gooddoggo"] = "󰂬",
@@ -86,6 +85,9 @@ local EMOJIS = {
         ["kekleo"] = "󰂯",
         ["kekw"] = "󰂰",
         ["krtek_ewww"] = "󰂱",
+        ["noice"] = "󰃁",
+        ["portal"] = "󰃂",
+        ["resurrection"] = "󰃃",
         ["risitas"] = "󰂲",
         ["sir"] = "󰃀",
         ["sk"] = "󰂳",
@@ -100,12 +102,7 @@ local EMOJIS = {
         ["wilson_thong"] = "󰂼",
         ["wilson_why"] = "󰂽",
         ["wormwood_fire"] = "󰂾",
-        ["yeah"] = "󰂿"
-
-        -- Revelaing internal icons
-        -- Looks like even this requires the fonts.
-        -- ["touchstone"] = "󰀱",
-        -- ["portal"] = "󰀰"
+        ["yeah"] = "󰂿",
     },
 
     --- @class EMOTES.DISCORD
@@ -159,15 +156,12 @@ local EMOJIS = {
         ["󰀭"] = "<a:trophy:997509395309150238>", -- :trophy:
         ["󰀮"] = "<a:wave:997511183085097050>", -- :wave:
         ["󰀯"] = "<a:wormhole:997509414636507156>", -- :wormhole:
-
-        -- These are internal but can still be used in the chat using the UTF8 codes.
-        -- Or in messages sent from discord.
-        ["󰀰"] = "<:endless:1093462962397794314>",
-        ["󰀱"] = "<:touchstone:1134905297278877766>",
+        ["󰀰"] = "<:portal:1222646460588490834>", -- :portal:
+        ["󰀱"] = "<:resurrection:1222646437670551706>", -- :resurrection:
 
         -- Controls
         [STRINGS.LMB] = "<a:lmb:997499438077591593>",
-        [STRINGS.RMB] = "<:rmb:999294664458895473>",
+        [STRINGS.RMB] = "<a:rmb:997508955435700224>",
 
         -- Custom
         ["󰂰"] = "<:KEKW:729622110183358515>",
@@ -186,7 +180,7 @@ local EMOJIS = {
         ["󰂵"] = "<:stare:872544999726776391>",
         ["󰂴"] = "<:skill_issue:1216792672891834558>",
         ["󰂿"] = "<:yeah:824195462264651788>",
-        ["󰂾"] = "<:wormwoodFire:989498400443617310>",
+        ["󰂾"] = "<:wormwood_fire:1222665874910085171>",
         ["󰂣"] = "<:catto:765936051905888317>",
         ["󰂢"] = "<:cat_angry:765940080568827914>",
         ["󰂶"] = "<:ds_takjo:779345130112286730>",

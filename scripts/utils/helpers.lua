@@ -519,9 +519,9 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         return entity:GetDisplayName()
     end
 
-    local name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
+    local name = STRINGS.NAMES[string.upper(entity.prefab or "")] or entity:GetBasicDisplayName()
     if entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
-        name = entity.name
+        name = entity.name -- This is for Pig Mans?
     end
 
     if entity.components.spellbook then

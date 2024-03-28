@@ -45,9 +45,6 @@ end
 -- [[ Setup ]]
 --------------------------------
 
-table.insert(DEFAULT_FALLBACK_TABLE, 1, DISCORD_EMOJIS)
-table.insert(DEFAULT_FALLBACK_TABLE_OUTLINE, 1, DISCORD_EMOJIS)
-
 -- Handle duplicates
 for _, data in pairs(EMOJI_ITEMS) do
     local name = data.input_name
@@ -61,7 +58,13 @@ end
 
 --- This should work after the beta is released.
 if (tonumber(APP_VERSION) or 0) >= 597344 then
-    AddSimPostInit(LoadFonts)
+    AddSimPostInit(function()
+        --- Insert only right before the fonts are loaded so the fallbacks cannot be used unloaded.
+        table.insert(DEFAULT_FALLBACK_TABLE, 1, DISCORD_EMOJIS)
+        table.insert(DEFAULT_FALLBACK_TABLE_OUTLINE, 1, DISCORD_EMOJIS)
+
+        LoadFonts()
+    end)
 end
 
 --------------------------------

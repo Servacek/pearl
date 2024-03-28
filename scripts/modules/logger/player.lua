@@ -411,7 +411,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         local action
         if target.components.built then
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, doer,
-            QueuedLogAction.FIELDS.OWNER, target.compoents.built.doer:GetName())
+            QueuedLogAction.FIELDS.OWNER, target.components.built.doer:GetName())
         else
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.GENERIC, doer)
         end
@@ -875,12 +875,11 @@ local function onfirespreaderdeath(doer, target)
         Rep:EarnFor(doer.userid, #near * REPUTATIONS.BURNABLE_NEAR_FIRE)
     end
 
-    local prefix = doer and "" or "NODOER"
-    if #near > 0 then
-        prefix = prefix.."NEAR"
+    local pt = doer and STRINGS.PEARL.ACTIONS.KILL.GENERIC or STRINGS.PEARL.ACTIONS.KILL.NODOER
+    if table.empty(near) == false then
+        pt = doer and STRINGS.PEARL.ACTIONS.KILL.NEAR or STRINGS.PEARL.ACTIONS.KILL.NODOERNEAR
     end
 
-    local pt = STRINGS.PEARL.ACTIONS.KILL[prefix]
     local prohibited = #near >= 4 or table.findall(near, structuresearchfn)
     AL:EntityAct(pt, doer,
     {target = target, near = PEARL.BuildFancyStringForEntities(near)})

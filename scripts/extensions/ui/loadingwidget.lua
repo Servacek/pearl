@@ -82,6 +82,7 @@ local function GetWelcomeLoadingTips()
     return tips
 end
 
+--- @TODO: Debug all loading tips.
 -- Use our biased loading tip picker in override mode.
 local function OverrideLoadingTipPicker(self)
     if Profile:GetLoadingTipsOption() == LOADING_SCREEN_TIP_OPTIONS.NONE then

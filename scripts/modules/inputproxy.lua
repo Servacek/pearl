@@ -33,7 +33,7 @@ local PMESSAGE_COLOR = Colour.FromRGBA(173, 216, 230)
 -- Locals
 ----------------------------------
 
-local proxy_state
+local proxy_state_client, proxy_state_shard
 
 ----------------------------------
 -- Query Handlers
@@ -149,8 +149,12 @@ end
 ----------------------------------
 
 local function OnProxyStateChanged(state)
-    if proxy_state then
-        proxy_state:set(PEARL.DiscordProxy:GetState())
+    if proxy_state_client then
+        proxy_state_client:set(state)
+    end
+
+    if proxy_state_shard and TheShard:IsMaster() then
+        proxy_state_shard:set(state)
     end
 end
 
@@ -198,6 +202,8 @@ local function OnSave()
     end
 end
 
+--- @TODO: Handle those events on all active shards. (prob. RPCs)
+
 local function OnShardConnected(shardid)
     PEARL.DiscordProxy:AddShardEvent("shard_connected", shardid, PEARL.GetShardFancyNameByID(shardid))
 end
@@ -206,38 +212,58 @@ local function OnShardDisconnected(shardid)
     PEARL.DiscordProxy:AddShardEvent("shard_disconnected", shardid)
 end
 
-local function OnClientConnected(userid)
+local function OnClientConnected(userid) -- Replace with "filtersdone"
     PEARL.DiscordProxy:AddPlayerEvent("player_connected", userid, PEARL.GetUserName(userid))
 end
 
 local function OnClientDisconnected(userid)
-    PEARL.DiscordProxy:AddPlayerEvent("player_disconnected", userid)
+    if not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
+        PEARL.DiscordProxy:AddPlayerEvent("player_disconnected", userid)
+    end
 end
 
 ----------------------------------
 -- Setup
 ----------------------------------
 
-PEARL.AddSimPostInit(function()
-    PEARL.DiscordProxy:StartSession()
+PEARL.AddGamePostInit(function()
+    if TheShard:IsMaster() then
+        PEARL.DiscordProxy:StartSession()
+    end
 end)
 
 PEARL.AddWorldNetworkPostInit(function(inst)
-    proxy_state = net_tinybyte(inst.GUID, "proxy_state")
-    proxy_state:set(PEARL.DiscordProxy:GetState())
+    proxy_state_client = net_tinybyte(inst.GUID, "proxy_state_client")
+    proxy_state_client:set(PEARL.DiscordProxy:GetState())
+end)
+
+--- Communication between shards.
+PEARL.AddShardNetworkPostInit(function(inst)
+    proxy_state_shard = net_tinybyte(inst.GUID, "proxy_state_shard", "proxy_state_shard_changed")
+    proxy_state_shard:set(PEARL.DiscordProxy:GetState())
+    proxy_state_shard:set_local(PEARL.DiscordProxy:GetState())
+
+    if TheShard:IsSecondary() then
+        inst:ListenForEvent("proxy_state_shard_changed", function()
+            PEARL.DiscordProxy:SetState(proxy_state_shard:value())
+        end)
+    end
 end)
 
 ----------------------------------
 -- Event Listeners
 ----------------------------------
 
-PEARL.EventProcessor:AddSafeEventHandler("quit", OnQuit)
-PEARL.EventProcessor:AddSafeEventHandler("save", OnSave)
+if TheShard:IsMaster() then
+    PEARL.EventProcessor:AddSafeEventHandler("quit", OnQuit)
+    PEARL.EventProcessor:AddSafeEventHandler("save", OnSave)
 
-PEARL.EventProcessor:AddSafeEventHandler("shard_connected", OnShardConnected)
-PEARL.EventProcessor:AddSafeEventHandler("shard_disconnected", OnShardDisconnected)
-PEARL.EventProcessor:AddSafeEventHandler("ms_clientauthenticationcomplete", OnClientConnected)
-PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
+    PEARL.EventProcessor:AddSafeEventHandler("shard_connected", OnShardConnected)
+    PEARL.EventProcessor:AddSafeEventHandler("shard_disconnected", OnShardDisconnected)
+    PEARL.EventProcessor:AddSafeEventHandler("ms_clientauthenticationcomplete", OnClientConnected)
+    PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
 
-PEARL.EventProcessor:AddSafeEventHandler("proxy_fetching_done", OnProxyFetchingDone)
+    PEARL.EventProcessor:AddSafeEventHandler("proxy_fetching_done", OnProxyFetchingDone)
+end
+
 PEARL.EventProcessor:AddSafeEventHandler("proxy_state_changed", OnProxyStateChanged)

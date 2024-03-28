@@ -234,6 +234,7 @@ AddCommand("inv", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.INV.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
+    privateresponse = true,
     options = {
         PARAMS.PLAYER{validate = false},
         {name = "raw", type = OPTION_TYPE.BOOLEAN, optional = true}
@@ -654,8 +655,8 @@ AddCommand("stats", {
                 daygains = daygains,
                 monthgains = monthgains,
                 username = username,
-                peak = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.PEAK),
-                lowest = PEARL.Reputation:GetFieldOf(userid, PEARL.Reputation.FIELD.LOWEST),
+                peak = PEARL.Reputation:GetDisplayField(userid, PEARL.Reputation.FIELD.PEAK),
+                lowest = PEARL.Reputation:GetDisplayField(userid, PEARL.Reputation.FIELD.LOWEST),
                 starting_rep = PEARL.Reputation.STARTING_VALUE,
                 bad_rep_threshold = PEARL.Reputation.BAD_REP_THRESHOLD,
                 position = {

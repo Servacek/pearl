@@ -110,7 +110,7 @@ end
 
 if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
     PEARL.AddWorldNetworkPostInit(function(inst)
-        proxy_state = net_tinybyte(inst.GUID, "proxy_state", "proxy_state_changed")
+        proxy_state = net_tinybyte(inst.GUID, "proxy_state_client", "proxy_state_changed")
         proxy_state:set_local(DiscordProxy.STATE.STOPPED)
 
         inst:ListenForEvent("proxy_state_changed", function()
