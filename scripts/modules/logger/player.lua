@@ -171,6 +171,7 @@ local function OnIgniteNear(doer, near, pos)
         end
     end
 
+    local limit = Rep.LIMIT.VERY_BAD
     local rep_delta = #structures * REPUTATIONS.IGNITED_STRUCTURE
         + #plants * REPUTATIONS.IGNITED_PLANT
         + #other * REPUTATIONS.IGNITED_ENTITY
@@ -183,6 +184,7 @@ local function OnIgniteNear(doer, near, pos)
     ) then
         PEARL.info("Extinguishing the fires!")
 
+        limit = Rep.LIMIT.WORST
         rep_delta = rep_delta + REPUTATIONS.IGNITING_AT_BASE
 
         local doername = doer:GetDisplayName()
@@ -207,7 +209,7 @@ local function OnIgniteNear(doer, near, pos)
     end
 
     Rep:EarnFor(
-        doer.userid, rep_delta, Rep.LIMIT.WORST, "pyromaniac"
+        doer.userid, rep_delta, limit, "pyromaniac"
     )
 end
 
@@ -398,14 +400,14 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         -- This makes sure we only log when a base structure get's hammered.
         if not target.components.built or target.components.built:By(doer.userid) then
             silent = true
-            mult = .6
+            mult = .5
         end
 
         -- Ignore burned structures
         if target:HasTag("burnt") or target:HasTag("wall") or not target:HasTag("structure") then
             silent = true
         else
-            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.WORST, "destroyer")
+            Rep:EarnFor(doer.userid, REPUTATIONS.HAMMER_STRUCTURE * mult, Rep.LIMIT.BAD)
         end
 
         local action

@@ -190,7 +190,7 @@ function DB:SetField(userid, name, value)
     end
 
     if record:IsReadOnly() then
-        PEARL.error("Attempted to set a field for a read-only record! The record is loaded in r-w mode on shard", record.lastshardid)
+        PEARL.error("Attempted to set a field for a read-only record! The record is loaded in r-w mode on shard", record.lastshardid, CalledFrom())
         return false
     end
 

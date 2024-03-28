@@ -270,12 +270,6 @@ end
 
 ICONS.INVENTORY = {}
 
--- if TheNet:GetIsServer() and PEARL.CONFIG.INVENTORY_ICONS then
---     ICONS.INVENTORY = json.load(PEARL.MODROOT.."/data/inventory_icons.json")
--- end
-
--- ICONS.INVENTORY = type(ICONS.INVENTORY) == "table" and ICONS.INVENTORY or {}
-
 --------------------------------
 -- [[ Return ]]
 --------------------------------

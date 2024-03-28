@@ -73,7 +73,7 @@ end)
 
 function PlayerRecord:__newindex(field, value)
     if not self:IsWriteable() then
-        return PEARL.error("Attempted to modify a read-only record!")
+        return PEARL.error("Attempted to modify a read-only record!", CalledFrom())
     end
 
     -- Verify if new field names are valid.
@@ -107,7 +107,14 @@ function PlayerRecord:__index(field)
         return value
     end
 
-    return PlayerRecord.GetDefaultForField(field, self._data.userid)
+    local default = PlayerRecord.GetDefaultForField(field, self._data.userid)
+    if default ~= nil then
+        -- Make sure we save the defaults as well, since it may not be available the next time.
+        -- This is especially usefull for dynamic default values.
+        self._data[field] = default
+    end
+
+    return default
 end
 
 function PlayerRecord:__tostring()

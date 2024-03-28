@@ -116,10 +116,10 @@ PEARL.SafeModTableExtend("CONSTS", {
         EAT_RARE            = -10, -- For 100% rarity
         EAT_VERY_RARE       = -20,
         WASTE_FOOD          = -5, -- For 100% of foods nutrition wasted (> 50%)
-        HAMMER_STRUCTURE    = -4,
+        HAMMER_STRUCTURE    = -1.5,
         IGNITED_STRUCTURE   = -6, -- Per One Structure
         IGNITED_PLANT       = -3,
-        IGNITED_ENTITY      = -1.5,
+        IGNITED_ENTITY      = -.5,
         IGNITING_AT_BASE    = -8,
         FIRE_MOB_KILLED     = -5,
         LEARNED_BLUEPRINT   = -5,
@@ -673,13 +673,13 @@ ModuleManager:AddModule("filters/profilefilter", PEARL.CONFIG.PROFILE_FILTER.ENA
 --- Load input proxy on all shards for the state netvars.
 ModuleManager:AddModule("inputproxy", PEARL.CONFIG.DISCORD_PROXY_ENABLED)
 
+-- Do only download the emojis from Master and save them to some file so other shards can access it from that.
+ModuleManager:AddModule("emojiserver", PEARL.CONFIG.EMOJI_SERVER.ENABLED and PEARL.isvisiblestring(PEARL.CONFIG.EMOJI_SERVER.URL))
+
 --- Master-only Modules
 if TheShard:IsMaster() then
     ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("leaderboarding", PEARL.LeaderboardService:IsEnabled())
-
-    -- Do only download the emojis from Master and save them to some file so other shards can access it from that.
-    ModuleManager:AddModule("emojiserver", PEARL.CONFIG.EMOJI_SERVER.ENABLED and PEARL.isvisiblestring(PEARL.CONFIG.EMOJI_SERVER.URL))
 end
 
 -- Logger Modules

@@ -339,7 +339,7 @@ end
 --------------------------------------
 
 PEARL.AddShardRPCHandler("ReputationChanged", function(shardid, userid, new)
-    Reputation:SetFor(userid, new)
+    Reputation:SetFor(userid, new, true)
 end)
 
 --------------------------------------

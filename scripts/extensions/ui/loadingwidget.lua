@@ -100,7 +100,11 @@ local function OverrideLoadingTipPicker(self)
     local lt_table = PEARL.CONSTS.LT_TYPE_TABLES[tipcat]
 
     local text = lt_table[tipid]
-    if table.empty(LOADING_SCREEN_CONTROL_TIP_KEYS[tipid]) == false then
+    if (
+        LOADING_SCREEN_TIP_CATEGORIES[tipcat] == LOADING_SCREEN_TIP_CATEGORIES.CONTROLS or
+        LOADING_SCREEN_TIP_CATEGORIES[tipcat] == LOADING_SCREEN_TIP_CATEGORIES.OTHER or
+        table.empty(LOADING_SCREEN_CONTROL_TIP_KEYS[tipid]) == false
+    ) then
         --- This can be called only for loading tips which have some control data!
         text = self:GenerateControlTipText(tipid)
     end

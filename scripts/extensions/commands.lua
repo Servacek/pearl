@@ -248,7 +248,6 @@ AddCommand("inv", {
     --- @param userid string
     --- @param raw boolean?
     fn = function(ctx, userid, raw)
-        print(userid)
         local reference = PEARL.GetPlayerMetadataFor(userid)
         local inventory = reference and reference:GetInventory()
         if table.empty(inventory) then
@@ -1364,6 +1363,7 @@ AddCommand("setslots", {
     prettyname = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME,
     desc = STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.DESC,
     permission = COMMAND_PERMISSION.ADMIN,
+    routing = UserCommands.SHARD_ROUTING.ALL, -- Sync between all shards.
     options = {
         {name = "count", type = OPTION_TYPE.NUMBER, min_value = 1}
     },

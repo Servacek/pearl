@@ -146,6 +146,7 @@ local function OnClientAuthenticationComplete(world, data)
 
     -- Update this on every authentication since it could possibly change.
     PEARL.DB:SafeSetField(userid, "username", client.name)
+    PEARL.DB:SafeSetField(userid, "netid", client.netid)
 end
 
 local function OnClientDisconnected(world, data)
