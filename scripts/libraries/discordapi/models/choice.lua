@@ -30,7 +30,10 @@ Choice = PEARL.Class(function(self, name, value)
 
     self.name = name
     self.name_localizations = nil
-    self.value = value or name
+    self.value = value
+    if self.value == nil then
+        self.value = name
+    end
 end)
 
 ------------------------------------------

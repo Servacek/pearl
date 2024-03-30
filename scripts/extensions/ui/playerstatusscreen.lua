@@ -101,11 +101,11 @@ end
 -- Show the label only if proxy is enabled.
 local proxy_state_label, proxy_state
 local function OnProxyStateChanged(new)
-    if proxy_state_label then
-        local data = STATE_LABEL_DATA[new] or DEFAULT_STATE_LABEL_DATA
-        proxy_state_label:SetColour(data.colour or WHITE)
-        proxy_state_label:SetString(GetProxyStateLabelText(data.textkey))
-    end
+    -- if proxy_state_label then
+    --     local data = STATE_LABEL_DATA[new] or DEFAULT_STATE_LABEL_DATA
+    --     proxy_state_label:SetColour(data.colour or WHITE)
+    --     proxy_state_label:SetString(GetProxyStateLabelText(data.textkey))
+    -- end
 end
 
 if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
@@ -169,45 +169,45 @@ PEARL.AddClassFunctionPostCall("DoInit", function(self)
         )
     end
 
-    if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
-        if not proxy_state_label and proxy_state then
-            self.step_time = GetStaticTime()
+    -- if PEARL.CONFIG.DISCORD_PROXY_ENABLED then
+    --     if not proxy_state_label and proxy_state then
+    --         self.step_time = GetStaticTime()
 
-            proxy_state_label = Text(TALKINGFONT, 24)
+    --         proxy_state_label = Text(TALKINGFONT, 24)
 
-            OnProxyStateChanged(proxy_state:value() or false)
-            PEARL.AddClassFunctionPreCall("OnUpdate", function()
-                local state = proxy_state:value()
-                if state ~= DiscordProxy.STATE.CONNECTING then
-                    return
-                end
+    --         OnProxyStateChanged(proxy_state:value() or false)
+    --         PEARL.AddClassFunctionPreCall("OnUpdate", function()
+    --             local state = proxy_state:value()
+    --             if state ~= DiscordProxy.STATE.CONNECTING then
+    --                 return
+    --             end
 
-                local time = GetStaticTime()
-                local time_delta = time - self.step_time
-                local NEXT_STATE = 1.0
-                if time_delta > NEXT_STATE then
-                    local data = GetProxyStateLabelData(state)
-                    local text = GetProxyStateLabelText(data.textkey)
-                    if self.elipse_state == nil then
-                        self.elipse_state = 0
-                    end
+    --             local time = GetStaticTime()
+    --             local time_delta = time - self.step_time
+    --             local NEXT_STATE = 1.0
+    --             if time_delta > NEXT_STATE then
+    --                 local data = GetProxyStateLabelData(state)
+    --                 local text = GetProxyStateLabelText(data.textkey)
+    --                 if self.elipse_state == nil then
+    --                     self.elipse_state = 0
+    --                 end
 
-                    proxy_state_label:SetString(
-                        text..GetProxyStateLabelSpinnerPostfix(self.elipse_state)
-                    )
+    --                 proxy_state_label:SetString(
+    --                     text..GetProxyStateLabelSpinnerPostfix(self.elipse_state)
+    --                 )
 
-                    self.elipse_state = self.elipse_state > 1 and 0 or self.elipse_state + 1
-                    self.step_time = time
-                end
-            end, self)
-        end
+    --                 self.elipse_state = self.elipse_state > 1 and 0 or self.elipse_state + 1
+    --                 self.step_time = time
+    --             end
+    --         end, self)
+    --     end
 
-        local host_widget = type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]
-        if host_widget and proxy_state_label then
-            host_widget:AddChild(proxy_state_label)
-            proxy_state_label:SetPosition(0, 0, 0)
-        end
-    end
+    --     local host_widget = type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]
+    --     if host_widget and proxy_state_label then
+    --         host_widget:AddChild(proxy_state_label)
+    --         proxy_state_label:SetPosition(0, 0, 0)
+    --     end
+    -- end
 
     if CUSTOM_HOST_BUTTON and VALID_HOST_URL then
         local host_widget =  type(self.player_widgets) == "table" and self.player_widgets[HOST_INDEX]
