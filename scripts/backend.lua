@@ -105,7 +105,7 @@ PEARL.SafeModTableExtend("CONSTS", {
         AFK_GHOST_KICKED    = -16,
         AFK_KICKED          = -8,
         PLANT               = 1,
-        PLANT_WITHERABLE    = 2, -- Usually a resource plant
+        PLANT_RESOURCE      = 2,
         FUEL_WASTED         = -1, -- States for 100% fuel wasted.
         FUEL_TO_PROTECTOR   = 1,
         CHOPPED_PROHIBITED  = -20,
@@ -326,8 +326,14 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
             lt.enabled = nil
             lt.type = lt.type and string.upper(lt.type)
             if not PEARL.CONSTS.LT_TYPES[lt.type] then
-                PEARL.error("Invalid type provided for loading tip!", lt.type)
+                PEARL.error("Invalid type provided for loading tip!", lt.type, lt.text)
                 lt.type = PEARL.CONSTS.LT_TYPES.OTHER
+            end
+
+            if lt.data and lt.type ~= PEARL.CONSTS.LT_TYPES.CONTROLS then
+                PEARL.error("Loading tip contains control data but is not of type \"controls\"!", lt.type, lt.text)
+                PEARL.warn("Changing type of this loading tip to", PEARL.CONSTS.LT_TYPES.CONTROLS)
+                lt.type = PEARL.CONSTS.LT_TYPES.CONTROLS
             end
 
             lt.name = string.upper(lt.name or PEARL.MODNAME.."_TIP_"..tostring(i))

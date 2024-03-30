@@ -161,6 +161,25 @@ if PEARL.CONFIG.DEBUG_MODE then
     -- So we can override these from the game.
     PEARL.CLAN_ID = "1234"
     PEARL.SERVER_NAME = TheNet:GetServerName()
+    PEARL.FAKE_CLIENTS = 0
+
+    local _GetClientTable
+    _GetClientTable = PEARL.OverrideUserdataValue("GetClientTable", function(...)
+        if PEARL.FAKE_CLIENTS and PEARL.FAKE_CLIENTS > 0 then
+            local clients = _GetClientTable(...) or {}
+            local fake_clients = {}
+            for i = 1, PEARL.FAKE_CLIENTS do
+                local i_str = tostring(i)
+                fake_clients[#fake_clients+1] = {
+                    userid = "KU_"..i_str, name = "Player "..i_str, playerage = i, prefab = "willow"
+                }
+            end
+
+            return ConcatArrays(clients, fake_clients)
+        end
+
+        return _GetClientTable(...)
+    end, TheNet)
 
     -- For debugging the buttons in playerstatusscreen
     PEARL.OverrideUserdataFnReturn(TheNet, "GetServerClanID", function()

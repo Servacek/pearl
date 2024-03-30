@@ -163,6 +163,20 @@ PEARL.AddWorldPostInit(function(world)
         PEARL.ServerNetwork:OnInvalidRPCFromClient(data.rpc_name, data.userid)
     end)
 
+    --- @DEBUG
+    local paused = false
+    world:ListenForModEvent("serverpauseddirty", function(self, data)
+        if table.empty(data) == false then
+            if not paused == data.pause then
+                PEARL.EventProcessor:HandleEvent("server_paused", data.source)
+            elseif paused == not data.pause then
+                PEARL.EventProcessor:HandleEvent("server_unpaused", data.source)
+            end
+
+            paused = data.pause == true
+        end
+    end)
+
     -- Mod Events
     world:ListenForModEvent("clientconnectionclosed", function(self, data)
         if not data and not data.userid then
@@ -172,6 +186,24 @@ PEARL.AddWorldPostInit(function(world)
         PEARL.ServerNetwork:OnClientDisconnected(data.userid)
         PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
+
+    local paused = false
+local function OnPauseDirty(world, data)
+    if not data then
+        return
+    end
+
+    if not paused and data.pause then
+        PEARL.DiscordLogger:LogString(
+            data.source and STRINGS.PEARL.LOGS.SERVER_PAUSE_BY:format(data.source)
+            or STRINGS.PEARL.SERVER_PAUSE, PEARL.ICONS.SERVER_STATE.PAUSE
+        )
+    elseif paused and not data.pause then
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SERVER_UNPAUSE)
+    end
+
+    paused = data.pause
+end
 end)
 
 --- @NOTE when connecting directly, make sure the server is fully loaded before clients can connect.

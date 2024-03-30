@@ -233,20 +233,24 @@ PEARL.AddGamePostInit(function()
 end)
 
 PEARL.AddWorldNetworkPostInit(function(inst)
-    proxy_state_client = net_tinybyte(inst.GUID, "proxy_state_client")
-    proxy_state_client:set(PEARL.DiscordProxy:GetState())
+    if proxy_state_client == nil then
+        proxy_state_client = net_tinybyte(inst.GUID, "proxy_state_client")
+        proxy_state_client:set(PEARL.DiscordProxy:GetState())
+    end
 end)
 
 --- Communication between shards.
 PEARL.AddShardNetworkPostInit(function(inst)
-    proxy_state_shard = net_tinybyte(inst.GUID, "proxy_state_shard", "proxy_state_shard_changed")
-    proxy_state_shard:set(PEARL.DiscordProxy:GetState())
-    proxy_state_shard:set_local(PEARL.DiscordProxy:GetState())
+    if proxy_state_shard == nil then
+        proxy_state_shard = net_tinybyte(inst.GUID, "proxy_state_shard", "proxy_state_shard_changed")
+        proxy_state_shard:set(PEARL.DiscordProxy:GetState())
+        proxy_state_shard:set_local(PEARL.DiscordProxy:GetState())
 
-    if TheShard:IsSecondary() then
-        inst:ListenForEvent("proxy_state_shard_changed", function()
-            PEARL.DiscordProxy:SetState(proxy_state_shard:value())
-        end)
+        if TheShard:IsSecondary() then
+            inst:ListenForEvent("proxy_state_shard_changed", function()
+                PEARL.DiscordProxy:SetState(proxy_state_shard:value())
+            end)
+        end
     end
 end)
 

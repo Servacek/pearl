@@ -152,6 +152,12 @@ function ActionLog:InitializeAction(action)
     self:LogAction(action)
 end
 
+function ActionLog:LogAllQueuedActions()
+    for _, action in pairs(self._pattern_to_action) do
+        self:LogAction(action)
+    end
+end
+
 function ActionLog:LogAction(action)
     PEARL.debug("ActionLog:LogAction", action)
 
@@ -236,6 +242,23 @@ function ActionLog:EntityAct(p, ent, sn, sv)
 
     return self:Act(p, sn, sv):SetColorEntity(ent)
 end
+
+--------------------------------
+-- [[ Event Handlers ]]
+--------------------------------
+
+--- Make sure we log out everything as soon as the simulation get's interrupted.
+local function OnSimulationInterrupted()
+    ActionLog:LogAllQueuedActions()
+end
+
+--------------------------------
+-- [[ Event Listeners ]]
+--------------------------------
+
+PEARL.EventProcessor:AddSafeEventHandler("simulation_paused", OnSimulationInterrupted)
+
+PEARL.EventProcessor:AddSafeEventHandler("quit", OnSimulationInterrupted)
 
 --------------------------------
 -- [[ Return ]]

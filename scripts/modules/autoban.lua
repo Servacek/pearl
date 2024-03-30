@@ -26,6 +26,7 @@ local WARNING_HEALTH_PENALTY = 10
 local WARNING_ATTACK_TYPE = "electric"
 local WARNING_SANITY_PENALTY = TUNING.SANITY_MED
 
+--- Values under which the player will receive warnings for griefing.
 local WARNING_THRESHOLDS = {
     [1] = PEARL.Reputation.LIMIT.BAD,
     [2] = PEARL.Reputation.LIMIT.VERY_BAD,
@@ -149,7 +150,7 @@ local function OnReputationEarned(userid, old, new)
 
     local warning_level = 0
     for i = 1, #WARNING_THRESHOLDS do
-        if WARNING_THRESHOLDS[i] < new then
+        if WARNING_THRESHOLDS[i] <= new then
             break -- No other threshold will meet the criteria.
         end
 

@@ -127,7 +127,11 @@ local EMOJIS = {
     },
 
     --- @class EMOTES.DISCORD
-    -- Converts a game utf-8 formatted emote to a discord emoji
+    --- Converts a game utf-8 formatted emote to a discord emoji
+    ---
+    --- @NOTE:
+    --- Discord doesn't care about emoji names in these.
+    --- It only has to be at least one non-space character and contain no spaces.
     UTF_TO_DISCORD = {
         ["󰀜"] = "<a:abigail:997498948161900584>", -- :abigail:
         ["󰀝"] = "<a:alchemy:997498961675960470>", -- :alchemy:
@@ -248,9 +252,24 @@ for name, utf in pairs(EMOJIS.GAME) do
     EMOJIS.GAME_TO_DISCORD[name] = EMOJIS.UTF_TO_DISCORD[utf]
 end
 
-EMOJIS.DISCORD_TO_UTF = {}
-for utf, discord in pairs(EMOJIS.UTF_TO_DISCORD) do
-    EMOJIS.DISCORD_TO_UTF[discord] = utf
+do
+    local _DISCORD_ID_TO_UTF = {}
+    for utf, discord in pairs(EMOJIS.UTF_TO_DISCORD) do
+        local discord_id = discord:match(PEARL.CONSTS.DISCORD_EMOJI_ID_PATTERN)
+        _DISCORD_ID_TO_UTF[discord_id] = utf
+    end
+
+    -- Discord Emoji (Name Insensitive) -> Game UTF8 icon
+    EMOJIS.DISCORD_TO_UTF = setmetatable({}, {
+        __index = function(self, emoji_mention)
+            if type(emoji_mention) == "string" then
+                local discord_id = emoji_mention:match(PEARL.CONSTS.DISCORD_EMOJI_ID_PATTERN)
+                return _DISCORD_ID_TO_UTF[discord_id]
+            end
+
+            return _DISCORD_ID_TO_UTF[emoji_mention]
+        end
+    })
 end
 
 EMOJIS.GAME_LOWERED = {}

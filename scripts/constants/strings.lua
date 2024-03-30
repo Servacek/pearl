@@ -165,7 +165,7 @@ local STRINGS = {
 
         PLANT = {
             GENERIC     = "{doer} planted {target}.",
-            IN          = "{doer} planted {target} in {source}."
+            IN          = "{doer} planted {target} in {source}.",
         },
 
         FERTILIZE = {
@@ -466,6 +466,7 @@ local STRINGS = {
         SERVER_PAUSE_BY         = "Server was paused by %s.",
         SERVER_PAUSE            = "Server was paused.",
         SERVER_UNPAUSE          = "Server was unpaused.",
+        SERVER_UNPAUSE_BY       = "Server was unpaused by %s.",
         SERVER_STARTED          = "Server successfully started on version %s!",
 
         SIM_PAUSED              = "Simulation was paused.",
@@ -633,11 +634,17 @@ local STRINGS = {
             ALT  = "Auto-Banned for attempting to bypass a ban using an alternative account.",
         },
 
-        PROXY_STATE = "Proxy Server: %s",
-        UNREACHABLE = "Unreachable",
-        ONLINE = "Online",
-        OFFLINE = "Offline",
-        STARTING = "Starting",
+        PROXY_SERVER = {
+            STATE_LABEL         = "Proxy Server:",
+
+            STATES = {
+                UNREACHABLE     = "Unreachable",
+                ONLINE          = "Online",
+                OFFLINE         = "Offline",
+                STARTING        = "Starting",
+                UNKNOWN         = "Unknown State",
+            }
+        },
 
         ALLOWED = "Allowed",
         BLOCKED = "Blocked",

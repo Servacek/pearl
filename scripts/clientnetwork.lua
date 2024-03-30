@@ -36,8 +36,10 @@ local DISCONNECT_REASON_PRIORITIES = {
 
 local _server_slots
 PEARL.AddWorldNetworkPostInit(function(inst)
-    _server_slots = net_byte(inst.GUID, "_server_slots")
-    _server_slots:set_local(TheNet:GetServerMaxPlayers())
+    if _server_slots == nil then
+        _server_slots = net_byte(inst.GUID, "_server_slots")
+        _server_slots:set_local(TheNet:GetServerMaxPlayers())
+    end
 end)
 
 ----------------------------------

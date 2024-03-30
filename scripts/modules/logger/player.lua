@@ -621,11 +621,12 @@ end)
 RegisterPlayerActionHandler(ACTIONS.PLANTWEED,
 RegisterPlayerActionHandler(ACTIONS.PLANTSOIL,
 RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
+    local pt = STRINGS.PEARL.ACTIONS.PLANT.GENERIC
     local icon = PEARL.EMOJIS.GAME_TO_DISCORD.EYEPLANT
     if item:HasTag("deployedplant") or item:HasTag("plant") then
         icon = PEARL.EMOJIS.GAME_TO_DISCORD.BERRY
-        if item:HasTag("witherable") then
-            Rep:EarnFor(doer.userid, REPUTATIONS.PLANT_WITHERABLE)
+        if item:IsResourcePlant() then
+            Rep:EarnFor(doer.userid, REPUTATIONS.PLANT_RESOURCE)
         else
             Rep:EarnFor(doer.userid, REPUTATIONS.PLANT)
         end
@@ -633,9 +634,11 @@ RegisterPlayerActionHandler(ACTIONS.DEPLOY, function(doer, target, item)
 
     if target ~= nil then
         icon = PEARL.EMOJIS.GAME_TO_DISCORD.FARM
+        pt = STRINGS.PEARL.ACTIONS.PLANT.IN
     end
 
-    AL:EntityAct(STRINGS.PEARL.ACTIONS.PLANT.GENERIC, doer)
+    AL:EntityAct(pt, doer,
+        QueuedLogAction.FIELDS.SOURCE, target)
         :SetIcon(icon)
         :AddTarget(item, 1)
 end)))
@@ -656,9 +659,9 @@ RegisterPlayerActionHandler(ACTIONS.FERTILIZE, function(doer, target, item)
         end
     end
 
-    AL:EntityAct(pt, doer, "item", item)
+    AL:EntityAct(pt, doer, "item", item and item:GetStandardizedName() or nil)
         :SetIcon(icon)
-        :AddTarget(target or STRINGS.NAMES.FARM_SOIL_DEBRIS)
+        :AddTarget(target or STRINGS.NAMES.FARM_SOIL_DEBRIS, 1)
 end))
 
 RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target, item)
@@ -830,6 +833,7 @@ end)
 -- KILLS --
 -------------------
 
+--- @param doer EntityScript?
 local function onepicdeath(doer, target, data)
     local pt = STRINGS.PEARL.ACTIONS.KILL.BOSS
 
@@ -868,12 +872,13 @@ local function onepicdeath(doer, target, data)
         :SetIsSilent(false)
 end
 
+--- @param doer EntityScript?
 local function onfirespreaderdeath(doer, target)
     local near = target:GetPropagableBurnableEntities(
         nil, nil, PEARL.CONSTS.LARGE_PROPAGATOR_RADIUS
     )
 
-    if doer.userid then
+    if doer and doer.userid then
         Rep:EarnFor(doer.userid, #near * REPUTATIONS.BURNABLE_NEAR_FIRE)
     end
 
@@ -889,10 +894,11 @@ local function onfirespreaderdeath(doer, target)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.BURN)
 end
 
+--- @param doer EntityScript?
 local function onmonitoreddeath(doer, target, threshold)
     local remaining = PEARL.CountPrefabs(target.prefab)
     local extinct = remaining <= 0
-    if doer.userid and extinct  then
+    if doer and doer.userid and extinct then
         Rep:EarnFor(doer.userid, REPUTATIONS.POPULATION_EXTINCT)
     end
 
@@ -1363,7 +1369,7 @@ end)
 
 PEARL.AddComponentPostInit("finiteuses", function(self)
     self.inst:SafeListenForEvent("percentusedchange", function()
-        if not self.inst.components.inventoryitem then
+        if not self.inst.components.inventoryitem or not InGamePlay() then
             return
         end
 
@@ -1375,7 +1381,7 @@ PEARL.AddComponentPostInit("finiteuses", function(self)
             end
 
             if doer and doer.userid then
-                local rarity = math.min(self.inst:GetRarity() + 1, 2)
+                local rarity = math.min(self.inst:GetRarity(), 2)
                 PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BROKE_REPAIRABLE * rarity)
             end
 

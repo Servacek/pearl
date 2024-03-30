@@ -82,22 +82,18 @@ local function OnSimUnpaused()
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SIM_UNPAUSED)
 end
 
-local paused = false
-local function OnPauseDirty(world, data)
-    if not data then
-        return
-    end
+local function OnServerPaused(doer)
+    PEARL.DiscordLogger:LogString(
+        doer and STRINGS.PEARL.LOGS.SERVER_PAUSE_BY:format(doer)
+        or STRINGS.PEARL.LOGS.SERVER_PAUSE, PEARL.ICONS.SERVER_STATE.PAUSE
+    )
+end
 
-    if not paused and data.pause then
-        PEARL.DiscordLogger:LogString(
-            data.source and STRINGS.PEARL.LOGS.SERVER_PAUSE_BY:format(data.source)
-            or STRINGS.PEARL.SERVER_PAUSE, PEARL.ICONS.SERVER_STATE.PAUSE
-        )
-    elseif paused and not data.pause then
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SERVER_UNPAUSE)
-    end
-
-    paused = data.pause
+local function OnServerUnpaused(doer)
+    PEARL.DiscordLogger:LogString(
+        doer and STRINGS.PEARL.LOGS.SERVER_UNPAUSE_BY:format(doer)
+        or STRINGS.PEARL.LOGS.SERVER_UNPAUSE
+    )
 end
 
 local function OnFirstLaunch()
@@ -160,9 +156,8 @@ PEARL.AddSimPostInit(function()
     OnShardLoaded(TheWorld.ismastershard)
 
     if TheWorld.ismastershard then
-        TheWorld:SafeListenForEvent("serverpauseddirty", OnPauseDirty)
-        TheWorld:SafeListenForEvent("ms_simunpaused", OnSimUnpaused)
-        TheWorld:ListenForModEvent("simpaused", OnSimPaused)
+        --- Use the world event since it called later so ActionLog has time to send it's logs.
+        TheWorld:ListenForModEvent("ms_simpaused", OnSimPaused)
 
         PEARL.EventProcessor:AddSafeEventHandler("shard_stateupdate", OnShardStateUpdate)
 
@@ -187,6 +182,12 @@ PEARL.EventProcessor:AddSafeEventHandler("shard_shutdown", OnShutdown)
 if TheShard:IsMaster() then
     PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
     PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
+
+    PEARL.EventProcessor:AddSafeEventHandler("simulation_unpaused", OnSimUnpaused)
+
+    --- @DEBUG
+    PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerPaused)
+    PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerUnpaused)
 end
 
 PEARL.EventProcessor:AddSafeEventHandler("errorcatched", OnErrorCatched)

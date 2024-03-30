@@ -33,9 +33,15 @@ PEARL.AddGlobalFunctionPreCall("WorldRollbackFromSim", function(count)
 end)
 
 PEARL.AddGlobalFunctionPreCall("OnSimPaused", function()
+    PEARL.EventProcessor:HandleEvent("simulation_paused")
+
     if TheWorld ~= nil then
-        TheWorld:PushModEvent("simpaused")
+        TheWorld:PushModEvent("ms_simpaused")
     end
+end)
+
+PEARL.AddGlobalFunctionPreCall("OnSimUnpaused", function()
+    PEARL.EventProcessor:HandleEvent("simulation_unpaused")
 end)
 
 PEARL.AddUserDataFunctionPreCall("Reset", function()

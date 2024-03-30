@@ -237,9 +237,9 @@ function Reporter:ReportClientLuaError(userid, data)
 
     if table.empty(data.enabled_mods) == false then
         content = content..STRINGS.PEARL.LOGS.EXC_ENABLED_MODS:format(
-            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.codeline("`\""..table.concat(
+            MARKDOWN.codeline(#data.enabled_mods), "`\""..table.concat(
                 data.enabled_mods, "\"`, `\""
-            ).."\"`")
+            ).."\"`"
         )
 
         if type(data.mod) == "table" and data.mod.disabled then
