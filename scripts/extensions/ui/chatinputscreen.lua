@@ -39,6 +39,7 @@ local EMOJI_MENU_BUTTON_SIZE = 35
 local EMOJI_MENU_BUTTON_FOCUS_SIZE = 45
 local EMOJI_MENU_BUTTON_OFFSET_X = 0
 local EMOJI_MENU_BUTTON_OFFSET_Y = 60
+local EMOJI_MENU_BUTTON_ALIGN_RIGHT = true
 
 local CONTROL_MODIFIER = "Ctrl"
 
@@ -69,7 +70,7 @@ end
 
 local function ExtendedOnRawKey(self, key, down, ...)
     local active_screen = self:GetActiveScreen()
-    if active_screen and ChatInputScreen.is_instance(active_screen) then
+    if active_screen and ChatInputScreen.is_instance(active_screen) and active_screen.emoji_menu then
         if TheInput:IsKeyDown(KEY_CTRL) then
             if not down and key == KEY_Y and active_screen.emoji_menu_button then
                 active_screen.emoji_menu_button.onclick()
@@ -79,10 +80,18 @@ local function ExtendedOnRawKey(self, key, down, ...)
 
             return true
         end
-
     end
 
     return _OnRawKey(self, key, down, ...)
+end
+
+local function ExtendedOnControl(self, control, down, ...)
+    local active_screen = self:GetActiveScreen()
+    if active_screen and ChatInputScreen.is_instance(active_screen) then
+        active_screen.emoji_menu:OnControl(control, down, ...)
+    end
+
+    return _OnControl(self, control, down, ...)
 end
 
 ---------------------------
@@ -159,7 +168,7 @@ local function AddEmojiMenuButton(menu)
         end
     end)
     btn:SetOnLoseFocus(function()
-        if not menu:IsOpen() then
+        if not menu:IsOpen() and not menu.closing then
             btn:ScaleDown()
         end
 
@@ -169,12 +178,16 @@ local function AddEmojiMenuButton(menu)
         menu:Toggle()
 
         local pos_x = btn:GetPositionXYZ()
-        local w, h = menu.menu.mid_center:GetSize()
+        local w, h = (menu.menu.mid_center or menu.menu):GetSize()
         menu:SetPosition(pos_x + w / 4.5, h)
     end)
 
     if FrontEnd.OnRawKey ~= ExtendedOnRawKey then
         _OnRawKey = PEARL.OverrideValue(FrontEnd, "OnRawKey", ExtendedOnRawKey)
+    end
+
+    if FrontEnd.OnControl ~= ExtendedOnControl then
+        _OnControl = PEARL.OverrideValue(FrontEnd, "OnControl", ExtendedOnControl)
     end
 
     return btn
@@ -296,14 +309,19 @@ local function AddEmojiMenu(self)
     end
 
     self.emoji_menu_button = self.chat_edit:AddChild(AddEmojiMenuButton(self.emoji_menu))
-    local x = -465
-    if self.chat_type then
-        x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
+    local x = 0
+    if EMOJI_MENU_BUTTON_ALIGN_RIGHT then
+        x = (self.chat_edit:GetRegionSize() / 2) + 50
+    else
+        x = -465
+        if self.chat_type then
+            x = x - self.chat_type:GetString():len() * self.chat_type:GetSize() / 3.5
+        end
     end
     self.emoji_menu_button:SetPosition(x, 0)
     self.emoji_menu_button:MoveToFront()
 
-    self.chat_edit._insert_index = 1
+    local insert_index = 1
     self.emoji_menu.onopen = function()
         self.chat_edit:SetEditing(false)
         self.chat_edit:ClearFocus()
@@ -312,7 +330,7 @@ local function AddEmojiMenu(self)
             self.emoji_menu_button.hovertext_root:Hide()
         end
 
-        self.chat_edit._insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
+        insert_index = self.chat_edit.inst.TextEditWidget:GetEditCursorPos() or 1
         _bg:Show()
 
         if not self.emoji_menu_button.focus then
@@ -320,13 +338,15 @@ local function AddEmojiMenu(self)
         end
     end
 
-    self.emoji_menu.onclose = function()
+    self.emoji_menu.onclosing = function()
         self.chat_edit:SetEditing(true)
-        self.chat_edit.inst.TextEditWidget:SetEditCursorPos(self.chat_edit._insert_index)
+        self.chat_edit.inst.TextEditWidget:SetEditCursorPos(insert_index)
 
         _bg:Hide()
         _bg:SetFocus()
+    end
 
+    self.emoji_menu.onclose = function()
         -- The button is in it's focused state until the menu is closed.
         if not self.emoji_menu_button.focus then
             self.emoji_menu_button:OnLoseFocus()
@@ -335,8 +355,22 @@ local function AddEmojiMenu(self)
 
     self.emoji_menu.onemojichosen = function(emoji)
         local str = self.chat_edit:GetString()
-        self.chat_edit:SetString(str:sub(1, self.chat_edit._insert_index)..emoji.." "..str:sub(self.chat_edit._insert_index + 1))
-        self.chat_edit._insert_index = self.chat_edit._insert_index + emoji:len() + 1
+        local add_str = emoji.." "
+        local new_str = str:sub(1, insert_index)..add_str..str:sub(insert_index + 1)
+
+        -- Only append if the
+        if new_str:utf8len() < (self.chat_edit.limit or MAX_CHAT_INPUT_LENGTH) then
+            self.chat_edit:SetString(new_str)
+            insert_index = insert_index + add_str:len()
+        end
+    end
+
+    self.emoji_menu.onemojifavoritetoggled = function(emoji, favorite)
+        --print("On EMOJI FAVORITE TOGGLED!!", emoji, favorite)
+    end
+
+    self.emoji_menu.onemojidisplay = function(emoji)
+        --print("On EMOJI DISPLAYED!", emoji)
     end
 
     PEARL.AddClassFunctionPreCall("ValidateChar", function()
@@ -354,6 +388,13 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
     end
 
     if PEARL.CONFIG.EMOJI_MENU and ClientEmojis:HasAnyEmojis() then
+        if PEARL.CONFIG.DEBUG_MODE then
+            PEARL.loadfile("extensions/ui/templates", nil, true)
+
+            -- Hot reload for faster testing
+            EmojiMenu = PEARL.loadfile("widgets/emojimenu", nil, true)
+        end
+
         AddEmojiMenu(self)
     end
 

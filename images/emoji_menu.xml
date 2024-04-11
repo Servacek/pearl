@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Atlas>
+    <Texture filename="emoji_menu.tex"/>
+    <Elements>
+        <Element name="star_checked.tex" u1="0.00390625" u2="0.300781" v1="0.398438" v2="0.992188"/>
+        <Element name="star_uncheck.tex" u1="0.308594" u2="0.605469" v1="0.398438" v2="0.992188"/>
+    </Elements>
+    <StraightAlpha>false</StraightAlpha>
+</Atlas>

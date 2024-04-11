@@ -124,6 +124,7 @@ local EMOJIS = {
         ["wilson_why"] = "󰂽",
         ["wormwood_fire"] = "󰂾",
         ["yeah"] = "󰂿",
+        ["vibing_cat"] = "󰃙",
     },
 
     --- @class EMOTES.DISCORD
@@ -201,9 +202,9 @@ local EMOJIS = {
         ["󰂹"] = "<:wesluv:797532778463756309>", -- :wesluv:
         ["󰂻"] = "<:willowkys:797528101792776192>", -- :willowkys:
         ["󰂵"] = "<:stare:872544999726776391>", -- :stare:
-        ["󰂴"] = "<:skill_issue:1192507402092826684>", -- :skill_issue:
+        ["󰂴"] = "<:skill_issue:1216792672891834558>", -- :skill_issue:
         ["󰂿"] = "<:yeah:824195462264651788>", -- :yeah:
-        ["󰂾"] = "<:wormwood_fire:989498400443617310>", -- :wormwood_fire:
+        ["󰂾"] = "<:wormwood_fire:1222665874910085171>", -- :wormwood_fire:
         ["󰂣"] = "<:catto:765936051905888317>", -- :catto:
         ["󰂢"] = "<:cat_angry:765940080568827914>", -- :cat_angry:
         ["󰂶"] = "<:takjo:779345130112286730>", -- :takjo:
@@ -242,8 +243,15 @@ local EMOJIS = {
         ["󰃅"] = "<:lulw:721771709119725638>", -- :lulw:
         ["󰃘"] = "<:D_:799323543216062474>", -- :D_:
         ["󰃗"] = "<:Clueless:998708758425378846>", -- :Clueless:
+        ["󰃙"] = "<a:vibing_cat:779688822401138688>"
     }
 }
+
+EMOJIS.DATA = PEARL.loadfile("constants/generated/emoji_data", nil, nil, function(...)
+    PEARL.error(...)
+end) or {}
+
+print("UTF8LEN", string.utf8len(EMOJIS.GAME.ABIGAIL), string.len(EMOJIS.GAME.ABIGAIL))
 
 -- Game Icon Name -> Discord Emoji
 --- @class EMOJIS.GAME
@@ -272,35 +280,39 @@ do
     })
 end
 
-EMOJIS.GAME_LOWERED = {}
-for name, utf in pairs(EMOJIS.GAME) do
-    EMOJIS.GAME_LOWERED[name:lower()] = utf
+EMOJIS.VANILLA = {}
+EMOJIS.NAME_TO_INPUTTYPE = {}
+for input_type, emojis in pairs(EMOJI_ITEMS) do
+    EMOJIS.VANILLA[emojis.input_name] = emojis.data.utf8_str
+    EMOJIS.NAME_TO_INPUTTYPE[emojis.input_name] = input_type
 end
 
-EMOJIS.ALL = MergeMaps(EMOJIS.GAME_LOWERED, EMOJIS.DISCORD)
+EMOJIS.ALL = MergeMaps(EMOJIS.VANILLA, EMOJIS.DISCORD)
 
 EMOJIS.UTF_TO_NAME = {}
 for name, utf in pairs(EMOJIS.ALL) do
     EMOJIS.UTF_TO_NAME[utf] = name
 end
 
-function EMOJIS.GetOwnedVanillaEmojis(userid)
-    local has_ownership = nil
-    if TheWorld ~= nil and userid ~= nil and TheWorld.ismastersim then
-        has_ownership = function(item_type)
-            return TheInventory:CheckClientOwnership(userid, item_type)
+function EMOJIS.IsEmojiOwnedBy(emoji_type, userid)
+    if emoji_type ~= nil then
+        if TheWorld ~= nil and userid ~= nil and TheWorld.ismastersim then
+            return TheInventory:CheckClientOwnership(userid, emoji_type)
+        elseif userid == TheNet:GetUserID() then
+            return TheInventory:CheckOwnership(emoji_type)
         end
-    elseif userid == TheNet:GetUserID() then
-        has_ownership = function(item_type)
-            return TheInventory:CheckOwnership(item_type)
-        end
-    else
-        return {}
     end
+end
 
+function EMOJIS.IsEmojiAnimated(emoji_id)
+    --- @TODO: Implement actual logic here...
+    return emoji_id == PEARL.EMOJIS.DISCORD["vibing_cat"]
+end
+
+function EMOJIS.GetOwnedVanillaEmojis(userid)
     local emojis_map = {}
     for item_type, emojis in pairs(EMOJI_ITEMS) do
-        if has_ownership(item_type) then
+        if EMOJIS.IsEmojiOwnedBy(item_type, userid) then
             emojis_map[emojis.input_name] = emojis.data.utf8_str
         end
     end
@@ -309,14 +321,14 @@ function EMOJIS.GetOwnedVanillaEmojis(userid)
 end
 
 function EMOJIS.EmojifyForDiscord(s)
-    return s:gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, PEARL.EMOJIS.UTF_TO_DISCORD)
+    return (s:gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, PEARL.EMOJIS.UTF_TO_DISCORD))
 end
 
 function EMOJIS.EmojifyForGame(s)
-    return s:gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
+    return (s:gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
             :gsub(PEARL.CONSTS.UNICODE_EMOJI_PATTERN, function(match)
                 return PEARL.EMOJIS.DISCORD_TO_UTF[match] or ":UNKNOWN_EMOJI:"
-            end)
+            end))
 end
 
 --------------------------------

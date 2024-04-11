@@ -984,11 +984,9 @@ end)
 PEARL.AddPrefabPostInit("world", function(world)
     -- Pushed for every living entity (players too) that dies in the current shard.
     world:SafeListenForEvent("entity_death", function(self, data)
-        if not data then
-            return
+        if data then
+            onentitydeath(data.afflicter, data.inst, data)
         end
-
-        onentitydeath(data.afflicter, data.inst, data)
     end)
 end)
 
@@ -1369,18 +1367,17 @@ end)
 
 PEARL.AddComponentPostInit("finiteuses", function(self)
     self.inst:SafeListenForEvent("percentusedchange", function()
-        if not self.inst.components.inventoryitem or not InGamePlay() then
+        if not self.inst.components.inventoryitem or not InGamePlay() or not self.inst.prefab then
             return
         end
 
-        -- A repairable item was broken.
-        if self.current <= 0 then --and self.inst.components.repairable then
+        if self.current <= 0 and self.inst:IsValid() then
             local doer = self.inst.components.inventoryitem.owner
             if not doer or not doer:HasTag("player") then
                 doer = nil
             end
 
-            if doer and doer.userid then
+            if doer and doer.userid and self.inst.components.repairable then
                 local rarity = math.min(self.inst:GetRarity(), 2)
                 PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BROKE_REPAIRABLE * rarity)
             end

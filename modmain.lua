@@ -102,6 +102,7 @@ local MT = {
     -- This allows implicit access to fields of the GLOBAL table.
     -- This is beign called... a lot.
     __index = function(env, index)
+        --- We have to use "rawget" in order to bypass strict.lua
         return rawget(GLOBAL, index)
     end,
 }
@@ -148,6 +149,9 @@ GLOBAL.PEARL = setmetatable({
     GetConfigData       = function(opt_name, no_supp, ...)
         local data = ENV.GetModConfigData(opt_name, ...)
         if type(data) ~= "table" or no_supp then
+            if data == nil and PEARL.DEFAULT_CONFIG then
+                return PEARL.DEFAULT_CONFIG[opt_name]
+            end
             return data
         end
 
@@ -304,13 +308,14 @@ PEARL.CONFIG_OVERRIDES = {}
 local function load_config_overrides()
     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
         if option.name ~= nil then
-            if option.saved ~= nil then
-                PEARL.CONFIG_OVERRIDES[option.name] = option.saved
+            local override = PEARL.GetConfigData(option.name)
+            if override ~= option.default then
+                PEARL.CONFIG_OVERRIDES[option.name] = override
             end
 
             -- For frontend we preload the data, but they will be overriden afterwards.
             if option.general == true or (option.public == true and TheNet:GetIsClient()) then
-                PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+                PEARL.CONFIG[option.name] = override
             end
         end
     end
@@ -379,7 +384,15 @@ if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
 end
 
 --------------------------------
--- [[ General Mod Constants]]
+-- [[ Uncompatible Mods ]]
+--------------------------------
+
+if table.empty(PEARL.CONFIG.UNCOMPATIBLE_MODS) == false then
+    ConcatArrays(PEARL.MOD_INFO.uncompatible_mods, PEARL.CONFIG.UNCOMPATIBLE_MODS)
+end
+
+--------------------------------
+-- [[ General Mod Constants ]]
 --------------------------------
 
 PEARL.ASSETS = {}
@@ -555,9 +568,8 @@ end)
 --------------------------------
 
 -- Load emotes before icons
---- @readonly
 --- @type EMOJIS table<table<string, string>>
-PEARL.EMOJIS = PEARL.loadfile("constants/emotes")
+PEARL.EMOJIS = PEARL.loadfile("constants/emojis")
 
 if not PEARL.INIT then
 
@@ -654,6 +666,13 @@ if PEARL.CONFIG.DEBUG_MODE then
 
         PEARL.loadfile("debugtools")
     end
+
+    -- Better c_reset
+    PEARL.AddGlobalFunctionPreCall("c_reset", function()
+        TheSim:ResetError()
+    end)
+
+    PEARL.loadfile("utils/emojidatagenerator", nil, true)
 
     --- A bit spammy
     --PEARL.OverrideVariable("PRINT_SOURCE", true)

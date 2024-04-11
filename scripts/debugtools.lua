@@ -216,6 +216,20 @@ function PEARL.TESTS.GameEmoteTest()
     return PEARL.DiscordLogger:LogStringRaw(result)
 end
 
+function PEARL.TESTS.TestDiscordEmojis()
+    local result = ""
+    for _, val in pairs(PEARL.EMOJIS.UTF_TO_DISCORD) do
+        result = result.."\n"..(val or "MISSING")
+    end
+
+    if string.len(result) <= 0 then
+        return PEARL.error("No results!")
+    end
+
+    -- The message is being cropped because it's too long.
+    return PEARL.DiscordLogger:LogStringRaw(result)
+end
+
 function PEARL.TESTS.DefaultCharactersTest()
     local result = ""
     for _, prefab in ipairs(DST_CHARACTERLIST) do

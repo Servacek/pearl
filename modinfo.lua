@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.6a"
+version = "Release 3.0.7"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -37,8 +37,9 @@ all_clients_require_mod = true
 api_version = 10
 forumthread = ""
 
-mod_dependencies = {
-    {workshop = "workshop-3033694168"} -- Better Wormwood font for better language support
+mod_dependencies = {}
+uncompatible_mods = {
+    "workshop-3033694168" -- Better Wormwood (until we figure out a way how to fix the fonts)
 }
 
 -------------------------------------
@@ -110,7 +111,7 @@ configuration_options = {
 
             GUILDS = {}
         },
-        type = "table<string, any>",
+        type = "table",
         checks = {
             ID = "string",
             TOKEN = "string",
@@ -128,7 +129,7 @@ configuration_options = {
             SHARD = "Master",
             UGC_MODS_ROOT = "ugc_mods",
         },
-        type = "table<string, string?>"
+        type = "table"
     },
 
     --------------------
@@ -143,7 +144,7 @@ configuration_options = {
             TWITCH  = nil,
         },
         public = true,
-        type = "table<string, string?>"
+        type = "table"
     },
 
     --------------------
@@ -156,7 +157,7 @@ configuration_options = {
             API_KEY = nil,
             VERIFY_NEW_ACCOUNTS = true,
         },
-        type = "table<string, any>",
+        type = "table",
     },
 
     --------------------
@@ -259,7 +260,7 @@ configuration_options = {
     {
         name = "CUSTOM_TRANSLATIONS",
         default = {},
-        type = "table<string, string>",
+        type = "table",
         public = true,
     },
 
@@ -270,7 +271,7 @@ configuration_options = {
             enabled = true,
             ["czech"] = true,
         },
-        type = "table<string, boolean>",
+        type = "table",
     },
 
     {
@@ -298,21 +299,21 @@ configuration_options = {
     { -- regenerate, rollback, kick...
         name="COMMAND_BLOCKLIST",
         default={},
-        type = "table<string, boolean>",
+        type = "table",
         public = true,
     },
 
     { -- regenerate, rollback, kick...
         name="CHARACTER_BLOCKLIST",
         default={},
-        type = "table<string, boolean>",
+        type = "table",
         public = true,
     },
 
     {
         name = "STEAM_GROUP_BLOCKLIST",
         default = {},
-        type = "table<string, boolen>",
+        type = "table",
         public = true,
     },
 
@@ -334,9 +335,17 @@ configuration_options = {
             ALLOWLIST = false,
             REPORT_MODS = true,
         }, -- Setting strict key to true will kick out all players who have such mods enabled.
-        type = "table<string, boolean>",
+        type = "table",
 
         warn = true,
+        public = true,
+    },
+
+    {
+        -- Similiar to blocked mods but these will be disabled only temporary and silently.
+        name="UNCOMPATIBLE_MODS",
+        default={},
+        type = "table",
         public = true,
     },
 
@@ -347,7 +356,7 @@ configuration_options = {
     { -- Additional table of tags
         name = "CUSTOM_SERVER_TAGS",
         default = {},
-        type = "table<string>",
+        type = "table",
     },
 
     {
@@ -377,7 +386,7 @@ configuration_options = {
         name = "CUSTOM_CONNECTION_FILTERS",
         default = nil,
         options = nil,
-        type = "table<number, function>",
+        type = "table",
     },
 
     {
@@ -495,6 +504,13 @@ configuration_options = {
 
     {
         name="EMOJI_MENU",
+        default = true,
+        type = "boolean",
+        public = true,
+    },
+
+    {
+        name="ANIMATED_EMOJIS",
         default = true,
         type = "boolean",
         public = true,
@@ -736,7 +752,7 @@ configuration_options = {
             ALLOWED_LOCALES = {},
             CACHE = true,
         },
-        type = "table<string, any>",
+        type = "table",
 
         checks = {
             ALLOWED_LOCALES = "table",
@@ -764,7 +780,7 @@ configuration_options = {
     {
         name = "MIN_VOTE_AGE",
         default = nil, -- When nil, uses the default built-in value
-        type = "number|nil",
+        type = "number",
         public = true,
     },
 
@@ -775,7 +791,7 @@ configuration_options = {
     {
         name = "ADMIN_CALL_COOLDOWN",
         default = 5 * 60, -- When nil or 0, there is no cooldown
-        type = "number|nil",
+        type = "number",
         public = true,
     },
 
@@ -862,7 +878,7 @@ configuration_options = {
             all = true,
             default = true,
         },
-        type = "table<string, boolean>",
+        type = "table",
     },
 
     --------------------
@@ -885,13 +901,13 @@ configuration_options = {
     {
         name = "REQUIRED_WORLDGEN_TASKS",
         default = {},
-        type = "table<string>",
+        type = "table",
     },
 
     {
         name="SEED",
         default = nil,
-        type = "number|nil",
+        type = "number",
     },
 
     --------------------
@@ -901,13 +917,13 @@ configuration_options = {
     {
         name = "CUSTOM_PREFABS",
         default = {},
-        type = "table<string>",
+        type = "table",
     },
 
     {
         name = "PREFAB_EXTENSIONS",
         default = {},
-        type = "table<string>",
+        type = "table",
     },
 
     --------------------
@@ -978,7 +994,7 @@ configuration_options = {
     {
         name="AGREEMENT_SCREEN_CONTENT",
         default = nil,
-        type = "table|nil",
+        type = "table",
         zip = true,
         master_only = true,
         public = true,
@@ -988,7 +1004,7 @@ configuration_options = {
     {
         name="WELCOME_POPUP_CONTENT",
         default = nil,
-        type = "table|nil",
+        type = "table",
         zip = true,
         public = true,
         master_only = true,

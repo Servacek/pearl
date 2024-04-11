@@ -15,6 +15,9 @@ require("fonthelper")
 
 local Emoji = require("util/emoji")
 local WordPredictor = require("util/wordpredictor")
+local TEMPLATES = require("widgets/redux/templates")
+local UIAnim = require("widgets/uianim")
+--local Text = require("widgets/text")
 
 local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
 
@@ -117,14 +120,31 @@ _Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
     return _Say(self, message, ...)
 end, TheNet)
 
--- PEARL.AddClassPostConstruct("screens/chatinputscreen", function(self)
---     PEARL.AddClassFunctionPostCall("OnTextInput", function(res, self, char)
---         if char ~= DELIM or res[1] ~= true then
---             return
---         end
+-- local TextEdit = require("widgets/textedit")
+-- PEARL.AddClassFunctionPreCall("SetString", function(self, text)
+--     print("SET STRING")
+--     if text then
+--         print(self:GetRegionSize(), self:GetStringSize(text))
 
---         self:SetString(EmojifyString(self:GetString()))
---     end, self.chat_edit, true)
+--         text:gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, function(char)
+--             if char == "󰃙" then
+--                 print("ADDING VIBING CAT!!")
+--                 self.btn = self:AddChild(TEMPLATES.EmojiButton(35, false))
+--                 self.btn.text:Hide()
+
+--                 self.btn.anim = self.btn:AddChild(UIAnim())
+--                 self.btn.anim:SetScale(.7)
+--                 self.btn.anim:MoveToBack()
+--                 self.btn.anim:SetPosition(self:GetPositionXYZ())
+--                 self.btn.anim:Show()
+
+--                 self.btn.anim:GetAnimState():SetBuild("vibing_cat")
+--                 self.btn.anim:GetAnimState():SetBank("vibing_cat")
+--                 self.btn.anim:GetAnimState():PlayAnimation("default", true)
+--             end
+--         end)
+--     end
+-- end, TextEdit)
 
 --     if self.chat_edit.prediction_widget then
 --         PEARL.AddClassFunctionPostCall("ResolvePrediction", function(res)

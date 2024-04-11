@@ -23,14 +23,19 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 -- [[ Private ]]
 --------------------------------------
 
-local show_popup = true
+local show_blocked_popup = true
 
-local function BlockMod(modname, nosaving, temp)
-    PEARL.debug("Blocking mod "..modname)
+local function PreventManagerFromLoadingMod(modname)
     if type(ModManager.enabledmods) == "table" then
         -- Remove it from the list so ModManager doesn't count this mod as enabled anymore.
         table.removearrayvalue(ModManager.enabledmods, modname)
     end
+end
+
+local function BlockMod(modname, nosaving, temp)
+    PEARL.debug("Blocking mod "..modname)
+
+    PreventManagerFromLoadingMod(modname)
 
     if temp == nil then
         -- We do not want to permanently block mods that are just not whitelisted.
@@ -49,6 +54,7 @@ local function VerifyAllLoadedMods()
     for modname, _ in pairs(KnownModIndex.savedata.known_mods) do
         if KnownModIndex:IsModEnabledAny(modname) or table.contains(ModManager.enabledmods, modname) then
             -- If a prohibited mod managed to bypass the loading check.
+            -- For uncompatible mods, we will let them bypass this. At worst, they will crash on their own...
             if KnownModIndex:IsModProhibited(modname) and not KnownModIndex:IsModBlocked(modname) then
                 -- Even though we are being disconnected,
                 -- disable the mods in case of re-join.
@@ -70,6 +76,21 @@ end
 --------------------------------------
 
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
+    if modname == PEARL.MODNAME then
+        return -- It's a reasonable idea to not block ourselves I guess.
+    end
+
+    if not KnownModIndex:IsModCompatibleWith(PEARL.MODNAME, modname) then
+        if not KnownModIndex:IsModEnabledAny(modname) then
+            PEARL.info("Temporarily disabling mod", modname, "because it's not compatible!")
+            KnownModIndex:TempDisable(modname)
+
+            PreventManagerFromLoadingMod(modname)
+        end
+
+        return false -- Silently prevent incompatible mods from loading.
+    end
+
     -- Block prohibited mods while loading.
     -- Each mod calls this function exactly two times (modmain and modworldgenmain)
     if KnownModIndex:IsModProhibited(modname) then
@@ -88,8 +109,8 @@ end, ModManager)
 
 -- This is when the game loads for the client and we can start playing
 local function OnPlayerActivated()
-    if KnownModIndex:AreAnyModsBlocked() and show_popup then
-        show_popup = false
+    if KnownModIndex:AreAnyModsBlocked() and show_blocked_popup then
+        show_blocked_popup = false
 
         local all_blocked = KnownModIndex:AreAllModsBlocked()
 

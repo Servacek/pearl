@@ -276,6 +276,10 @@ if PEARL.CONFIG.INTRO_SCREEN then
     end
 end
 
+----------------------------------------------------------------
+-- [[ Mod Blocker ]]
+----------------------------------------------------------------
+
 if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     PEARL.info("Loading mod blocker configurations...")
 
@@ -629,11 +633,6 @@ if PEARL.CONFIG.DEBUG_MODE then
     require("debugkeys")
     -- Fix for a broken debug handler
     handlers[KEY_D] = nil
-
-    -- Better c_reset
-    PEARL.AddGlobalFunctionPreCall("c_reset", function()
-        TheSim:ResetError()
-    end)
 
     PEARL.GenerateConfigFile = PEARL.loadfile("utils/configfilegenerator")
 end

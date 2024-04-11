@@ -34,6 +34,8 @@ local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST or {}
 local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST
 local MAX_REPORTS   = 25
 
+local WORKSHOP_PREFIX = "workshop-"
+
 ---------------------------
 -- [[ Private ]]
 ---------------------------
@@ -51,7 +53,8 @@ local function CreateReportForMod(modname)
         private     = KnownModIndex:IsModPrivate(modname),
         allowed     = KnownModIndex:IsModAllowed(modname),
         id          = GetWorkshopIdNumber(modname),
-        fancyname   = GetModFancyName(modname)
+        fancyname   = GetModFancyName(modname),
+        modname     = modname,
     }
 end
 
@@ -130,6 +133,19 @@ end
 
 function KnownModIndex:IsModProhibited(modname)
     return not self:IsModAllowed(modname)
+end
+
+function KnownModIndex:IsModCompatibleWith(modname, target_modname)
+    local modinfo = KnownModIndex:GetModInfo(modname)
+    if modinfo and table.empty(modinfo.uncompatible_mods) == false then
+        for _, uncompatible_modname in ipairs(modinfo.uncompatible_mods) do
+            if uncompatible_modname == target_modname or WORKSHOP_PREFIX..uncompatible_modname == target_modname then
+                return false
+            end
+        end
+    end
+
+    return true
 end
 
 function KnownModIndex:Block(modname, temp)

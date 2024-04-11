@@ -262,7 +262,7 @@ function EMBEDS.ServerInfo(boot)
         modv = MARKDOWN.bold(STRINGS.PEARL.UI.BACKUP_TAG).."\n"..modv
     end
 
-    return Embed()
+    local embed = Embed()
         :SetAuthor(TheNet:GetServerName())
         :SetTitle(title)
         :SetColor(colour)
@@ -275,8 +275,11 @@ function EMBEDS.ServerInfo(boot)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
+        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.RUN_TIME, MARKDOWN.timestamp(os.time() - GetTimeRealSeconds(), MARKDOWN.TIMESTAMP_TYPE.RELATIVE_TIME))
 
         :SetFooter(STRINGS.PEARL.EMBEDS.SERVER.FOOTER:format(TheNet:GetSessionIdentifier() or ""))
+
+    return embed
 end
 
 --- @return Embed
@@ -491,51 +494,76 @@ function EMBEDS.SkinReceived(username, skin_prefab)
     return embed
 end
 
+--- @param enabled_mods table<number, table>
 --- @return Embed
 function EMBEDS.ClientMods(enabled_mods, userid)
     local owner_name = PEARL.GetUserName(userid)
     local modlist = type(enabled_mods.list) == "table" and enabled_mods.list or {}
     local description = ""
-    local max_id_size = PEARL.GetMaxStringSize(modlist, false, "id")
 
-    local loc_mods, pub_mods
+    local loc_mods, pub_mods = {}, {}
+    for _, mod in pairs(modlist) do
+        if mod.private == true then
+            loc_mods[#loc_mods + 1] = mod
+        else
+            pub_mods[#pub_mods + 1] = mod
+        end
+    end
+
+    local max_id_size = PEARL.GetMaxStringSize(pub_mods, false, "id")
+    local max_modname_size = PEARL.GetMaxStringSize(loc_mods, false, "modname")
 
     -- Data processed here are untrusted.
+    local loc_mods_str, pub_mods_str
     for _, mod in pairs(modlist) do
-        local state_icon = mod.allowed and PEARL.ICONS.CHECK or PEARL.ICONS.X
-        local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN, nil, "...") or "???")
-
-        local modid = ""
-        if not mod.private then
-            modid = type(mod.id) == "string" and mod.id:ltake(MAX_MODID_LEN) or "???"
-            local modid_spac = string.rep(" ", max_id_size - #mod.id)
-            modid = MARKDOWN.codeline(modid..modid_spac)
-            modid = (MARKDOWN.hlink(
-                modid, PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):ltake(MAX_MODID_LEN, nil, "..."))
-            ).." ")
+        local state_icon = mod.allowed == true and PEARL.ICONS.CHECK or PEARL.ICONS.X
+        local fancyname = type(mod.fancyname) == "string" and MARKDOWN.bold(mod.fancyname:ltake(MAX_MODNAME_LEN, nil, "..."))
+        if string.empty(fancyname) ~= false then
+            -- Make sure this stands out, so it's clear that it's not an actual mod's name.
+            fancyname = MARKDOWN.italic(STRINGS.PEARL.EMBEDS.MODS.UNKNOWN_MOD)
         end
 
-        local line = "> "..state_icon.." "..modid..(
-            mod.allowed and fancyname or MARKDOWN.strikethrough(fancyname)
+        -- For public mods (those, that can be found on Steam Workshop) use the Workshop ID as the identifier.
+        -- For private mods, they do not have a sensible ID, so use the raw modname (actually folder name in this case).
+        -- This helps us verify that the mod was marked as private correctly.
+        local mod_identifier = ""
+        if mod.private ~= true then
+            local modid = type(mod.id) == "string" and mod.id:ltake(MAX_MODID_LEN, nil, "...") or "???"
+            local modid_spac = string.rep(" ", max_id_size - #mod.id)
+            mod_identifier = (MARKDOWN.hlink(
+                MARKDOWN.codeline(modid..modid_spac), PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):strip():ltake(MAX_MODID_LEN))
+            ))
+        elseif type(mod.modname) == "string" then
+            local modname = mod.modname:ltake(MAX_MODNAME_LEN, nil, "...")
+            local modname_spac = string.rep(" ", max_modname_size - #modname)
+            mod_identifier = MARKDOWN.codeline(modname..modname_spac)
+        end
+
+        if not string.empty(mod_identifier) then
+            mod_identifier = mod_identifier.." "
+        end
+
+        local line = "> "..state_icon.." "..mod_identifier..(
+            mod.allowed == true and fancyname or MARKDOWN.strikethrough(fancyname)
         ).."\n"
 
-        if mod.private then
-            loc_mods = (loc_mods or "")..line
+        if mod.private == true then
+            loc_mods_str = (loc_mods_str or "")..line
         else
-            pub_mods = (pub_mods or "")..line
+            pub_mods_str = (pub_mods_str or "")..line
         end
     end
 
-    if loc_mods then
+    if loc_mods_str then
         description = description.."\n"..PEARL.ICONS.LOCAL.." "
             ..MARKDOWN.bold(STRINGS.PEARL.EMBEDS.MODS.LOC_MODS).."\n"
-            ..loc_mods
+            ..loc_mods_str
     end
 
-    if pub_mods then
+    if pub_mods_str then
         description = description.."\n"..PEARL.ICONS.STEAM.." "
             ..MARKDOWN.bold(STRINGS.PEARL.EMBEDS.MODS.PUB_MODS).."\n"
-            ..pub_mods
+            ..pub_mods_str
     end
 
     if description ~= "" and PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST == true then

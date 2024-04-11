@@ -72,36 +72,37 @@ PEARL.SafeModTableExtend("ASSETS", {
 -- Config
 ----------------------------------
 
-local function UnzipConfigData(option)
-    local success, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, PEARL.GetConfigData(option.name))
-
-    if not success or type(data) ~= "string" then
-        return PEARL.error("Decoding configuration option", option.name "failed!")
+local function TryUnzipAndDecodeOption(option)
+    local value = PEARL.GetConfigData(option.name)
+    local unzipped, unzipped_str = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, value)
+    if not unzipped then
+        unzipped_str = nil
+        if type(value) == "string" then
+            unzipped_str = value -- Unzipping failed, try to use the raw string.
+        end
     end
 
     -- JSON decoding for table strings.
-    if option.type and option.type:startswith("table") then
-        local s, tbl = RunInSandbox(data)
-        if s == true then
-            return tbl
+    if option.type == "table" then
+        local decoded, decoded_data = RunInSandboxSafe(unzipped_str)
+        if decoded == true and type(decoded_data) == "table" then
+            return decoded_data
         end
     end
 
-    -- Else return just the raw unzipped string
-    return data
+    if not unzipped_str then
+        PEARL.error("Decoding configuration option", option.name, "failed!")
+    elseif option.type == "string" or type(value) == "string" then
+        return unzipped_str -- If string is valid value, return it
+    end
+
+    return value -- Else return the default value (e. g. for table types)
 end
 
---- @TODO: Most of this is redundant
-PEARL.info("Loading Configuration...")
+PEARL.info("Loading zipped configuration received from server...")
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-    -- Apply server changes to our public options.
-    if option.public == true then
-        -- No ZIPing in debug mode.
-        if option.zip and type(PEARL.CONFIG[option.name]) == "string" and not PEARL.CONFIG.DEBUG_MODE then
-            PEARL.CONFIG[option.name] = UnzipConfigData(option) or PEARL.CONFIG[option.name]
-        else
-            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name) or PEARL.CONFIG[option.name]
-        end
+    if option.public == true and option.zip and type(PEARL.CONFIG_OVERRIDES[option.name]) == "string" then
+        PEARL.CONFIG[option.name] = TryUnzipAndDecodeOption(option)
     end
 end
 
@@ -199,6 +200,8 @@ if PEARL.CONFIG.DEBUG_MODE then
                 c_supergodmode(player)
             end)
         end)
+
+        SetServerPaused(true)
     end)
 
     PEARL.Saying = function()
@@ -266,8 +269,13 @@ PEARL.ENV.Assets = {
     Asset("IMAGE", PEARL.ASSETS.PROFILE_FLAIRS.TEX),
     Asset("ATLAS", PEARL.ASSETS.PROFILE_FLAIRS.ATLAS),
 
+    Asset("IMAGE", "images/emoji_menu.tex"),
+    Asset("ATLAS", "images/emoji_menu.xml"),
+
     Asset("IMAGE", PEARL.ASSETS.SOCIAL_BUTTONS.TEX),
     Asset("ATLAS", PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS),
+
+    Asset("ANIM", "anim/vibing_cat.zip"),
 }
 
 PEARL.info("Loading preload assets...")
@@ -304,6 +312,9 @@ PEARL.loadfile("constants/strings")
 ----------------------------------
 
 PEARL.info("Loading user interface extensions...")
+--- Load the extensions to the fundemental components first.
+PEARL.loadfile("extensions/ui/text")
+
 PEARL.loadfile("extensions/ui/templates")
 
 PEARL.loadfile("extensions/ui/playerlist")
@@ -312,6 +323,7 @@ PEARL.loadfile("extensions/ui/playerstatusscreen")
 PEARL.loadfile("extensions/ui/chatinputscreen")
 
 PEARL.loadfile("extensions/ui/loadingwidget")
+PEARL.loadfile("extensions/ui/scripterrorwidget")
 
 ----------------------------------
 -- Mod Fixes

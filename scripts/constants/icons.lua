@@ -218,7 +218,6 @@ local ICONS = {
         ["extinguish"]= "<:extinguish:1133083578381643818>",
         ["build"]=      "<:build:1133086015146438686>",
         ["craft"]=      PEARL.EMOJIS.UTF_TO_DISCORD[PEARL.EMOJIS.GAME.SCIENCEMACHINE],
-        --["dig"]=        PEARL.EMOTES.MAP_DISCORD[PEARL.EMOTES.GAME.SHOVEL],
         ["plant"]=      PEARL.EMOJIS.UTF_TO_DISCORD[PEARL.EMOJIS.GAME.BERRY],
         ["give"]=       PEARL.EMOJIS.UTF_TO_DISCORD[PEARL.EMOJIS.GAME.PIG],
         ["sleep"]=      "<:tent:1133091346371072040>",

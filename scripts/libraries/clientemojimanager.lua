@@ -25,11 +25,26 @@ local MAX_ALIAS_LEN = 32
 local MAX_FU_EMOJIS = 32
 
 -------------------------------------
--- [[ Class Declaration ]]
+-- [[ Local Functions ]]
 -------------------------------------
+
+local function is_emoji_unlocked(emoji_name)
+    return PEARL.EMOJIS.IsEmojiOwnedBy(
+        PEARL.EMOJIS.NAME_TO_INPUTTYPE[emoji_name], TheNet:GetUserID()
+    )
+end
 
 local function compare_emoji(e1, e2)
     return (e1.count or 1) > (e2.count or 1)
+end
+
+local function compare_emoji_unlocked(e1, e2)
+    local e1_unlocked = is_emoji_unlocked(e1.names[1])
+    if e1_unlocked ~= is_emoji_unlocked(e2.names[1]) then
+        return e1_unlocked
+    end
+
+    return false
 end
 
 -------------------------------------
@@ -39,7 +54,8 @@ end
 --- @class ClientEmojiManager
 local ClientEmojiManager = {
     _persistdata = {
-        frequently_used = {}
+        frequently_used = {},
+        favorite = {},
     },
 
     _encode_save_data = not PEARL.CONFIG.DEBUG_MODE,
@@ -59,7 +75,8 @@ ClientEmojiManager.CATEGORY = {
 
     VANILLA = {
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA,
-        emojis = table.keys(PEARL.EMOJIS.GetOwnedVanillaEmojis(TheNet:GetUserID()), true),
+        emojis = table.keys(PEARL.EMOJIS.VANILLA, true),
+        unlockedfn = is_emoji_unlocked,
     },
 
     DISCORD = {
@@ -68,8 +85,15 @@ ClientEmojiManager.CATEGORY = {
     },
 }
 
+-- for _, category in pairs(ClientEmojiManager.CATEGORY) do
+--     if category.unlockedfn ~= nil then
+--         table.sort(category.emojis, category.unlockedfn)
+--     end
+-- end
+
 ClientEmojiManager.CATEGORIES_ORDERED = {
     ClientEmojiManager.CATEGORY.FREQUENTLY_USED,
+    --- Other configurable categories may be added later.
     ClientEmojiManager.CATEGORY.VANILLA,
 }
 
@@ -101,7 +125,13 @@ function ClientEmojiManager:_ValidatePersistantData(data)
     self:_EnsureBounderies(data.frequently_used, MAX_FU_EMOJIS)
 
     local names = {}
-    for i, emoji_data in ipairs(data.frequently_used) do
+    for i = 1, #data.frequently_used, -1 do
+        local emoji_data = data.frequently_used[i]
+        -- if not is_emoji_unlocked(emoji_data.names[1]) then
+        --     table.remove(i)
+        --     table.insort(data.frequently_used, table.remove(i), compare_emoji_unlocked)
+        -- end
+
         local emoji_names = {}
         for ii, emoji_name in ipairs(emoji_data.names) do
             if emoji_names[emoji_name] then
@@ -246,6 +276,14 @@ end
 -------------------------------------
 
 ClientEmojiManager:LoadPersistentData()
+
+--- @DEBUG
+ClientEmojiManager:OnEmojiUsed(PEARL.EMOJIS.GAME.HUNGER, "hunger")
+ClientEmojiManager:OnEmojiUsed(PEARL.EMOJIS.GAME.HUNGER, "hunger")
+ClientEmojiManager:OnEmojiUsed(PEARL.EMOJIS.GAME.HUNGER, "hunger")
+ClientEmojiManager:OnEmojiUsed(PEARL.EMOJIS.GAME.HUNGER, "hunger")
+ClientEmojiManager:OnEmojiUsed(PEARL.EMOJIS.GAME.HUNGER, "hunger")
+ClientEmojiManager:OnEmojiUsed(PEARL.EMOJIS.GAME.HUNGER, "hunger")
 
 -------------------------------------
 -- [[ Return ]]

@@ -33,8 +33,13 @@ local function TryGetAfflicterMod(traceback)
 end
 
 local function OnClientError(traceback)
+    --- First of all, ensure that only the afflicter mod will be disabled.
+    --- We do not want all player mods to be disabled if the crash is our fault especially.
+    local boot_modindex_filename = "boot_"..KnownModIndex:GetModIndexName()
+    SavePersistentString(boot_modindex_filename, "done", false)
+
     local afflicter_modname = TryGetAfflicterMod(traceback)
-    if afflicter_modname ~= PEARL.MODNAME and (not KnownModIndex:IsModDisablingDisabled() or PEARL.CONFIG.DEBUG_MODE) and not KnownModIndex:IsModTempEnabled(afflicter_modname) then
+    if (not KnownModIndex:IsModDisablingDisabled() or PEARL.CONFIG.DEBUG_MODE) then
         if KnownModIndex:IsModEnabledAny(afflicter_modname) then
             PEARL.info("Disabling mod", afflicter_modname, "because it crashed the game!")
 
@@ -64,21 +69,22 @@ local function OnClientError(traceback)
         TheNet:Disconnect(false)
     end
 
+    --- @TODO: Add the "Back To Mainmenu" and "Reconnect" buttons to all error screens!
     -- Do not force abort here in case we are displaying the error.
-    if KnownModIndex:IsModKnownBad(afflicter_modname) then
-        -- Make sure we call this only when all afflicter mods exist.
-        -- Only the first error will be shown (so this one should be the first)
-        ModManager:DisplayBadMods()
+    -- if KnownModIndex:IsModKnownBad(afflicter_modname) then
+    --     -- Make sure we call this only when all afflicter mods exist.
+    --     -- Only the first error will be shown (so this one should be the first)
+    --     ModManager:DisplayBadMods()
 
-        if global_error_widget and global_error_widget.additionaltext then
-            if afflicter_modname == PEARL.MODNAME then
-                global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF)
-            else
-                local str = global_error_widget.additionaltext:GetString()
-                global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL.."\n"..(str or ""))
-            end
-        end
-    end
+    --     if global_error_widget and global_error_widget.additionaltext then
+    --         if afflicter_modname == PEARL.MODNAME then
+    --             global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF)
+    --         else
+    --             local str = global_error_widget.additionaltext:GetString()
+    --             global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL.."\n"..(str or ""))
+    --         end
+    --     end
+    -- end
 end
 
 local function OnServerError(traceback)

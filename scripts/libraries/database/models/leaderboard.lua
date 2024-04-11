@@ -151,7 +151,7 @@ function Leaderboard:GetData()
 end
 
 function Leaderboard:IsPlayerVisible(userid)
-    return self:IsPositionVisible(self:GetPositionFor(userid))
+    return self:IsPositionVisible(self:GetPositionFor(userid)) or userid == self.data.dayleader
 end
 
 function Leaderboard:IsPositionVisible(position)

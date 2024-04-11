@@ -102,7 +102,7 @@ end
 --- @param fastmode boolean?
 --- @param ident integer?
 --- @param generic boolean?
-local function DataDumper(value, varname, fastmode, ident, generic)
+local function DataDumper(value, varname, fastmode, ident, generic, fancy)
     local defined, dumplua = {}, nil
 
     local sim = USE_SAVEBUFFER and (WorldSim or TheSim) or nil
@@ -247,9 +247,9 @@ local function DataDumper(value, varname, fastmode, ident, generic)
                 totallen = totallen + #s + 2
             end
             --if totallen > 80 then
-                sep = "\n" .. string_rep("  ", ident+1)
+                sep = "\n" .. string_rep("    ", ident+1)
             --end
-            str = "{"..sep..table_concat(str, ","..sep).." "..sep:sub(1,-3).."}"
+            str = "{"..sep..table_concat(str, ","..sep)..","..sep:sub(1,-5).."}"
             if meta then
                 sep = sep:sub(1,-3)
                 return "setmetatable("..sep..str..","..sep..metastr..sep:sub(1,-3)..")"

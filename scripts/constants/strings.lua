@@ -245,6 +245,7 @@ local STRINGS = {
                 SEED        = "World Seed",
                 PLAYSTYLE   = "Playstyle",
                 EVENT       = "Event",
+                RUN_TIME    = "Run Time",
             },
         },
 
@@ -318,6 +319,7 @@ local STRINGS = {
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1093953980482211862/wrench.png",
             FOOTER = "%s/%s",
             ALLOWLIST = "Allowlist is enabled.",
+            UNKNOWN_MOD = "Unknown Mod",
         },
 
         PROFILE = {

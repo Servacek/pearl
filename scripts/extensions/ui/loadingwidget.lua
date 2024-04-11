@@ -339,7 +339,7 @@ SetLoadingTipCategoryIcon(
 ]]
 -- Loading screen tips setup
 if CUSTOM_LOADING_TIPS_ENABLED then
-    PEARL.AddClassPreConstruct("widgets/redux/loadingwidget", nil, function(self, ...)
+    PEARL.AddClassPreConstruct("widgets/redux/loadingwidget", function(self, ...)
         if TheLoadingTips and PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA and PEARL.CONFIG.CUSTOM_LOADING_TIPS_DATA.override == true then
             PEARL.info("Overriding the loading tip picker...")
             PEARL.OverrideValue(TheLoadingTips, "PickLoadingTip", OverrideLoadingTipPicker)

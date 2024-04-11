@@ -14,75 +14,94 @@
 
 require("class")
 
-local IGNORE_LIST = {
-    ["_"] = true,
-    ["__proxy"] = true,
-}
+local getmetatable, type = getmetatable, type
 
-local CACHE_LIMIT = 512
-local TOTAL_LIMIT = 512
+-- local IGNORE_LIST = {
+--     ["_"] = true,
+--     ["__proxy"] = true,
+-- }
 
-local total_len = 0
+-- local CACHE_LIMIT = 512
+-- local TOTAL_LIMIT = 512
 
-local newproxy, pairs, getmetatable, next = newproxy, pairs, getmetatable, next
+-- local total_len = 0
 
-PEARL.OverrideReturnValue(_G, "Class", function(class, base, _ctor, props)
-    if class then
-        _ctor = class._ctor
+-- local newproxy, pairs, getmetatable, next = newproxy, pairs, getmetatable, next
 
-        ClassRegistry[class] = nil
+-- PEARL.OverrideReturnValue(_G, "Class", function(class, base, _ctor, props)
+--     if class then
+--         _ctor = class._ctor
 
-        local inst_pool = table.create(1000, 1000)
-        local mt = getmetatable(class)
-        mt.__call = function(self, ...)
-            local _, inst = next(inst_pool)
-            inst = inst or {}
-            if props ~= nil then
-                if not inst._ then
-                    inst._ = {}
-                end
+--         ClassRegistry[class] = nil
 
-                for k, v in pairs(props) do
-                    inst._[k] = {nil, v}
-                end
+--         local inst_pool = table.create(1000, 1000)
+--         local mt = getmetatable(class)
+--         mt.__call = function(self, ...)
+--             local _, inst = next(inst_pool)
+--             inst = inst or {}
+--             if props ~= nil then
+--                 if not inst._ then
+--                     inst._ = {}
+--                 end
+
+--                 for k, v in pairs(props) do
+--                     inst._[k] = {nil, v}
+--                 end
+--             end
+
+--             if not inst.__proxy then
+--                 inst.__proxy = newproxy(true)
+--                 getmetatable(inst.__proxy).__gc = function()
+--                     local index = #inst_pool + 1
+--                     if index >= CACHE_LIMIT or total_len >= TOTAL_LIMIT then
+--                         return
+--                     end
+
+--                     inst_pool[index] = inst
+
+--                     if inst._ then
+--                         for k, _ in pairs(inst._) do
+--                             rawset(inst._, k, nil)
+--                         end
+--                     end
+
+--                     -- for k, _ in pairs(inst) do
+--                     --     if not IGNORE_LIST[k] then
+--                     --         rawset(inst, k, nil)
+--                     --     end
+--                     -- end
+
+--                     total_len = total_len + 1
+--                     print(index)
+--                 end
+--             end
+
+--             setmetatable(inst, class)
+
+--             if _ctor then
+--                 _ctor(inst, ...)
+--             end
+
+--             return inst
+--         end
+--     end
+
+--     return class
+-- end)
+
+local _Class = _G.Class
+_G.Class = function(...)
+    local c = _Class(...)
+    if c._base then
+        local mt = getmetatable(c)
+        local __index = mt.__index
+        mt.__index = function(self, index, ...)
+            local val = type(__index) == "function" and __index(...) or __index[index]
+            if val == nil then
+                return c._base[index]
             end
-
-            if not inst.__proxy then
-                inst.__proxy = newproxy(true)
-                getmetatable(inst.__proxy).__gc = function()
-                    local index = #inst_pool + 1
-                    if index >= CACHE_LIMIT or total_len >= TOTAL_LIMIT then
-                        return
-                    end
-
-                    inst_pool[index] = inst
-
-                    if inst._ then
-                        for k, _ in pairs(inst._) do
-                            rawset(inst._, k, nil)
-                        end
-                    end
-
-                    -- for k, _ in pairs(inst) do
-                    --     if not IGNORE_LIST[k] then
-                    --         rawset(inst, k, nil)
-                    --     end
-                    -- end
-
-                    total_len = total_len + 1
-                    print(index)
-                end
-            end
-
-            setmetatable(inst, class)
-
-            if _ctor then
-                _ctor(inst, ...)
-            end
-
-            return inst
         end
     end
 
-    return class
-end)
+    return c
+end
