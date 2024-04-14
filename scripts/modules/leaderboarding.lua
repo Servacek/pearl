@@ -90,6 +90,8 @@ local function AnnounceNewPOTM(userid, month, year)
     local mention
     if discordid then
         mention = MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
+    elseif netid then
+        netid = PEARL.NetProfileLink(name, netid)
     end
 
     local leader_months_count = table.size(PEARL.DB:GetField(userid, "leader_months", {}))
@@ -98,7 +100,7 @@ local function AnnounceNewPOTM(userid, month, year)
     PEARL.DiscordLeaderBoarder:Announce(MARKDOWN.header(PEARL.EMOJIS.GAME_TO_DISCORD.TROPHY.." "..pt:nformat{
         month = MARKDOWN.codeline(monthfullname),
         times = leader_months_count,
-        leader = mention or PEARL.NetProfileLink(name, netid) or MARKDOWN.bold(name)
+        leader = mention or MARKDOWN.bold(name)
     }, MARKDOWN.HEADER_LEVELS.MEDIUM))
 end
 
