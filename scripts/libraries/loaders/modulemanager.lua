@@ -25,6 +25,7 @@ local _modules = {}
 -- [[ Class Declaration ]]
 ------------------------------------------
 
+--- @singleton
 --- @class ModuleManager
 local ModuleManager = {
     loader = PEARL.ENV.modimport,
@@ -70,7 +71,7 @@ end
 --- @return nil
 function ModuleManager:AddModule(md_name, enabled)
     if type(enabled) == "table" then
-        enabled = not table.empty(enabled)
+        enabled = table.empty(enabled) == false
     end
 
     if type(enabled) == "number" then

@@ -11,6 +11,8 @@
 --]==]====================================================]]
 
 
+local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+
 ----------------------------------
 -- Network Callbacks
 ----------------------------------
@@ -56,6 +58,29 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
     -- Returning false means the command will be skipped.
     return PEARL.ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.COMMAND_BLOCKLIST[cmd] ~= true
 end)
+
+local _Say
+_Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
+    if type(message) == "string" then
+        message = PEARL.EMOJIS.EmojifyGameString(message)
+
+        for match in message:gmatch(PEARL.CONSTS.UTF_EMOJI_PATTERN) do
+            local emoji_name = PEARL.EMOJIS.UTF_TO_NAME[match]
+            local emoji_id = PEARL.EMOJIS.INPUTNAME_TO_ID[emoji_name] or emoji_name
+            if emoji_id then
+                ClientEmojis:OnEmojiUsed(emoji_id)
+            end
+        end
+
+        if ClientEmojis:HasAnyUnsavedChanges() then
+            ClientEmojis:SavePersistentData()
+
+            PEARL.INST:PushEvent("emojis_used")
+        end
+    end
+
+    return _Say(self, message, ...)
+end, TheNet)
 
 PEARL.OverrideUserdataValue("Kick", function(self, userid, seconds, reason, author)
     return PEARL.ServerNetwork:KickUser(userid, seconds, reason, author)

@@ -608,10 +608,22 @@ local STRINGS = {
         EMOJI_MENU = {
             NO_EMOJIS_FOUND = "No emojis match your search", -- from discord
 
+            FAVORITE_BUTTON_HOVER = "Favourite",
+            UNFAVORITE_BUTTON_HOVER = "Unfavourite",
+
             OPEN_BUTTON_HOVER = "View Emojis\n(%s)",
             CLEAR_BUTTON_HOVER = "Clear\n(%s)",
 
-            SEARCH = "Search"
+            SEARCH = "Search",
+            NEW = "New!",
+        },
+
+        SCRIPTERRORWIDGET = {
+            QUIT = "Exit Game",
+            BACK = "Back to Menu",
+            REJOIN = "Continue",
+            RELOAD = "Reload Save",
+            DISABLE_MODS = "Disable Mods",
         },
 
         OPTION_CHOICES = {
@@ -624,6 +636,7 @@ local STRINGS = {
         },
 
         EMOJI_CATEGORIES = {
+            FAVORITES = "Favourites",
             FREQUENTLY_USED = "Frequently Used",
 
             DISCORD = "Discord",

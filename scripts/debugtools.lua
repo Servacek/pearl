@@ -17,8 +17,6 @@
 --- @TODO Move the tests to the tests folder...
 
 
-require("debugkeys")
-
 local CommandContext = PEARL.loadfile("models/commandcontext")
 local UserCommands = require("usercommands")
 
@@ -27,13 +25,29 @@ local Message = PEARL.loadfile('libraries/discordapi/models/message')
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
+--- Load debug keys after our custom adder
+require("debugkeys")
 
--- AddGlobalDebugKey(KEY_G, function()
---     if TheInput:IsKeyDown(KEY_CTRL) then
---         TheSim:ResetError()
---         DoRestart(true)
---     end
--- end)
+do
+    handlers[KEY_R] = handlers[KEY_R] or {}
+    local oldfn = handlers[KEY_R][1]
+    handlers[KEY_R][1] = function(_down)
+        if TheInput:IsKeyDown(KEY_CTRL) then
+            if TheInput:IsKeyDown(KEY_SHIFT) then
+                if oldfn then
+                    return oldfn()
+                end
+
+                return c_reset()
+            end
+
+            return PEARL.Rejoin()
+        end
+    end
+end
+
+--- Load debug keys after our custom adder
+require("debugkeys")
 
 function PEARL.DisplayLoadingTips()
     local types = {

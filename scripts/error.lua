@@ -53,10 +53,7 @@ local function OnClientError(traceback)
 
     -- In case the error was caused by bad chat history data.
     if PEARL.CONFIG.DEBUG_MODE then
-        cleartable(ChatHistory.history)
-
-        ChatHistory.request_history_start = 1
-        ChatHistory.history_start = ChatHistory.MAX_CHAT_HISTORY
+        ChatHistory:Clear()
     end
 
     -- No disconnecting in debug mode... We have our fancy "Realod Save" button!
@@ -69,22 +66,12 @@ local function OnClientError(traceback)
         TheNet:Disconnect(false)
     end
 
-    --- @TODO: Add the "Back To Mainmenu" and "Reconnect" buttons to all error screens!
     -- Do not force abort here in case we are displaying the error.
-    -- if KnownModIndex:IsModKnownBad(afflicter_modname) then
-    --     -- Make sure we call this only when all afflicter mods exist.
-    --     -- Only the first error will be shown (so this one should be the first)
-    --     ModManager:DisplayBadMods()
-
-    --     if global_error_widget and global_error_widget.additionaltext then
-    --         if afflicter_modname == PEARL.MODNAME then
-    --             global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF)
-    --         else
-    --             local str = global_error_widget.additionaltext:GetString()
-    --             global_error_widget.additionaltext:SetString(STRINGS.PEARL.UI.CLIENTERROR_DETAIL.."\n"..(str or ""))
-    --         end
-    --     end
-    -- end
+    if KnownModIndex:IsModKnownBad(afflicter_modname) then
+        -- Make sure we call this only when all afflicter mods exist.
+        -- Only the first error will be shown (so this one should be the first)
+        ModManager:DisplayBadMods()
+    end
 end
 
 local function OnServerError(traceback)

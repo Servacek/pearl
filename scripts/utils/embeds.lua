@@ -275,9 +275,12 @@ function EMBEDS.ServerInfo(boot)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
-        :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.RUN_TIME, MARKDOWN.timestamp(os.time() - GetTimeRealSeconds(), MARKDOWN.TIMESTAMP_TYPE.RELATIVE_TIME))
 
         :SetFooter(STRINGS.PEARL.EMBEDS.SERVER.FOOTER:format(TheNet:GetSessionIdentifier() or ""))
+
+    if not boot then
+        embed:AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.RUN_TIME, MARKDOWN.timestamp(os.time() - GetTimeRealSeconds(), MARKDOWN.TIMESTAMP_TYPE.RELATIVE_TIME))
+    end
 
     return embed
 end

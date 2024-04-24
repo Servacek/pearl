@@ -2,627 +2,834 @@
 
 return {
     Clueless = {
+        animated = false,
         id = "Clueless",
         name = "Clueless",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃗",
+        utf8_str = "󰂠",
     },
     D_ = {
+        animated = false,
         id = "D_",
         name = "D_",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃘",
+        utf8_str = "󰂡",
+    },
+    Huh = {
+        animated = true,
+        id = "Huh",
+        name = "Huh",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃕",
     },
     ICANT = {
+        animated = false,
         id = "ICANT",
         name = "ICANT",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃄",
+        utf8_str = "󰂢",
+    },
+    Jam = {
+        animated = true,
+        id = "Jam",
+        name = "Jam",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃖",
+    },
+    PepeKek = {
+        animated = true,
+        id = "PepeKek",
+        name = "PepeKek",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃗",
+    },
+    PepeLaughs = {
+        animated = true,
+        id = "PepeLaughs",
+        name = "PepeLaughs",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃘",
+    },
+    PoggiesFast = {
+        animated = true,
+        id = "PoggiesFast",
+        name = "PoggiesFast",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃙",
+    },
+    TeaTime = {
+        animated = true,
+        id = "TeaTime",
+        name = "TeaTime",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃚",
     },
     anojdgurl = {
+        animated = false,
         id = "anojdgurl",
         name = "anojdgurl",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂡",
+        utf8_str = "󰂣",
+    },
+    aware = {
+        animated = true,
+        id = "aware",
+        name = "aware",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃛",
+    },
+    blacksquare = {
+        id = "blacksquare",
+        name = "blacksquare",
+        timecreated = 1713606860, -- 04/20/24 11:54:20
+        utf8_str = "󰃧",
+    },
+    bongocat = {
+        animated = true,
+        id = "bongocat",
+        name = "bongocat",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃜",
+    },
+    burn = {
+        animated = true,
+        id = "burn",
+        name = "burn",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃝",
     },
     cat_angry = {
+        animated = false,
         id = "cat_angry",
         name = "cat_angry",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂢",
+        utf8_str = "󰂤",
     },
     catto = {
+        animated = false,
         id = "catto",
         name = "catto",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂣",
+        utf8_str = "󰂥",
+    },
+    clap = {
+        animated = true,
+        id = "clap",
+        name = "clap",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃞",
     },
     conceited_reaction = {
+        animated = false,
         id = "conceited_reaction",
         name = "conceited_reaction",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂤",
+        utf8_str = "󰂦",
     },
     cz = {
+        animated = false,
         id = "cz",
         name = "cz",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂥",
+        utf8_str = "󰂧",
     },
     doge = {
+        animated = false,
         id = "doge",
         name = "doge",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂦",
+        utf8_str = "󰂨",
     },
     doge_kek = {
+        animated = false,
         id = "doge_kek",
         name = "doge_kek",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂧",
+        utf8_str = "󰂩",
     },
     doublefacepalm = {
+        animated = false,
         id = "doublefacepalm",
         name = "doublefacepalm",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂨",
+        utf8_str = "󰂪",
     },
     emoji_abigail = {
+        animated = false,
         id = "emoji_abigail",
         name = "abigail",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀜",
     },
     emoji_alchemyengine = {
+        animated = false,
         id = "emoji_alchemyengine",
         name = "alchemy",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀝",
     },
     emoji_arcane = {
+        animated = false,
         id = "emoji_arcane",
         name = "arcane",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀀",
     },
     emoji_backpack = {
+        animated = false,
         id = "emoji_backpack",
         name = "backpack",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀞",
     },
     emoji_battle = {
+        animated = false,
         id = "emoji_battle",
         name = "battle",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀘",
     },
     emoji_beefalo = {
+        animated = false,
         id = "emoji_beefalo",
         name = "beefalo",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀁",
     },
     emoji_beehive = {
+        animated = false,
         id = "emoji_beehive",
         name = "beehive",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀟",
     },
     emoji_berry_bush = {
+        animated = false,
         id = "emoji_berry_bush",
         name = "berry",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀠",
     },
     emoji_carrot = {
+        animated = false,
         id = "emoji_carrot",
         name = "carrot",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀡",
     },
     emoji_chest = {
+        animated = false,
         id = "emoji_chest",
         name = "chest",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀂",
     },
     emoji_chester = {
+        animated = false,
         id = "emoji_chester",
         name = "chester",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀃",
     },
     emoji_crockpot = {
+        animated = false,
         id = "emoji_crockpot",
         name = "crockpot",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀄",
     },
     emoji_egg = {
+        animated = false,
         id = "emoji_egg",
         name = "egg",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀢",
     },
     emoji_eyeball = {
+        animated = false,
         id = "emoji_eyeball",
         name = "eyeball",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀅",
     },
     emoji_eyeplant = {
+        animated = false,
         id = "emoji_eyeplant",
         name = "eyeplant",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀣",
     },
     emoji_faketeeth = {
+        animated = false,
         id = "emoji_faketeeth",
         name = "faketeeth",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀆",
     },
     emoji_farm = {
+        animated = false,
         id = "emoji_farm",
         name = "farm",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀇",
     },
     emoji_fire = {
+        animated = false,
         id = "emoji_fire",
         name = "fire",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀈",
     },
     emoji_firepit = {
+        animated = false,
         id = "emoji_firepit",
         name = "firepit",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀤",
     },
     emoji_flex = {
+        animated = false,
         id = "emoji_flex",
         name = "flex",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀙",
     },
     emoji_florid_postern = {
+        animated = false,
         id = "emoji_florid_postern",
         name = "portal",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀰",
     },
     emoji_ghost = {
+        animated = false,
         id = "emoji_ghost",
         name = "ghost",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀉",
     },
     emoji_gold = {
+        animated = false,
         id = "emoji_gold",
         name = "gold",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀚",
     },
     emoji_grave = {
+        animated = false,
         id = "emoji_grave",
         name = "grave",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀊",
     },
     emoji_hambat = {
+        animated = false,
         id = "emoji_hambat",
         name = "hambat",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀋",
     },
     emoji_hammer = {
+        animated = false,
         id = "emoji_hammer",
         name = "hammer",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀌",
     },
     emoji_heart = {
+        animated = false,
         id = "emoji_heart",
         name = "heart",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀍",
     },
     emoji_horn = {
+        animated = false,
         id = "emoji_horn",
         name = "horn",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀥",
     },
     emoji_hunger = {
+        animated = false,
         id = "emoji_hunger",
         name = "hunger",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀎",
     },
     emoji_lightbulb = {
+        animated = false,
         id = "emoji_lightbulb",
         name = "lightbulb",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀏",
     },
     emoji_meat_big = {
+        animated = false,
         id = "emoji_meat_big",
         name = "meat",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀦",
     },
     emoji_pig = {
+        animated = false,
         id = "emoji_pig",
         name = "pig",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀐",
     },
     emoji_poop = {
+        animated = false,
         id = "emoji_poop",
         name = "poop",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀑",
     },
     emoji_redgem = {
+        animated = false,
         id = "emoji_redgem",
         name = "redgem",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀒",
     },
     emoji_refine = {
+        animated = false,
         id = "emoji_refine",
         name = "refine",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀧",
     },
     emoji_resurrection_stone = {
+        animated = false,
         id = "emoji_resurrection_stone",
         name = "resurrection",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀱",
     },
     emoji_salt = {
+        animated = false,
         id = "emoji_salt",
         name = "salt",
-        timecreated = 1712348896, -- 04/05/24 22:28:16
+        timecreated = 1719999999999, -- ???
         utf8_str = "󰀨",
     },
     emoji_sanity = {
+        animated = false,
         id = "emoji_sanity",
         name = "sanity",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀓",
     },
     emoji_sciencemachine = {
+        animated = false,
         id = "emoji_sciencemachine",
         name = "sciencemachine",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀔",
     },
     emoji_shadowmanipulator = {
+        animated = false,
         id = "emoji_shadowmanipulator",
         name = "shadow",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀩",
     },
     emoji_shovel = {
+        animated = false,
         id = "emoji_shovel",
         name = "shovel",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀪",
     },
     emoji_skull = {
+        animated = false,
         id = "emoji_skull",
         name = "skull",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀕",
     },
     emoji_thumbsup = {
+        animated = false,
         id = "emoji_thumbsup",
         name = "thumbsup",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀫",
     },
     emoji_tophat = {
+        animated = false,
         id = "emoji_tophat",
         name = "tophat",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀖",
     },
     emoji_torch = {
+        animated = false,
         id = "emoji_torch",
         name = "torch",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀛",
     },
     emoji_trap = {
+        animated = false,
         id = "emoji_trap",
         name = "trap",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀬",
     },
     emoji_trophy = {
+        animated = false,
         id = "emoji_trophy",
         name = "trophy",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀭",
     },
     emoji_wave = {
+        animated = false,
         id = "emoji_wave",
         name = "wave",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀮",
     },
     emoji_web = {
+        animated = false,
         id = "emoji_web",
         name = "web",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀗",
     },
     emoji_wormhole = {
+        animated = false,
         id = "emoji_wormhole",
         name = "wormhole",
         timecreated = 1712348896, -- 04/05/24 22:28:16
         utf8_str = "󰀯",
     },
+    eyes = {
+        animated = true,
+        id = "eyes",
+        name = "eyes",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃟",
+    },
     facepalm = {
+        animated = false,
         id = "facepalm",
         name = "facepalm",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂪",
+        utf8_str = "󰂫",
     },
     free_real_estate = {
+        animated = false,
         id = "free_real_estate",
         name = "free_real_estate",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂫",
+        utf8_str = "󰂬",
     },
     gooddoggo = {
+        animated = false,
         id = "gooddoggo",
         name = "gooddoggo",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂬",
+        utf8_str = "󰂭",
     },
     harold = {
+        animated = false,
         id = "harold",
         name = "harold",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂭",
+        utf8_str = "󰂮",
     },
     heh = {
+        animated = false,
         id = "heh",
         name = "heh",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂮",
+        utf8_str = "󰂯",
     },
     kekleo = {
+        animated = false,
         id = "kekleo",
         name = "kekleo",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂯",
+        utf8_str = "󰂰",
     },
     kekw = {
+        animated = false,
         id = "kekw",
         name = "kekw",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂰",
+        utf8_str = "󰂱",
     },
     krtek_ewww = {
+        animated = false,
         id = "krtek_ewww",
         name = "krtek_ewww",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂱",
+        utf8_str = "󰂲",
     },
     lulw = {
+        animated = false,
         id = "lulw",
         name = "lulw",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃅",
+        utf8_str = "󰂳",
     },
     noice = {
+        animated = false,
         id = "noice",
         name = "noice",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃁",
+        utf8_str = "󰂴",
     },
     omegalul = {
+        animated = false,
         id = "omegalul",
         name = "omegalul",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃆",
+        utf8_str = "󰂵",
     },
     peepoBlanket = {
+        animated = false,
         id = "peepoBlanket",
         name = "peepoBlanket",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃇",
+        utf8_str = "󰂶",
     },
     peepoEgoUp = {
+        animated = false,
         id = "peepoEgoUp",
         name = "peepoEgoUp",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃈",
+        utf8_str = "󰂷",
     },
     peepoHappy = {
+        animated = false,
         id = "peepoHappy",
         name = "peepoHappy",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃉",
+        utf8_str = "󰂸",
+    },
+    peepoHey = {
+        animated = true,
+        id = "peepoHey",
+        name = "peepoHey",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃠",
     },
     risitas = {
+        animated = false,
         id = "risitas",
         name = "risitas",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂲",
+        utf8_str = "󰂹",
     },
     sir = {
+        animated = false,
         id = "sir",
         name = "sir",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃀",
+        utf8_str = "󰂺",
     },
     sk = {
+        animated = false,
         id = "sk",
         name = "sk",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂳",
+        utf8_str = "󰂻",
     },
     skill_issue = {
+        animated = false,
         id = "skill_issue",
         name = "skill_issue",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂴",
+        utf8_str = "󰂼",
     },
     stare = {
+        animated = false,
         id = "stare",
         name = "stare",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂵",
+        utf8_str = "󰂽",
     },
     takjo = {
+        animated = false,
         id = "takjo",
         name = "takjo",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂶",
+        utf8_str = "󰂾",
+    },
+    tumtum = {
+        animated = true,
+        id = "tumtum",
+        name = "tumtum",
+        timecreated = 1713374681, -- 04/17/24 19:24:41
+        utf8_str = "󰃡",
     },
     vibing_cat = {
+        animated = true,
         id = "vibing_cat",
         name = "vibing_cat",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃙",
+        utf8_str = "󰃢",
     },
     webber_damage = {
+        animated = false,
         id = "webber_damage",
         name = "webber_damage",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂷",
+        utf8_str = "󰂿",
     },
     wes_annoyed = {
+        animated = false,
         id = "wes_annoyed",
         name = "wes_annoyed",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂸",
+        utf8_str = "󰃀",
     },
     wesluv = {
+        animated = false,
         id = "wesluv",
         name = "wesluv",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂹",
+        utf8_str = "󰃁",
     },
     whaskaBACK = {
+        animated = false,
         id = "whaskaBACK",
         name = "whaskaBACK",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃊",
+        utf8_str = "󰃂",
     },
     whaskaBIGBRAIN = {
+        animated = false,
         id = "whaskaBIGBRAIN",
         name = "whaskaBIGBRAIN",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃋",
+        utf8_str = "󰃃",
     },
     whaskaCELO = {
+        animated = false,
         id = "whaskaCELO",
         name = "whaskaCELO",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃌",
+        utf8_str = "󰃄",
     },
     whaskaHI = {
+        animated = false,
         id = "whaskaHI",
         name = "whaskaHI",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃍",
+        utf8_str = "󰃅",
     },
     whaskaHYPE = {
+        animated = false,
         id = "whaskaHYPE",
         name = "whaskaHYPE",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃎",
+        utf8_str = "󰃆",
     },
     whaskaJAM = {
+        animated = false,
         id = "whaskaJAM",
         name = "whaskaJAM",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃏",
+        utf8_str = "󰃇",
     },
     whaskaLOVE = {
+        animated = false,
         id = "whaskaLOVE",
         name = "whaskaLOVE",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃐",
+        utf8_str = "󰃈",
     },
     whaskaLUL = {
+        animated = false,
         id = "whaskaLUL",
         name = "whaskaLUL",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃑",
+        utf8_str = "󰃉",
     },
     whaskaLURK = {
+        animated = false,
         id = "whaskaLURK",
         name = "whaskaLURK",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃒",
+        utf8_str = "󰃊",
     },
     whaskaRIP = {
+        animated = false,
         id = "whaskaRIP",
         name = "whaskaRIP",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃓",
+        utf8_str = "󰃋",
     },
     whaskaSAD = {
+        animated = false,
         id = "whaskaSAD",
         name = "whaskaSAD",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃔",
+        utf8_str = "󰃌",
     },
     whaskaSELLOUT = {
+        animated = false,
         id = "whaskaSELLOUT",
         name = "whaskaSELLOUT",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃕",
+        utf8_str = "󰃍",
     },
     whaskaTUMTUM = {
+        animated = false,
         id = "whaskaTUMTUM",
         name = "whaskaTUMTUM",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰃖",
+        utf8_str = "󰃎",
+    },
+    whitesquare = {
+        id = "whitesquare",
+        name = "whitesquare",
+        timecreated = 1713606860, -- 04/20/24 11:54:20
+        utf8_str = "󰃨",
     },
     wigfrid_ping = {
+        animated = false,
         id = "wigfrid_ping",
         name = "wigfrid_ping",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂺",
+        utf8_str = "󰃏",
     },
     willowkys = {
+        animated = false,
         id = "willowkys",
         name = "willowkys",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂻",
+        utf8_str = "󰃐",
     },
     wilson_thong = {
+        animated = false,
         id = "wilson_thong",
         name = "wilson_thong",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂼",
+        utf8_str = "󰃑",
     },
     wilson_why = {
+        animated = false,
         id = "wilson_why",
         name = "wilson_why",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂽",
+        utf8_str = "󰃒",
     },
     wormwood_fire = {
+        animated = false,
         id = "wormwood_fire",
         name = "wormwood_fire",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂾",
+        utf8_str = "󰃓",
     },
     yeah = {
+        animated = false,
         id = "yeah",
         name = "yeah",
         timecreated = 1712348896, -- 04/05/24 22:28:16
-        utf8_str = "󰂿",
+        utf8_str = "󰃔",
     },
 }

@@ -77,6 +77,13 @@ function ChatHistory:AddChatMessage(message)
     return message
 end
 
+function ChatHistory:Clear()
+    cleartable(self.history)
+
+    self.request_history_start = 1
+    self.history_start = ChatHistory.MAX_CHAT_HISTORY
+end
+
 ---------------------------
 -- [[ UI ]]
 ---------------------------

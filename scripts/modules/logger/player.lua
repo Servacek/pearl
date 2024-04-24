@@ -670,6 +670,23 @@ RegisterPlayerActionHandler(ACTIONS.SLEEPIN, function(doer, target, item)
         :AddTarget(target or item)
 end)
 
+RegisterPlayerActionHandler(ACTIONS.INCINERATE, function(doer, target)
+    if target.components.container then
+        local items, veryrare = {}, false
+        target.components.container:ForEachItem(function(item)
+            items[#items+1] = item
+            if item.components.inventoryitem:IsVeryRare() then
+                veryrare = true
+            end
+        end)
+
+        return AL:EntityAct(STRINGS.PEARL.ACTIONS.DESTROY.IN, doer, "source", target)
+            :SetIcon(PEARL.ICONS.TRASHCAN)
+            :SetIsSilent(not veryrare)
+            :AddTargets(items)
+    end
+end)
+
 RegisterPlayerActionHandler(ACTIONS.DRY, function(doer, target, item)
     AL:EntityAct(STRINGS.PEARL.ACTIONS.DRIED.GENERIC, doer,
         QueuedLogAction.FIELDS.TARGET, target)
@@ -1022,26 +1039,6 @@ onburntup = function(target)
         -- Only announce when a player creation burns up.
         :SetIsSilent(builder == nil)
         :AddTarget(target, nil, true)
-end
-
---- This is only available after the March beta of 2024
-if containers.params and containers.params.dragonflyfurnace and containers.params.dragonflychest.widget then
-    PEARL.AddFunctionPreCall("fn", function(inst, doer)
-        if inst and inst.components.container then
-            local items, veryrare = {}, false
-            inst.components.container:ForEachItem(function(item)
-                items[#items+1] = item
-                if item.components.inventoryitem:IsVeryRare() then
-                    veryrare = true
-                end
-            end)
-
-            return AL:EntityAct(STRINGS.PEARL.ACTIONS.DESTROY.IN, doer, "source", inst)
-                :SetIcon(PEARL.ICONS.TRASHCAN)
-                :SetIsSilent(not veryrare)
-                :AddTargets(items)
-        end
-    end, containers.params.dragonflyfurnace.widget.buttoninfo)
 end
 
 --- @param inst EntityScript

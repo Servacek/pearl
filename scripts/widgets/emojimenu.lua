@@ -2,7 +2,7 @@
     The 'Pearl' - modification software for
     the game 'Don't Starve Together' by Klei Entertainment.
 
-    Copyright (c) 2023 Fi7iP
+    Copyright (c) 2023-2024 Fi7iP
     All rights reserved.
 
     This file is part of the 'Pearl' software shared under
@@ -14,10 +14,12 @@
 local ImageButton = require("widgets/imagebutton")
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
-local UIAnim = require("widgets/uianim")
+local Image = require("widgets/image")
 
 --- @type TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
+
+local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
 
 ---------------------------
 -- [[ Constants ]]
@@ -38,16 +40,16 @@ local SCROLLIST_PAD = 0
 local SCROLLIST_WIDTH = math.floor((MENU_WIDTH - SCROLLIST_MARGIN_X) / SCROLLIST_WIDGET_WIDTH) * SCROLLIST_WIDGET_WIDTH + SCROLLIST_WIDGET_WIDTH --(MENU_WIDTH * 1.8) - SCROLLIST_WIDGET_WIDTH -- SCROLLIST_MARGIN_X
 
 local SEARCHBOX_PADDING_X = 0 -- 10
-local SEARCHBOX_PADDING_Y = -33
+local SEARCHBOX_PADDING_Y = -25
 local SEARCHBOX_MARGIN_X = 22
 local SEARCHBOX_MARGIN_Y = -25
 local SEARCHBOX_WIDTH = SCROLLIST_WIDTH + SEARCHBOX_MARGIN_X
-local SEARCHBOX_HEIGHT = 40
+local SEARCHBOX_HEIGHT = 35
 local SEARCHBOX_FONT_SIZE = nil --35 -- Let it fallback to the default value
 local SEARCHBOX_VALID_CHARS = [[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]]
 
-local SCROLLIST_PADDING_Y = -(SEARCHBOX_HEIGHT + SEARCHBOX_MARGIN_Y) - 7
-local SCROLLIST_PEAK_PERCENT = .75 -- Number of percent the last row is visible Can be used for adjusting the size of the scrolling grid
+local SCROLLIST_PADDING_Y = -(SEARCHBOX_HEIGHT + SEARCHBOX_MARGIN_Y) + 10
+local SCROLLIST_PEAK_PERCENT = .62 -- Number of percent the last row is visible Can be used for adjusting the size of the scrolling grid
 local SCROLLIST_MARGIN_Y = 0
 -- opts.widget_height * opts.peek_percent
 local SCROLLIST_PEAK_HEIGHT = SCROLLIST_WIDGET_HEIGHT * SCROLLIST_PEAK_PERCENT
@@ -80,6 +82,11 @@ local DIRECTIONS = {MOVE_LEFT = -1, MOVE_RIGHT = 1, MOVE_UP = -1, MOVE_DOWN = 1}
 
 local ATLAS = MODROOT.."images/emoji_menu.xml"
 
+local STYLES = {
+    REDUX_BROWN = "redux_brown",
+    HUD = "hud"
+}
+
 ---------------------------
 -- [[ Local Variables ]]
 ---------------------------
@@ -107,8 +114,18 @@ end
 
 local function is_emoji(widget, emoji)
     return widget and widget.data and (
-        (emoji and widget.data.emoji == emoji) or (emoji == nil and widget.data.emoji ~= nil)
+        (emoji and widget.data.emoji_utf8 == emoji) or (emoji == nil and widget.data.emoji_utf8 ~= nil)
     )
+end
+
+local function OnUpdateEmojiWidget(emoji_widget)
+    if ClientEmojis:IsEmojiFavorite(emoji_widget.data and emoji_widget.data.emoji_id) then
+        emoji_widget.button.fav_button:SetTextures(ATLAS, "star_checked.tex", "star_checked.tex", nil, "star_uncheck.tex")
+        emoji_widget.button.fav_button:SetHoverText(STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER)
+    else
+        emoji_widget.button.fav_button:SetTextures(ATLAS, "star_uncheck.tex", "star_uncheck.tex", nil, "star_checked.tex")
+        emoji_widget.button.fav_button:SetHoverText(STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER)
+    end
 end
 
 ---------------------------
@@ -116,12 +133,14 @@ end
 ---------------------------
 
 --- @class EmojiMenu
-local EmojiMenu = Class(Widget, function(self)
+--- @field selected_widget_data table?
+--- @param style EmojiMenu.STYLE
+local EmojiMenu = Class(Widget, function(self, style)
     Widget._ctor(self, "EmojiMenu")
 
-    self.selected_widget = nil
-    self.selected_emoji = nil
-    self.selected_category = nil
+    self.selected_widget_data = nil
+
+    self.style = style or STYLES.REDUX_BROWN
 
     self.loaded = false
 
@@ -130,8 +149,6 @@ local EmojiMenu = Class(Widget, function(self)
     self.onclosing = nil
 
     self.onemojichosen = nil
-    self.onemojidisplay = nil
-    self.onemojifavoritetoggled = nil
 
     self.inst:ListenForEvent("emojis_used", function()
         if self.categories ~= nil then
@@ -142,23 +159,56 @@ local EmojiMenu = Class(Widget, function(self)
 
     self.widget_data = {} -- All scrollable menu widgets
     self.search_data = {} -- Array of emojis implicitly sorted by priority (every emoji there should be unique)
-
-    self.name_to_category = {} -- Useful for checking if an emoji was already loaded.
+    self.emoji_data_map = {} -- Map of emoji_ids and their widget data.
+    self.new_emojis = {} -- This is being reseted upon reopening the emoji menu.
 
     self.last_search_data = nil
     self.last_search_text = nil
-
-    -- Optional table of utf8 chars mapped to a full name (with all aliases and delims)
-    self.flnames_map = nil
 end)
+
+---------------------------
+-- [[ Static Variables ]]
+---------------------------
+
+EmojiMenu.ATLAS = ATLAS
+
+--- @enum EmojiMenu.STYLE
+EmojiMenu.STYLES = STYLES
 
 ---------------------------
 -- [[ Private Methods ]]
 ---------------------------
 
+function EmojiMenu:_GetWidgetDataForEmoji(emoji_id, category)
+    local emoji_data = PEARL.EMOJIS.DATA[emoji_id]
+    local emoji_name = emoji_data.name
+    local search_token = emoji_name
+    local fullname = EMOJI_ALIAS_FORMAT:format(emoji_name)
+    if table.empty(emoji_data.aliases) == false then
+        for _, alias in ipairs(emoji_data.aliases) do
+            fullname = fullname.." "..EMOJI_ALIAS_FORMAT:format(alias)
+            search_token = search_token.." "..alias
+        end
+    end
+
+    return {
+        emoji_utf8 = emoji_data.utf8_str or (emoji_data.animated and "" or EMOJI_CHARACTER_FALLBACK),
+        display_name = fullname,
+        search_token = search_token, -- In case we add case sensitive search priorities
+        search_token_normalized = search_token:lower(),
+        category = category.name,
+        category_index = category.index,
+        searchable = category.searchable ~= false,
+        name = emoji_name,
+        case_sensitive = not fullname:islowercase(),
+        unlocked = PEARL.EMOJIS.IsEmojiOwnedBy(emoji_id),
+        emoji_id = emoji_id,
+        timecreated = emoji_data.timecreated,
+    }
+end
+
 --- @param category table
---- @param index integer
-function EmojiMenu:_LoadEmojiCategory(category, index)
+function EmojiMenu:_LoadEmojiCategory(category)
     PEARL.debug("EmojiMenu:_LoadEmojiCategory")
 
     local remainder = #self.widget_data % SCROLLER_VISIBLE_COLS
@@ -175,8 +225,9 @@ function EmojiMenu:_LoadEmojiCategory(category, index)
     end
 
     -- We cannot skip any emojis from category.emojis since the indexes need to be "synced"
+    local locked
     local rows, cols = 1, 0
-    for _, emoji_name in ipairs(category.emojis) do
+    for _, emoji_id in ipairs(category.emojis) do
         cols = cols + 1
         if cols > SCROLLER_VISIBLE_COLS then
             rows, cols = rows + 1, 1
@@ -186,40 +237,27 @@ function EmojiMenu:_LoadEmojiCategory(category, index)
             break
         end
 
-        --- @TODO: Add alias support.
-        local emoji_char = PEARL.EMOJIS.ALL[emoji_name] or EMOJI_CHARACTER_FALLBACK
-        if type(emoji_name) == "table" then
-            local emoji_table = emoji_name
-            emoji_char = emoji_table.emoji or emoji_char
-            emoji_name = emoji_table.name or emoji_table.names and emoji_table.names[1]
-        end
+        if ClientEmojis:IsEmojiAvailable(emoji_id) then
+            local widget_data = self:_GetWidgetDataForEmoji(emoji_id, category)
+            if widget_data.unlocked ~= true then
+                locked = locked or {}
+                locked[#locked + 1] = widget_data
+            else
+                self.widget_data[#self.widget_data + 1] = widget_data
+            end
 
-        local fullname = emoji_name
-        local unlocked
-        if category.unlockedfn then
-            unlocked = category.unlockedfn(emoji_name)
-        end
-        local widget_data = {
-            emoji = emoji_char,
-            display_name = EMOJI_ALIAS_FORMAT:format(fullname),
-            search_token = fullname,
-            category = category.name,
-            category_index = index,
-            searchable = category.searchable ~= false,
-            name = emoji_name,
-            case_sensitive = not fullname:islowercase(),
-            unlocked = unlocked,
-        }
-
-        self.widget_data[#self.widget_data + 1] = widget_data
-
-        if self.name_to_category[emoji_name] == nil and widget_data.unlocked then
-            self.name_to_category[emoji_name] = category
-
-            self.search_data[#self.search_data + 1] = widget_data
+            -- Search data contains each emoji widget just once.
+            if widget_data.searchable and self.emoji_data_map[emoji_id] == nil then
+                self.search_data[#self.search_data + 1] = widget_data
+                self.emoji_data_map[emoji_id] = widget_data
+            end
         end
 
         check_and_yield()
+    end
+
+    if locked then
+        table.join(self.widget_data, locked) -- Keep locked emojis at the bottom
     end
 end
 
@@ -230,6 +268,7 @@ function EmojiMenu:_CreateSearchBox(width, height)
     searchbox.textbox = searchbox.textbox_root.textbox
     searchbox.textbox:SetForceEdit(true)
     searchbox.textbox:SetTextLengthLimit(25)
+    searchbox.textbox:EnableRegionSizeLimit(true)
     searchbox.textbox:SetCharacterFilter(SEARCHBOX_VALID_CHARS)
     searchbox.textbox:EnableWordWrap(false)
     searchbox.textbox:SetAllowNewline(false)
@@ -243,7 +282,7 @@ function EmojiMenu:_CreateSearchBox(width, height)
     searchbox.textbox._TryUpdateTextPrompt = function(_self)
         if _self.prompt then
             local visible = _self.prompt:IsVisible()
-            if searchbox.HasAnyInput() then
+            if searchbox:HasAnyInput() then
                 _self.prompt:Hide()
             else
                 _self.prompt:Show()
@@ -266,8 +305,8 @@ function EmojiMenu:_CreateSearchBox(width, height)
 
     searchbox.textbox.OnTextEntered = function()
         -- Only allow ENTER key for entering emojis
-        if self.selected_emoji and TheInput:IsKeyDown(KEY_ENTER) then
-            self:_ChooseEmoji(self.selected_emoji)
+        if self.selected_widget_data and TheInput:IsKeyDown(KEY_ENTER) then
+            self:_EnterEmoji(self.selected_widget_data.emoji_id)
         else
             -- No matches, so keep the editing state
             searchbox.textbox:SetEditing(true)
@@ -307,11 +346,11 @@ function EmojiMenu:_CreateSearchBox(width, height)
     return searchbox
 end
 
-function EmojiMenu:_ChooseEmoji(emoji)
-    PEARL.debug("EmojiMenu:_ChooseEmoji", emoji)
+function EmojiMenu:_EnterEmoji(emoji_id)
+    PEARL.debug("EmojiMenu:_ChooseEmoji", emoji_id)
 
-    if type(self.onemojichosen) == "function" then
-        self.onemojichosen(emoji)
+    if self.onemojichosen then
+        self.onemojichosen(emoji_id)
     end
 
     -- When shift is down, keep the window open so emojis can be spammed.
@@ -320,41 +359,30 @@ function EmojiMenu:_ChooseEmoji(emoji)
     end
 end
 
-function EmojiMenu:_CreateEmojiScrollList()
+function EmojiMenu:_CreateEmojiScrollList(peak_percent)
     local function ScrollWidgetsCtor(context, index)
-        local w = Widget("emoji_item"..tostring(index))
+        local w = Widget("emoji_menu_widget_"..tostring(index))
 
         w.button = w:AddChild(TEMPLATES.EmojiButton(ITEM_SIZE, false, SCROLLER_ITEM_MARGIN))
-        w.button:AddHoverText()
-        w.button.AllowOnControlWhenSelected = true -- So we handle clicks even when selected
+        --w.button.AllowOnControlWhenSelected = true -- So we handle clicks even when selected
         w.focus_forward = w.button
 
-        w.button.anim = w.button:AddChild(UIAnim())
-        w.button.anim:SetScale(.8)
-        w.button.anim:MoveToBack()
-        w.button.anim:SetPosition(-22, -19)
+        w.button.fav_button = w.button:AddChild(ImageButton(ATLAS, "star_uncheck.tex", "star_uncheck.tex", nil, "star_checked.tex"))
+        w.button.fav_button:SetFocusScale(.6, .6)
+        w.button.fav_button:SetNormalScale(.5, .5)
+        w.button.fav_button:SetPosition(20, 20)
+        w.button.fav_button:Hide()
+        w.button.fav_button:SetOnClick(function()
+            if not w.data.emoji_id then
+                return
+            end
 
-        if self.onemojifavoritetoggled then
-            w.button.fav_button = w.button:AddChild(ImageButton(ATLAS, "star_uncheck.tex", "star_uncheck.tex", nil, "star_checked.tex"))
-            w.button.fav_button:SetFocusScale(.6, .6)
-            w.button.fav_button:SetNormalScale(.5, .5)
-            w.button.fav_button:SetPosition(15, 20)
-            w.button.fav_button:Hide()
-            w.button.fav_button:SetOnClick(function()
-                if not w.data.emoji then
-                    return
-                end
+            ClientEmojis:OnEmojiFavoriteToggled(w.data.emoji_id)
+            OnUpdateEmojiWidget(w)
 
-                w.data.favorite = not w.data.favorite
-                if not w.data.favorite then
-                    w.button.fav_button:SetTextures(ATLAS, "star_uncheck.tex", "star_uncheck.tex", nil, "star_checked.tex")
-                else
-                    w.button.fav_button:SetTextures(ATLAS, "star_checked.tex", "star_checked.tex", nil, "star_uncheck.tex")
-                end
-
-                self.onemojifavoritetoggled(w.data.emoji, w.data.favorite)
-            end)
-        end
+            ClientEmojis:SavePersistentData()
+            self:ReloadData(true)
+        end)
 
         ----------------
         w.category_label = w:AddChild(Text(TITLEFONT, 28))
@@ -362,23 +390,23 @@ function EmojiMenu:_CreateEmojiScrollList()
         w.category_label:SetPosition(SCROLLIST_WIDGET_WIDTH * (SCROLLER_VISIBLE_COLS-1)/2, 0)
         w.category_label:SetHAlign(ANCHOR_MIDDLE)
         w.category_label:SetRegionSize(SCROLLIST_WIDGET_WIDTH * SCROLLER_VISIBLE_COLS, SCROLLIST_WIDGET_HEIGHT)
+
+        local width, height = w.category_label:GetRegionSize()
+        local line_height = 4
+        w.category_label.underline = w.category_label:AddChild(Image("images/ui.xml", "line_horizontal_white.tex"))
+        w.category_label.underline:SetPosition(0, -line_height / 2 - height / 2 + 5)
+        w.category_label.underline:SetTint(unpack(BROWN))
+        w.category_label.underline:ScaleToSize(width, line_height)
+        w.category_label.underline:MoveToBack()
         ----------------
 
-        w.button.hovertext_root.OnShow = function()
-            if self.searchbox.textbox.prompt:IsVisible() then
-                w.button:HideHover()
-            end
-        end
-
         w.button:SetOnGainFocus(function()
-            if is_emoji(w) then
-                if w.button:IsEnabled() then
-                    w.button.fav_button:Show()
-                end
+            if not w:IsSelected() then
+                self:SelectEmojiWidget(w, true)
+            end
 
-                if self.selected_widget ~= w then
-                    self:SelectEmojiWidget(w, true)
-                end
+            if w.button:IsEnabled() and w:IsSelected() then
+                w.button.fav_button:Show()
             end
         end)
 
@@ -386,84 +414,94 @@ function EmojiMenu:_CreateEmojiScrollList()
             w.button.fav_button:Hide()
         end)
 
-        w.button:SetOnSelect(function()
-            w.button.bg:SetTint(.4, .4, .4, .5)
-
-            if not self.searchbox.textbox.prompt:IsVisible() and w.focus then
-                w.button:ShowHover()
-            end
-        end)
-
-        w.button:SetOnUnselect(function()
-            w.button.bg:SetTint(0, 0, 0, 0)
-
-            w.button:HideHover()
-            w.button.fav_button:Hide()
-        end)
-
         w.button:SetOnClick(function()
-            if is_emoji(w) then
-                self:_ChooseEmoji(w.data.emoji)
-            end
+            self:_EnterEmoji(w.data.emoji_id)
         end)
 
         w.IsSelected = function()
-            return w.button:IsSelected()
+            return self.selected_widget_data ~= nil and self.selected_widget_data == w.data
+               and self.selected_widget_data.widget == w
+        end
+
+        w.Unselect = function()
+            if self.selected_widget_data.widget == w then
+                --self.selected_widget_data = nil -- Always keep something selected?
+            end
+
+            w.button.bg:SetTint(0, 0, 0, 0)
+        end
+
+        w.Select = function()
+            if self.selected_widget_data ~= nil and self.selected_widget_data.widget ~= w then
+                self.selected_widget_data.widget:Unselect()
+            end
+
+            self.selected_widget_data = w.data
+
+            w.button.bg:SetTint(.4, .4, .4, .5)
         end
 
 		----------------
+        OnUpdateEmojiWidget(w)
+        ----------------
+
 		return w
     end
 
     local function ApplyDataToWidget(context, widget, data, index)
+        local old_data = widget.data
         widget.data = data
         if table.empty(data) ~= false then
             return widget:Hide()
         end
 
+        print("ASSIGNING DATA TO WIDGET", widget, data)
+        widget.data.widget = widget
+        widget:MoveToFront()
+        widget.category_label:Hide()
         if data.header then
             widget.button:Hide()
 
             if type(data.category) == "string" then
                 widget.category_label:SetString(data.category)
                 widget.category_label:Show()
+                widget:MoveToBack()
             end
-        elseif type(data.emoji) == "string" then
-            widget.category_label:Hide()
-            widget.button:SetText(data.emoji)
-            widget.button:SetHoverText(data.display_name)
+        elseif type(data.emoji_utf8) == "string" then
+            widget.button:SetText(data.emoji_utf8)
             widget.button:Show()
 
-            if self.onemojidisplay and self.scroll_list and self.scroll_list:IsVisible() then
-                self.onemojidisplay(data.id)
-            end
-
-            if data.name == "vibing_cat" then
-                --- @TODO: Fix frames when scrolling using AnimState:SetFrame
-                --- Store the frame in some emoji specific data.
-                widget.button.text:Hide()
-                widget.button.anim:Show()
-                widget.button.anim:GetAnimState():SetBuild("vibing_cat")
-                widget.button.anim:GetAnimState():SetBank("vibing_cat")
-                widget.button.anim:GetAnimState():PlayAnimation("default", true)
-            else
-                widget.button.anim:Hide()
-                widget.button.text:Show()
-            end
+            OnUpdateEmojiWidget(widget)
 
             if data.unlocked == false then
                 widget.button:Lock()
-                widget.button.new_tag_image:Hide()
                 widget.button.fav_button:Hide()
             else
                 widget.button:Unlock()
+
+                if self.new_emojis[data.emoji_id] == true or ClientEmojis:IsEmojiNew(data.emoji_id) then
+                    widget.button.new_tag_image:Show()
+                    self.new_emojis[data.emoji_id] = true
+                else
+                    widget.button.new_tag_image:Hide()
+                end
+            end
+
+            if data.name == "vibing_cat" or data.name == "Huh" then
                 widget.button.new_tag_image:Show()
             end
 
-            if (self:IsEmojiSelected(data.emoji, data.category) or widget.focus) and not widget:IsSelected() then
+            print("OLD DATA", (old_data and old_data.emoji_id), "NEW DATA", (data.emoji_id), "SELECTED", (self.selected_widget_data and self.selected_widget_data.emoji_id))
+            --print(self.scroll_list.focused_widget_index, self.scroll_list.widgets_to_update[self.scroll_list.focused_widget_index])
+            if widget.focus or (self.selected_widget_data and data == self.selected_widget_data) then
                 self:SelectEmojiWidget(widget)
-            elseif not self:IsEmojiSelected(data.emoji, data.category) and widget:IsSelected() and not widget.focus then
+            elseif (self.selected_widget_data and data ~= self.selected_widget_data) then
+                print("UNSELECT", widget)
                 self:UnselectEmojiWidget(widget)
+            end
+
+            if self.scroll_list and self.scroll_list:IsVisible() and widget:IsFullyInView() then
+                ClientEmojis:OnEmojiDisplayed(data.emoji_id)
             end
         end
 
@@ -472,14 +510,14 @@ function EmojiMenu:_CreateEmojiScrollList()
         end
     end
 
-	local scroll_list, colums, height, rows = TEMPLATES.ScrollingGrid(self.widget_data, {
+	local scroll_list = TEMPLATES.ScrollingGrid(self.widget_data, {
         scroll_context          = nil,  -- Used for custom arguments for ScrollWidgetsCtor
         --- @NOTE: This doesn't need to be true. If you need the scrolling widget to be bigger/smaller
         --- Just change the spacing.
         widget_width            = SCROLLIST_WIDGET_WIDTH, -- width of one of the widgets in the grid
         widget_height           = SCROLLIST_WIDGET_HEIGHT, -- height of one of the widgets in the grid
         peek_height             = SCROLLIST_PEAK_HEIGHT, -- how much of row to see at the bottom.
-        peek_percent            = SCROLLIST_PEAK_PERCENT,
+        peek_percent            = peak_percent or SCROLLIST_PEAK_PERCENT,
         item_ctor_fn            = ScrollWidgetsCtor,
         scissor_pad             = SCROLLIST_PAD,
         scrollbar_height_offset = -50, -- Height of the scrollbar itself
@@ -491,25 +529,35 @@ function EmojiMenu:_CreateEmojiScrollList()
         --allow_bottom_empty_row  = false,
     })
 
-    local atlas = resolvefilepath(CRAFTING_ATLAS)
-	scroll_list.up_button:SetTextures(atlas, "scrollbar_arrow_up.tex", "scrollbar_arrow_up_hl.tex")
-    scroll_list.up_button:SetScale(0.4)
+    if self.style == EmojiMenu.STYLES.HUD then
+        local atlas = resolvefilepath(CRAFTING_ATLAS)
+        scroll_list.up_button:SetTextures(atlas, "scrollbar_arrow_up.tex", "scrollbar_arrow_up_hl.tex")
+        scroll_list.up_button:SetScale(0.4)
 
-	scroll_list.down_button:SetTextures(atlas, "scrollbar_arrow_down.tex", "scrollbar_arrow_down_hl.tex")
-    scroll_list.down_button:SetScale(0.4)
+        scroll_list.down_button:SetTextures(atlas, "scrollbar_arrow_down.tex", "scrollbar_arrow_down_hl.tex")
+        scroll_list.down_button:SetScale(0.4)
 
-	scroll_list.scroll_bar_line:SetTexture(atlas, "scrollbar_bar.tex")
-    scroll_list.scroll_bar_line:ScaleToSize(11, scroll_list.scrollbar_height - 15)
+        scroll_list.scroll_bar_line:SetTexture(atlas, "scrollbar_bar.tex")
+        scroll_list.scroll_bar_line:ScaleToSize(11, scroll_list.scrollbar_height - 15)
 
-	scroll_list.position_marker:SetTextures(atlas, "scrollbar_handle.tex")
-	scroll_list.position_marker.image:SetTexture(atlas, "scrollbar_handle.tex")
-    scroll_list.position_marker:SetScale(.3)
+        scroll_list.position_marker:SetTextures(atlas, "scrollbar_handle.tex")
+        scroll_list.position_marker.image:SetTexture(atlas, "scrollbar_handle.tex")
+        scroll_list.position_marker:SetScale(.3)
+    end
 
     scroll_list.no_emojis_msg = scroll_list:AddChild(Text(UIFONT, 26, STRINGS.PEARL.UI.EMOJI_MENU.NO_EMOJIS_FOUND, UICOLOURS.GOLD_UNIMPORTANT))
 	scroll_list.no_emojis_msg:SetPosition(SCROLLBAR_OFFSET, 0)
 	scroll_list.no_emojis_msg:Hide()
 
 	scroll_list.custom_focus_check = function() return self.focus end
+
+    --- Called after all the data are assigned to widgets using "ApplyDataToWidget"
+    --- So save the persistent data here in case we have displayed some brand new emojis.
+    PEARL.AddClassFunctionPostCall("RefreshView", function()
+        if ClientEmojis:HasAnyUnsavedChanges() then
+            ClientEmojis:SavePersistentData()
+        end
+    end, scroll_list)
     -- scroll_list.OnEmojiWidgetSelected = scroll_list.OnWidgetFocus
     -- scroll_list.OnWidgetFocus = function() end
     -- --- @TODO: Add support for arrow keys and controlers.
@@ -556,14 +604,14 @@ function EmojiMenu:_Clear()
     self.widget_data = {} -- Create a new table since the old one is cached.
 
     table.iclear(self.search_data)
-    table.clear(self.name_to_category)
+    table.clear(self.emoji_data_map)
 
     self.last_search_data = nil
     self.last_search_text = ""
 
-    self.selected_category = nil
-    self.selected_widget = nil
-    self.selected_emoji = nil
+    --- @type table?
+    self.selected_widget_data = nil
+    self.loaded = false
 end
 
 function EmojiMenu:_GetSearchedEmojis(search_prompt, narrow)
@@ -574,14 +622,16 @@ function EmojiMenu:_GetSearchedEmojis(search_prompt, narrow)
     for i = 1, #search_data do
         local data = search_data[i]
 
-        data._search_i = data.search_token:find(search_prompt_normalized, 1, true)
+        data._search_i = data.search_token_normalized:find(search_prompt_normalized, 1, true)
         if data._search_i then
             search_results[#search_results + 1] = data
         end
     end
 
-    table.sort(search_results, function(a, b) --- a<b
-        if a.category_index ~= b.category_index then
+    table.sort(search_results, function(a, b) --- a<b (a should be before b)
+        if a.unlocked ~= b.unlocked then
+            return a.unlocked ~= false and b.unlocked == false -- Keep locked emojis at the bottom
+        elseif a.category_index ~= b.category_index then
             return a.category_index < b.category_index -- Sort by category first
         -- elseif a._case_sensitive_match ~= b._case_sensitive_match then
         --     return a._case_sensitive_match -- Sort by case sensitivity?
@@ -595,19 +645,49 @@ function EmojiMenu:_GetSearchedEmojis(search_prompt, narrow)
     return search_results
 end
 
+function EmojiMenu:_BuildExplorerFrame(width, height, style)
+    if style == EmojiMenu.STYLES.HUD then
+        local atlas = resolvefilepath(CRAFTING_ATLAS)
+        local hud_atlas = resolvefilepath(HUD_ATLAS)
+        local bg_width, bg_height = width + 180, height + 125
+        local menu = Widget("emoji_menu")
+        menu.bg = menu:AddChild(Image(hud_atlas, "craftingsubmenu_fullvertical.tex"))
+        menu.bg:ScaleToSize(bg_width, -bg_height)
+
+        local searchbox_padding_y = SEARCHBOX_PADDING_Y - 50
+        menu.split_header = menu:AddChild(Image(atlas, "horizontal_bar.tex"))
+        menu.split_header:SetPosition(1, bg_height/2 - SEARCHBOX_HEIGHT + searchbox_padding_y / 2 - 10)
+        menu.split_header:ScaleToSize(bg_width - 114, 15)
+
+        menu.scroll_list = menu:AddChild(self:_CreateEmojiScrollList())
+        menu.scroll_list:SetPosition(SCROLLIST_PADDING_X, SCROLLIST_PADDING_Y)
+
+        local _, bg_h = menu.bg:GetSize()
+        menu.searchbox = menu:AddChild(self:_CreateSearchBox(SEARCHBOX_WIDTH, SEARCHBOX_HEIGHT))
+        menu.searchbox:SetPosition(SEARCHBOX_PADDING_X, bg_h / 2 + searchbox_padding_y)
+        menu.searchbox:MoveToFront()
+
+        return menu
+    end
+
+    -- Fallback to the more generic redux style
+    local menu = TEMPLATES.RectangleWindow(MENU_WIDTH, MENU_HEIGHT)
+
+    menu.scroll_list = menu:AddChild(self:_CreateEmojiScrollList(1))
+    menu.scroll_list:SetPosition(SCROLLIST_PADDING_X, SCROLLIST_PADDING_Y - 20)
+
+    local _, y = menu.top:GetPositionXYZ()
+    menu.searchbox = menu:InsertWidget(self:_CreateSearchBox(SEARCHBOX_WIDTH, SEARCHBOX_HEIGHT))
+    menu.searchbox:SetPosition(SEARCHBOX_PADDING_X, y + SEARCHBOX_PADDING_Y)
+    menu.searchbox:MoveToFront()
+
+    return menu
+end
+
 function EmojiMenu:_BuildExplorer()
-    local bg_color = UICOLOURS.BROWN_DARK
-    self.menu = self:AddChild(TEMPLATES.RectangleWindow(MENU_WIDTH, MENU_HEIGHT))
-    -- This is the default colour for these windows but we have a custom alpha channel.
-    self.menu:SetBackgroundTint(bg_color[1], bg_color[2], bg_color[3], .7)
-
-    self.scroll_list = self.menu:InsertWidget(self:_CreateEmojiScrollList())
-    self.scroll_list:SetPosition(SCROLLIST_PADDING_X, SCROLLIST_PADDING_Y)
-
-    local _, y = self.menu.top:GetPositionXYZ()
-    self.searchbox = self.menu:InsertWidget(self:_CreateSearchBox(SEARCHBOX_WIDTH, SEARCHBOX_HEIGHT))
-    self.searchbox:SetPosition(SEARCHBOX_PADDING_X, y + SEARCHBOX_PADDING_Y)
-    self.searchbox:MoveToFront()
+    self.menu = self:AddChild(self:_BuildExplorerFrame(MENU_WIDTH, MENU_HEIGHT, self.style))
+    self.scroll_list = self.menu.scroll_list
+    self.searchbox = self.menu.searchbox
 
     self.default_focus = self.searchbox
 
@@ -627,44 +707,24 @@ function EmojiMenu:GetFirstEmojiWidget()
 end
 
 function EmojiMenu:UnselectEmojiWidget(widget)
-    if widget ~= nil and not is_emoji(widget) then
-        return
-    end
-
-    widget.button:Unselect()
+    PEARL.debug("EmojiMenu:UnselectEmojiWidget", widget and widget.data and widget.data.display_name)
+    return widget:Unselect()
 end
 
 --- @param widget Widget?
 function EmojiMenu:SelectEmojiWidget(widget, focus)
-    PEARL.debug("EmojiMenu:SelectEmojiWidget", widget and widget.data and widget.data.display_name)
-    if widget ~= nil and not is_emoji(widget) then
-        return
-    end
-
+    PEARL.debug("EmojiMenu:SelectEmojiWidget", widget and widget.data and widget.data.display_name, CalledFrom())
     local data = widget and widget.data
-    local emoji = data and data.emoji
-    local category = data and data.category
-    if self.selected_emoji == emoji and (widget and widget:IsSelected()) then
+    if not widget or not data then
+        self.selected_widget_data = nil
         return
     end
 
-    if self.selected_widget then
-        self.selected_widget.button:Unselect()
+    if not self.searchbox:HasAnyInput() and data ~= self.selected_widget_data then
+        self.searchbox.textbox.prompt:SetString(data.display_name or data.name)
     end
 
-    if not self.searchbox:HasAnyInput() and self.selected_emoji ~= emoji and widget and focus then
-        self.searchbox.textbox.prompt:SetString(widget.data.display_name)
-    end
-
-    self.selected_emoji = emoji
-    self.selected_widget = widget
-    self.selected_category = category
-
-    --self.scroll_list:OnEmojiWidgetSelected(widget)
-
-    if widget then
-        widget.button:Select()
-    end
+    widget:Select()
 end
 
 --- @param search_text string?
@@ -691,38 +751,32 @@ function EmojiMenu:RefreshSearching(search_text)
         self.scroll_list.no_emojis_msg:Show()
     end
 
+    local first_widget_data = self.last_search_data and self.last_search_data[1] or self.search_data[1]
     --- Searching has more priority that the focused widget.
-    self:SelectEmojiWidget(self:GetFirstEmojiWidget()) -- Accept even nil - representing no results
+    -- Accept even nil - representing no results
+    self:SelectEmojiWidget(first_widget_data and first_widget_data.widget)
 end
 
 ---------------------------
 -- [[ Public Methods ]]
 ---------------------------
 
---- There can be dupes between categories but not within one.
-function EmojiMenu:IsEmojiSelected(emoji, category)
-    return self.selected_emoji == emoji and self.selected_category == category
+function EmojiMenu:IsSearching()
+    return self.scroll_list and self.scroll_list.items == self.last_search_data and self.searchbox:HasAnyInput()
 end
 
---- Optional map to support name aliases.
---- To each emoji symbol a full name should be mapped in a format like ":name1: :name2:"
-function EmojiMenu:SetEmojiNamesMap(map)
-    self.flnames_map = map
-end
-
---- Optional map to support name aliases.
---- To each emoji symbol a full name should be mapped in a format like ":name1: :name2:"
-function EmojiMenu:SetCategorySearchPriorities(priorities)
-    self.cat_priorities = priorities
+function EmojiMenu:IsEmojiWidgetSelected(widget)
+    return widget:IsSelected()
 end
 
 --- @param categories table<number, table> Array of emoji categories. Order is kept.
-function EmojiMenu:LoadEmojiCategories(categories)
+function EmojiMenu:LoadEmojiCategories(categories, silent)
     self.categories = categories
 
     PEARL.debug("EmojiMenu:LoadEmojisCategories")
     if emoji_data_cache[self.categories] ~= nil then
         self.widget_data = emoji_data_cache[self.categories]
+        self:OnEmojiDataLoaded(silent)
         return
     end
 
@@ -733,29 +787,29 @@ function EmojiMenu:LoadEmojiCategories(categories)
     StartStaticThread(function()
         _last_check = os.clock()
 
-        for index, category in ipairs(categories) do
-            if table.empty(category.emojis) == false then
-                self:_LoadEmojiCategory(category, index)
+        for _, category in ipairs(categories) do
+            if ClientEmojis:HasCategoryAnyAvailableEmojis(category) then
+                self:_LoadEmojiCategory(category)
 
                 check_and_yield()
             end
         end
 
-        self.loaded = true
-        if self.scroll_list and self:IsOpen() then
-            self:RefreshSearching()
-        end
+        self:OnEmojiDataLoaded(silent)
     end, self.inst.GUID)
 end
 
-function EmojiMenu:ReloadData()
+function EmojiMenu:ReloadData(silent)
     PEARL.debug("EmojiMenu:ReloadData")
 
-    self:LoadEmojiCategories(self.categories)
+    emoji_data_cache[self.categories] = nil
+    self:LoadEmojiCategories(self.categories, silent)
 end
 
 function EmojiMenu:Open()
     PEARL.debug("EmojiMenu:Open")
+
+    table.clear(self.new_emojis)
 
     if emoji_data_cache[self.categories] == nil then
         self:ReloadData()
@@ -769,9 +823,9 @@ function EmojiMenu:Open()
         self.onopen()
     end
 
-    -- if self.loaded then
-    --     self:RefreshSearching()
-    -- end
+    if self.loaded then
+        self:RefreshSearching()
+    end
 
     self.searchbox:Clear()
     self.searchbox.textbox:SetFocus(true)
@@ -808,6 +862,7 @@ function EmojiMenu:Toggle()
     end
 end
 
+--- @TODO: Maybe this could be improved?
 function EmojiMenu:IsOpen()
     return self.menu and self.menu:IsVisible()
 end
@@ -816,16 +871,26 @@ end
 -- [[ Event Handlers ]]
 ---------------------------
 
-function EmojiMenu:OnSearchPromptUpdated(prompt)
-    if not self.selected_widget or not self.selected_widget.button or not self.selected_widget.button.hovertext_root then
-        return
-    end
+function EmojiMenu:OnEmojiDataLoaded(silent)
+    PEARL.debug("EmojiMenu:OnEmojiDataLoaded", silent)
 
+    self.loaded = true
+    if self.scroll_list and self:IsOpen() then
+        if silent then
+            if self.scroll_list.items ~= self.last_search_data then
+                self.scroll_list:SetItemsData(self.widget_data)
+            end
+        else
+            self:RefreshSearching()
+            self.searchbox:Clear()
+        end
+    end
+end
+
+function EmojiMenu:OnSearchPromptUpdated(prompt)
     if prompt:IsVisible() then
-        self.selected_widget.button:HideHover()
         self.searchbox.button_clear:Hide()
     else
-        self.selected_widget.button:ShowHover()
         self.searchbox.button_clear:Show()
     end
 end
@@ -844,17 +909,18 @@ function EmojiMenu:OnControl(control, down, ...)
         return true
     end
 
-    if down then
-        if control == CONTROL_FOCUS_DOWN then
-            self.scroll_list:OnFocusMove(MOVE_DOWN, true)
-        elseif control == CONTROL_FOCUS_UP then
-            self.scroll_list:OnFocusMove(MOVE_UP, true)
-        elseif control == CONTROL_FOCUS_LEFT then
-            self.scroll_list:OnFocusMove(MOVE_LEFT, true)
-        elseif control == CONTROL_FOCUS_RIGHT then
-            self.scroll_list:OnFocusMove(MOVE_RIGHT, true)
-        end
-    end
+    --- @TODO:
+    -- if down then
+    --     if control == CONTROL_FOCUS_DOWN then
+    --         self.scroll_list:OnFocusMove(MOVE_DOWN, true)
+    --     elseif control == CONTROL_FOCUS_UP then
+    --         self.scroll_list:OnFocusMove(MOVE_UP, true)
+    --     elseif control == CONTROL_FOCUS_LEFT then
+    --         self.scroll_list:OnFocusMove(MOVE_LEFT, true)
+    --     elseif control == CONTROL_FOCUS_RIGHT then
+    --         self.scroll_list:OnFocusMove(MOVE_RIGHT, true)
+    --     end
+    -- end
 
     -- if self.scroll_list then
     --     return self.scroll_list:OnControl(control, down, ...)
@@ -871,8 +937,8 @@ function EmojiMenu:OnRawKey(key, down, ...)
     end
 
     -- This is here for cases where the searchbox is not focused.
-    if down and key == KEY_ENTER and self.selected_emoji then
-        self:_ChooseEmoji(self.selected_emoji)
+    if down and key == KEY_ENTER and self.selected_widget_data then
+        self:_EnterEmoji(self.selected_widget_data.emoji_id)
 
         return true
     end

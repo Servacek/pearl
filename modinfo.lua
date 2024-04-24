@@ -481,7 +481,17 @@ configuration_options = {
     },
 
     {
-        name="CUSTOM_EMOJIS",
+        name="CUSTOM_EMOJI_PACKS",
+        default = {
+            ["discord_emojis"] = true,
+            ["discord_emojis_animated"] = true,
+        },
+        type = "table",
+        public = true,
+    },
+
+    { -- This is an improved version of the game's emoji autocomplete.
+        name="EMOJI_AUTOCOMPLETE",
         default = true,
         type = "boolean",
         public = true,
@@ -502,15 +512,8 @@ configuration_options = {
         type = "function",
     },
 
-    {
+    { -- Whether we have a custom UI for emoji selection
         name="EMOJI_MENU",
-        default = true,
-        type = "boolean",
-        public = true,
-    },
-
-    {
-        name="ANIMATED_EMOJIS",
         default = true,
         type = "boolean",
         public = true,

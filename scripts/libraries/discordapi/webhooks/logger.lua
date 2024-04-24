@@ -227,6 +227,8 @@ function Logger:LogStringRaw(str, icon, ...)
         return
     end
 
+    print("Logger:LogStringRaw", string.raw(str))
+
     return self:LogLine(self:RawLogLine(str, icon), ...)
 end
 

@@ -644,6 +644,14 @@ function PEARL.Reboot()
     TheSim:Crash(true)
 end
 
+--- Similiar to Reload but reloads only the client.
+function PEARL.Rejoin()
+    local listing = TheNet:GetServerListing()
+
+    TheSim:ResetError()
+    MigrateToServer(listing.ip, listing.port, listing.netid)
+end
+
 -- Restarts only the shard this is called on.
 function PEARL.ReloadShard()
     StartNextInstance({

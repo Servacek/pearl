@@ -371,10 +371,22 @@ function table.insort(t, v, cmp)
     return table.reorder(t, i, cmp)
 end
 
-function table.values(t)
+function table.reinsort(t, v, cmp)
+    table.removearrayvalue(t, v)
+    return table.insort(t, v, cmp)
+end
+
+function table.values(t, unique)
+    local keys = unique and {} or nil
     local values = {}
-    for _, v in pairs(t) do
-        values[#values + 1] = v
+    for k, v in pairs(t) do
+        if not keys or keys[k] == nil then
+            values[#values + 1] = v
+
+            if keys then
+                keys[k] = true
+            end
+        end
     end
 
     return values

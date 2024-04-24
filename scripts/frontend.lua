@@ -274,9 +274,16 @@ PEARL.ENV.Assets = {
 
     Asset("IMAGE", PEARL.ASSETS.SOCIAL_BUTTONS.TEX),
     Asset("ATLAS", PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS),
-
-    Asset("ANIM", "anim/vibing_cat.zip"),
 }
+
+for emoji_id, data in pairs(PEARL.EMOJIS.DATA) do
+    if PEARL.EMOJIS.IsEmojiAnimated(emoji_id) then
+        table.insert(PEARL.ENV.Assets, Asset("ANIM", "anim/"..emoji_id..".zip"))
+    elseif data.animated == true then
+        PEARL.error("Failed to load animations for emoji", data.name)
+        data.available = false
+    end
+end
 
 PEARL.info("Loading preload assets...")
 PEARL.ENV.PreloadAssets = {
@@ -321,6 +328,7 @@ PEARL.loadfile("extensions/ui/playerlist")
 PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 PEARL.loadfile("extensions/ui/chatinputscreen")
+PEARL.loadfile("extensions/ui/chatsidebar")
 
 PEARL.loadfile("extensions/ui/loadingwidget")
 PEARL.loadfile("extensions/ui/scripterrorwidget")
@@ -355,7 +363,8 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
-ModuleManager:AddModule("emojis", PEARL.CONFIG.CUSTOM_EMOJIS)
+ModuleManager:AddModule("customemojipacks", PEARL.CONFIG.CUSTOM_EMOJI_PACKS)
+ModuleManager:AddModule("emojiautocomplete", PEARL.CONFIG.EMOJI_AUTOCOMPLETE)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
     ModuleManager:AddModule(

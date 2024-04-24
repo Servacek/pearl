@@ -441,6 +441,7 @@ PEARL.CONSTS = {
         WELCOME     = "WELCOME",
     },
 }
+PEARL.CONSTS.GAME_EMOJI_ALIAS_MATCH = PEARL.CONSTS.DELIMS.EMOJI.."(%S+)"..PEARL.CONSTS.DELIMS.EMOJI
 
 local FOLDERS = PEARL.CONFIG.SERVER_FOLDERS
 if TheNet:IsDedicated() then
@@ -672,11 +673,22 @@ if PEARL.CONFIG.DEBUG_MODE then
         TheSim:ResetError()
     end)
 
-    PEARL.loadfile("utils/emojidatagenerator", nil, true)
+    if TheNet:GetIsServer() then
+        PEARL.loadfile("utils/emojidatagenerator", nil, true)
+    end
 
     --- A bit spammy
     --PEARL.OverrideVariable("PRINT_SOURCE", true)
+
+
+    --- @CONFIGURATION (so we do not have to restart the whole server)
+    PEARL.CONFIG.CUSTOM_EMOJI_PACKS = {
+        ["discord_emojis"] = true,
+        ["discord_emojis_animated"] = true
+    }
+    --PEARL.CONFIG.EMOJI_MENU = false
 end
+
 
 --------------------------------
 -- [[ Post-Initialization ]]
@@ -723,7 +735,7 @@ end
 
 -- In debug mode we want to load sometimes the frontend on servers as well to see if there is
 -- any error.
-if TheNet:GetIsClient() then --or PEARL.CONFIG.DEBUG_MODE then
+if TheNet:GetIsClient() then-- or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
     PEARL.info("Loading mod FE done.")

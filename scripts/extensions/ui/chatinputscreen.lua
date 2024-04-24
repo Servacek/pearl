@@ -35,8 +35,9 @@ local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
 -- [[ Constants ]]
 ---------------------------
 
-local EMOJI_MENU_BUTTON_SIZE = 35
-local EMOJI_MENU_BUTTON_FOCUS_SIZE = 45
+local EMOJI_MENU_BUTTON_SIZE = 30
+local EMOJI_MENU_BUTTON_SCALE = {x = 1, y = 1, z = 1}
+local EMOJI_MENU_BUTTON_FOCUS_SCALE = {x = 1.3, y = 1.3, z = 1.3}
 local EMOJI_MENU_BUTTON_OFFSET_X = 0
 local EMOJI_MENU_BUTTON_OFFSET_Y = 60
 local EMOJI_MENU_BUTTON_ALIGN_RIGHT = true
@@ -113,20 +114,32 @@ local function AddWhisperWarning(self)
     whisper_warn_label:SetColour(WARN_TEXT_COLOUR)
 end
 
-local last_button_emoji
 local followhandler = TheInput:AddMoveHandler(function(x, y) end)
 local function AddEmojiMenuButton(menu)
     -- Let's handle the scaling ourselves.
     -- Make the background bigger so it can be clicked on easier.
-    local btn = TEMPLATES.EmojiButton(EMOJI_MENU_BUTTON_SIZE, false, 20)
+    local bg_margin = 20
+    local btn = TEMPLATES.EmojiButton(EMOJI_MENU_BUTTON_SIZE, true, bg_margin)
+    btn.bg:SetTexture(EmojiMenu.ATLAS, "emoji_background.tex")
+    btn.bg:SetTint(1, 1, 1, 1)
+    btn:SetText(PEARL.EMOJIS.GAME.WAVE)
+    btn._hasnew_img = btn:AddChild(Image("images/ui.xml", "new_label_motd2.tex"))
+    btn._hasnew_img:SetScale(.3)
+    local w, h = btn.bg:GetSize()
+    btn._hasnew_img:SetPosition(w / 3, h / 3)
+    btn._hasnew_img:Hide()
+    if ClientEmojis:HasAnyNewEmojis() then
+        btn._hasnew_img:Show()
+    end
+
+    local tx, ty = btn.text:GetPositionXYZ()
+    btn.text:SetPosition(tx, ty + 8)
     btn._hovertext = menu.parent:AddChild(Text(UIFONT, 30))
     btn._hovertext:SetString(STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER:format(
         CONTROL_MODIFIER.." + "..GetSayControl()
     ))
     btn._hovertext:SetScaleMode(SCALEMODE_PROPORTIONAL)
     btn._hovertext:Hide()
-
-    btn._time = GetTime()
 
     btn._hovertext._UpdatePosition = function(self, x, y)
         if not x or y then
@@ -138,7 +151,6 @@ local function AddEmojiMenuButton(menu)
             x + EMOJI_MENU_BUTTON_OFFSET_X, y + EMOJI_MENU_BUTTON_OFFSET_Y, 0
         )
     end
-
     btn._hovertext:_UpdatePosition()
 
     followhandler.fn = function(x, y)
@@ -147,24 +159,15 @@ local function AddEmojiMenuButton(menu)
         end
     end
 
-    btn.ScaleUp = function() btn:SetTextSize(EMOJI_MENU_BUTTON_FOCUS_SIZE)end
-    btn.ScaleDown = function() btn:SetTextSize(EMOJI_MENU_BUTTON_SIZE) end
+    btn.ScaleUp = function() btn:SetScale(EMOJI_MENU_BUTTON_FOCUS_SCALE) end
+    btn.ScaleDown = function() btn:SetScale(EMOJI_MENU_BUTTON_SCALE) end
+    btn.ScaleDown()
 
-    last_button_emoji = last_button_emoji or ClientEmojis:GetRandomEmoji()
-    btn:SetText(last_button_emoji)
     btn:SetOnGainFocus(function()
         btn:ScaleUp()
 
         if not menu:IsOpen() then
             btn._hovertext:Show()
-
-            -- So this wont flicker in case the cursor is over right from the start.
-            if not menu.closing and GetTime() - btn._time > 1 then
-                local new_emoji = ClientEmojis:GetRandomEmoji()
-                btn:SetText(new_emoji)
-
-                last_button_emoji = new_emoji
-            end
         end
     end)
     btn:SetOnLoseFocus(function()
@@ -177,9 +180,9 @@ local function AddEmojiMenuButton(menu)
     btn:SetOnClick(function()
         menu:Toggle()
 
-        local pos_x = btn:GetPositionXYZ()
-        local w, h = (menu.menu.mid_center or menu.menu):GetSize()
-        menu:SetPosition(pos_x + w / 4.5, h)
+        local pos_x, pos_y = btn:GetPositionXYZ()
+        local _, h = (menu.menu.mid_center or menu.menu.bg or menu.menu):GetSize()
+        menu:SetPosition(pos_x - 10, pos_y + h / 2 + EMOJI_MENU_BUTTON_SIZE * 4)
     end)
 
     if FrontEnd.OnRawKey ~= ExtendedOnRawKey then
@@ -292,7 +295,7 @@ local function AddEmojiMenu(self)
     _bg.AllowOnControlWhenSelected = true
     _bg:Hide()
 
-    self.emoji_menu = self.screen_root:AddChild(EmojiMenu())
+    self.emoji_menu = self.screen_root:AddChild(EmojiMenu(EmojiMenu.STYLES.HUD))
     self.emoji_menu:LoadEmojiCategories(ClientEmojis.CATEGORIES_ORDERED)
     self.emoji_menu:MoveToFront()
 
@@ -311,7 +314,13 @@ local function AddEmojiMenu(self)
     self.emoji_menu_button = self.chat_edit:AddChild(AddEmojiMenuButton(self.emoji_menu))
     local x = 0
     if EMOJI_MENU_BUTTON_ALIGN_RIGHT then
-        x = (self.chat_edit:GetRegionSize() / 2) + 50
+        local padding_x = 100
+        local edit_x, edit_y = self.chat_edit:GetPositionXYZ()
+        local w, h = self.chat_edit:GetRegionSize()
+        self.chat_edit:SetPosition(edit_x - padding_x / 2, edit_y)
+        w = w - padding_x
+        self.chat_edit:SetRegionSize(w, h)
+        x = (w / 2) + 50
     else
         x = -465
         if self.chat_type then
@@ -347,15 +356,20 @@ local function AddEmojiMenu(self)
     end
 
     self.emoji_menu.onclose = function()
+        if not ClientEmojis:HasAnyNewEmojis() then
+            self.emoji_menu_button._hasnew_img:Hide()
+        end
+
         -- The button is in it's focused state until the menu is closed.
         if not self.emoji_menu_button.focus then
             self.emoji_menu_button:OnLoseFocus()
         end
     end
 
-    self.emoji_menu.onemojichosen = function(emoji)
+    self.emoji_menu.onemojichosen = function(emoji_id)
+        local emoji_data = PEARL.EMOJIS.DATA[emoji_id]
         local str = self.chat_edit:GetString()
-        local add_str = emoji.." "
+        local add_str = emoji_data.utf8_str.." "
         local new_str = str:sub(1, insert_index)..add_str..str:sub(insert_index + 1)
 
         -- Only append if the
@@ -363,14 +377,6 @@ local function AddEmojiMenu(self)
             self.chat_edit:SetString(new_str)
             insert_index = insert_index + add_str:len()
         end
-    end
-
-    self.emoji_menu.onemojifavoritetoggled = function(emoji, favorite)
-        --print("On EMOJI FAVORITE TOGGLED!!", emoji, favorite)
-    end
-
-    self.emoji_menu.onemojidisplay = function(emoji)
-        --print("On EMOJI DISPLAYED!", emoji)
     end
 
     PEARL.AddClassFunctionPreCall("ValidateChar", function()
@@ -387,12 +393,60 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
         AddWhisperWarning(self)
     end
 
-    if PEARL.CONFIG.EMOJI_MENU and ClientEmojis:HasAnyEmojis() then
+    if PEARL.CONFIG.EMOJI_MENU and ClientEmojis:HasAnyAvailableEmojis() then
         if PEARL.CONFIG.DEBUG_MODE then
             PEARL.loadfile("extensions/ui/templates", nil, true)
 
             -- Hot reload for faster testing
             EmojiMenu = PEARL.loadfile("widgets/emojimenu", nil, true)
+
+            --- For debugging the animated emoji aligment
+            -- Swap testing emojis and their names, so animations are opposite colour.
+            -- PEARL.EMOJIS.UTF_TO_NAME[PEARL.EMOJIS.DISCORD["whitesquare"]] = "blacksquare"
+            -- PEARL.EMOJIS.UTF_TO_NAME[PEARL.EMOJIS.DISCORD["blacksquare"]] = "whitesquare"
+
+            -- local debug_text = self.chat_edit:AddChild(Text(UIFONT, 60))
+            -- debug_text:SetString(PEARL.EMOJIS.DISCORD.whitesquare.." "..PEARL.EMOJIS.DISCORD.whitesquare..""..PEARL.EMOJIS.DISCORD.whitesquare)
+
+            -- local infront = false
+            -- PEARL.AddClassFunctionPreCall("OnRawKey", function(self, key, down)
+            --     if not down then
+            --         return
+            --     end
+
+            --     if key == KEY_DOWN then
+            --         debug_text:SetSize(debug_text:GetSize() - 1)
+            --         return false
+            --     elseif key == KEY_UP then
+            --         debug_text:SetSize(debug_text:GetSize() + 1)
+            --         return false
+            --     end
+
+            --     local anim = next(debug_text.children)
+            --     if not anim then
+            --         return
+            --     end
+
+            --     if key == KEY_F2 then
+            --         if not infront then
+            --             anim:MoveToFront()
+            --         else
+            --             anim:MoveToBack()
+            --         end
+
+            --         infront = not infront
+            --         return false
+            --     end
+
+            --     local x, y = anim:GetPositionXYZ()
+            --     if key == KEY_LEFT then
+            --         anim:SetPosition(x + 1, y)
+            --         print("NEW POSITION", anim:GetPositionXYZ())
+            --     elseif key == KEY_RIGHT then
+            --         anim:SetPosition(x - 1, y)
+            --         print("NEW POSITION", anim:GetPositionXYZ())
+            --     end
+            -- end, TheFrontEnd)
         end
 
         AddEmojiMenu(self)

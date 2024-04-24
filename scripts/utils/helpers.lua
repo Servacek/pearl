@@ -598,7 +598,7 @@ function PEARL.HandleError(err)
     end
 end
 
-function PEARL.CalledFrom(level)
+function PEARL.CalledFrom(level) -- Level 3 by default
     local info = debug.getinfo(level or 3)
     return getformatinfo(info)
 end
