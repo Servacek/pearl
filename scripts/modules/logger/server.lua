@@ -187,7 +187,7 @@ if TheShard:IsMaster() then
 
     --- @DEBUG
     PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerPaused)
-    PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerUnpaused)
+    PEARL.EventProcessor:AddSafeEventHandler("server_unpaused", OnServerUnpaused)
 end
 
 PEARL.EventProcessor:AddSafeEventHandler("errorcatched", OnErrorCatched)

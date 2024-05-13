@@ -94,6 +94,12 @@ function table.join(t1, t2)
     end
 end
 
+function table.limit(t, limit)
+    while #t > limit do
+        t[#t] = nil
+    end
+end
+
 --- https://web.archive.org/web/20131225070434/http://snippets.luacode.org/snippets/Deep_Comparison_of_Two_Values_3
 function table.equal(t1, t2, ignore_mt)
     local ty1 = type(t1)

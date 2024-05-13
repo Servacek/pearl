@@ -24,17 +24,6 @@ local MAX_FU_EMOJIS = 32
 local NEW_MAX_TIME = 30 * 24 * 60 * 60
 
 -------------------------------------
--- [[ Local Functions ]]
--------------------------------------
-
---- @TODO: Move this to the table lib extension
-local function ensure_boundaries(t, limit)
-    while #t > limit do
-        t[#t] = nil
-    end
-end
-
--------------------------------------
 -- [[ Class Declaration ]]
 -------------------------------------
 
@@ -72,7 +61,7 @@ ClientEmojiManager.CATEGORIES_ORDERED = {
         --searchable = false, -- Do not allow the emojis in this category to be searchable since they are dupes.
         maxrows = 2,
         validatefn = function(self, data)
-            ensure_boundaries(data.frequently_used, MAX_FU_EMOJIS)
+            table.limit(data.frequently_used, MAX_FU_EMOJIS)
 
             for k, v in pairs(data.frequently_used) do
                 if PEARL.EMOJIS.DATA[k] == nil then
@@ -240,9 +229,6 @@ function ClientEmojiManager:OnEmojiUsed(emoji_id)
     local category = ClientEmojiManager.CATEGORY.FREQUENTLY_USED
     self._persistdata.frequently_used[emoji_id] = (self._persistdata.frequently_used[emoji_id] or 0) + 1
     table.reinsort(category.emojis, emoji_id, category.sortfn)
-
-    --- We do not have to update the GUI emojis right now, it will eventually be reloaded anyway.
-    -- ensure_boundaries(self._persistdata.frequently_used, MAX_FU_EMOJIS)
 end
 
 function ClientEmojiManager:OnEmojiFavoriteToggled(emoji_id)
@@ -276,12 +262,6 @@ end
 -------------------------------------
 
 ClientEmojiManager:LoadPersistentData()
-
-ClientEmojiManager:OnEmojiUsed("emoji_hunger")
-ClientEmojiManager:OnEmojiUsed("emoji_hunger")
-ClientEmojiManager:OnEmojiUsed("emoji_hunger")
-ClientEmojiManager:OnEmojiUsed("emoji_hunger")
-ClientEmojiManager:OnEmojiUsed("emoji_hunger")
 
 -------------------------------------
 -- [[ Return ]]

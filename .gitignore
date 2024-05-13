@@ -56,7 +56,6 @@ luac.out
 data/*
 !data/README
 
-# TODO Folder
 .todo
 .todo/*
 

@@ -91,7 +91,9 @@ end
 function KnownModIndex:IsModPrivate(modname)
     --- These seem to only load up when the mod is enabled from the start of the game (before joining the server).
     --- @Note: December 2023: Testing this again...
-    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
+    --- [June 06.05.2024]: STOP, do not use stuff you are not sure how works.
+    --- Push everything that looks like a workshop mod to the server for verification.
+    return not IsWorkshopMod(modname)--or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
 end
 
 function KnownModIndex:ShouldDisableMod(modname)

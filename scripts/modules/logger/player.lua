@@ -484,8 +484,7 @@ RegisterPlayerActionHandler(ACTIONS.COOK, function(doer, tool, item)
         tool, item = item, tool
     end
 
-    --- @TODO: Maybe execute cooking in a crockpot immediately?
-    local prohibited, execute = false, false
+    local prohibited = false
     local rarity = PEARL.GetRarityForPrefab(item and item.prefab)
     if rarity > 0 then
         prohibited = true

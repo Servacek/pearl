@@ -404,10 +404,7 @@ function PEARL.TESTS.LoggerWorldTests()
         expected = false,
     })
 
-    make_mod_event_test(TheWorld,"clientconnectionclosed", {
-        userid = "KU_TEST",
-        reason = "ID_DST_ITS_DEBUG_TIME",
-    })
+    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", "KU_TEST", "ID_DST_ITS_DEBUG_TIME")
 
     make_event_test(TheWorld, "showworldreset")
     make_event_test(TheWorld, "hideworldreset")

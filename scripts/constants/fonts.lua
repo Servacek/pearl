@@ -62,7 +62,7 @@ end
 if PEARL.CONFIG.BETTER_WORMWOOD_FONT and not KnownModIndex:IsModEnabled("workshop-3033694168") then
     local font = table.find(_G.FONTS, function(index, font) return font.alias == TALKINGFONT_WORMWOOD end)
     if font then
-        PEARL.info("Overriding default wormwood talking font to a fixed version...")
+        PEARL.info("Overriding default wormwood talking font with a fixed version...")
         font.filename = MODROOT.."/fonts/talkingfont_wormwood__0.zip"
         font.alias = "better_"..TALKINGFONT_WORMWOOD
         table.insert(PEARL.ENV.Assets, Asset("FONT", font.filename))

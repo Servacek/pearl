@@ -453,8 +453,9 @@ AddCommand("shutdown", {
     exectime = 0,
 
     fn = function()
-        -- Make sure the world is being saved before shutdown!
-        c_shutdown(true)
+        --- @Note For some odd reason, when setting the "save" parameter to "true"
+        --- it will exist the server but some providers may think that
+        c_shutdown() -- Saves by default
     end
 })
 
@@ -1286,7 +1287,7 @@ AddCommand("exec", {
     routing = UserCommands.SHARD_ROUTING.NONE,
     console = false,
     slash = false, -- Admins can use the console right away from the game.
-    options = {{name = "command"}, PARAMS.SHARD},
+    options = {{name = "command"}, PARAMS.SHARD{optional = true}},
 
     --- @param ctx CommandContext
     --- @param command string

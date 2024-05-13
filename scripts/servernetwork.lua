@@ -113,9 +113,7 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
         return ServerNetwork:CloseConnectionFor(userid, reason, false, title)
     end
 
-    if TheWorld then
-        TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
-    end
+    PEARL.EventProcessor:HandleEvent("clientconnectionallowed", userid)
 
     local initial = false
     if PEARL.DB:IsEnabled() then
@@ -125,7 +123,7 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
 
     -- If all the filters have successfully passed, then the connection should be allowed.
     PEARL.debug("Allowing connection for", userid, initial)
-    return ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
+    ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
 end
 
 local function filter_comp(a, b)
@@ -252,13 +250,9 @@ end
 function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_title)
     self:SendUserDisconnectFor(userid, reason, immediately, reason_title)
 
-    -- If not reason is specified and it's immediate disconnect, keep it silent.
+    -- If no reason is specified and it's immediate disconnect, keep it silent.
     -- Because we can use the disconnection internally (e. g. server updates)
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("clientconnectionclosed", {
-            userid = userid, reason = reason
-        })
-    end
+    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
 
     -- Give a few seconds to the client so he can peacefully disconnect.
     PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_KICK, function()
@@ -398,11 +392,7 @@ function ServerNetwork:RunJoinServerFiltersFor(userid)
         end
 
         if allowed == false then -- Check for explicit false
-            if TheWorld then
-                TheWorld:PushModEvent("clientconnectionclosed", {
-                    userid = userid, reason = reason or "ID_DST_SLOT_RESERVATION"
-                })
-            end
+            PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
 
             return false
         end
@@ -679,7 +669,7 @@ function ServerNetwork:OnQuit()
     end
 end
 
-function ServerNetwork:OnClientFilterDataFailed(userid)
+function ServerNetwork:OnClientFilterDataTimedout(userid)
     PEARL.warn("Client", userid, "didn't send connection filter data to the server!")
     if PEARL.DiscordReporter then
         PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT:format(
@@ -709,7 +699,7 @@ function ServerNetwork:OnClientJoined(userid)
     self:CacheClientTableFor(userid)
 
     if self:IsClientJoining(userid) and self:GetCachedCFDFor(userid) == nil then
-        self:OnClientFilterDataFailed(userid)
+        self:OnClientFilterDataTimedout(userid)
     end
 
     joining_clients[userid] = nil

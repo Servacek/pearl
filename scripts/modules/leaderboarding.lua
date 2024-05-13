@@ -197,6 +197,8 @@ local function OnNewMonth(stb)
         AnnounceNewPOTM(leaderid, stb.month, stb.year)
     end
 
+    --- @TODO: Reset the other leaderboards as well. (player of the day, etc...)
+
     -- Since we are creating a new updating message, archive the old one.
     -- Do NOT update the other embeds so the data do match the date.
     PEARL.LeaderboardService:UpdateLeaderboardEmbeds()

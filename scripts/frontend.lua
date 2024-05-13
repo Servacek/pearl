@@ -287,8 +287,8 @@ end
 
 PEARL.info("Loading preload assets...")
 PEARL.ENV.PreloadAssets = {
-    Asset("PKGREF",         "images/bg_loading_space.tex"),
-    Asset("DYNAMIC_ATLAS",  "images/bg_loading_space.xml"),
+    Asset("PKGREF",         "images/bg_loading/bg_loading_space.tex"),
+    Asset("DYNAMIC_ATLAS",  "images/bg_loading/bg_loading_space.xml"),
 
     Asset("SOUNDPACKAGE",   "sound/custom_music.fev"),
     Asset("SOUND",          "sound/custom_music_bank.fsb"),

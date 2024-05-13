@@ -99,16 +99,16 @@ end
 --------------------------------
 
 PEARL.ServerNetwork:AddConnectionFilter(function(userid)
-    if banlist and banlist[userid] then
-        if PEARL.CONFIG.GLOBAL_BANLIST.STRICT then
-            return false, "ID_DST_USER_BANNED"
-        end
-
-        PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST:format(
-            userid
-        ))
+    if banlist and banlist[userid] and PEARL.CONFIG.GLOBAL_BANLIST.STRICT then
+        return false, "ID_DST_USER_BANNED"
     end
 end, PEARL.ServerNetwork.FILTER_PRIORITY.HIGH)
+
+PEARL.EventProcessor:AddSafeEventHandler("clientconnectionallowed", function(userid)
+    PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST:format(
+        userid -- Do only push the warning if we are sure the player has actually passed.
+    ))
+end)
 
 --------------------------------
 -- [[ Setup ]]

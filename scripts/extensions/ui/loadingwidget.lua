@@ -39,7 +39,7 @@ local CUSTOM_DISCONNECT_TIPS = {
 }
 
 local TEX_PATTERN = "%s.tex"
-local XML_PATTERN = "images/bg_loading_%s.xml"
+local XML_PATTERN = "images/bg_loading/bg_loading_%s.xml"
 
 local MOVIE_PATH  = PEARL.MODROOT.."movies/"
 local MOVIE_EXT   = ".ogv"
