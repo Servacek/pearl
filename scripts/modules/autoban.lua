@@ -11,8 +11,6 @@
 --]==]====================================================]]
 
 
-local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
-
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
@@ -56,15 +54,8 @@ local function PreparePlayerForBan(player, onprepared)
             PEARL.ExtinguishFires(player.Transform:GetWorldPosition())
         end
 
-        if player.components then
-            if player.components.talker then
-                player.components.talker:Say(STRINGS.PEARL.GRIEFER_WARNINGS.BAN)
-            end
-
-            if player.components.inventory then
-                -- Return the items to the base.
-                ItemDepositor:DepositAllItems(player.components.inventory)
-            end
+        if player.components and player.components.talker then
+            player.components.talker:Say(STRINGS.PEARL.GRIEFER_WARNINGS.BAN)
         end
 
         if player.sg then

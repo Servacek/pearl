@@ -88,7 +88,7 @@ end
 function KnownModIndex:IsModPrivate(modname)
     --- These seem to only load up when the mod is enabled from the start of the game (before joining the server).
     --- @Note: December 2023: Testing this again...
-    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
+    return IsWorkshopMod(modname) ~= true
 end
 
 function KnownModIndex:ShouldDisableMod(modname)
@@ -98,7 +98,7 @@ function KnownModIndex:ShouldDisableMod(modname)
     end
 
     -- ALWAYS block private mods since all the other checks can be bypassed
-    if self:IsModPrivate(modname) then
+    if PEARL.CONFIG.MOD_BLOCKER.ALLOW_LOCAL_MODS ~= true and self:IsModPrivate(modname) then
         PEARL.debug("Private mod!", modname)
         return true
     end

@@ -141,7 +141,7 @@ return function(fname, create_if_needed, subtitles)
         end
     end
 
-    PEARL.ClusterPersistance:ForEachLineIn(abs_path, function(line)
+    PEARL.ClusterPersistence:ForEachLineIn(abs_path, function(line)
         ParseLine(result, line)
     end)
 

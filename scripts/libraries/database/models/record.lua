@@ -87,8 +87,11 @@ function PlayerRecord:__newindex(field, value)
         end
     end
 
-    if self._data[field] ~= value or type(value) == "table" then
+    local old_value = self._data[field]
+    if old_value ~= value or type(value) == "table" then
         self._data[field] = value
+
+        PEARL.EventProcessor:HandleEvent("db_fieldchanged", self._data.userid, field, value, old_value)
 
         self:SetIsUpToDate(false)
     end

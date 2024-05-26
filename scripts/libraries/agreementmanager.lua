@@ -9,26 +9,29 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
+--- Singleton class for managing the agreement file and it's data.
 
 
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
 
-local RECORD = {
-    VERSION = 1,
-    USERID = 2,
-    NETID = 3,
-    TIME = 4,
+--- FIELD NAME -> FIELD INDEX
+--- @enum REQUIRED_FIELDS
+local REQUIRED_FIELDS = {NETID = 1, USERID = 2}
 
-    SIZE = 4,
-    MIN_SIZE = 2,
+--- FIELD NAME -> FIELD INDEX
+--- @enum FIELDS
+local FIELDS = {
+    VERSION = 1, -- Version of the last agreed agreement.
+    USERID  = 2, -- Klei ID of the account agreeing to the agreement.
+    NETID   = 3, -- Steam ID of the account agreeing to the agreement.
+    TIME    = 4, -- Last time the agreement was agreed to.
 }
 
 --- 1.2.3;KU_ZC2919302;100203103020;169200202003
 local SEP = ";"
 local REPL = ","
-local FILE_HEADER_PATTERN = string.rep("%s"..SEP, RECORD.SIZE).."\n"
 local DECODE_PATTERN = "(.-)"..SEP
 
 --------------------------------
@@ -40,10 +43,10 @@ local function normalize(s)
 end
 
 local function decodeline(line)
-    line = line and line..SEP or "" -- Add the separator for the pattern to work properly.
     local fields = {}
 
-    if #line > 1 then
+    line = line:endswith(SEP) and line or line..SEP
+    if not line:blank() then
         line:gsub(DECODE_PATTERN, function(match)
             fields[#fields+1] = normalize(match)
         end)
@@ -56,16 +59,29 @@ end
 -- [[ Class Declaration ]]
 --------------------------------
 
+--- @singleton
 --- @class AgreementManager
-local AgreementManager = {
-    records = {}
-}
+local AgreementManager = {records = {}}
 
 --------------------------------
 -- [[ Static ]]
 --------------------------------
 
-AgreementManager.RECORD = RECORD
+--- @param record table<number, string>
+--- @return boolean
+function AgreementManager.IsRecordValid(record)
+    if table.empty(record) ~= false then
+        return false
+    end
+
+    for _, required_field in pairs(REQUIRED_FIELDS) do
+        if not record[required_field] or type(record[required_field]) ~= "string" or record[required_field]:blank() then
+            return false
+        end
+    end
+
+    return true
+end
 
 --------------------------------
 -- [[ Getters ]]
@@ -73,14 +89,10 @@ AgreementManager.RECORD = RECORD
 
 --- @return boolean exists Whether the agreement file exists on the disk or not.
 function AgreementManager:FileExists()
-    return io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH)
+    return io.exists(PEARL.CONSTS.AGREEMENT_FILE_PATH) == true
 end
 
--- Support for older version of the agreement screen.
-function AgreementManager:HasAnyRecords()
-    return #self.records > 0 and self.records[1] and #self.records[1] >= RECORD.MIN_SIZE
-end
-
+--- @return boolean displayed
 function AgreementManager:AgreementDisplayed()
     -- We create an record only when the agreement is accepted for the first time.
     return self:HasRecord()
@@ -88,13 +100,17 @@ end
 
 --- @return string globalversion Always a string, empty for no version specified.
 function AgreementManager:GetGlobalVersion()
-    return PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT and PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version or ""
+    return table.empty(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == false and PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version or ""
 end
 
-function AgreementManager:GetLocalRecordField(index)
+--- @param field FIELDS
+--- @return string? record
+function AgreementManager:GetLocalRecordField(field)
     local userid = TheNet:GetUserID()
     local record = self:GetRecord(userid, TheNet:GetNetIdForUser(userid))
-    return record and record[index] or nil
+    if record then
+        return record[field]
+    end
 end
 
 --- @return string? localversion Nil when the record doesn't exist.
@@ -114,26 +130,26 @@ end
 
 --- @return boolean enabled Whether the agreement screen was configured by the server.
 function AgreementManager:IsAgreementScreenEnabled()
-    return type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table"
+    return table.empty(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == false
 end
 
 --- @return boolean enabled Whether the welcome popup was configured on the server.
-function AgreementManager:IsIntroPopupEnabled()
-    return type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table"
+function AgreementManager:IsWelcomePopupEnabled()
+    return table.empty(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == false
 end
 
 --- @return boolean enabled Whether at least one of the introduction components is enabled.
 function AgreementManager:IsEnabled()
-    return self:IsAgreementScreenEnabled() or self:IsIntroPopupEnabled()
+    return self:IsAgreementScreenEnabled() or self:IsWelcomePopupEnabled()
 end
 
----  BOTH are required for more precise searching
+--- One Steam account can play as multiple Klei accounts, therefore we need both IDs.
 --- @param userid string
---- @oaram netid string
+--- @param netid string
+--- @return table<number, string>? record
 function AgreementManager:GetRecord(userid, netid)
     for _, record in ipairs(self.records) do
-        -- Both needs to be equal to the saved version
-        if record[RECORD.USERID] == userid and record[RECORD.NETID] == netid then
+        if record[FIELDS.USERID] == userid and record[FIELDS.NETID] == netid then
             return record
         end
     end
@@ -142,76 +158,58 @@ end
 --- @return boolean exists Whether the record exists for the given id or not.
 function AgreementManager:HasRecord()
     local userid = TheNet:GetUserID()
-    return self:GetRecord(
-        userid, TheNet:GetNetIdForUser(userid)
-    ) ~= nil
-end
-
-function AgreementManager:CreateRecord(tbl)
-    local record = tbl or {}
-    table.insert(self.records, record)
-
-    return record
+    return self:GetRecord(userid, TheNet:GetNetIdForUser(userid)) ~= nil
 end
 
 --------------------------------
--- [[ Setters ]]
+-- [[ Public Methods ]]
 --------------------------------
 
+--- Creates the record if needed
 function AgreementManager:UpdateRecord()
     local userid = TheNet:GetUserID()
     local netid = TheNet:GetNetIdForUser(userid)
-    local record = self:GetRecord(userid, netid) or self:CreateRecord()
-
-    -- This data here will be only used for verifying the client and version of the agreement.
-    record[RECORD.VERSION]  = normalize(self:GetGlobalVersion()) or ""
-    record[RECORD.USERID]   = tostring(userid or "")
-    record[RECORD.NETID]    = tostring(netid or "")
-    record[RECORD.TIME]     = tostring(os.time())
-
-    return record
-end
-
---------------------------------
--- [[ Public ]]
---------------------------------
-
-function AgreementManager:Load()
-    local rf, err = io.open(PEARL.CONSTS.AGREEMENT_FILE_PATH, "r")
-    if not rf then
-        -- It's ok to not a have an agreement file
-        return PEARL.debug("Failed to load the agremeent file!", err)
+    local record = self:GetRecord(userid, netid)
+    if not record then
+        record = {}
+        table.insert(self.records, record)
     end
 
-    for line in rf:lines() do
+    -- This data here will be only used for verifying the client and version of the agreement.
+    record[FIELDS.VERSION]  = normalize(self:GetGlobalVersion()) or ""
+    record[FIELDS.USERID]   = tostring(userid or "")
+    record[FIELDS.NETID]    = tostring(netid or "")
+    record[FIELDS.TIME]     = tostring(os.time())
+
+    if not AgreementManager.IsRecordValid(record) then
+        PEARL.error("Record became invalid!", table.dump(record))
+    end
+end
+
+function AgreementManager:Load()
+    local lines = PEARL.ModPersistence:GetAllFileLines(PEARL.CONSTS.AGREEMENT_FILE_PATH, false, true)
+    for line in ipairs(lines) do
         local record = decodeline(line)
-        if type(record) == "table" and #record >= #RECORD then
+        if AgreementManager.IsRecordValid(record) then
             table.insert(self.records, record)
         end
     end
-
-    rf:close()
 end
 
 function AgreementManager:Save()
-    local wf, err = io.open(PEARL.CONSTS.AGREEMENT_FILE_PATH, "w")
-    if not wf then
-        return PEARL.error("Failed to create the agreement cache file!", err)
+    local success, err = PEARL.ModPersistence:SetFileContent(PEARL.CONSTS.AGREEMENT_FILE_PATH, self:BuildFileContent())
+    if not success then
+        PEARL.error("Failed to create the agreement cache file!", err)
     end
-
-    wf:write(self:BuildFileHeader())
-    wf:close()
 end
 
-function AgreementManager:BuildFileHeader()
-    local header = ""
+function AgreementManager:BuildFileContent()
+    local content = ""
     for _, record in ipairs(self.records) do
-        if #record >= RECORD.MIN_SIZE then
-            header = header..FILE_HEADER_PATTERN:format(unpack(record))
-        end
+        content = content..table.concat(record, SEP).."\n"
     end
 
-    return header
+    return content
 end
 
 function AgreementManager:UpdateFile()
@@ -223,15 +221,6 @@ function AgreementManager:SyncAgreementDataWithServer(agreed, datacollection, ag
     PEARL.SendRPCToServer(
         PEARL.RPC.AgreementDataReceived, agreed, datacollection, agreedintime, version
     )
-end
-
---------------------------------
--- [[ Handlers ]]
---------------------------------
-
-function AgreementManager:OnAgreed()
-    -- Only save the record when we have agreed.
-    return self:UpdateFile()
 end
 
 --------------------------------

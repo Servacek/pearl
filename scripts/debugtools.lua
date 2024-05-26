@@ -126,7 +126,7 @@ function PEARL.AddDebugRecord(userid, name, reputation, netid)
     PEARL.Reputation:SetFor(userid, reputation or 100)
 
     if not netid then
-        PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
     end
 
     PEARL.DB:SaveRecordFor(userid, record)
@@ -329,15 +329,15 @@ function PEARL.TESTS.BlacklistMethodTest()
     local userid = "KU_TEST"
 
     PEARL.info("---- Init ---")
-    PEARL.BlackList:PrintDebugInfo()
+    PEARL.BlackList:DisplayDebugInfo()
     PEARL.info("---- AddPlayerByID ---")
     PEARL.BlackList:Add(userid)
     assert(PEARL.BlackList:Contains(userid))
-    PEARL.BlackList:PrintDebugInfo()
-    table.foreach(PEARL.BlackList:GetEngineRecordByID(userid), print)
+    PEARL.BlackList:DisplayDebugInfo()
+    table.foreach(PEARL.BlackList:GetBanRecordByID(userid), print)
     PEARL.info("---- RemovePlayerById ---")
     PEARL.BlackList:Remove(userid)
-    PEARL.BlackList:PrintDebugInfo()
+    PEARL.BlackList:DisplayDebugInfo()
 end
 
 --------------------------------
@@ -470,7 +470,7 @@ function _G.RawLogJSON(cb)
     _G.RawRequest(cb, "POST", f:read())
 end
 
-function _G.DSay(message, whisper, prefab, state)
+function _G.DSay(message, whisper, prefab, state, name)
     prefab = prefab or "wilson"
 
     local player
@@ -480,7 +480,7 @@ function _G.DSay(message, whisper, prefab, state)
 
     local guid = player and player.GUID or 123
     prefab = player and player.prefab or "wilson"
-    Networking_Say(guid, "KU_TEST", "Fi8iP",
+    Networking_Say(guid, "KU_TEST", name,
         prefab, message, WHITE, whisper or false,
         false, nil
     )
@@ -983,6 +983,15 @@ function PEARL.SpawnBase()
         c_give(k, v)
     end
 end
+
+--- When viewing this file with a celever editor, you can find globals defined only by the engine.
+local wf = GLOBAL.io.open(MODROOT.."data/globals.lua", "w")
+wf:write("return {\n")
+for name, value in pairs(GLOBAL) do
+    wf:write("    ", "print(", tostring(name), "), -- ", tostring(value), "\n")--, " = \"", tostring(value), "\",\n")
+end
+wf:write("}")
+wf:close()
 
 local codetorun = PEARL.GameInstParams:GetModParam("codetorun")
 if codetorun then

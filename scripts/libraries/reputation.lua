@@ -322,16 +322,16 @@ end
 function Reputation:LoadReputationTables()
     PEARL.info("Loading reputation tables...")
 
-    local ROOT_DIR = PEARL.ModPersistance:GetRootDirectoryPath()
+    local ROOT_DIR = PEARL.ModPersistence:GetRootDirectoryPath()
     local REP_TABLES_PATH = ROOT_DIR.."/reputation_tables.json"
-    local data = PEARL.ModPersistance:LoadDataFromFile(REP_TABLES_PATH, true)
+    local data = PEARL.ModPersistence:LoadDataFromFile(REP_TABLES_PATH, true)
     if data then
         for k, v in pairs(data) do
             PEARL.CONSTS.REPUTATION_TABLES[k] = v
         end
     end
 
-    PEARL.ModPersistance:SaveDataToFile(REP_TABLES_PATH, PEARL.CONSTS.REPUTATION_TABLES, true, false)
+    PEARL.ModPersistence:SaveDataToFile(REP_TABLES_PATH, PEARL.CONSTS.REPUTATION_TABLES, false)
 end
 
 --------------------------------------

@@ -88,11 +88,19 @@ local CLIENT_RPCS = {
     end,
 
     Disconnect = function(reason, ...)
-        return PEARL.ClientNetwork:Disconnect(reason, true, ...)
+        return PEARL.ClientNetwork:ForceDisconnectWithReason(reason, true, ...)
     end,
 
-    ConnectionAllowed = function(initial)
-        return PEARL.ClientNetwork:OnConnectionAllowed(initial)
+    ConnectionAllowed = function(data_string)
+        local data
+        if data_string ~= nil then
+            local _, decoded = pcall(json.decode, data_string)
+            if type(decoded) == "table" then
+                data = decoded
+            end
+        end
+
+        return PEARL.ClientNetwork:OnConnectionAllowed(data or {})
     end,
 }
 
@@ -122,7 +130,7 @@ local SHARD_RPCS = {
             local result
             local fn, errmsg = loadstring(luastring)
             if type(fn) == "function" then
-                result = {pcall(fn)}
+                result = {pcall(setfenv(fn, PEARL.ENV))}
             else
                 result = {false, errmsg}
             end
@@ -238,6 +246,11 @@ local USERID_RPCS  = UpvalueHacker:GetUpvalue(HandleRPC, "USERID_RPCS")
 assert(type(RPC_HANDLERS) == "table" and type(USERID_RPCS) == "table")
 
 ---------------
+
+--- @TODO: Handle table arguments for RPCs
+local function ProccessRPCArguments(...)
+
+end
 
 function PEARL.SendRawRPCToServer(rpc_id, ...)
     return SendRPCToServer(rpc_id, ...)

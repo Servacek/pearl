@@ -90,11 +90,6 @@ PEARL.AddClassPostConstruct("components/health_replica", function(self, inst)
         return
     end
 
-    -- self.inst:AddComponent("healthbar")
-    -- self.inst:DoTaskInTime(1, function()
-    --     self.inst.components.healthbar:Enable()
-    -- end)
-
     self._current = 100
 
     self._max = net_uint(inst.GUID, PEARL.MODNAME.."_health._max", PEARL.MODNAME.."healthmaxdirty")

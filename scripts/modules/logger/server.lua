@@ -45,6 +45,7 @@ local function OnShutdown(error)
     )
 end
 
+--- @TODO: Log temporary bans
 local function OnClientBanned(userid)
     -- Log only offline players being banned, since they are announced by the game itself otherwise.
     if userid and not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
@@ -96,7 +97,7 @@ local function OnServerUnpaused(doer)
     )
 end
 
-local function OnFirstLaunch()
+local function OnInitialFullLaunch()
     -- TheWorld should exist at this point
     if _is_shutting_down then
         return
@@ -140,6 +141,14 @@ local function OnErrorCatched(traceback)
 
 end
 
+local function OnDatabaseFieldChanged(userid, field, new_value, old_value)
+    if field == "username" then
+        PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.PLAYER_RENAMED:format(
+            MARKDOWN.codeline(userid), MARKDOWN.codeline(old_value), MARKDOWN.codeline(new_value)
+        ), PEARL.ICONS.TAG)
+    end
+end
+
 -------------------------------
 -- [[ Listeners ]]
 -------------------------------
@@ -162,8 +171,8 @@ PEARL.AddSimPostInit(function()
         PEARL.EventProcessor:AddSafeEventHandler("shard_stateupdate", OnShardStateUpdate)
 
         -- initial + current
-        if PEARL.IsFirstLaunch() then
-            OnFirstLaunch()
+        if PEARL.INITIAL_FULL_LAUNCH then
+            OnInitialFullLaunch()
         end
     end
 end)
@@ -171,7 +180,7 @@ end)
 --- This is actually the point where most of the mod's stuff is loaded.
 --- (translations, rpcs, ...)
 PEARL.AddFrontEndPostInit(function(fe)
-    if TheShard:IsMaster() and TheSim:GetNumLaunches() > 1 then
+    if TheShard:IsMaster() and not PEARL.INIT then
         OnModBackendPostInit()
     end
 end)
@@ -185,9 +194,10 @@ if TheShard:IsMaster() then
 
     PEARL.EventProcessor:AddSafeEventHandler("simulation_unpaused", OnSimUnpaused)
 
-    --- @DEBUG
     PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerPaused)
-    PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerUnpaused)
+    PEARL.EventProcessor:AddSafeEventHandler("server_unpaused", OnServerUnpaused)
 end
 
 PEARL.EventProcessor:AddSafeEventHandler("errorcatched", OnErrorCatched)
+
+PEARL.EventProcessor:AddSafeEventHandler("db_fieldchanged", OnDatabaseFieldChanged)

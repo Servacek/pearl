@@ -34,6 +34,7 @@ local PATTERN_DEBUG = "["..HEADER_NAME.."] [%s] %s -> %s"
 
 -- Keep it enabled by default if we fail to retrive the data.
 local ENABLED = PEARL.CONFIG.LOGGING and PEARL.CONFIG.LOGGING.ENABLED or true
+local DEBUG_FILE_ENABLED = PEARL.CONFIG.LOGGING and PEARL.CONFIG.LOGGING.DEBUG_FILE or false
 
 local DEBUG_FILE_PATH = PEARL.MODROOT.."logs/debug_log.txt"
 local MAX_DEBUG_FILE_LEN = 10000
@@ -143,7 +144,7 @@ end
 ---------------------------
 
 -- We should keep this file open until the program ends.
-if PEARL.CONFIG.LOGGING.DEBUG_FILE and ENABLED and TheNet:IsDedicated() then
+if TheNet:IsDedicated() and ENABLED and DEBUG_FILE_ENABLED then
     PEARL.debug("Loading debug log file...")
     local rfile = io.open(DEBUG_FILE_PATH, "r")
     if rfile then

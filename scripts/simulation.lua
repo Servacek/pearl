@@ -52,15 +52,6 @@ PEARL.AddUserDataFunctionPreCall("Reset", function()
     PEARL.ModShutdown()
 end, TheSim)
 
-PEARL.AddGlobalFunctionPreCall("WorldResetFromSim", function()
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("world_reset")
-    end
-
-    PEARL.GameInstParams:SetModParam("regenerated", true)
-    PEARL.ModShutdown()
-end)
-
 --- @TODO:
 -- This is some additional server side check in case someone gets around our Agreement Screen.
 -- PEARL.AddGlobalFunctionPreCall("VerifySpawnNewPlayerOnServerRequest", function(userid)
@@ -91,17 +82,18 @@ _Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
 end, TheSim)
 
 ----------------------------------
--- Simulation Post Init
+-- World Regeneration
 ----------------------------------
 
--- Looks like GamePostInit isn't called when regenerating the world.
-PEARL.AddSimPostInit(function()
-    if not TheWorld then
-        return
-    end
+PEARL.AddUserDataFunctionPreCall("BeginNewSession", OnShardShutdown, TheSim)
 
-    -- Push this here since this is the place where all the meta data are loaded as well.
-    if PEARL.GameInstParams:GetModParam("regenerated") == true then
+-- Looks like GamePostInit isn't called when regenerating the world.
+-- WorldPostInit has not yet fully loaded topology.
+local initial_session_id = TheNet:GetSessionIdentifier()
+PEARL.AddSimPostInit(function()
+    -- Looks like the session identifier has changed during the loading process.
+    -- This means the world has been regenerated.
+    if TheWorld ~= nil and initial_session_id ~= TheNet:GetSessionIdentifier() then
         TheWorld:PushModEvent("worldgencomplete")
     end
 end)

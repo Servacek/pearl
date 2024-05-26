@@ -116,12 +116,16 @@ function table.equal(t1, t2, ignore_mt)
     return true
 end
 
-function table.update(old, new)
+function table.update(old, new, strict)
     for key, value in pairs(new) do
         if type(value) == "table" and type(old[key]) == "table" then
             -- If both the source and target have subtables, recursively update them
             table.update(old[key], value)
         else
+            if (type(old[key]) ~= type(value)) and strict == true then
+                return key
+            end
+
             -- Update or add the key-value pair in the target table
             old[key] = value
         end

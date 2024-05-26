@@ -75,7 +75,7 @@ end
 --- If char is provided, it will attempt to slice the string
 --- at the last possible position of the char.
 --- The char won't be contained in the result.
-function string:slice(pos, char)
+function string:slice(pos, slice_on, infix)
     -- Special optimization case for short strings.
     if #self <= pos then
         return self, ""
@@ -87,10 +87,11 @@ function string:slice(pos, char)
     end
 
     local lslice = self:sub(1, pos)
-    if char then
+    if slice_on then
         for i = #lslice, 1, -1 do
-            if self:sub(i, i) == char then
-                return self:sub(1, i - 1), self:sub(i + 1)
+            -- Because of the base cases, we can guarantee slicing will happen.
+            if self:sub(i, i) == slice_on then
+                return self:sub(1, i - 1)..(infix or ""), (infix or "")..self:sub(i + 1)
             end
         end
     end
@@ -119,7 +120,7 @@ end
 -- longline -> ltake(3) -> lon
 --
 --- @BYTEAWARE
---- @param count integer The number of characters to take from the right side of the string.
+--- @param count integer The number of characters to take from the left side of the string.
 --- @param init string? The index of the character from which we should start taking.
 --- @param postfix string? An additional string added after the last taken character.
 ---

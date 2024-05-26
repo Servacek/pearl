@@ -15,6 +15,12 @@ local m_floor = math.floor
 
 local AVERAGE_SECONDS_PER_YEAR = 60 * 60 * 24 * ((365 * 3 + 366) / 4)
 
+os.path = {
+    basename = function()
+
+    end
+}
+
 function os.timediffyears(t1, t2)
     t2 = t2 or _os.time()
     return m_floor((t2 - t1) / AVERAGE_SECONDS_PER_YEAR)

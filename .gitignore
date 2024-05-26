@@ -61,6 +61,8 @@ data/*
 .todo/*
 
 .movies/*
+exported/*
+anim/*
 
 *.bat
 

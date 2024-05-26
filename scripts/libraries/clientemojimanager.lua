@@ -15,7 +15,8 @@
 -- [[ Constants ]]
 -------------------------------------
 
-local PERSISTENT_DATA_FILEPATH = PEARL.MODID.."_emoji_data"
+--- Using the ID variable in the name wasn't the luckiest idea indeed...
+local PERSISTENT_DATA_FILEPATH = "3122299418_emoji_data"
 
 local DELIM = PEARL.CONSTS.DELIMS.EMOJI
 local EMOJI_ALIAS_FORMAT = DELIM.."%s"..DELIM
@@ -97,7 +98,7 @@ function ClientEmojiManager:_EnsureBounderies(t, limit)
     end
 end
 
-function ClientEmojiManager:_ValidatePersistantData(data)
+function ClientEmojiManager:_ValidatePersistentData(data)
     self:_EnsureBounderies(data.frequently_used, MAX_FU_EMOJIS)
 
     local names = {}
@@ -202,18 +203,18 @@ end
 -------------------------------------
 
 function ClientEmojiManager:SavePersistentData()
-    PEARL.ClusterPersistance:SetFileContent(
+    PEARL.ClusterPersistence:SetFileContent(
         PERSISTENT_DATA_FILEPATH, ZipAndEncodeString(self._persistdata), self._encode_save_data
     )
 end
 
 function ClientEmojiManager:LoadPersistentData()
-    local _, datastr = PEARL.ClusterPersistance:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
+    local datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
     local data = DecodeAndUnzipString(datastr)
     if type(data) == "table" then
         table.update(self._persistdata, data)
 
-        self:_ValidatePersistantData(self._persistdata)
+        self:_ValidatePersistentData(self._persistdata)
     end
 end
 

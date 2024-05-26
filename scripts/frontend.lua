@@ -69,41 +69,57 @@ PEARL.SafeModTableExtend("ASSETS", {
 })
 
 ----------------------------------
--- Config
+-- Internal Configurations
 ----------------------------------
 
-local function UnzipConfigData(option)
-    local success, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, PEARL.GetConfigData(option.name))
-
-    if not success or type(data) ~= "string" then
-        return PEARL.error("Decoding configuration option", option.name "failed!")
+local function TryUnzipAndDecodeOption(option)
+    local default_value = PEARL.GetConfigData(option.name)
+    local unzipped, unzipped_str = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, default_value)
+    if not unzipped then
+        unzipped_str = nil
+        if type(default_value) == "string" then
+            unzipped_str = default_value -- Unzipping failed, try to use the raw string.
+        end
     end
 
     -- JSON decoding for table strings.
-    if option.type and option.type:startswith("table") then
-        local s, tbl = RunInSandbox(data)
-        if s == true then
-            return tbl
+    if option.type == "table" then
+        local decoded, decoded_data = RunInSandboxSafe(unzipped_str)
+        if decoded == true and type(decoded_data) == "table" then
+            return decoded_data
         end
     end
 
-    -- Else return just the raw unzipped string
-    return data
+    if not unzipped_str then
+        PEARL.error("Decoding configuration option", option.name, "failed!")
+    elseif option.type == "string" or type(default_value) == "string" then
+        return unzipped_str -- If string is valid value, return it
+    end
+
+    return default_value -- Else return the default value (e. g. for table types)
 end
 
---- @TODO: Most of this is redundant
-PEARL.info("Loading Configuration...")
-for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-    -- Apply server changes to our public options.
-    if option.public == true then
-        -- No ZIPing in debug mode.
-        if option.zip and type(PEARL.CONFIG[option.name]) == "string" and not PEARL.CONFIG.DEBUG_MODE then
-            PEARL.CONFIG[option.name] = UnzipConfigData(option) or PEARL.CONFIG[option.name]
-        else
-            PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name) or PEARL.CONFIG[option.name]
-        end
-    end
-end
+-- local listing = TheNet:GetServerListing()
+-- if type(listing.mods_config_data) and not listing.mods_config_data:empty() and not PEARL.MOD_DATA.temp_config_options then
+--     PEARL.error("FAILED TO LOAD CONFIGURATIONS FROM THE SERVER!!!")
+--     PEARL.error("RECEIVED:", string.raw(listing.mods_config_data))
+--     PEARL.SendErrorTracebackToServer("Configuration received from the server has failed to load! Received:\n"..listing.mods_config_data, true)
+-- else
+--     PEARL.info("Loading zipped configuration received from server...")
+--     for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+--         if option.public == true and option.zip and type(PEARL.CONFIG_OVERRIDES[option.name]) == "string" then
+--             PEARL.debug("Attempting to unzip and decode config option", option.name)
+--             PEARL.CONFIG[option.name] = TryUnzipAndDecodeOption(option)
+
+--             -- If the required type is a table, we cannot keep it as string, so fallback to default value.
+--             if type(option.default) == "table" and PEARL.CONFIG[option.name] == nil then
+--                 PEARL.CONFIG[option.name] = deepcopy(option.default)
+--             end
+--         end
+--     end
+-- end
+
+table.dump(PEARL.CONFIG)
 
 ----------------------------------
 -- Custom Music Handlers
@@ -268,6 +284,9 @@ PEARL.ENV.Assets = {
 
     Asset("IMAGE", PEARL.ASSETS.SOCIAL_BUTTONS.TEX),
     Asset("ATLAS", PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS),
+
+    Asset("SOUNDPACKAGE",   "sound/custom_music.fev"),
+    Asset("SOUND",          "sound/custom_music_bank.fsb"),
 }
 
 PEARL.info("Loading preload assets...")
@@ -354,13 +373,16 @@ if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )
     ModuleManager:AddModule(
-        "agreement", type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" or type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table"
+        "introscreen", PEARL.AgreementManager:IsAgreementScreenEnabled() or PEARL.AgreementManager:IsWelcomePopupEnabled()
     )
     ModuleManager:AddModule(
         "commandblocker", table.empty(PEARL.CONFIG.COMMAND_BLOCKLIST) == false or type(PEARL.CONFIG.MIN_VOTE_AGE) == "number"
     )
     ModuleManager:AddModule(
         "emptyserverpopup", PEARL.CONFIG.EMPTY_SERVER_POPUP
+    )
+    ModuleManager:AddModule(
+        "characterblocker", PEARL.CONFIG.CHARACTER_BLOCKLIST
     )
 end
 

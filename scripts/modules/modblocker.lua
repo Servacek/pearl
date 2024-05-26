@@ -146,7 +146,7 @@ PEARL.AddFrontEndPreInit(function()
     if bypassed then
         -- Prohibited mods were loaded even though our efforts to stop them.
         -- The only thing left is to disconnect the user...
-        PEARL.ClientNetwork:Disconnect(
+        PEARL.ClientNetwork:ForceDisconnectWithReason(
            KnownModIndex:AreAllModsBlocked() and "ID_DST_ALL_MODS_PROHIBITED" or "ID_DST_MODS_PROHIBITED"
         )
     end

@@ -11,6 +11,17 @@
 --]==]====================================================]]
 --- @category FrontEnd
 
+--- @TODO: Create some extensible json client-side persistence system.
+--- Maybe even make it also server-side?
+--- @TODO: Make agreement screen and welcome popup stand out from all the other popups.
+--- @TODO: Fix the bug with the agreement screen not closing properly.
+
+--[[
+    So, an intro screen has these four following states:
+        1. Not Shown At All (AGREEMENT file doesn't exist)
+
+--]]
+
 local AgreementScreen = PEARL.loadfile("screens/agreementscreen")
 
 local PopupDialogScreen = require("screens/redux/popupdialog")
@@ -56,7 +67,7 @@ local function ShowScreen(screen)
     CloseActiveScreen()
 
     _active_screen = screen
-    _active_screen:Show()
+    screen:Show()
 
     return TheFrontEnd:PushScreen(_active_screen)
 end
@@ -64,8 +75,9 @@ end
 local function HideScreen(screen)
     PEARL.debug("HideScreen")
     _active_screen = nil
+    screen:Hide()
 
-    return screen:Hide()
+    return TheFrontEnd:PopScreen(_active_screen)
 end
 
 local function OnPlayerFinishedAgreement(data)
@@ -92,7 +104,7 @@ local function OnDisagreeConfirmed(data)
     OnPlayerFinishedAgreement(data)
 
     PEARL.StaticScheduler:ExecuteInTime(0, function()
-        PEARL.ClientNetwork:Disconnect("ID_DST_USER_DISAGREED", false, true)
+        PEARL.ClientNetwork:ForceDisconnectWithReason("ID_DST_USER_DISAGREED", false, true)
     end)
 end
 
@@ -121,7 +133,7 @@ end
 local function OnAgreed(data)
     OnPlayerFinishedAgreement(data)
 
-    PEARL.AgreementManager:OnAgreed()
+    PEARL.AgreementManager:UpdateFile() -- Only save the record when we have agreed.
 end
 
 local function OnAgreementContinue(self, data)
@@ -129,7 +141,7 @@ local function OnAgreementContinue(self, data)
         return OnAgreed(data)
     end
 
-    HideAgreement()
+    -- HideAgreement()
     WarnOnDecline(data)
 end
 
@@ -170,7 +182,7 @@ ShowAgreement = function()
         CreateAgreementScreen()
     end
 
-    if not _t_agreementstart then
+    if not _t_agreementstart then -- Do not reset, everything counts
         _t_agreementstart = os.time()
     end
 
@@ -204,14 +216,14 @@ end
 
 local function ShowWelcomeScreen()
     -- Welcome Popup has only one section, so index it directly.
-    return ShowScreen(PopupDialogScreen(
+    return FrontEnd:InsertScreenAtIndex(PopupDialogScreen(
         PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].title,
         PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].description,
         {{
             text = STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE,
             cb = OnContinue
         }}
-    ))
+    ), 1)
 end
 
 local function ClearWorldCallbacks(world)
@@ -225,7 +237,7 @@ OnPlayerEnteredGame = function(world)
 
     -- Wait a tick here so everything is ready when we show the screen.
     PEARL.StaticScheduler:ExecuteInTime(0, function()
-        if PEARL.AgreementManager:IsIntroPopupEnabled() and not PEARL.AgreementManager:AgreementDisplayed() then
+        if PEARL.AgreementManager:IsWelcomePopupEnabled() and not PEARL.AgreementManager:AgreementDisplayed() then
             return ShowWelcomeScreen()
         end
 
@@ -233,8 +245,8 @@ OnPlayerEnteredGame = function(world)
     end)
 end
 
-local function OnConnectionAllowed(initial)
-    if initial == true and PEARL.AgreementManager:HasRecord() then
+local function OnConnectionAllowed(data)
+    if data.first_time_joined == true and PEARL.AgreementManager:HasRecord() then
         local version = PEARL.AgreementManager:GetLocalVersion()
 
         PEARL.AgreementManager:SyncAgreementDataWithServer(

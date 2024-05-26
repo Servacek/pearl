@@ -18,11 +18,20 @@
     On clients, we should be able to send the traceback as soon as this file is loaded.
 ]]
 
+
+local PopupDialogScreen = require("screens/redux/popupdialog")
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
 
 local MOD_AFFLICTER_PATTERN = "../mods/([^/]+)/.+" --"%#?%[string \"../mods/([^/]+)/.*\"%]%:"
+local CLIENT_LOG_BACKUP_FILENAME_PATTERN = "client_log_%Y-%m-%d-%H-%M-%S.txt"
+local CLIENT_LOG_BACKUP_PATH = "../../backup/client_log/%s"
+
+local CLIENT_LOG_TIMESTAMP_TOLERANCE = 5
+local MAX_CLIENT_LOG_LENGTH = 10000
+local GRACEFULL_SHUTDOWN_PT = "%[%d%d:%d%d:%d%d%]: Shutting down[\r\n]*$" -- This should be on the last line of the file.
 
 --------------------------------
 -- [[ Locals ]]
@@ -59,7 +68,7 @@ local function OnClientError(traceback)
         SetServerPaused(true) -- At least pause the game when viewing the error screen.
     elseif PEARL.ClientNetwork then
         PEARL.info("Disconnecting the user from the server...")
-        PEARL.ClientNetwork:Disconnect("ID_DST_USER_CRASHED")
+        PEARL.ClientNetwork:ForceDisconnectWithReason("ID_DST_USER_CRASHED")
     else
         TheNet:Disconnect(false)
     end
@@ -141,11 +150,84 @@ PEARL.AddFunctionPostCall("traceback", function(data, thread, message)
 end, debug, true)
 
 ----------------------------------
+-- Event Listeners/Handlers
+----------------------------------
+
+--- e. g. client_log_2024-05-17-09-07-15
+local function GetClientLogFileNameForTime(timestamp)
+    return os.date(CLIENT_LOG_BACKUP_FILENAME_PATTERN, timestamp)
+end
+
+local function GetClientLogForTime(timestamp)
+    --- @Note: Currently this method won't work because the backup folder has
+    ---        logs containing their backup time instead of their last modification time.
+    timestamp = PEARL.BOOT_TIME
+
+    for offset = 0, CLIENT_LOG_TIMESTAMP_TOLERANCE * 2 do -- Center around the timestamp
+        local modifier = offset % 2 == 0 and -(offset * .5) or (offset + 1) * .5
+        local logfilename = GetClientLogFileNameForTime(timestamp + modifier)
+        local logfilepath = CLIENT_LOG_BACKUP_PATH:format(logfilename)
+        local log = PEARL.ClusterPersistence:GetFileContent(logfilepath)
+        if log then
+            return log, logfilename
+        end
+    end
+end
+
+local show_last_crash_popup, logs_sent = false, false
+PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function(data)
+    if (tonumber(data.last_joined_time) or 0) < (tonumber(data.last_unexpected_disconnection) or 0) then
+        PEARL.info("Looks like last time we didn't disconnect gracefully, let's see what was the problem...")
+        show_last_crash_popup = true
+
+        local log, logfilename = GetClientLogForTime(data.last_unexpected_disconnection)
+        if not log then
+            return PEARL.info("Couldn't fetch any reasonable log for this, so nevermind I guess.")
+        end
+
+        if log:find(GRACEFULL_SHUTDOWN_PT) ~= nil then
+            return PEARL.info("No error detected, ignoring...")
+        end
+
+        -- Since the error is usually at the bottom, we can throw the lslice right away.
+        local _, rslice = log:slice(MAX_CLIENT_LOG_LENGTH, "\n")
+        PEARL.SendClientLogToThirdParty(rslice, logfilename, STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED:format(
+            TheNet:GetUserID(), TheNet:GetLocalUserName()
+        ))
+    end
+end)
+
+local function OnPlayerActivated()
+    if show_last_crash_popup then
+        show_last_crash_popup = false
+
+        local popup
+        local body = logs_sent and STRINGS.PEARL.UI.LAST_CRASH_POPUP.BODY_CATCHED or STRINGS.PEARL.UI.LAST_CRASH_POPUP.BODY_UNCATCHED
+        popup = TheFrontEnd:PushScreen(PopupDialogScreen(
+            STRINGS.PEARL.UI.LAST_CRASH_POPUP.TITLE, body, {
+                {
+                    text = STRINGS.PEARL.UI.LAST_CRASH_POPUP.CONTINUE,
+                    cb = function() TheFrontEnd:PopScreen(popup) end
+                }
+            }, nil, nil, "dark"
+        ))
+    end
+end
+
+PEARL.AddWorldPostInit(function(world)
+    world:ListenForEvent("playeractivated", OnPlayerActivated)
+    -- Show the popup in lobby as well.
+    world:ListenForEvent("entercharacterselect", OnPlayerActivated)
+end)
+
+----------------------------------
 -- RPC
 ----------------------------------
 
 PEARL.AddRawServerRPCHandler("ClientError", function(userid, datastr)
     PEARL.debug("ClientError", userid)
+
+    PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
 
     if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
         return PEARL.error("Client", userid, "crashed! Reports to discord are either disabled or not initialized!", datastr)
@@ -185,6 +267,18 @@ function PEARL.SendErrorTracebackToServer(traceback, catched, afflicter_modname)
         enabled_mods    = enabled_mods,
         mod             = mod,
     }))
+end
+
+function PEARL.SendClientLogToThirdParty(log, filename, title)
+    PEARL.info("Sending our client logs to a third party service for error identification...")
+
+    PEARL.HTTPClient:POST(PEARL.CONFIG.DISCORD.PROXY.REPORT_URL, function()
+        logs_sent = true
+    end, {
+        content = title,
+        log = log,
+        filename = filename,
+    }):Send()
 end
 
 if TheNet:IsDedicated() then

@@ -153,22 +153,12 @@ local function ShowCustomImage(self)
     end
 end
 
-local function ShowCustomDisconnectTip(self, reason)
-    local tip_data = CUSTOM_DISCONNECT_TIPS[reason]
-    if type(tip_data) == "table" then
-        self:SetLoadingTip(PEARL.unpack(tip_data))
-    end
-end
-
 PEARL.AddClassFunctionPostCall("SetEnabled", function(self, enabled)
-    if not enabled then
-        return
-    end
-
-    if PEARL.ClientNetwork:IsDisconnected() then
+    if enabled and PEARL.ClientNetwork:IsDisconnected() then
         local reason = PEARL.ClientNetwork:GetDisconnectReason()
-        if reason ~= nil then
-            ShowCustomDisconnectTip(self, reason)
+        local tip_data = CUSTOM_DISCONNECT_TIPS[reason]
+        if type(tip_data) == "table" then
+            self:SetLoadingTip(PEARL.unpack(tip_data))
         end
     end
 end, LoadingWidget)

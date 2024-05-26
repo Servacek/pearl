@@ -21,7 +21,7 @@ local Leaderboard = PEARL.loadfile("libraries/database/models/leaderboard")
 --------------------------------------
 
 local FILE_EXTENSION = ".json"
-local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local ROOT = PEARL.ModPersistence:GetRootDirectoryPath()
 local LEADERBOARD_FILE_PATH = ROOT.."/"..PEARL.CONFIG.LEADERBOARD.DIRECTORY.."/leaderboards"..FILE_EXTENSION
 
 --------------------------------------
@@ -177,7 +177,7 @@ function LeaderboardService:ValidateLoadedData()
 end
 
 function LeaderboardService:Load()
-    local savedata = PEARL.ModPersistance:LoadDataFromFile(LEADERBOARD_FILE_PATH, true)
+    local savedata = PEARL.ModPersistence:LoadDataFromFile(LEADERBOARD_FILE_PATH, true)
     local leaderboards = savedata and savedata.leaderboards
     for _, typ in pairs(Leaderboard.TYPE) do
         LeaderboardService.leaderboards[typ] = Leaderboard(typ, (leaderboards and leaderboards[typ]))
@@ -192,7 +192,7 @@ function LeaderboardService:Save()
         savedata.leaderboards[typ] = leaderboard:OnSave()
     end
 
-    PEARL.ModPersistance:SaveDataToFile(LEADERBOARD_FILE_PATH, savedata, true)
+    PEARL.ModPersistence:SaveDataToFile(LEADERBOARD_FILE_PATH, savedata)
 end
 
 --------------------------------------

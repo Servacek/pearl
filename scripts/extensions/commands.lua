@@ -13,6 +13,11 @@
 --- @alias PlayerInst EntityScript
 --- @alias ClientTable table<string, any>
 
+
+--- @TODO: Command for showing arbitrary files on the system?
+--- @TODO: Command for showing mod logs.
+--- @TODO: Add find command for finding an item globally.
+
 -------------------------------------
 -- Dependencies
 -------------------------------------
@@ -240,7 +245,7 @@ AddCommand("inv", {
     permission = COMMAND_PERMISSION.ADMIN,
     privateresponse = true,
     options = {
-        PARAMS.PLAYER{validate = false},
+        PARAMS.PLAYER,
         {name = "raw", type = OPTION_TYPE.BOOLEAN, optional = true, choices = STATIC_CHOICES.YES_NO}
     },
 
@@ -271,6 +276,7 @@ AddCommand("inv", {
     end,
 })
 
+--- @TODO: Make it search even offline inventories (use the DB binding files)
 AddCommand("invf", {
     aliases = {"inv-find"},
     permission = COMMAND_PERMISSION.ADMIN,
@@ -307,9 +313,9 @@ AddCommand("invf", {
         -- Anounce first 5 inventories reversed
         -- so the first one is on the bottom of the chat.
         --- @type Message
-        local message = Message(STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR:format(
+        local message = Message(MARKDOWN.bold(STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR:format(
             prefab, #item_owners
-        ))
+        )))
         for i = math.min(#item_owners, 5), 1, -1 do
             local player_reference = PEARL.GetPlayerMetadataFor(item_owners[i].player.userid)
             local embed = EMBEDS.Inventory(player_reference, {prefab})
@@ -847,7 +853,7 @@ AddCommand("drop", {
         -- Take all items by default.
         count = count or math.huge
         local items = player.components.inventory:GetItemByName(prefab, count, false)
-        if not items or table.empty(items) then
+        if not items or table.empty(items) ~= false then
             return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.ITEM_NOT_FOUND)
         end
 
@@ -958,6 +964,47 @@ AddCommand("spawn", {
     end,
 })
 
+AddCommand("teleport", {
+    console = false,
+    permission = COMMAND_PERMISSION.ADMIN,
+    activeinstrequired = true,
+    options = {PARAMS.PLAYER, PARAMS.ENTITY{optional = true},
+        {name = "x", type = "number", optional = true},
+        {name = "y", type = "number", optional = true},
+        {name = "z", type = "number", optional = true},
+    },
+
+    --- @param ctx CommandContext
+    --- @param player PlayerInst
+    --- @param inst EntityScript?
+    --- @param x number?
+    --- @param y number?
+    --- @param z number?
+    fn = function(ctx, player, inst, x, y, z)
+        if (x or y or z) then
+            if inst ~= nil then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.BAD_TARGET)
+            end
+
+            if not (x and z) then
+                return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING)
+            end
+        else
+            if not inst then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.BAD_TARGET)
+            end
+
+            x, y, z = inst.Transform:GetWorldPosition()
+        end
+
+        y = y or 0 -- Fallback to ground Y
+        player.Transform:SetPosition(x, y, z)
+
+        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.ON_SUCCESS:format(x, y, z))
+    end,
+})
+
+
 AddCommand("removeall", {
     permission = COMMAND_PERMISSION.ADMIN,
     routing = UserCommands.SHARD_ROUTING.ALL, -- Run on all shards.
@@ -1039,6 +1086,27 @@ AddCommand("permissive", {
         end
     end
 })
+
+--- @TODO?
+-- AddCommand("setsession", {
+--     permission = COMMAND_PERMISSION.ADMIN,
+--     options = {{name = "sessionid"}},
+
+--     --- @param ctx CommandContext
+--     fn = function(ctx, sessionid)
+--         PEARL.CONFIG.PERMISSIVE_MODE = not PEARL.CONFIG.PERMISSIVE_MODE
+--         if PEARL.CONFIG.PERMISSIVE_MODE == true then
+--             if TheShard:IsMaster() then -- Only announcing on the main shard is enough
+--                 TheNet:Announce(STRINGS.PEARL.LOGS.PERMISSIVE_MODE_WARNING)
+--             end
+
+--             -- Save it for next game instance.
+--             PEARL.GameInstParams:SetModParam(PEARL.INSTANCE_PARAMS.PERMISSIVE_MODE, PEARL.CONFIG.PERMISSIVE_MODE)
+--         else
+--             ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PERMISSIVE.ON_TURN_OFF)
+--         end
+--     end
+-- })
 
 AddCommand("despawn", {
     permission = COMMAND_PERMISSION.ADMIN,
@@ -1154,7 +1222,7 @@ AddAsyncCommand("pair", {
     --- @param ctx CommandContext
     --- @param id string
     fn = function(ctx, id)
-        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORDID
         local userid = ctx.author.userid or id
         local discordid = ctx.author.discordid or id
 
@@ -1203,11 +1271,11 @@ AddCommand("unpair", {
 
     --- @param ctx CommandContext
     fn = function(ctx)
-        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORDID
         local userid = ctx.author.userid
         local discordid = ctx.author.discordid
         if userid and not discordid then
-            discordid = PEARL.AccountBindings:MapUserIDToType(userid, bindtype)
+            discordid = PEARL.AccountBindings:MapUserIDToBindValue(userid, bindtype)
         elseif discordid and not userid then
             userid = PEARL.AccountBindings:MapDiscordID(discordid)
         end
@@ -1239,10 +1307,10 @@ AddCommand("blockmod", {
 
         table.insert(PEARL.CONFIG.MOD_BLOCKLIST, modid)
         if PEARL.CONFIG.MOD_ALLOWLIST and table.removearrayvalue(PEARL.CONFIG.MOD_ALLOWLIST, modid) then
-            PEARL.ClusterPersistance:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_ALLOWLIST)
+            PEARL.ClusterPersistence:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_ALLOWLIST)
         end
 
-        PEARL.ClusterPersistance:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_BLOCKLIST)
+        PEARL.ClusterPersistence:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_BLOCKLIST)
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.ON_SUCCESS)
     end
@@ -1286,7 +1354,7 @@ AddCommand("exec", {
     routing = UserCommands.SHARD_ROUTING.NONE,
     console = false,
     slash = false, -- Admins can use the console right away from the game.
-    options = {{name = "command"}, PARAMS.SHARD},
+    options = {{name = "command"}, PARAMS.SHARD{optional = true}},
 
     --- @param ctx CommandContext
     --- @param command string
@@ -1417,7 +1485,7 @@ AddCommand("ls", {
     --- @param ctx CommandContext
     fn = function(ctx)
         -- Everyone has a binding with steam!
-        local ids = PEARL.DB:GetBindings(PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        local ids = PEARL.DB:GetBindings(PEARL.AccountBindings.BINDING_TYPE.STEAMID)
         table.dump(ids)
     end
 })
@@ -1585,7 +1653,7 @@ UserCommands.CustomizeCommand("kick", function(command)
             reason = seconds
         end
 
-        PEARL.ServerNetwork:KickUser(userid, reason, seconds, ctx.author.userid)
+        TheNet:Kick(userid, reason, seconds, ctx.author.userid)
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS)
     end
@@ -1615,7 +1683,7 @@ UserCommands.CustomizeCommand("ban", function(command)
             reason = seconds
         end
 
-        PEARL.ServerNetwork:BanUser(userid, seconds, reason, ctx.author.userid)
+        TheNet:BanForTime(userid, seconds, reason, ctx.author.userid)
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BAN.ON_SUCCESS)
     end

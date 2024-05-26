@@ -68,7 +68,7 @@ local ITEM_WEIGHT_BIAS = PEARL.CONSTS.ITEM_WEIGHT_BIAS
 local MAX_AGE_BIAS              = 0.2 -- Age bias for 100%
 local AGE_THRESHOLD             = 15 -- Age where the bias is 0
 
-local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local ROOT = PEARL.ModPersistence:GetRootDirectoryPath()
 local WEIGHTS_FILE_PATH = ROOT.."/item_weights.json"
 local BIASES_FILE_PATH  = ROOT.."/item_weight_biases.json"
 

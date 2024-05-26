@@ -173,7 +173,7 @@ function Reporter:ReportUncatchedLuaError(traceback, modname)
     local mod_self = mod_id == PEARL.MODID
 
     local content
-    traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
+    traceback = MARKDOWN.codeblock(traceback:slice(MAX_TRACEBACK_LENGHT, "\n", "..."), "lua")
     if mod_fancyname and not mod_self then
         content = STRINGS.PEARL.LOGS.EXC_MOD_SHARD:format(
             MARKDOWN.hlink(MARKDOWN.codeline(mod_fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(mod_id)),
@@ -185,7 +185,7 @@ function Reporter:ReportUncatchedLuaError(traceback, modname)
         )
     end
 
-    self:SendRawReportMessage(Message(MARKDOWN.bold(content))
+    self:SendRawReportMessage(Message(MARKDOWN.header(content, MARKDOWN.HEADER_LEVELS.MEDIUM))
         :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
     )
 
@@ -199,17 +199,17 @@ function Reporter:ReportCatchedLuaError(traceback)
         return PEARL.debug("Report already handled.")
     end
 
-    traceback = MARKDOWN.codeblock(traceback:ltake(MAX_TRACEBACK_LENGHT, nil, "..."), "lua")
-    return self:_SendReportMessage(MARKDOWN.bold(STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD:format(
+    traceback = MARKDOWN.codeblock(traceback:slice(MAX_TRACEBACK_LENGHT, "\n", "..."), "lua")
+    return self:_SendReportMessage(MARKDOWN.header(STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD:format(
         MARKDOWN.codeline(PEARL.GetShardFancyName()), traceback
-    )))
+    ), MARKDOWN.HEADER_LEVELS.MEDIUM))
 end
 
 --- @param userid string The identifier of the client where the error happened on.
 --- @param data table The error data.
 function Reporter:ReportClientLuaError(userid, data)
     if type(data) ~= "table" or not self:HandleError(data.traceback) then
-        return -- Error was already handled
+        return PEARL.debug("Error already handled")-- Error was already handled
     end
 
     local client_name = PEARL.GetUserName(userid)
@@ -228,26 +228,29 @@ function Reporter:ReportClientLuaError(userid, data)
     if type(data.mod) == "table" and not self_afflicter then
         content = STRINGS.PEARL.LOGS.EXC_MOD_CLIENT:format(
             MARKDOWN.hlink(
-                MARKDOWN.codeline(data.mod.fancyname), PEARL.CONSTS.STEAM_WORKSHOP:format(data.mod.id)
+                MARKDOWN.codeline(data.mod.fancyname or "???"), data.mod.id and PEARL.CONSTS.STEAM_WORKSHOP:format(data.mod.id)
             ), MARKDOWN.codeline(userid), MARKDOWN.codeline(client_name), traceback
         )
     else
         content = pattern:format(MARKDOWN.codeline(userid), MARKDOWN.codeline(client_name), traceback)
     end
 
+    content = MARKDOWN.header(content, MARKDOWN.HEADER_LEVELS.MEDIUM)
+
     if table.empty(data.enabled_mods) == false then
-        content = content..STRINGS.PEARL.LOGS.EXC_ENABLED_MODS:format(
-            MARKDOWN.codeline(#data.enabled_mods), "`\""..table.concat(
-                data.enabled_mods, "\"`, `\""
-            ).."\"`"
-        )
+        --- codeblock already inserts the newline implicitly
+        content = content.."\n"..MARKDOWN.header(STRINGS.PEARL.LOGS.EXC_ENABLED_MODS:format(
+            MARKDOWN.codeline(#data.enabled_mods), MARKDOWN.quote("`"..table.concat(
+                data.enabled_mods, "`, `"
+            ).."`")
+        ), MARKDOWN.HEADER_LEVELS.SMALL)
 
         if type(data.mod) == "table" and data.mod.disabled then
-            content = content.."\n\n"..STRINGS.PEARL.LOGS.AFFLICTER_MOD_DISABLED
+            content = content.."\n\n"..PEARL.ICONS.WARN.." "..MARKDOWN.italic(STRINGS.PEARL.LOGS.AFFLICTER_MOD_DISABLED)
         end
     end
 
-    return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
+    return self:SendRawReportMessage(Message(content)
         :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
     )
 end

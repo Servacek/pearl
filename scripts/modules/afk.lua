@@ -148,7 +148,7 @@ local function OnUpdate()
     _afk_time_current = _afk_time_current + AFK_TIME_INCREMENT
     if _afk_time_to_kick > 0 and _afk_time_current > _afk_time_to_kick then
         UpdateAFKState(true, true)
-        PEARL.ClientNetwork:Disconnect("ID_DST_USER_INACTIVE")
+        PEARL.ClientNetwork:ForceDisconnectWithReason("ID_DST_USER_INACTIVE")
 
         CleanUp()
         return
