@@ -34,11 +34,6 @@ local ModConfig = {}
 -- [[ Private Functions ]]
 -------------------------------------
 
-local function GetGenericConfigData(opt_name, ...)
-    -- Prioritize the CONFIG table because some configs can be changed during boot.
-    return PEARL.CONFIG[opt_name] or PEARL.GetConfigData(opt_name, ...)
-end
-
 local function ParseFoldedConfigName(name, tbl)
     local level = PEARL.CONFIG
     for key in name:gmatch("[^%.]+") do
@@ -52,7 +47,7 @@ end
 
 local function ParsePublicConfigOption(option, tbl)
     if option.public == true then
-        tbl[option.name] = GetGenericConfigData(option.name, true)
+        tbl[option.name] = PEARL.CONFIG[option.name]
 
         --- Do not ZIP the data in debug mode, clients can handle encoded as well as raw data.
         if option.zip == true and tbl[option.name] and not PEARL.CONFIG.DEBUG_MODE then
@@ -226,8 +221,8 @@ function ModConfig:LoadBackendOverride(option)
 end
 
 function ModConfig:LoadCommmonConfig()
-    local success, config_str = PEARL.ClusterPersistance:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
-    if not success or type(config_str) ~= "string" then
+    local config_str = PEARL.ClusterPersistence:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
+    if type(config_str) ~= "string" then
         return error("Failed to load common config!")
     end
 
@@ -246,25 +241,24 @@ end
 
 --- @param name string|number
 --- @param value string|number|table
-function ModConfig:ApplyConfig(name, value, _loaded)
-    if value == nil then
+function ModConfig:ApplyConfig(name, value)
+    if value == nil or PEARL.CONFIG[name] == value then
         return -- We are just extending the configuration, so no erasing.
     end
 
-    _loaded = _loaded or PEARL.CONFIG
-
-    -- Currently we are only supporting verification on the first layer.
-    if _loaded == PEARL.CONFIG then
-        PEARL.ModConfig:VerifyConfig(name)
+    if type(PEARL.DEFAULT_CONFIG[name]) ~= type(value) then
+        return error("Attempted to override option ("..name..") with an invalid value "..string.raw(tostring(value)))
     end
 
+    -- Currently we are only supporting verification on the first layer.
+    PEARL.ModConfig:VerifyConfig(name)
     if type(value) == "table" then
-        table.update(_loaded[name], value)
-        -- for sub_name, sub_value in pairs(value) do
-        --     self:ApplyConfig(sub_name, sub_value, _loaded[name])
-        -- end
+        local invalid_key = table.update(PEARL.CONFIG[name], value)
+        if invalid_key then
+            return error("Attempted to override an invalid key ("..invalid_key..") for option ("..name..")!")
+        end
     else
-        _loaded[name] = value
+        PEARL.CONFIG[name] = value
     end
 end
 
@@ -278,6 +272,7 @@ end
 -- [[ Function Overrides ]]
 -------------------------------------
 
+--- If we provide invalid data it will just fail, see networking.lua:354
 rawset(_G, "GetEnabledServerModsConfigData", function()
     -- Verify our configurations first.
     -- If there are some conflicts, it's better to crash before we sent them to the public.
@@ -289,7 +284,7 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     if PEARL.CONFIG.DEBUG_MODE then
         TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:")
         for _, line in pairs(data_str:split("\n")) do
-            TheSim:LuaPrint(line)
+            print(line)
         end
     end
 

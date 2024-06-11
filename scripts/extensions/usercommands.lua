@@ -14,6 +14,7 @@
 local CommandContext = PEARL.loadfile("models/commandcontext")
 
 local Colour = PEARL.loadfile("libraries/datastructures/colour")
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
 local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
@@ -135,6 +136,7 @@ UserCommands.STD_PARAMS = {
     PLAYER  = {name = "player", type = UserCommands.OPTION_TYPE.STRING},
     SHARD   = {name = "shard", type = UserCommands.OPTION_TYPE.STRING},
     PREFAB  = {name = "prefab", type = UserCommands.OPTION_TYPE.STRING},
+    ENTITY  = {name = "entity", type = UserCommands.OPTION_TYPE.STRING}, -- Either prefab or GUID or Klei ID
     USER    = {name = "user", type = UserCommands.OPTION_TYPE.STRING},
     JSON    = {name = "json", type = UserCommands.OPTION_TYPE.STRING},
 }
@@ -382,7 +384,7 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
     end
 
     -- local required_binding_type = command.requiredbindings[ctx.type]
-    -- if required_binding_type ~= nil and not PEARL.AccountBindings:ExistsAny(ctx.author.userid, required_binding_type) then
+    -- if required_binding_type ~= nil and not PEARL.AccountBindings:MapUserIDToBindValue(ctx.author.userid, required_binding_type) then
     --     ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
     --     return false
     -- end
@@ -443,7 +445,7 @@ end
 --- @param id string? The ID of the discord command that caused this function to be called.
 --- @return string? errmsg
 function UserCommands.RunDiscordCommand(name, params, author, id)
-    if not TheShard:IsMaster() then
+    if TheShard:IsSecondary() then
         return PEARL.error("Attempted to run a discord command from a secondary shard.")
     end
 
@@ -459,7 +461,7 @@ function UserCommands.RunDiscordCommand(name, params, author, id)
     end
 
     if author.userid then
-        author.netid = PEARL.AccountBindings:MapUserIDToType(author.userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        author.netid = PEARL.AccountBindings:MapUserIDToBindValue(author.userid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
     end
 
     -- Colour has to be a table
@@ -649,10 +651,10 @@ function UserCommands.AddSlashCommand(name, command)
 
             author.name = caller.name
             author.userid = userid
-            author.discordid = PEARL.AccountBindings:MapUserIDToType(caller.userid, PEARL.AccountBindings.BINDING_TYPE.DISCORD)
+            author.discordid = PEARL.AccountBindings:MapUserIDToBindValue(caller.userid, PEARL.AccountBindings.BINDING_TYPE.DISCORDID)
             author.colour = client.colour or WHITE
             author.netid = (client and client.netid) or (
-                PEARL.AccountBindings:MapUserIDToType(caller.userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+                PEARL.AccountBindings:MapUserIDToBindValue(caller.userid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
             )
             author.permission = UserCommands.CalculatePermissionFor(userid)
         end
@@ -760,26 +762,9 @@ function UserCommands.AddCustomAsyncCommand(name, command)
     UserCommands.AddCustomCommand(name, command)
 end
 
---- @return string userid The client's Klei ID or nil on failure.
+--- @return string? userid The client's Klei ID or nil on failure.
 function UserCommands.InputToUserID(input)
-    local result_case_insensitive
-    local userid = input and (UserToClientID(input) or PEARL.AccountBindings:MapToKleiID(input))
-    if not userid and type(input) == "string" then --- @TODO: Improve this a bit.
-        --- So we support name as parameter even when the player is offline.
-        local cfd_cache = PEARL.ServerNetwork:GetCFDCache()
-
-        local input_lower = string.lower(input)
-        for id, cfd in pairs(cfd_cache) do
-            if cfd.username == input then
-                return id
-            elseif type(cfd.username) == "string" and string.lower(cfd.username) == input_lower then
-                -- Store it and continue looping in the hope of finding a better match
-                result_case_insensitive = id
-            end
-        end
-    end
-
-    return userid or result_case_insensitive or input
+    return input and (UserToClientID(input) or PEARL.AccountBindings:MapToKleiID(input))
 end
 
 --- @return table? client The client's table or nil on failure.
@@ -866,7 +851,25 @@ UserCommands.AddStandardizedParam(PARAMS.PLAYER.name, function(ctx, param, valid
             userid = ThePlayer and ThePlayer.userid or ctx.author.userid
         end
     else
-        userid = UserCommands.InputToUserID(tostring(param))
+        userid = UserCommands.InputToUserID(param)
+        if userid == nil then
+            --- @TODO: Add loose matching
+            local exact_matches = PEARL.AccountBindings:MapBindValueToUserID(PEARL.AccountBindings.BINDING_TYPE.USERNAME, param)
+            if type(exact_matches) == "table" then -- There are multiple users with this name.
+                local name_list, index = "\n", 1
+                for match_userid, _ in pairs(exact_matches) do
+                    name_list = name_list..tostring(index)..". "..MARKDOWN.codeline(param).." ("..MARKDOWN.codeline(match_userid)..")\n"
+                    index = index + 1
+                end
+
+                ctx:ReplyError(STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_SPECIFIED_ENOUGH:format(
+                    MARKDOWN.codeline(table.size(exact_matches)), MARKDOWN.codeline(param)
+                )..name_list)
+                return nil, false
+            end
+
+            userid = exact_matches or param
+        end
     end
 
     local isknown = userid and PEARL.ServerNetwork:IsKleiIDKnown(userid)

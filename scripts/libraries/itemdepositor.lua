@@ -153,7 +153,7 @@ ItemDepositor.SORTBY = {
 --     return GetClosestInstWithTag(SIGN_MUST_TAGS, container, SIGN_CHEST_RADIUS)
 -- end
 
-local function GetParentContainerForSign(sign)
+local function FindParentContainerForSign(sign)
     return GetClosestInstWithTag(CHEST_MUST_TAGS, sign, SIGN_CHEST_RADIUS)
     -- local nearby_chests = sign:GetNearbyEntities(
     --     SIGN_CHEST_RADIUS, CHEST_MUST_TAGS, CHEST_CANT_TAGS, nil, function(inst)
@@ -263,6 +263,8 @@ function ItemDepositor:DepositItem(inventory, item)
 end
 
 function ItemDepositor:DepositAllItems(inventory)
+    PEARL.debug("ItemDepositor:DepositAllItems")
+
     return inventory:ForEachItemSorted(function(item)
         if self:IsItemDepositable(item) then
             self:DepositItem(inventory, item)
@@ -331,7 +333,7 @@ local function OnDepoInit(inst)
 end
 
 local function OnSignRemove(sign)
-    local parent_chest = sign.__parent_GUID
+    local parent_chest = Ents[sign.__parent_GUID]
     if parent_chest ~= nil then
         parent_chest.__sign_prefab = nil
         sign.__parent_GUID = nil
@@ -339,12 +341,11 @@ local function OnSignRemove(sign)
 end
 
 local function OnSignDrawn(sign, drawning_prefab)
-    --table.foreach(drawning_prefab, print)
     if not PEARL.PrefabExists(drawning_prefab) then
         return -- Drawn some weird image or wrong sign?
     end
 
-    local parent_chest = GetParentContainerForSign(sign)
+    local parent_chest = FindParentContainerForSign(sign)
     if parent_chest ~= nil and parent_chest:IsValid() and parent_chest.__sign_prefab == nil then
         parent_chest.__sign_prefab = drawning_prefab
         sign.__parent_GUID = parent_chest.GUID

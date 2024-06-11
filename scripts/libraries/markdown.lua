@@ -159,9 +159,10 @@ function MARKDOWN.italic(s)
 end
 
 --- @param s string
+--- @param desc string?
 --- @return string result The formatted string
-function MARKDOWN.quote(s)
-    return MARKDOWN.PATTERNS.QUOTE:format(s)
+function MARKDOWN.quote(s, desc)
+    return MARKDOWN.PATTERNS.QUOTE:format(s)..(desc and "\n"..desc or "")
 end
 
 --- Formats a string to the bold format using the discord markdown characters

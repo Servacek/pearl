@@ -31,6 +31,7 @@ local ICONS = {
     LIGHTNING = "<:lightning:1166029673076105276>",
     SYNC   = "<:connect:1166026349157302332>",
     UNSYNC = "<:disconnect:1030926979463135313>",
+    TAG    = "<:tag:1244348001607225435>",
 
     TRASHCAN = "<:trashcan:1218550122082734170>",
     BEEWAX = "<:beeswax:1218883727036383272>",
@@ -130,9 +131,12 @@ local ICONS = {
     },
 
     PRECIPITATION = {
-        ["none"]=           ":sunny:",
-        ["rain"]=           ":cloud_rain:",
-        ["snow"]=           ":cloud_snow:",
+        ["none"]=           "<:sunny:1243877953855815721>",
+        ["rain"]=           "<:rainy:1243883580464042058>",
+        ["snow"]=           "<:cloudy:1243877931122556990>",
+
+        -- Non-standard one
+        ["frograin"]=       "<:frog:1243890227940950076>"
     },
 
     MOONPHASES = {
@@ -171,6 +175,7 @@ local ICONS = {
         FORCE_DISCONNECTED  = "<:disconnect:1030926979463135313>",
         DROP_ITEMS          = "<:drop:1096807866167480401>",
         UNBAN               = "<:unban:1138547740410908824>",
+        CONNECTION_LOST     = "<:connectivity:1243078733611667456>",
     },
 
     PLAYER_VANITY = {

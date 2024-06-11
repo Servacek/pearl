@@ -15,7 +15,7 @@
 -- [[ Constants ]]
 --------------------------------------
 
-local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local ROOT = PEARL.ModPersistence:GetRootDirectoryPath()
 local FILENAME = tostring(PEARL.CONFIG.EMOJI_SERVER.FILENAME or "discord_emoji_cache.json")
 local FILEPATH = io.extensure(ROOT.."/"..FILENAME, ".json")
 local EMOJI_LIST = PEARL.ICONS.INVENTORY

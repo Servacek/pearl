@@ -18,13 +18,14 @@
     This is like an higher level 'TheNet' for dedicated servers.
 --]]
 
+local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
 local ChatMessage = PEARL.loadfile("models/chatmessage")
 
 ----------------------------------
 -- Constants
 ----------------------------------
 
-local TIME_UNTIL_KICK = 10
+local CLOSE_CONNECTION_FINALIZE_AFTER = 5
 
 local ASYNC_FILTER_TIMEOUT = 2
 local MIN_ASYNC_FILTER_TIMEOUT = 2
@@ -113,17 +114,14 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
         return ServerNetwork:CloseConnectionFor(userid, reason, false, title)
     end
 
-    PEARL.EventProcessor:HandleEvent("clientconnectionallowed", userid)
-
-    local initial = false
-    if PEARL.DB:IsEnabled() then
-        -- Whether this is our first join according to the DB.
-        initial = PEARL.DB:FirstTimeJoined(userid)
-    end
-
     -- If all the filters have successfully passed, then the connection should be allowed.
-    PEARL.debug("Allowing connection for", userid, initial)
-    ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
+    PEARL.debug("Allowing connection for", userid)
+    ServerNetwork:SendUserConnectionAllowedFor(userid, {
+        first_time_joined = PEARL.DB:IsEnabled() and PEARL.DB:FirstTimeJoined(userid) or false,
+        new_session_file = not PEARL.ServerNetwork:UserSessionExists(userid),
+        last_unexpected_disconnection = PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "last_unexpected_disconnection"),
+        last_joined_time = PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "lastjoinedtime")
+    })
 end
 
 local function filter_comp(a, b)
@@ -247,7 +245,7 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason
 end
 
 -- This is a more forcefull version of SendUserDisconnectFor
-function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_title)
+function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_title, finalizerfn)
     self:SendUserDisconnectFor(userid, reason, immediately, reason_title)
 
     -- If no reason is specified and it's immediate disconnect, keep it silent.
@@ -255,60 +253,24 @@ function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_ti
     PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
 
     -- Give a few seconds to the client so he can peacefully disconnect.
-    PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_KICK, function()
-        if not self:IsClientConnectedAny(userid) then
-            return PEARL.debug("Already disconnected...")
+    PEARL.WallScheduler:ExecuteInTime(CLOSE_CONNECTION_FINALIZE_AFTER, function()
+        if type(finalizerfn) == "function" then
+            finalizerfn(userid, reason, immediately, reason_title)
+        elseif self:IsClientConnectedAny(userid) then
+            -- Cleanup the connection in case it still hangs out here (doesn't work for admins).
+            PEARL.debug("Cleaning up the connection...")
+            TheNet:Kick(userid, PEARL.CONSTS.DISCONNECT_KICK_TIME)
         end
-
-        -- Kick out the connection from this shard,
-        -- so it doesn't block other incoming connections.
-        --
-        -- Note: This doesn't work for admins.
-        PEARL.debug("Kicking player from the server...")
-        TheNet:Kick(userid, PEARL.CONSTS.DISCONNECT_KICK_TIME)
     end)
 end
 
-function ServerNetwork:KickUser(userid, seconds, reason, author)
-    PEARL.debug("User", userid, "was kicked by", author or "[HOST]")
-    PEARL.EventProcessor:HandleEvent("clientkicked", userid, reason, author, seconds)
-
-    if type(reason) == "string" then
-        -- Display the reason if any.
-        self:CloseConnectionFor(
-            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_KICKED"]
-        )
-
-        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY, PEARL.Kick, nil, userid, seconds)
-        return
-    end
-
-    return PEARL.Kick(userid, seconds)
-end
-
-function ServerNetwork:BanUser(userid, seconds, reason, author)
-    PEARL.debug("ServerNetwork:BanUser", userid, seconds, reason, author)
-
-    if type(reason) == "string" and ServerNetwork:IsClientConnectedAny(userid) then
-        -- Display the reason if any.
-        self:CloseConnectionFor(
-            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
-        )
-
-        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
-            PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
-        )
-        return
-    end
-
-    return PEARL.BlackList:Add(userid, seconds, reason, author)
-end
-
 --- @param userid string
---- @param initial boolean? Whether this is the first connection according to the DB.
-function ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
-    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, "INIT:", initial)
-    PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, initial)
+--- @param data table? Whether this is the first connection according to the DB.
+function ServerNetwork:SendUserConnectionAllowedFor(userid, data)
+    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid)
+
+    PEARL.EventProcessor:HandleEvent("clientconnectionallowed", userid, data)
+    PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, json.encode(data))
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)
@@ -501,8 +463,8 @@ end
 --- We are using all the available information for determining that. For greater precision
 --- of this function turn on the DB!
 function ServerNetwork:IsKleiIDKnown(id)
-    return PEARL.ServerNetwork:IsClientConnectedAny(id) or
-        PEARL.ServerNetwork:UserSessionExists(id) or
+    return self:IsClientConnectedAny(id) or
+        self:UserSessionExists(id) or
         PEARL.DB:HasRecordFile(id)
 end
 
@@ -563,12 +525,13 @@ function ServerNetwork:IsClientPriviliged(userid)
 end
 
 function ServerNetwork:HasClientActiveInstance(userid)
-    return self:GetClientInstance(userid, true) ~= nil
+    return LookupPlayerInstByUserID(userid) ~= nil
 end
 
-function ServerNetwork:GetClientInstance(userid, active)
-    if active then
-        return LookupPlayerInstByUserID(userid)
+function ServerNetwork:GetClientInstance(userid, active_only)
+    local inst = LookupPlayerInstByUserID(userid)
+    if active_only == true or inst ~= nil then
+        return inst
     end
 
     local meta = PEARL.GetPlayerMetadataFor(userid, true)
@@ -689,7 +652,7 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
     PEARL.EventProcessor:HandleEvent("invalidrpc", rpc_name, userid)
 end
 
-function ServerNetwork:OnClientDisconnected(userid)
+function ServerNetwork:OnClientDisconnectedLocally(userid)
     joining_clients[userid] = nil
     connected_clients[userid] = nil
 end

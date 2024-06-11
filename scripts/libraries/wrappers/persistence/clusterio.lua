@@ -9,7 +9,6 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
-
 --- @category Backend/Frontend
 
 --[[
@@ -19,6 +18,8 @@
     Acts as a wrapper for the default async-like TheSim file handlers
     making them synchronous.
 --]]
+
+local Persistence = PEARL.loadfile("libraries/wrappers/persistence/persistence")
 
 --------------------------------
 -- [[ Localization ]]
@@ -30,39 +31,42 @@ local TheSim = TheSim
 -- [[ Class Declaration ]]
 --------------------------------
 
---- @class ClusterPersistance
-local ClusterPersistance = {}
+--- @class ClusterPersistence: Persistence
+local ClusterPersistence = deepcopy(Persistence)
 
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
 
-function ClusterPersistance:FileExists(fp)
+function ClusterPersistence:FileExists(path)
     local file_exists = false
-    TheSim:CheckPersistentStringExists(fp, function(exists)
+    TheSim:CheckPersistentStringExists(path, function(exists)
         file_exists = exists
     end)
 
     return file_exists == true
 end
 
-function ClusterPersistance:GetFileContent(fp, ensure)
-    if ensure and not self:EnsureFile(fp) then
-        return false
+--- https://forums.kleientertainment.com/klei-bug-tracker/dont-starve-together/thesimgetpersistentstring-cannot-handle-large-file-r38509/
+--- @param path string Path to the file for reading.
+--- @param ensure boolean? Whether to make sure the file exists or not.
+--- @return string? result
+function ClusterPersistence:GetFileContent(path, ensure)
+    local result
+    if ensure then
+        self:EnsureFile(path)
     end
 
-    local result, success
-    TheSim:GetPersistentString(fp, function(successfull, str)
-        success = successfull
+    TheSim:GetPersistentString(path, function(successfull, str)
         result = str
     end)
 
-    return success, result
+    return result
 end
 
-function ClusterPersistance:GetAllFileLines(fp, ensure, strip)
+function ClusterPersistence:GetAllFileLines(path, ensure, strip)
     local lines = {}
-    self:ForEachLineIn(fp, function(line)
+    self:ForEachLineIn(path, function(line)
         if strip == true then
             local stripped = string.strip(line)
             if #stripped > 0 then
@@ -79,7 +83,7 @@ end
 --- @param userid string
 --- @param sessionid string? The ID of the target session or the newest one if not provided.
 --- @return boolean exists
-function ClusterPersistance:UserSessionExists(userid, sessionid)
+function ClusterPersistence:UserSessionExists(userid, sessionid)
     sessionid = sessionid or TheNet:GetSessionIdentifier()
     if type(sessionid) == "string" then
         local filepath = TheNet:GetUserSessionFile(sessionid, userid)
@@ -93,42 +97,44 @@ end
 -- [[ Setters ]]
 --------------------------------
 
---- Always does implicit ensuring of the file similiar to the "w" read mode in "io".
-function ClusterPersistance:SetFileContent(fp, str, encode)
-    encode = encode or false
-
+--- Always does implicit ensuring of the file.
+--- @param path string Path to the file for writing.
+--- @param content string The actual content to be set.
+--- @param encode boolean? Whether to encode the content before saving or not.
+--- @return boolean success, string? errmsg
+function ClusterPersistence:SetFileContent(path, content, encode)
     local s = false
-    TheSim:SetPersistentString(fp, str, encode, function(success)
-        s = success
+    TheSim:SetPersistentString(path, content, encode or false, function(success)
+        s = success -- This doesn't provide any errmsgs, it prints them directly in the console if any.
     end)
 
     return s
 end
 
---- Always does implicit ensuring of the file similiar to the "w" read mode in "io".
-function ClusterPersistance:SetFileLines(fp, lines, encode)
+
+function ClusterPersistence:SetFileLines(path, lines, encode)
     -- Start we a new line to make the file a bit more readable because of the prefix.
-    return self:SetFileContent(fp, "\n"..table.concat(lines, "\n"), encode)
+    return self:SetFileContent(path, "\n"..table.concat(lines, "\n"), encode)
 end
 
 --------------------------------
 -- [[ Public Methods ]]
 --------------------------------
 
-function ClusterPersistance:ForEachLineIn(fp, fn, ensure)
-    if self:FileExists(fp) ~= true then
+function ClusterPersistence:ForEachLineIn(path, fn, ensure)
+    if self:FileExists(path) ~= true then
         if ensure == true then
-            PEARL.info("Creating file", fp)
+            PEARL.info("Creating file", path)
 
-            return self:CreateFile(fp)
+            return self:CreateFile(path)
         end
 
         return PEARL.error("File not found!")
     end
 
-    return TheSim:GetPersistentString(fp, function(success, str)
+    return TheSim:GetPersistentString(path, function(success, str)
         if not success or type(str) ~= "string" then
-            return PEARL.error("Failed to load the file!", fp)
+            return PEARL.error("Failed to load the file!", path)
         end
 
         local prefix = string.strip(PEARL.CONSTS.KLEI_DATA_PREFIX)
@@ -140,29 +146,30 @@ function ClusterPersistance:ForEachLineIn(fp, fn, ensure)
     end)
 end
 
-function ClusterPersistance:CreateFile(fp)
-    return self:SetFileContent(fp, "")
+function ClusterPersistence:CreateFile(path)
+    return self:SetFileContent(path, "")
 end
 
 -- Ensures the file with the provided path exists.
-function ClusterPersistance:EnsureFile(fp)
-    if not self:FileExists(fp) then
-        if not self:CreateFile(fp) then
-            PEARL.error("Failed to create file", fp)
-            return false
+--- @return boolean exists, boolean created
+function ClusterPersistence:EnsureFile(path)
+    if not self:FileExists(path) then
+        if not self:CreateFile(path) then
+            PEARL.error("Failed to create file", path)
+            return false, true
         end
+        return true, true
     end
-
-    return true
+    return true, false
 end
 
-function ClusterPersistance:LoadLuaFile(fp, ensure, env)
-    if ensure and not self:EnsureFile(fp) then
+function ClusterPersistence:LoadLuaFile(path, ensure, env)
+    if ensure and not self:EnsureFile(path) then
         return false, PEARL.error("Failed to create the file!")
     end
 
-    local success, lua_str = self:GetFileContent(fp, ensure)
-    if not success or type(lua_str) ~= "string" then
+    local lua_str = self:GetFileContent(path, ensure)
+    if type(lua_str) ~= "string" then
         return false, PEARL.error("Failed to load the given lua file!")
     end
 
@@ -179,4 +186,4 @@ end
 -- [[ Return ]]
 --------------------------------
 
-return ClusterPersistance
+return ClusterPersistence

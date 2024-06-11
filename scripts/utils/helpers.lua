@@ -61,6 +61,7 @@ function PEARL.GetStackSize(item)
     end
 end
 
+--- @Note Make sure to always provide an existing userid!
 --- @return PlayerMetadata
 function PEARL.GetPlayerMetadataFor(userid, noload)
     --- @type PlayerMetadata
@@ -212,27 +213,23 @@ function PEARL.GetShardFancyName()
 end
 
 function PEARL.GetSeasonFancyName()
-    if not (TheWorld and TheWorld.state) then
-        return STRINGS.PEARL.SEASON_UNKNOWN
-    end
-
-    local season_prefab = TheWorld.state.season
-    local remainingdaysinseason = TheWorld.state.remainingdaysinseason
-    local elapseddaysinseason = TheWorld.state.elapseddaysinseason
-
-    if not (season_prefab and remainingdaysinseason and elapseddaysinseason) then
-        return STRINGS.PEARL.SEASON_UNKNOWN
-    end
+    local state = TheWorld and TheWorld.state
+    local season_prefab = state and state.season
+    local season_prefab_normalized = season_prefab and string.upper(season_prefab) or nil
+    local remainingdaysinseason = state and state.remainingdaysinseason
+    local elapseddaysinseason = state and state.elapseddaysinseason
+    local season_name = STRINGS.PEARL.SEASONS[season_prefab_normalized] or STRINGS.PEARL.SEASON_UNKNOWN
 
     local season_prefix
-    local season_name = STRINGS.PEARL.SEASONS[string.upper(season_prefab)]
-    if remainingdaysinseason * 3 <= elapseddaysinseason then
-        season_prefix = STRINGS.PEARL.SEASON_PREFIX_LATE[season_prefab]
-    elseif elapseddaysinseason * 3 <= remainingdaysinseason then
-        season_prefix = STRINGS.PEARL.SEASON_PREFIX_EARLY[season_prefab]
+    if remainingdaysinseason ~= nil and elapseddaysinseason ~= nil then
+        if remainingdaysinseason * 3 <= elapseddaysinseason then
+            season_prefix = STRINGS.PEARL.SEASON_PREFIX_LATE[season_prefab_normalized]
+        elseif elapseddaysinseason * 3 <= remainingdaysinseason then
+            season_prefix = STRINGS.PEARL.SEASON_PREFIX_EARLY[season_prefab_normalized]
+        end
     end
 
-    return (season_prefix or "").." "..season_name
+    return (season_prefix and season_prefix.." " or "")..season_name
 end
 
 function PEARL.GetFancyCharacterPrefabFor(userid)
@@ -269,11 +266,6 @@ function PEARL.CheckForReedTrap()
     end
 
     return false
-end
-
-function PEARL.IsFirstLaunch()
-    -- initial + current
-    return TheSim:GetNumLaunches() == 2
 end
 
 function PEARL.ToggleEncryptString(str, key)
@@ -507,6 +499,7 @@ function PEARL.NetProfileLink(username, netid)
     ))
 end
 
+local missing_name_cache = {}
 --- @param entity string|EntityScript
 --- @return string
 function PEARL.GetStandardizedNameFor(entity, noprefix)
@@ -519,12 +512,13 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         return entity:GetDisplayName()
     end
 
-    if entity.prefab == nil then
-        return entity.name or "MISSING_NAME" -- Handle not yet loaded entities.
+    local name = "MISSING NAME"
+    if entity.prefab then
+        -- Do not call entity:GetBasicDisplayName if we have no prefab since some displaynamefns need it.
+        name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
     end
 
-    local name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
-    if entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
+    if entity.name and entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
         name = entity.name -- This is for Pig Mans?
     end
 
@@ -538,6 +532,11 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
                 name = prefix.." "..name
             end
         end
+    end
+
+    if entity.prefab and name == "MISSING NAME" and missing_name_cache[entity.prefab] == nil then
+        missing_name_cache[entity.prefab] = true
+        PEARL.DiscordReporter:SendRawReportString("Entity is MISSING NAME:\nPrefab: "..string.raw(tostring(entity.prefab)))
     end
 
     return name

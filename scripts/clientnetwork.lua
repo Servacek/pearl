@@ -57,7 +57,8 @@ local _disconnected_by_server = false
 local _force_disconnected = false
 local _connection_allowed = false
 
-local _hasrecord = false
+--- @type table
+local _connection_output_data = {}
 
 --- @type Task?
 local _timeout_task = nil
@@ -74,6 +75,7 @@ local ClientNetwork = {}
 ----------------------------------
 
 local function OnSelfDisconnected(reason)
+    PEARL.debug("SendRawRPCToServer", reason, _force_disconnected)
     return PEARL.SendRawRPCToServer(
         PEARL.RPC.ClientDisconnected, reason, _force_disconnected
     )
@@ -83,7 +85,7 @@ end
 -- Public
 ----------------------------------
 
-function ClientNetwork:Disconnect(reason, from_server, immediate, reason_title)
+function ClientNetwork:ForceDisconnectWithReason(reason, from_server, immediate, reason_title)
     PEARL.info("ClientNetwork:Disconnect", reason, from_server)
 
     if self:IsDisconnected() then
@@ -138,7 +140,7 @@ end
 function ClientNetwork:SendCFDToServer()
     PEARL.info("Sending connection filter data to the server...")
     PEARL.SendRawRPCToServer(PEARL.RPC.ConnectionFilterData, ZipAndEncodeString(
-        self:GetConnectionData()
+        self:GetConnectionInputData()
     ))
 
     self:SetCFDSent(true)
@@ -146,13 +148,17 @@ function ClientNetwork:SendCFDToServer()
     self:StartTimeout()
 end
 
-function ClientNetwork:GetConnectionData()
+function ClientNetwork:GetConnectionInputData()
     return {
         enabled_mods    = KnownModIndex:GetModsReport(),
         locale          = TheNet:GetCountryCode(),
         username        = TheNet:GetLocalUserName(),
         platform        = PLATFORM,
     }
+end
+
+function ClientNetwork:GetConnectionOutputData()
+    return _connection_output_data
 end
 
 function ClientNetwork:NotifyNetworkDisconnect()
@@ -225,7 +231,7 @@ function ClientNetwork:JoinedFirstTime()
         return false
     end
 
-    return _hasrecord
+    return _connection_output_data.joined_first_time == true
 end
 
 ----------------------------------
@@ -246,24 +252,24 @@ function ClientNetwork:OnTimeout()
     end
 
     -- Disconnect the client if we didn't get the response from the server in time.
-    return self:Disconnect("ID_DST_SERVER_RESPONSE_TIMEOUT", false)
+    return self:ForceDisconnectWithReason("ID_DST_SERVER_RESPONSE_TIMEOUT", false)
 end
 
 -- Note that it's common for servers to send multiple responses.
-function ClientNetwork:OnConnectionAllowed(initial)
-    PEARL.info("ClientNetwork:OnConnectionAllowed", initial)
+function ClientNetwork:OnConnectionAllowed(data)
+    PEARL.info("ClientNetwork:OnConnectionAllowed")
     self:CancelTimeout()
 
     -- This is for backwards compatibility when the database
     -- doesn't have a record yet but we have already agreed to the agreement.
-    _hasrecord = initial == false
+    _connection_output_data = data
 
     if self:IsDisconnected() or _connection_allowed then
         return -- Server already responded - Ignore
     end
 
     _connection_allowed = true
-    PEARL.EventProcessor:HandleEvent("connection_allowed", initial)
+    PEARL.EventProcessor:HandleEvent("connection_allowed", data)
 
     -- If the connection is allowed, remove the deferant
     -- potentially loading the client as well if we are the last one.
@@ -289,6 +295,10 @@ end)
 
 PEARL.AddUserDataFunctionPreCall("Disconnect", function()
     _disconnected = true
+
+    if not _force_disconnected then
+        OnSelfDisconnected("ID_DST_DISCONNECT_REQUESTED")
+    end
 end, TheNet)
 
 -- Also try to let the server known why we have been disconnected.

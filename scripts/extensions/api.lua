@@ -623,7 +623,7 @@ function PEARL.IsShuttingDown()
 end
 
 function PEARL.ModShutdown(...)
-    if PEARL.IsShuttingDown() or PEARL.INIT then
+    if PEARL.IsShuttingDown() or PEARL.INITIAL_LAUNCH then
         return
     end
 
@@ -671,20 +671,4 @@ function PEARL.RegenerateShard()
         -- In case this is being called from a client.
         c_remote("c_regenerateshard()")
     end
-end
-
--- Provides access to the original ban functions.
-local _Ban, _BanForTime, _Kick = TheNet.Ban, TheNet.BanForTime, TheNet.Kick
-function PEARL.Ban(userid, seconds)
-    seconds = tonumber(seconds)
-    if seconds then
-        return _BanForTime(TheNet, userid, seconds)
-    end
-
-    return _Ban(TheNet, userid)
-end
-
--- Provides access to the original kick function.
-function PEARL.Kick(userid, seconds)
-    _Kick(TheNet, userid, seconds)
 end

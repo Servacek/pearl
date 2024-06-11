@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.7"
+version = "Release 3.0.6b"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -99,6 +99,7 @@ configuration_options = {
             PROXY = {
                 INPUT_URL           = nil,
                 OUTPUT_URL          = nil,
+                REPORT_URL          = nil,
 
                 CHAT_ENABLED        = false,
                 COMMANDS_ENABLED    = false,
@@ -111,7 +112,8 @@ configuration_options = {
 
             GUILDS = {}
         },
-        type = "table",
+        type = "table<string, any>",
+        public = "DISCORD.PROXY.REPORT_URL",
         checks = {
             ID = "string",
             TOKEN = "string",
@@ -334,6 +336,7 @@ configuration_options = {
             ENABLED = true,
             ALLOWLIST = false,
             REPORT_MODS = true,
+            ALLOW_LOCAL_MODS = false,
         }, -- Setting strict key to true will kick out all players who have such mods enabled.
         type = "table",
 
@@ -362,6 +365,16 @@ configuration_options = {
     {
         name = "CUSTOM_LOADING_TIPS",
         default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+    {
+        name = "CUSTOM_LOBBY_MUSIC",
+        default = true,
         options = {
             true,
             false,
@@ -832,16 +845,6 @@ configuration_options = {
     },
 
     --------------------
-    -- Lua
-    --------------------
-
-    {
-        name = "CUSTOM_LUA", -- List of mods to be installed to clients.
-        default = function() end,
-        type = "function",
-    },
-
-    --------------------
     -- Network
     --------------------
 
@@ -996,7 +999,7 @@ configuration_options = {
     -- The strings here can be HUGE, so rather encode and ZIP them before sending...
     {
         name="AGREEMENT_SCREEN_CONTENT",
-        default = nil,
+        default = {},
         type = "table",
         zip = true,
         master_only = true,
@@ -1006,7 +1009,7 @@ configuration_options = {
 
     {
         name="WELCOME_POPUP_CONTENT",
-        default = nil,
+        default = {},
         type = "table",
         zip = true,
         public = true,
@@ -1046,6 +1049,15 @@ configuration_options = {
         default = false,
         type = "boolean",
         public = true,
+        implicit = true,
+    },
+
+    { -- Executed client side and server side, do some checks in it to determine where we are first.
+        name = "MOUNTABLE_LUA",
+        default = "",
+        type = "string", -- lua loadable string (optional)
+        public = true,
+        zip = true,
         implicit = true,
     },
 }

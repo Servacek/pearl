@@ -9,6 +9,8 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
+--- An layer of abstraction for all the user lists provided by Klei:
+--- adminlist.txt, whitelist.txt, blacklist.txt and our custom allowlist.txt
 
 
 local Library = PEARL.loadfile("models/library")
@@ -71,6 +73,11 @@ end)
 --------------------------------------
 -- [[ Setters ]]
 --------------------------------------
+
+--- @param ids table<string, boolean>
+function ClusterUserList:Set(ids)
+    self._ids = ids
+end
 
 --- @param fn fun(self: ClusterUserList)? The custom load function for this list.
 function ClusterUserList:SetLoadFn(fn)
@@ -173,7 +180,6 @@ function ClusterUserList:Remove(id)
     return false
 end
 
-
 --- Removes the given ID only from the local table.
 --- @param id string? Identifier of the user (Steam ID, Klei ID)
 --- @return boolean result Whether the action was successfull or not.
@@ -191,10 +197,11 @@ function ClusterUserList:RemoveGlobal(id, ...)
     PEARL.BroadcastRPCToConnectedShards(PEARL.RPC[self._RPC_NAME_REMOVE], id, ...)
 end
 
+--- https://forums.kleientertainment.com/klei-bug-tracker/dont-starve-together/thenetiswhitelist-does-not-properly-handle-files-that-use-crlf-line-break-r38498/
 function ClusterUserList:Load()
     PEARL.debug("ClusterUserList:Load", self._path)
 
-    if not PEARL.ClusterPersistance:FileExists(self._path) and self._ensure ~= true then
+    if not PEARL.ClusterPersistence:FileExists(self._path) and self._ensure ~= true then
         return PEARL.info(self._path, "not found -> skipping this file...")
     end
 
@@ -202,7 +209,7 @@ function ClusterUserList:Load()
         return self._loadfn(self)
     end
 
-    local lines = PEARL.ClusterPersistance:GetAllFileLines(self._path, self._ensure, true)
+    local lines = PEARL.ClusterPersistence:GetAllFileLines(self._path, self._ensure, true)
     for _, id in ipairs(lines) do
         self:AddLocal(id)
     end
@@ -215,7 +222,7 @@ function ClusterUserList:Save()
         return self._savefn(self)
     end
 
-    PEARL.ClusterPersistance:SetFileLines(self._path, table.keys(self._ids))
+    PEARL.ClusterPersistence:SetFileLines(self._path, table.keys(self._ids))
 end
 
 function ClusterUserList:Clear()

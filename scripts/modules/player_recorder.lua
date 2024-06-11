@@ -45,9 +45,12 @@ local function OnSynchronousFiltersDoneFor(userid, allowed, data)
 end
 
 local function SaveSessionInfoFor(userid)
-    PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
-    PEARL.DB:SafeSetField(userid, "lastsnapshot", TheNet:GetCurrentSnapshot())
+    local sessionid = TheNet:GetSessionIdentifier()
+    if sessionid ~= nil then
+        PEARL.AccountBindings:AddBinding(userid, sessionid, PEARL.AccountBindings.BINDING_TYPE.SESSIONID)
+    end
 
+    PEARL.DB:SafeSetField(userid, "lastsnapshot", TheNet:GetCurrentSnapshot())
     if TheWorld and TheWorld.state then
         PEARL.DB:SafeSetField(userid, "lastcycle", TheWorld.state.cycles)
     end
@@ -114,10 +117,9 @@ local function OnClientAgreementDataReceived(data)
     PEARL.DB:SaveRecordFor(data.userid, record)
 end
 
--- Called after all connection filters succeeded!
-local function OnClientConnected(world, player)
-    PEARL.DB:SafeSetField(player.userid, "lastjoinedtime", os.time())
-    SaveSessionInfoFor(player.userid)
+local function OnClientConnectionAllowed(userid, data)
+    PEARL.DB:SafeSetField(userid, "lastjoinedtime", os.time())
+    SaveSessionInfoFor(userid)
 end
 
 local function OnRecordLoadedFor(userid, record)
@@ -139,23 +141,29 @@ local function OnClientAuthenticationComplete(world, data)
         PEARL.DB:SaveRecordFor(userid)
     end
 
+    -- Update this on every authentication since it could possibly change.
     local client = userid and TheNet:GetClientTableForUser(userid)
-    if not client or not client.name then
-        return
+    if client and client.name then
+        PEARL.AccountBindings:AddBinding(userid, client.name, PEARL.AccountBindings.BINDING_TYPE.USERNAME)
     end
 
-    -- Update this on every authentication since it could possibly change.
-    PEARL.DB:SafeSetField(userid, "username", client.name)
-    PEARL.DB:SafeSetField(userid, "netid", client.netid)
+    local netid = client and client.netid or userid and TheNet:GetNetIdForUser(userid)
+    if netid then
+        PEARL.AccountBindings:AddBinding(userid, netid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
+    end
 end
 
-local function OnClientDisconnected(world, data)
+local function OnClientDisconnected(userid, expected)
     -- No loading here! Also the userid can be nil or an empty string.
-    if PEARL.DB:IsRecordCachedFor(data.userid) then
-        PEARL.DB:SafeSetField(data.userid, "lastseentime", os.time())
+    if PEARL.DB:IsRecordCachedFor(userid) then
+        if expected == false then
+            PEARL.DB:SafeSetField(userid, "last_unexpected_disconnection", os.time())
+        end
 
-        PEARL.DB:SaveRecordFor(data.userid)
-        PEARL.DB:UnloadRecord(data.userid) -- Free the memory
+        PEARL.DB:SafeSetField(userid, "lastseentime", os.time())
+
+        PEARL.DB:SaveRecordFor(userid)
+        PEARL.DB:UnloadRecord(userid) -- Free the memory
     end
 end
 
@@ -315,13 +323,13 @@ PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileDat
 PEARL.EventProcessor:AddSafeEventHandler("db_savingrecord", OnSavingRecordFor)
 
 PEARL.EventProcessor:AddSafeEventHandler("seriliaze_user_session", OnUserSessionSerialized)
+PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
+PEARL.EventProcessor:AddSafeEventHandler("clientconnectionallowed", OnClientConnectionAllowed)
 
 PEARL.AddWorldPostInit(function(world)
     -- Using this instead of NotifyPlayerPresence because that is really inaccurate.
     world:SafeListenForEvent("clocktick", OnWorldClockTick)
 
-    world:ListenForModEvent("ms_clientconnected", OnClientConnected)
-    world:SafeListenForEvent("ms_clientdisconnected", OnClientDisconnected)
     world:SafeListenForEvent("ms_playerdespawnandmigrate", OnClientMigrating)
 
     world:SafeListenForEvent("ms_clientauthenticationcomplete", OnClientAuthenticationComplete)

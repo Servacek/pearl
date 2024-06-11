@@ -95,6 +95,7 @@ end
 -- [[ Getters ]]
 -------------------------------------
 
+--- Currently this instance only supports inventory changes, more can be added later
 --- @return EntityScript?
 function PlayerMetadata:GetInstance()
     PEARL.debug("PlayerMetadata:GetInstance")

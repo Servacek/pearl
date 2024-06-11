@@ -10,13 +10,16 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
+--[[
+    Markdown Policy:
+        - Use markdown as little as possible in the strings themselves to keep flexibility.
+          (When markdown is used the string becomes unusable outside discord)
+        - When markdown has to be used, there is no point in using the library
+          since we have to rewrite them in all the translation files anyway.
+--]]
 
 -- Note: Prefer %s over %d because sometimes we want to format
 -- the number variables as a codeline.
-
---- Maybe most of the markdown should be added here instead of dynamically.
---- Probably not because it decreases flexibility...
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 
@@ -237,7 +240,7 @@ local STRINGS = {
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
             BOOT = "Server Launched",
             TITLE = "Server Properties",
-            FOOTER = "Session: %s",
+            FOOTER = "Session: %s • Snapshot: #%s",
             FD_NAMES = {
                 PLATFORM    = "Plaform",
                 GAME_V      = "Game Version",
@@ -255,11 +258,14 @@ local STRINGS = {
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066443002630918236/world.png",
             AUTHOR_ICON_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png",
             DESC_TITLE = "**World Setting Overrides**",
+            SETPIECE_SUBTITLE = "Set Pieces",
             OTHER = "+%d other change(s)",
             FD_NAMES = {
                 SEED            = "World Seed",
                 SESSION_ID      = "Session ID",
+                SNAPSHOT_ID     = "Snapshot ID",
                 SAVE_VERSION    = "Save Version",
+                GEN_VERSION     = "Generator Version",
                 REED_TRAP       = "Reed Trap",
                 WALRUS_CAMPS    = "Walrus Camps",
             },
@@ -364,6 +370,25 @@ local STRINGS = {
         USERID_UNKNOWN = "<UNKNOWN>"
     },
 
+    FILES = {
+        MOUNTABLE_SCRIPTS = [[
+-- File for executing your custom Lua on the clients and server without
+-- the need to update any software uploaded to the Steam Workshop.
+--
+-- Feel free to remove the "KLEI     1" prefix from the start of this file
+-- in case it is provided.
+
+
+-- Execute code that is common for both sides here.
+
+if PEARL.FRONTEND then
+    -- Execute frontend stuff here
+else
+    -- Execute backend stuff here
+end
+        ]]
+    },
+
     LOGS        = {
         --PLAYER_COUNT            = "%s Total players: %d/%d", -- Not needed currently
         OWNER                   = "%s Owner: %s",
@@ -410,6 +435,7 @@ local STRINGS = {
         LOCALIZATION_TIMEOUT    = "Localization process for client %s has timed out!",
         MIGRATING               = "%s is migrating to shard %s.",
         WARNED                  = "%s was warned for griefing!",
+        PLAYER_RENAMED          = "%s was renamed from %s to %s.",
         STAFF_CALLED            = "Admins and server moderators were notified.",
         SKIN_RECEIVED           = "%s received %s!",
         QUAKE_START             = "An earthquake has started!",
@@ -453,7 +479,8 @@ local STRINGS = {
         DAYSBACK_AFTER          = "Rolling server back to day %s in %s second(s)!",
         DAYSBACK_COUNT          = "Rolling server %s day(s) back!",
         DAYSBACK_COUNT_AFTER    = "Rolling server %s day(s) back in %s second(s)!",
-        SAVE                    = "Saving world on shard %s...",
+        SAVE                    = "Saving world on shard %s as snapshot %s...",
+        AUTO_SAVE               = "Auto-Saving world on shard %s as snapshot %s...",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
         SHUTDOWN_ERROR          = "Shard %s has crashed!",
@@ -474,22 +501,25 @@ local STRINGS = {
         SIM_PAUSED              = "Simulation was paused.",
         SIM_UNPAUSED            = "Simulation was unpaused.",
 
+        LAST_CRASH_LOG_FETCHED  = "**Last uncatched crash log for player (`%s`) %s:**",
+        LOST_CONNECTION         = "> %s\nNext time this user joins the game, attempts will be made to fetch the crash logs.",
+
         -- We assume that catched exceptions are always caused by us.
-        EXC_CATCHED_SERVER      = "Catched exception:\n%s",
-        EXC_CATCHED_SHARD       = "Catched exception on shard %s:\n%s",
-        EXC_CATCHED_CLIENT      = "Catched exception on client (%s) %s:\n%s",
+        EXC_CATCHED_SERVER      = "**Catched exception**\n%s",
+        EXC_CATCHED_SHARD       = "**Catched exception on shard %s**\n%s",
+        EXC_CATCHED_CLIENT      = "**Catched exception on client (%s) %s**\n%s",
 
-        EXC_SERVER              = "Uncatched exception:\n%s",
-        EXC_SHARD               = "Uncatched exception on shard %s:\n%s",
-        EXC_CLIENT              = "Uncatched exception on client (%s) %s:\n%s",
+        EXC_SERVER              = "**Uncatched exception**\n%s",
+        EXC_SHARD               = "**Uncatched exception on shard %s**\n%s",
+        EXC_CLIENT              = "**Uncatched exception on client (%s) %s**\n%s",
 
-        EXC_SELF_SERVER         = "Caused uncatched exception:\n%s",
-        EXC_SELF_SHARD          = "Caused uncatched exception on shard %s:\n%s",
-        EXC_SELF_CLIENT         = "Caused uncatched exception on client (%s) %s:\n%s",
+        EXC_SELF_SERVER         = "**Caused uncatched exception**\n%s",
+        EXC_SELF_SHARD          = "**Caused uncatched exception on shard %s**\n%s",
+        EXC_SELF_CLIENT         = "**Caused uncatched exception on client (%s) %s**\n%s",
 
-        EXC_MOD_SERVER          = "Mod %s caused uncatched exception:\n%s",
-        EXC_MOD_SHARD           = "Mod %s caused uncatched exception on shard %s:\n%s",
-        EXC_MOD_CLIENT          = "Mod %s caused uncatched exception on client (%s) %s:\n%s",
+        EXC_MOD_SERVER          = "**Mod %s caused uncatched exception**\n%s",
+        EXC_MOD_SHARD           = "**Mod %s caused uncatched exception on shard %s**\n%s",
+        EXC_MOD_CLIENT          = "**Mod %s caused uncatched exception on client (%s) %s**\n%s",
 
         EXC_ENABLED_MODS        = "Enabled Mods (%s):\n%s",
 
@@ -528,10 +558,10 @@ local STRINGS = {
         USER_INACTIVE           = "%s went away...",
         USER_INACTIVE_KICKED    = "%s was kicked for inactivity.",
 
-        SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
+        SEARCH_RESULTS_FOR      = "Search results for `%s` (`%d`):",
 
-        PLAYER_REPORT         = "%s [@here] `%s` %s **%s**: %s",
-        PLAYER_REPORT_EMPTY   = "%s [@here] `%s` %s **%s**",
+        PLAYER_REPORT           = "%s [@here] `%s` %s **%s**: %s",
+        PLAYER_REPORT_EMPTY     = "%s [@here] `%s` %s **%s**",
     },
 
     SHARD_STATE             = {
@@ -598,6 +628,13 @@ local STRINGS = {
     },
 
     UI = {
+        LAST_CRASH_POPUP = {
+            TITLE = "Unexpected Shutdown",
+            BODY_UNCATCHED = "Looks like your game didn't shutdown clearly last time.\nIf this wasn't intended, you may want to report this issue to the server admins.",
+            BODY_CATCHED = "Looks like your game didn't shutdown clearly last time.\nLogs were sent to the server admins and will be reviewed.",
+            CONTINUE = "Continue",
+        },
+
         DEFAULT_POPUP_TITLE = "Notification",
 
         CLIENTERROR_DETAIL_SELF = "The error was reported to the server owner.\nWe will make sure to take a look into it!",
@@ -710,6 +747,7 @@ local STRINGS = {
             FAILED_SNAPHOTS_LOAD = "Failed to load the snapshots for this session.",
             SERVER_ONLY = "This command does only work on a server!",
             UNKNOWN_PLAYER = "Unknown player!",
+            PLAYER_NOT_SPECIFIED_ENOUGH = "There are %s people with the name %s. Please use their ID instead.",
             PLAYER_NOT_FOUND = "Player not found!",
             ITEM_PREFAB_INVALID = "Invalid item prefab provided!",
             PREFAB_INVALID = "Invalid prefab provided!",
@@ -731,6 +769,7 @@ local STRINGS = {
             VALUE_TOO_HIGH = "The value of the parameter \"%s\" must be lower than or equal to %s!",
             VALUE_TOO_SHORT = "The value of the parameter \"%s\" must be at least %s characters!",
             VALUE_TOO_LONG = "The value of the parameter \"%s\" must be at most %s characters!",
+            COORDINATES_MISSING = "If you want to use coordinates, please provide at least the X and Z values! The Y value defaults to the ground Y coordinate."
         },
 
         CMD_WARN = {
@@ -822,6 +861,14 @@ local STRINGS = {
                 DESC       = "Kills the specified player on spot.",
 
                 ON_SUCCESS = "Player was killed...",
+            },
+
+            TELEPORT = {
+                PRETTYNAME = "Teleport Player",
+                DESC       = "Teleports the specified player to the specified location or entity.",
+
+                BAD_TARGET = "Please provide either the target entity or the target coordinates.",
+                ON_SUCCESS = "Player was teleported to X: %s Y: %s Z: %s",
             },
 
             REVIVE = {

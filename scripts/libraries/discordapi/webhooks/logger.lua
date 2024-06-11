@@ -170,6 +170,10 @@ function Logger:LogLine(logline, force)
         return PEARL.error("Attempted to send an invalid logline!", logline)
     end
 
+    if PEARL.CONFIG.PROFANITY_FILTERS.enabled and ProfanityFilter:Detect(logline:GetContent()) then
+        logline:Censor() -- Censor public loglines containing player names or messages.
+    end
+
     --- @type boolean, LogLine
     local success, rest = self._buffered:AddLogLine(logline)
     if rest then
@@ -208,40 +212,21 @@ function Logger:LogMessage(message)
     self._webhook:PostMessage(message)
 end
 
---- @return LogLine
-function Logger:RawLogLine(str, icon)
-    --- @type LogLine
-    local logline = LogLine(str)
-    if type(icon) == "string" then
-        logline:SetHeader(nil, icon)
-    end
-
-    return logline
-end
-
 --- @param str string The string to be logged.
 --- @param icon string? The icon of the logline to be logged.
 --- @return Message? bmessage The buffered message. This is nil when force is set to true.
 function Logger:LogStringRaw(str, icon, ...)
-    if self:IsDisabled() then
-        return
-    end
-
-    print("Logger:LogStringRaw", string.raw(str))
-
-    return self:LogLine(self:RawLogLine(str, icon), ...)
+    return self:LogLine(LogLine(str):SetIcon(icon), ...)
 end
 
+--- Same as Logger:LogStringRaw but text is in a codeline
 function Logger:LogString(str, icon, ...)
     return self:LogStringRaw(MARKDOWN.codeline(str), icon, ...)
 end
 
-function Logger:LogStringAt(str, icon, timestamp)
-    if self:IsDisabled() then
-        return
-    end
-
-    return self:LogLine(self:RawLogLine(str, icon)
+function Logger:LogStringWithTimestamp(str, icon, timestamp)
+    return self:LogLine(LogLine(str)
+        :SetIcon(icon)
         :SetTimestamp(timestamp)
     )
 end

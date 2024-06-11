@@ -11,7 +11,10 @@
 --]==]====================================================]]
 
 
-local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+
+local GRACEFULL_DISCONNECT_REASON = {
+    ["ID_DST_DISCONNECT_REQUESTED"] = true
+}
 
 ----------------------------------
 -- Network Callbacks
@@ -58,41 +61,6 @@ PEARL.AddGlobalFunctionPreCall("Networking_SlashCmd", function(guid, userid, cmd
     -- Returning false means the command will be skipped.
     return PEARL.ServerNetwork:IsAdmin(userid) or PEARL.CONFIG.COMMAND_BLOCKLIST[cmd] ~= true
 end)
-
-local _Say
-_Say = PEARL.OverrideUserdataValue("Say", function(self, message, ...)
-    if type(message) == "string" then
-        message = PEARL.EMOJIS.EmojifyGameString(message)
-
-        for match in message:gmatch(PEARL.CONSTS.UTF_EMOJI_PATTERN) do
-            local emoji_name = PEARL.EMOJIS.UTF_TO_NAME[match]
-            local emoji_id = PEARL.EMOJIS.INPUTNAME_TO_ID[emoji_name] or emoji_name
-            if emoji_id then
-                ClientEmojis:OnEmojiUsed(emoji_id)
-            end
-        end
-
-        if ClientEmojis:HasAnyUnsavedChanges() then
-            ClientEmojis:SavePersistentData()
-
-            PEARL.INST:PushEvent("emojis_used")
-        end
-    end
-
-    return _Say(self, message, ...)
-end, TheNet)
-
-PEARL.OverrideUserdataValue("Kick", function(self, userid, seconds, reason, author)
-    return PEARL.ServerNetwork:KickUser(userid, seconds, reason, author)
-end, TheNet)
-
-PEARL.OverrideUserdataValue("Ban", function(self, userid, reason, author)
-    return PEARL.ServerNetwork:BanUser(userid, nil, reason, author)
-end, TheNet)
-
-PEARL.OverrideUserdataValue("BanForTime", function(self, userid, seconds, reason, author)
-    return PEARL.ServerNetwork:BanUser(userid, seconds, reason, author)
-end, TheNet)
 
 PEARL.AddUserDataFunctionPostCall("SetDefaultMaxPlayers", function(self, value)
     local slots = tonumber(TheNet:GetDefaultMaxPlayers() or nil)
@@ -174,32 +142,57 @@ PEARL.AddWorldPostInit(function(world)
 
     -- Called everytime even when banned but with no info.
     world:SafeListenForEvent("ms_clientdisconnected", function(self, data)
-        PEARL.debug("ClientOnDisconnects", data.userid, data.expected)
+        PEARL.debug("ClientOnDisconnected", data.userid, data.expected)
 
-        if not data or not data.userid then
-            return
+        if data and data.userid then
+            if PEARL.ServerNetwork:IsClientConnected(data.userid) then
+                data.expected = false
+            end
+
+            PEARL.ServerNetwork:OnClientDisconnectedLocally(data.userid)
+            PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid, data.expected)
         end
+    end)
 
-        PEARL.ServerNetwork:OnClientDisconnected(data.userid)
-        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid, data.expected)
+    world:SafeListenForEvent("ms_playerdisconnected", function(self, data)
+        PEARL.debug("ms_playerdisconnected", data.player, data.wasExpected)
     end)
 
     world:SafeListenForEvent("invalidrpc", function(self, data)
         PEARL.ServerNetwork:OnInvalidRPCFromClient(data.rpc_name, data.userid)
     end)
 
-    --- @DEBUG
-    local paused = false
+    world:SafeListenForEvent("ms_playerdespawnandmigrate", function(world, data)
+        local userid = data and data.player and data.player.userid
+        if userid then
+            PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
+        end
+    end)
+
+    local was_paused_by = nil
     world:SafeListenForEvent("serverpauseddirty", function(self, data)
         if table.empty(data) == false then
-            if not paused == data.pause then
+            if not was_paused_by and data.pause then
                 PEARL.EventProcessor:HandleEvent("server_paused", data.source)
-            elseif paused == not data.pause then
-                PEARL.EventProcessor:HandleEvent("server_unpaused", data.source)
+            elseif was_paused_by and not data.pause then
+                PEARL.EventProcessor:HandleEvent("server_unpaused", was_paused_by)
             end
 
-            paused = data.pause == true
+            was_paused_by = not tostring(data.source):empty() and data.source or nil
         end
+    end)
+
+    ---------------------------
+    -- Mod Events
+    ---------------------------
+
+    world:ListenForModEvent("clientconnectionclosed", function(self, data)
+        if not data and not data.userid then
+            return
+        end
+
+        PEARL.ServerNetwork:OnClientDisconnectedLocally(data.userid)
+        PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
 end)
 
@@ -214,8 +207,13 @@ end)
 ----------------------------------
 
 PEARL.AddRawServerUseridRPCHandler("ClientDisconnected", function(userid, reason, force)
+    PEARL.debug("RPC: ClientDisconnected", userid, reason, force)
     if not (optstring(reason) and optbool(force)) then
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
+    end
+
+    if GRACEFULL_DISCONNECT_REASON[reason] then
+        return PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
     end
 
     PEARL.debug("RPC: ClientDisconnected", reason, force)
@@ -223,7 +221,7 @@ PEARL.AddRawServerUseridRPCHandler("ClientDisconnected", function(userid, reason
         return PEARL.debug("Already disconnected...")
     end
 
-    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
+    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason, force)
 end)
 
 --- Since the players are always only on one shard,
@@ -235,12 +233,4 @@ PEARL.AddRawServerUseridRPCHandler("ConnectionFilterData", function(userid, data
     end
 
     return PEARL.ServerNetwork:OnRawConnectionData(userid, data)
-end)
-
-PEARL.AddShardRPCHandler("BanUser", function(shardid, ...)
-    PEARL.debug("[RPC], BanUser")
-
-    if TheShard:IsMaster() then
-        PEARL.ServerNetwork:BanUser(...)
-    end
 end)

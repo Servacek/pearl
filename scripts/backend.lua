@@ -243,12 +243,32 @@ end
 do
     PEARL.info("Loading server token...")
 
-    local success, token = PEARL.ClusterPersistance:GetFileContent(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
-    if not success or type(token) ~= "string" then
+    local token = PEARL.ClusterPersistence:GetFileContent(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
+    if not token then
         return error("Could not load the server token!")
     end
 
     PEARL.SERVER_TOKEN = token:strip()
+end
+
+----------------------------------------------------------------
+-- [[ Mountable Lua ]]
+----------------------------------------------------------------
+
+do
+    PEARL.info("Loading mountable extension scripts...")
+
+    local lua_string = PEARL.ClusterPersistence:GetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH)
+    if lua_string then
+        PEARL.CONFIG.MOUNTABLE_LUA = lua_string
+    else
+        if PEARL.ClusterPersistence:FileExists(PEARL.MOUNTABLE_SCRIPTS_PATH) then
+            PEARL.error("Loading mountable extension scripts has failed!")
+        else
+            local INITIAL_STRING = STRINGS.PEARL.FILES.MOUNTABLE_SCRIPTS
+            PEARL.ClusterPersistence:SetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH, "\n"..INITIAL_STRING, false)
+        end
+    end
 end
 
 ----------------------------------------------------------------
@@ -262,17 +282,19 @@ if PEARL.CONFIG.INTRO_SCREEN then
     -- Each section has two fields, a description and a title.
     -- A welcome popup has only 1 section but the agreement screen can have many.
     local ParseTxt = PEARL.loadfile("utils/txtparser")
-    PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = ParseTxt("agreement.txt", true, true)
-    PEARL.CONFIG.WELCOME_POPUP_CONTENT = ParseTxt("welcome.txt", true, false)
+    local AGREEMENT_SCREEN_CONTENT = ParseTxt("agreement.txt", true, true)
+    local WELCOME_POPUP_CONTENT = ParseTxt("welcome.txt", true, false)
 
-    if type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) then
+    if table.empty(AGREEMENT_SCREEN_CONTENT) == false then
+        PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = AGREEMENT_SCREEN_CONTENT
+    else
         PEARL.warn("The body and content for the agreement screen are not set!")
-        PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = nil
     end
 
-    if type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.WELCOME_POPUP_CONTENT) then
+    if table.empty(WELCOME_POPUP_CONTENT) == false then
+        PEARL.CONFIG.WELCOME_POPUP_CONTENT = WELCOME_POPUP_CONTENT
+    else
         PEARL.warn("The body and content for the welcome popup are not set!")
-        PEARL.CONFIG.WELCOME_POPUP_CONTENT = nil
     end
 end
 
@@ -281,10 +303,10 @@ end
 ----------------------------------------------------------------
 
 if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
-    PEARL.info("Loading mod blocker configurations...")
+    PEARL.info("Loading mod blocker lists...")
 
-    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistance:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
-    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistance:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
 
     -- When the tables are empty, set them to nil to save some bytes when sending the config.
     -- Since these data are being zipped.
@@ -310,12 +332,12 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     PEARL.info("Loading custom loading tips file...")
 
     local fp = "../../loadingtips.lua"
-    if not PEARL.ClusterPersistance:FileExists(fp) then
-        PEARL.ClusterPersistance:SetFileContent(fp, "return { }")
+    if not PEARL.ClusterPersistence:FileExists(fp) then
+        PEARL.ClusterPersistence:SetFileContent(fp, "return { }")
     end
 
     -- Run the file in our environment so it has access to all the globals it could possibly need.
-    local success, data = PEARL.ClusterPersistance:LoadLuaFile(fp, false, PEARL.ENV)
+    local success, data = PEARL.ClusterPersistence:LoadLuaFile(fp, false, PEARL.ENV)
     if not success or type(data) ~= "table" then
         -- Data should be in this case the traceback.
         return PEARL.error("Failed to load the custom loading tips!", data)
@@ -390,7 +412,7 @@ PEARL.MOD_INFO.name = PEARL.MOD_INFO.backend_name or PEARL.MOD_INFO.name
 
 -- No need to load any further on the initial launch.
 --*************************************************************************************************--
-if PEARL.INIT then ----------------------------------------------------------------------------------
+if PEARL.INITIAL_LAUNCH then ----------------------------------------------------------------------------------
     return ------------------------------------------------------------------------------------------
 end -------------------------------------------------------------------------------------------------
 --*************************************************************************************************--
@@ -400,6 +422,7 @@ end ----------------------------------------------------------------------------
 --------------------------------
 
 PEARL.info("Loading constants...")
+
 --- @readonly
 --- @type PREFABS table<table<string, boolean>>
 PEARL.PREFABS = PEARL.loadfile("constants/prefabs")
@@ -497,13 +520,13 @@ end
 -------------------------------------
 
 --- Has to be laaded before LeaderboardService
---- @type DB
-PEARL.DB = PEARL.loadfile("libraries/database/database")
+--- @type JSONDB
+PEARL.DB = PEARL.loadfile("libraries/database/jsondatabase")
 PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
 
 --- @type AccountBindings
 PEARL.AccountBindings = PEARL.loadfile("libraries/database/accountbindings")
-PEARL.AccountBindings:Load()
+PEARL.AccountBindings:Load() -- Needs the DB
 
 --- @type Reputation
 PEARL.Reputation = PEARL.loadfile("libraries/reputation")
@@ -585,9 +608,9 @@ PEARL.info("Loading whitelist...")
 PEARL.WhiteList = PEARL.loadfile("libraries/wrappers/whitelist")
 PEARL.WhiteList:Load()
 
+--- @TODO: Add configuration for this
 if PEARL.CONFIG.STRICT_WHITELIST then
     PEARL.WhiteList:SetMode(PEARL.WhiteList.MODE.STRICT)
-    PEARL.WhiteList:SyncReservedWithSlots()
 end
 
 PEARL.info("Loading allowlist...")

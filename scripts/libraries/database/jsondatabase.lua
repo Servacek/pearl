@@ -10,6 +10,19 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--[[
+    Simple JSON database implementation for storing simple data. Supports only one cluster.
+    If more clusters need to be supported, try a REST API based database instead or a PIPE
+    based one.
+
+    The advantage of this is that it doesn't require any third party involved, it's all purely
+    managed by the game itself.
+
+    Teoretically it should be possible to add support for multiple clusters, but that would
+    require some sort of an identification for them and selection of a process capable of managing it all.
+    However, that would be a bit too complex, unreliable and slow...
+--]]
+
 
 --- Save lastactive shard for synchrnous reading between shards.
 --- For other non-active shards, use RPCs to send the data to the active one.
@@ -26,7 +39,7 @@ local Record = PEARL.loadfile("libraries/database/models/record")
 
 local FILE_EXTENSION = ".json"
 local FILE_PATH = "/%s"..FILE_EXTENSION
-local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local ROOT = PEARL.ModPersistence:GetRootDirectoryPath()
 local DATABASE_ROOT_PATH = ROOT.."/"..PEARL.CONFIG.DATABASE.DIRECTORIES.ROOT
 local DATABASE_RECORD_PATH = DATABASE_ROOT_PATH.."/"..PEARL.CONFIG.DATABASE.DIRECTORIES.RECORDS..FILE_PATH
 
@@ -43,14 +56,13 @@ end
 ------------------------------------------
 
 --- @singleton
---- @class DB: Library
-local DB = {
-    --- @type table<string, PlayerRecord>
-    _records = {},
+--- @class JSONDB: Library
+local JSONDB = {
+    _records = {}, --- @type table<string, PlayerRecord>
 }
 
---- @type DB
-DB = Library(DB)
+--- @type JSONDB
+JSONDB = Library(JSONDB)
 
 ------------------------------------------
 -- [[ Getters ]]
@@ -58,13 +70,13 @@ DB = Library(DB)
 
 -- Currently we determine this by checking if "lastseentime" is nil,
 -- since lastseentime is asigned after the first leave.
-function DB:FirstTimeJoined(userid)
+function JSONDB:FirstTimeJoined(userid)
     local record = self:GetRecordFor(userid)
     return record and record.lastseentime == nil
 end
 
 --- @TODO: add these to some separate lib
-function DB:MentionOrName(userid)
+function JSONDB:MentionOrName(userid)
     local discordid = self:GetField(userid, "discordid")
     if discordid ~= nil then
         return MARKDOWN.mention(discordid, MARKDOWN.MENTION_TYPE.USER)
@@ -75,32 +87,38 @@ end
 
 --- The total number of records saved in this database.
 --- @return integer
-function DB:GetTotalRecordCount()
-    return PEARL.AccountBindings:CountBindingsForType(PEARL.AccountBindings.BINDING_TYPE.STEAM)
+function JSONDB:GetTotalRecordCount()
+    return PEARL.AccountBindings:CountBindingsForType(PEARL.AccountBindings.BINDING_TYPE.STEAMID)
+end
+
+--- All userids saved in the DB
+--- @return table<string>
+function JSONDB:GetAllRecordedUserIDs()
+    return table.values(PEARL.AccountBindings:Get(PEARL.AccountBindings.DEFAULT_BINDING_TYPE) or {})
 end
 
 --- @param userid string
 --- @return string
-function DB:GetRecordFilePathFor(userid)
+function JSONDB:GetRecordFilePathFor(userid)
     return DATABASE_RECORD_PATH:format(tostring(userid))
 end
 
 --- @return integer?
-function DB:GetRecordLastUpdateTimeFor(userid)
-    return io.fmtime(DB:GetRecordFilePathFor(userid))
+function JSONDB:GetRecordLastUpdateTimeFor(userid)
+    return io.fmtime(JSONDB:GetRecordFilePathFor(userid))
 end
 
 --- Checks whether the provided userid has a record file created.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return boolean
-function DB:HasRecordFile(userid)
+function JSONDB:HasRecordFile(userid)
     return userid and io.empty(self:GetRecordFilePathFor(userid)) == false
 end
 
 --- Supports Steam ID as well as Klei ID.
 --- @param userid string The Klei ID of the user you want the record from.
 --- @return PlayerRecord?
-function DB:GetRecordFor(userid)
+function JSONDB:GetRecordFor(userid)
     if self:IsDisabled() then
         return PEARL.debug("Database disabled!")
     end
@@ -130,7 +148,7 @@ end
 --- @param name string
 --- @param default? any?
 --- @return any?
-function DB:GetField(userid, name, default)
+function JSONDB:GetField(userid, name, default)
     local record = self:GetRecordFor(userid)
     if record == nil or record[name] == nil then
         if default ~= nil then
@@ -143,7 +161,7 @@ function DB:GetField(userid, name, default)
     return record[name]
 end
 
-function DB:IsRecordCachedFor(userid)
+function JSONDB:IsRecordCachedFor(userid)
     return type(self._records[userid]) == "table"
 end
 
@@ -154,7 +172,7 @@ end
 --- @param userid string
 --- @param record PlayerRecord
 --- @return PlayerRecord?
-function DB:CacheRecord(userid, record)
+function JSONDB:CacheRecord(userid, record)
     PEARL.debug("CacheRecord", userid, record)
 
     if self:IsRecordCachedFor(userid) then
@@ -170,7 +188,7 @@ end
 --- Used to free the memory of record after the player leaves.
 --- @param userid string
 --- @return PlayerRecord?
-function DB:UnloadRecord(userid)
+function JSONDB:UnloadRecord(userid)
     PEARL.debug("DB:UnloadRecord", userid)
 
     local record = self._records[userid]
@@ -183,7 +201,7 @@ end
 --- @param name string Name of the field in the database.
 --- @param value any|nil
 --- @return boolean success, any? previous
-function DB:SetField(userid, name, value)
+function JSONDB:SetField(userid, name, value)
     local record = self:GetRecordFor(userid)
     if not record then
         return false -- optional
@@ -214,7 +232,7 @@ end
 --- @param name string
 --- @param value any
 --- @return boolean success, any? previous
-function DB:SafeSetField(userid, name, value)
+function JSONDB:SafeSetField(userid, name, value)
     if not IsClearValue(value) then
         return self:SetField(userid, name, value)
     end
@@ -230,7 +248,7 @@ end
 --- @param userid string
 --- @param netid string?
 --- @return PlayerRecord? record
-function DB:CreateRecordFor(userid, netid)
+function JSONDB:CreateRecordFor(userid, netid)
     if not PEARL.IsKleiIDValid(userid) then
         return PEARL.error("Invalid Klei ID provided!")
     end
@@ -264,7 +282,7 @@ function DB:CreateRecordFor(userid, netid)
         PEARL.error("Failed to retrive Steam ID for ", userid)
     else
         -- This should ALWAYS be string but just in case it's not...
-        PEARL.AccountBindings:AddBinding(userid, tostring(netid), PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        PEARL.AccountBindings:AddBinding(userid, tostring(netid), PEARL.AccountBindings.BINDING_TYPE.STEAMID)
     end
 
     PEARL.EventProcessor:HandleEvent("db_recordcreated", userid, record)
@@ -277,13 +295,13 @@ end
 --- @param userid string
 --- @param validate boolean?
 --- @return table? record
-function DB:LoadRecordFor(userid, validate, record)
+function JSONDB:LoadRecordFor(userid, validate, record)
     if not PEARL.IsKleiIDValid(userid) then
         return PEARL.error("Invalid Klei ID provided!")
     end
 
     PEARL.info("Loading record for ", userid)
-    local data = PEARL.ModPersistance:LoadDataFromFile(self:GetRecordFilePathFor(userid))
+    local data = PEARL.ModPersistence:LoadDataFromFile(self:GetRecordFilePathFor(userid))
     if type(data) ~= "table" then
         PEARL.error("Failed to load record for", userid)
         return
@@ -307,7 +325,7 @@ end
 --- @param userid string
 --- @param record PlayerRecord?
 --- @return boolean success
-function DB:SaveRecordFor(userid, record)
+function JSONDB:SaveRecordFor(userid, record)
     PEARL.debug("DB:SaveRecordFor", userid)
 
     if not PEARL.IsKleiIDValid(userid) then
@@ -339,8 +357,8 @@ function DB:SaveRecordFor(userid, record)
     local lastupdate = record.lastupdate
     record.lastupdate = os.time()
 
-    if PEARL.ModPersistance:SaveDataToFile(
-        self:GetRecordFilePathFor(userid), record:GetData(), true
+    if PEARL.ModPersistence:SaveDataToFile(
+        self:GetRecordFilePathFor(userid), record:GetData()
     ) then
         record:SetIsUpToDate(true)
         return true
@@ -352,19 +370,19 @@ function DB:SaveRecordFor(userid, record)
     return false
 end
 
-function DB:SaveUnsavedRecords()
-    if DB:IsDisabled() then
+function JSONDB:SaveUnsavedRecords()
+    if JSONDB:IsDisabled() then
         return PEARL.debug("Database disabled!")
     end
 
     PEARL.info("Saving the database...")
 
-    for userid, record in pairs(DB._records) do
-        DB:SaveRecordFor(userid, record)
+    for userid, record in pairs(JSONDB._records) do
+        JSONDB:SaveRecordFor(userid, record)
 
         if not record:IsActive() then
             -- Free up the memory since the client is no longer activelly writing to the record.
-            DB:UnloadRecord(userid)
+            JSONDB:UnloadRecord(userid)
         end
     end
 end
@@ -373,7 +391,7 @@ end
 -- [[ Debugging ]]
 ------------------------------------------
 
-function DB:PrintDebugInfo()
+function JSONDB:PrintDebugInfo()
     table.dump(self._records)
 end
 
@@ -382,7 +400,7 @@ end
 ------------------------------------------
 
 local function OnSave()
-    return DB:SaveUnsavedRecords()
+    return JSONDB:SaveUnsavedRecords()
 end
 
 ------------------------------------------
@@ -396,4 +414,4 @@ PEARL.EventProcessor:AddSafeEventHandler("quit", OnSave)
 -- [[ Return ]]
 ------------------------------------------
 
-return DB
+return JSONDB

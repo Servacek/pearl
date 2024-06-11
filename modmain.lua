@@ -78,6 +78,22 @@
 
     - TheNet:Disconnect() is REALLY unstable!
 
+    - TheSim:QueueDownloadTempMod(<MODNAME>, <MODVERSION>) is client only
+    - TheNet:LoadPermissionLists() loads adminlist.txt, blocklist.txt and adminlist.txt
+
+    - Theoretically, worldsaves can be loaded with something like:
+        TheNet:DeleteSession(TheNet:GetSessionIdentifier())
+        TheNet:CleanupSessionCache()
+        TheNet:BeginSession("{sessionid}")
+        TheWorld.meta.session_identifier = "{sessionid}"
+        - But in reality, these functions have a lot of undefined behaviour (none is actually defined anywhere)
+          and work really unintuitivelly.
+
+    - Do not try to implement any dynamic .tex image downloading from server system, trust me.
+
+    - gcinfo() = math.floor(collectgarbage("count"))
+    - json_settings - Similiar to Settings be they are defined in the engine.
+
     - Built-in utf8 library:
         string.utf8char = utf8char -- decode a codepoint
         string.utf8sub = utf8substr -- "byte-aware" string.sub
@@ -87,6 +103,8 @@
 
     - table.sort({"string", 1}) -> attempt to compare number with string
 --]]
+
+--- @TODO: perhaps TheSim:GetModDirectoryNames() could be used to detect local mods?
 
 --- @TODO: Implement a way to modify the configuration files by using a command.
 
@@ -133,13 +151,18 @@ setupenv()
 --
 -- Add this table to the main environment so it's accessible everywhere.
 GLOBAL.PEARL = setmetatable({
-    -- expose these to all the components
+    -- We use this instead of calling "GetConfigData" everytime
+    -- because of our complicated custom configuration structure and also
+    -- because there are some custom config files as well (commonconfig.lua) and some configurations (implicit)
+    -- are loaded directly from the code at runtime.
+    CONFIG = {},
 
     SRCDIR              = MODROOT.."scripts/",
     DATADIR             = MODROOT.."data/",
 
     BANNER_PATH         = "banner.txt",
     COMMONCONFIG_PATH   = "../../commonconfig.lua",
+    MOUNTABLE_SCRIPTS_PATH = "../../mountable.lua",
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
@@ -147,7 +170,10 @@ GLOBAL.PEARL = setmetatable({
     MODNAME             = modname,
     MODID               = GetWorkshopIdNumber(modname),
     MOD_INFO            = KnownModIndex:GetModInfo(modname),
+    MOD_DATA            = KnownModIndex.savedata.known_mods[modname],
     RPC_NAME            = modname.."_rpc",
+
+    BOOT_TIME           = os.time() - GetTimeRealSeconds() + 1,
 
     GetConfigData       = function(opt_name, no_supp, ...)
         local data = ENV.GetModConfigData(opt_name, ...)
@@ -204,43 +230,44 @@ GLOBAL.PEARL = setmetatable({
         PERMISSIVE_MODE = "CONFIG.PERMISSIVE_MODE",
     },
 
-    FRONTEND            = TheNet:GetIsClient(),
+    --- There are eight basic types in Lua: nil, boolean, number, string, userdata, function, thread, and table.
+    --- The type function gives the type name of a given value:
+    LUATYPES = {
+        STRING      = "string",
+        FUNCTION    = "function",
+        NUMBER      = "number",
+        USERDATA    = "userdata",
+        TABLE       = "table",
+        BOOLEAN     = "boolean",
+        THREAD      = "thread",
+        NIL         = "nil",
+    },
+
+    CLIENT_SIDE         = TheNet:GetIsClient(), -- But frontend we mean client-side
+    SERVER_SIDE         = TheNet:GetIsServer(),
+    OFFLINE             = TheNet:GetIsClient() == false and TheNet:GetIsServer() == false,
 
     -- Whether this is the initial launch of the mod or not.
     -- We only care about this on dedicated servers.
-    INIT                = TheSim:GetNumLaunches() == 1, -- i.e. First launch of the game.
-    INIT_FULL           = TheSim:GetNumLaunches() == 2,
-    LAUNCHES            = TheSim:GetNumLaunches(),
+    INITIAL_LAUNCH      = TheSim:GetNumLaunches() == 1, -- i.e. First launch of the game (partial)
+    INITIAL_FULL_LAUNCH = TheSim:GetNumLaunches() == 2, -- First launch where the game fully loads
+    SUBSEQUENT_LAUNCH   = TheSim:GetNumLaunches() > 1,  -- Subsequent launches are always "full".
+    LAUNCH_COUNT        = TheSim:GetNumLaunches(),      -- The number of total launches from boot.
 
     PREFAB              = "MOD_"..modname,
-    FONTS_PREFAB        = "MODFONTS_"..modname,
 
-    BACKUP_ID           = "2924921999",
+    BACKUP_ID           = "2924921999", -- In case of panic load a previous version of this mod.
 
     --- @type string?
     SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
 
-    -- Used for sending internal mod events.
     --- @type EventProcessor
-    EventProcessor   = EventProcessor(),
+    EventProcessor      = EventProcessor(), -- Used for sending internal events within the mod.
 }, {
     __index = function(tbl, name)
         return rawget(PEARL.ENV, name)
     end
 })
-
-PEARL = GLOBAL.PEARL
-PEARL.CONFIG = {}
-
-PEARL.LUATYPES = {
-    STRING      = "string",
-    FUNCTION    = "function",
-    NUMBER      = "number",
-    USERDATA    = "userdata",
-    TABLE       = "table",
-    BOOLEAN     = "boolean",
-    NIL         = "nil",
-}
 
 local id = GetWorkshopIdNumber(PEARL.MODNAME)
 PEARL.WORKSHOP_ID   = tonumber(id) ~= nil and tostring(id) or nil
@@ -255,13 +282,14 @@ PEARL.X32 = APP_ARCHITECTURE == "x32"
 PEARL.X64 = APP_ARCHITECTURE == "x64"
 
 --- ../mods/MODNAME/
+--- Works even with UGC mods since the paths are translated automatically by the engine.
 MODROOT = MODROOT
 
 --------------------------------
 -- [[ Server Mod Config ]]
 --------------------------------
 
---- Run this as soon as possible so in case of any error
+--- Run this as soon as possible so in case of any error we won't expose any sensitive data.
 --- @class ModConfig
 PEARL.ModConfig = require("modconfig")
 
@@ -270,7 +298,6 @@ if type(PEARL.ModConfig) ~= "table" then
 end
 
 if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
-    -- Make sure we do not leak any internal configurations
     return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
 end
 
@@ -284,61 +311,17 @@ if bf then
 end
 
 --------------------------------
--- [[ Configuration Overrides ]]
+-- [[ File Loaders ]]
 --------------------------------
-
-PEARL.DEFAULT_CONFIG = {}
-
-local function load_default_config()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        if option.name ~= nil and option.default ~= nil then
-            PEARL.DEFAULT_CONFIG[option.name] = option.default
-
-            -- Make sure we always have at least the defaults.
-            PEARL.CONFIG[option.name] = deepcopy(option.default)
-        end
-    end
-end
-
-load_default_config()
-
---------------------------------
--- [[ Configuration Overrides ]]
---------------------------------
-
-PEARL.CONFIG_OVERRIDES = {}
-
-local function load_config_overrides()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-        if option.name ~= nil then
-            local override = PEARL.GetConfigData(option.name)
-            if override ~= option.default then
-                PEARL.CONFIG_OVERRIDES[option.name] = override
-            end
-
-            -- For frontend we preload the data, but they will be overriden afterwards.
-            if option.general == true or (option.public == true and TheNet:GetIsClient()) then
-                PEARL.CONFIG[option.name] = override
-            end
-        end
-    end
-end
-
-load_config_overrides()
-
---------------------------------
--- [[ FileLoader ]]
---------------------------------
-
-local loaders = require("libraries/loaders/fileloaders")
 
 --- Check the validity of the loaders
+local loaders = require("libraries/loaders/fileloaders")
 for name, loader in pairs(loaders) do
     if type(loader) ~= "function" then
-        return error("Failed to load "..name.."! "..tostring(PEARL.loader))
+        return error("Failed to load "..name.."! "..tostring(loader))
     end
 
-    if PEARL[name] ~= nil and PEARL.CONFIG.DEBUG_MODE then
+    if PEARL[name] ~= nil then
         error("Loader "..name.." already exists in the namespace table?!")
     end
 end
@@ -363,22 +346,51 @@ PEARL.loadfile("extensions/standard/debug")
 PEARL.loadfile("extensions/json")
 
 --------------------------------
--- [[ Persistance Libs ]]
+-- [[ Engine Extensions ]]
+--------------------------------
+
+PEARL.loadfile("extensions/engine/net")
+
+--------------------------------
+-- [[ Configuration ]]
+--------------------------------
+
+-- Stores all the overrides of the default values for configuration options.
+-- These can come from either the config files or they can be downloaded from a server (in case of clients).
+PEARL.CONFIG_OVERRIDES = {}
+PEARL.DEFAULT_CONFIG = {}
+for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+    if option.name ~= nil then
+        -- Make sure we always have at least the defaults.
+        PEARL.CONFIG[option.name] = option.default
+        PEARL.DEFAULT_CONFIG[option.name] = option.default
+
+        local override = PEARL.GetConfigData(option.name)
+        if override ~= option.default then
+            PEARL.CONFIG_OVERRIDES[option.name] = override
+        end
+
+        PEARL.ModConfig:ApplyConfig(option.name, override)
+    end
+end
+
+--------------------------------
+-- [[ Persistence Libs ]]
 --------------------------------
 
 --- This has to load this soon because some of the following files use it.
---- @class ClusterPersistance
-PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance/clusterio")
+--- @class ClusterPersistence
+PEARL.ClusterPersistence = PEARL.loadlib("wrappers/persistence/clusterio")
 
---- @class ModPersistance
-PEARL.ModPersistance = PEARL.loadlib("wrappers/persistance/modio")
+--- @class ModPersistence
+PEARL.ModPersistence = PEARL.loadlib("wrappers/persistence/modio")
 
 --------------------------------
 -- [[ Common Config ]]
 --------------------------------
 
 -- This has to be loaded before we start to use the configurations.
--- Also it requires ClusterPersistance
+-- Also it requires ClusterPersistence
 if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
     local configs = PEARL.ModConfig:LoadCommmonConfig()
     if type(configs) == "table" then
@@ -453,11 +465,6 @@ else
     PEARL.UGC_MODS_FOLDER = "../../../workshop/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID)
 end
 
---- No need for any type of such conversion since this is already done by the IO handlers.
--- if PEARL.IS_WORKSHOP then
---     MODROOT = PEARL.UGC_MODS_FOLDER
--- end
-
 --------------------------------
 -- [[ Logging ]]
 --------------------------------
@@ -465,15 +472,14 @@ end
 --- Even logging uses configurations!
 PEARL.loadfile("extensions/logging")
 
-----------------------------------
--- [[ Static Scheduler ]]
-----------------------------------
+--------------------------------
+-- [[ Persistent Data ]]
+--------------------------------
 
--- In frontend, use staticScheduler for background tasks
--- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
-PEARL.info("Loading static scheduler...")
---- @type Scheduler
-PEARL.StaticScheduler = staticScheduler
+PEARL.info("Loading persistent data...")
+
+PEARL.STORAGE = PEARL.loadfile("persistentstorage")
+PEARL.STORAGE.LoadAll()
 
 --------------------------------
 -- [[ Helpers ]]
@@ -488,6 +494,16 @@ PEARL.loadfile("utils/helpers")
 
 PEARL.info("Loading custom mod application programming interface...")
 PEARL.loadfile("extensions/api")
+
+----------------------------------
+-- [[ Static Scheduler ]]
+----------------------------------
+
+-- In frontend, use staticScheduler for background tasks
+-- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
+PEARL.info("Loading static scheduler...")
+--- @type Scheduler
+PEARL.StaticScheduler = staticScheduler
 
 --------------------------------
 -- [[ Global Extensions ]]
@@ -575,7 +591,7 @@ end)
 --- @type EMOJIS table<table<string, string>>
 PEARL.EMOJIS = PEARL.loadfile("constants/emojis")
 
-if not PEARL.INIT then
+if not PEARL.INITIAL_LAUNCH then
 
 PEARL.RegisterDefaultAnnouncementTypes()
 
@@ -698,7 +714,7 @@ end
 --------------------------------
 
 -- Let's give Frontend access to the HTTP Client as well!
-if not PEARL.INIT then
+if not PEARL.INITIAL_LAUNCH then
     --------------------------------
     -- [[ Wall Scheduler ]]
     --------------------------------
@@ -742,6 +758,20 @@ if TheNet:GetIsClient() then-- or PEARL.CONFIG.DEBUG_MODE then
     PEARL.info("Loading mod FE...")
     PEARL.loadfile("frontend")
     PEARL.info("Loading mod FE done.")
+
+    -- if not KnownModIndex:DoesModExist("workshop-2517433969", "1.3.1") then
+    --     if TheSim:QueueDownloadTempMod("workshop-2517433969") then
+    --         PEARL.ClientLoader:AddDeferant("extension_download")
+    --         TheSim:StartDownloadTempMods(function(...)
+    --             print(...)
+
+    --             -- For the love of God, let the framebuffer complete!
+    --             PEARL.WallScheduler:ExecuteInTime(0, function()
+    --                 PEARL.ClientLoader:RemoveDeferant("extension_download")
+    --             end)
+    --         end)
+    --     end
+    -- end
 end
 
 --------------------------------
@@ -753,10 +783,19 @@ end
 -- ModuleManager:SetLoader(PEARL.loadfile)
 
 --------------------------------
--- [[ Custom Lua ]]
+-- [[ Mountable Lua ]]
 --------------------------------
 
-RunInEnvironmentSafe(PEARL.CONFIG.CUSTOM_LUA, PEARL.ENV)
+if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
+    PEARL.info("Mounting extension scripts...")
+
+    local fn, error_message = loadstring(PEARL.CONFIG.MOUNTABLE_LUA)
+    if type(fn) == "function" and RunInEnvironmentSafe(fn, PEARL.ENV) then
+        PEARL.info("Success! Scripts were mounted.")
+    else
+        PEARL.error("Invalid mountable lua scripts provided! Error:", error_message)
+    end
+end
 
 --------------------------------
 -- [[ Mod Post-Init ]]

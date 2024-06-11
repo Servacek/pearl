@@ -35,7 +35,6 @@ local function OnCyclesChanged(world, cycle)
     if last_cycle == cycle or PEARL.IsShuttingDown() then
         return
     end
-
     last_cycle = cycle
 
     PEARL.DiscordLogger:LogLine(LogLine()
@@ -43,11 +42,7 @@ local function OnCyclesChanged(world, cycle)
             STRINGS.PEARL.LOGS.DAY:format(
                 ((cycle or 0) + 1),
                 PEARL.GetSeasonFancyName(),
-                math.floor((world.state.temperature or 0) / 2 + 0.5)
-
-                --- @TEMPORARY until catcoon is finished.
-                -- PEARL.ServerNetwork:GetConnectedClientsCount(),
-                -- TheNet:GetDefaultMaxPlayers()
+                math.floor((world.state.temperature or 0) / 2 + 0.5) -- in celsius
             ):center(10)
         ))
         :SetSize(LogLine.SIZES.MEDIUM)
@@ -85,11 +80,10 @@ local function OnPrecipitationChanged(world, precipitation)
 
     PEARL.WallScheduler:ExecuteInTime(0, function()
         local started = precipitation ~= "none"
-        if TheWorld.components.frograin then
-            local frogdata = TheWorld.components.frograin:OnSave()
+        if world and world.components.frograin then
+            local frogdata = world.components.frograin:OnSave()
             if frogdata then
-                local frogcap = tonumber(frogdata.frogcap)
-                if frogcap > 0 then
+                if (tonumber(frogdata.frogcap) or 0) > 0 then
                     precipitation = "frograin"
                 end
             end
@@ -97,10 +91,9 @@ local function OnPrecipitationChanged(world, precipitation)
 
         local prec = started and precipitation or prev_prec
         local prec_name = STRINGS.PEARL.PRECIPITATION_NAMES[prec] or prec
-
         PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS[(started and "PRECIPITATION_START" or "PRECIPITATION_STOP")]:format(
             prec_name
-        ))
+        ), PEARL.ICONS.PRECIPITATION[precipitation])
 
         prev_prec = precipitation
     end)
@@ -147,9 +140,9 @@ end
 -- [[ Client State Handlers ]]
 -------------------------------
 
-local function OnClientConnectedToShard(client)
+local function OnClientConnectedToShard(userid, name)
     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTED_TO_SHARD:format(
-        client.name, PEARL.GetShardFancyName(), client.userid
+        name or userid, PEARL.GetShardFancyName(), userid
     ))
 end
 
@@ -161,35 +154,27 @@ local function OnClientAuthenticationComplete(world, data)
     end
 
     -- If we are not joining, then we are most likely just migrating.
-    if not PEARL.ServerNetwork:IsClientJoining(client.userid) then
-        return OnClientConnectedToShard(client)
+    if not PEARL.ServerNetwork:IsClientJoining(data.userid) then
+        return OnClientConnectedToShard(data.userid, client.name)
     end
 
-    local logline = LogLine(MARKDOWN.hlink(
+    PEARL.DiscordLogger:LogLine(LogLine(MARKDOWN.hlink(
         MARKDOWN.codeline(
             STRINGS.PEARL.LOGS.AUTH:format(
-                client.name, client.userid
+                client.name, data.userid
             )
         ), client.netid and MARKDOWN.escape_link_embeds(PEARL.CONSTS.STEAM_ACCOUNT_URL:format(
             client.netid
         )) or nil
-    )):SetIcon(PEARL.ICONS.PLAYER_STATE.AUTH)
-
-    if client.name and ProfanityFilter:Detect(client.name) then
-        logline:Censor()
-    end
-
-    PEARL.DiscordLogger:LogLine(logline)
+    )):SetIcon(PEARL.ICONS.PLAYER_STATE.AUTH))
 end
 
-local function OnClientConnectionClosed(userid, reason)
-    if not userid or not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
-        return
+local function OnClientConnectionClosed(userid, reason, force)
+    if PEARL.ServerNetwork:IsClientConnectedAny(userid) and force then
+        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTION_CLOSE:format(
+            userid, reason or "?"
+        ), PEARL.ICONS.PLAYER_STATE.FORCE_DISCONNECTED)
     end
-
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.CONNECTION_CLOSE:format(
-        userid, reason or "?"
-    ), PEARL.ICONS.PLAYER_STATE.FORCE_DISCONNECTED)
 end
 
 local function OnClientDisconnected(userid, expected, reason, reason_title)
@@ -213,12 +198,11 @@ local function OnClientDisconnected(userid, expected, reason, reason_title)
 
     local shardname = PEARL.GetShardFancyName()
     local pattern = STRINGS.PEARL.LOGS[pattern_spec]
-    local logline = LogLine(
-        MARKDOWN.codeline(pattern:format((name or userid), shardname, userid, reason or ""))
-    )
-
-    if name and ProfanityFilter:Detect(name) then
-        logline:Censor()
+    local content = MARKDOWN.codeline(pattern:format((name or userid), shardname, userid, reason or ""))
+    local logline = LogLine(content)
+    if expected == false then -- Post admins the uncensored version
+        PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOST_CONNECTION:format(content))
+        logline:SetContent(MARKDOWN.underline(content)):SetIcon(PEARL.ICONS.PLAYER_STATE.CONNECTION_LOST)
     end
 
     PEARL.DiscordLogger:LogLine(logline)
@@ -406,16 +390,16 @@ local function OnRestart()
 end
 
 local function OnWorldGenComplete(world)
-    if not world then
-        return
+    if world then
+        PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldInfo(world, nil, true))
     end
-
-    PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldInfo(world, nil, true))
 end
 
+--- Called even on automatic saves
+--- If you want forced saves only, use "ms_save" event
 local function OnSaved(world)
     return PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.SAVE:format(
-        MARKDOWN.codeline(PEARL.GetShardFancyName())
+        MARKDOWN.codeline(PEARL.GetShardFancyName()), MARKDOWN.codeline(TheNet:GetCurrentSnapshot())
     ), PEARL.ICONS.SERVER_STATE.SAVE)
 end
 
@@ -451,13 +435,13 @@ PEARL.AddWorldPostInit(function(world)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
         -- There as some weird "purely virtual function" crashes here, even after a delay.
         -- world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
-        world:SafeListenForEvent("ms_save", OnSaved)
+        world:SafeListenForEvent("master_autosaverupdate", OnSaved)
+        world:SafeListenForEvent("ms_worldreset", OnReset)
 
         --> Mod Events
         world:ListenForModEvent("world_rollback", OnRollback)
         world:ListenForModEvent("world_rollback_days", OnDaysBack)
         world:ListenForModEvent("world_restart", OnRestart)
-        world:ListenForModEvent("world_reset", OnReset)
         world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
 
         if world.components.playerspawner then

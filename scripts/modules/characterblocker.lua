@@ -11,12 +11,6 @@
 --]==]====================================================]]
 
 
-local CLIENT_SIDE = TheNet:GetIsClient()
-
-if CLIENT_SIDE and TheNet:GetIsServerAdmin() then
-    return -- No character disabling for admins
-end
-
 local function OnBlockedCharacterSpawned(inst)
     if inst and TheWorld and TheWorld.ismastersim and not (inst.userid and PEARL.ServerNetwork:IsClientPriviliged(inst.userid)) then
         TheWorld:DoTaskInTime(0, function()
@@ -27,7 +21,7 @@ end
 
 for prefab, blocked in pairs(PEARL.CONFIG.CHARACTER_BLOCKLIST) do
     if blocked then
-        if CLIENT_SIDE then
+        if TheNet:GetIsClient() then
             PEARL.RemoveDefaultCharacter(prefab)
         else
             PEARL.AddPrefabPostInit(prefab, OnBlockedCharacterSpawned)

@@ -9,9 +9,8 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
-
-
--- Note: This loads before modmain.lua
+-- Note: This loads always before modmain.lua
+-- The environment is very different (runs in a separate thread "WorldSim::SimThread::Main()")
 
 -- During world generation process TheNet and TheSim are nil.
 -- Also worldgen_main.lua is loaded at that time so we are missing it's environment.
@@ -77,7 +76,9 @@ if SEED ~= nil then
     GLOBAL.rawset(GLOBAL, "SEED", SEED)
 end
 
-------------------------------
+----------------------------------
+-- WorldGen Tasks
+----------------------------------
 
 if wg_overrides then do
     local taskset_name = (wg_overrides and wg_overrides.task_set) or "default"

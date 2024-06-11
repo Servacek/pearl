@@ -251,6 +251,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
     return embed
 end
 
+--- @TODO: Add snapshot ID here as well.
 --- @return Embed
 function EMBEDS.ServerInfo(boot)
     local seed = TheWorld and TheWorld.meta and TheWorld.meta.seed or "???"
@@ -276,7 +277,7 @@ function EMBEDS.ServerInfo(boot)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.PLAYSTYLE, MARKDOWN.codeline(TheNet:GetServerGameMode()), true)
         :AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.EVENT, STRINGS.UI.SPECIAL_EVENT_NAMES[string.upper(active_event)] or STRINGS.PEARL.LOGS.NONE_EVENT, true)
 
-        :SetFooter(STRINGS.PEARL.EMBEDS.SERVER.FOOTER:format(TheNet:GetSessionIdentifier() or ""))
+        :SetFooter(STRINGS.PEARL.EMBEDS.SERVER.FOOTER:format(TheNet:GetSessionIdentifier() or "???", TheNet:GetCurrentSnapshot() or "???"))
 
     if not boot then
         embed:AddField(STRINGS.PEARL.EMBEDS.SERVER.FD_NAMES.RUN_TIME, MARKDOWN.timestamp(os.time() - GetTimeRealSeconds(), MARKDOWN.TIMESTAMP_TYPE.RELATIVE_TIME))
@@ -402,14 +403,15 @@ function EMBEDS.WorldInfo(world, session_id, regen)
     local displayed = {}
     local displayed_count = 0
     local max_displayed = 10 * 2 -- For generation options and world setting
+    local overrides_count = 0
     for _, customization in ipairs(customizations) do
-        local override = world.topology.overrides[customization.name] or customization.default
+        local override = (world.topology and world.topology.overrides[customization.name]) or customization.default
         if override ~= customization.default then
-            displayed[customization.name] = override
-            displayed_count = displayed_count + 1
+            overrides_count = overrides_count + 1
 
-            if displayed_count >= max_displayed then
-                break
+            if displayed_count < max_displayed then
+                displayed[customization.name] = override
+                displayed_count = displayed_count + 1
             end
         end
     end
@@ -423,9 +425,9 @@ function EMBEDS.WorldInfo(world, session_id, regen)
             description = description..name..string.rep(" ", spacing).." = "..value.."\n"
         end
 
-        if #displayed < #customizations then
+        if displayed_count < overrides_count then
             description = description.."... ("..STRINGS.PEARL.EMBEDS.WORLD.OTHER:format(
-                table.size(customizations) - displayed_count
+                overrides_count - displayed_count
             )..")\n"
         end
 
@@ -443,9 +445,12 @@ function EMBEDS.WorldInfo(world, session_id, regen)
 
         :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SNAPSHOT_ID, MARKDOWN.codeline(TheNet:GetCurrentSnapshot() or "???"), true)
         :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.GEN_VERSION, MARKDOWN.codeline(APP_VERSION or "???"), true)
 
     if TheShard:IsMaster() then
+        embed:AddField("** **", "**```"..STRINGS.PEARL.EMBEDS.WORLD.SETPIECE_SUBTITLE.."```**", false) -- Field with no title
         embed:AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
         embed:AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
     end
@@ -667,7 +672,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         url = PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid)
     end
 
-    if dbr[PEARL.AccountBindings.BINDING_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORD]] then
+    if dbr[PEARL.AccountBindings.TYPE_TO_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORDID]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
     end
 

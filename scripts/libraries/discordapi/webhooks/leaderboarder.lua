@@ -26,7 +26,7 @@ local Library = PEARL.loadfile("models/library")
 --------------------------------
 
 local FILE_EXTENSION = ".txt"
-local ROOT = PEARL.ModPersistance:GetRootDirectoryPath()
+local ROOT = PEARL.ModPersistence:GetRootDirectoryPath()
 local ID_FILE_PATH = ROOT.."/"..PEARL.CONFIG.LEADERBOARD.DIRECTORY.."/discord_id"..FILE_EXTENSION
 
 local MAX_MESSAGE_POST_RETRIES = 3
@@ -158,7 +158,7 @@ function LeaderBoarder:SaveIdentifier()
     if message_id ~= nil then
         PEARL.info("Saving the updating message identifier", message_id)
 
-        local success, errmsg = PEARL.ModPersistance:WriteToFile(ID_FILE_PATH, message_id)
+        local success, errmsg = PEARL.ModPersistence:SetFileContent(ID_FILE_PATH, message_id)
         if not success or errmsg then
             PEARL.error("Saving identifier failed!", errmsg)
         end
@@ -166,7 +166,7 @@ function LeaderBoarder:SaveIdentifier()
 end
 
 function LeaderBoarder:LoadIdentifier()
-    local str = PEARL.ModPersistance:ReadFromFile(ID_FILE_PATH)
+    local str = PEARL.ModPersistence:GetFileContent(ID_FILE_PATH)
     if str then
         self:SetUpdatingMessageID(str:strip())
     end

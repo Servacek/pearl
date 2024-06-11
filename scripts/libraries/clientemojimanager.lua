@@ -15,7 +15,13 @@
 -- [[ Constants ]]
 -------------------------------------
 
-local PERSISTENT_DATA_FILEPATH = PEARL.MODID.."_emoji_data"
+--- Using the ID variable in the name wasn't the luckiest idea indeed...
+local PERSISTENT_DATA_FILEPATH = "3122299418_emoji_data"
+
+local DELIM = PEARL.CONSTS.DELIMS.EMOJI
+local EMOJI_ALIAS_FORMAT = DELIM.."%s"..DELIM
+
+local MAX_ALIAS_LEN = 32
 
 local MAX_FU_EMOJIS = 32
 
@@ -88,38 +94,57 @@ ClientEmojiManager.CATEGORIES_ORDERED = {
     {
         id = "DISCORD",
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.DISCORD,
-        emojis = {},
-        optional = true,
-        loadfn = function(self) -- Make sure this is loaded only after all the modules.
-            for _, pack_name in pairs(PEARL.EMOJIS.PACKS.DISCORD) do
-                -- Load these emojis only if their pack is enabled.
-                if PEARL.EMOJIS.IsEmojiPackAvailable(pack_name) then
-                    print("ENABLING PACK", pack_name)
-                    table.join(self.emojis, table.keys(PEARL.EMOJIS.PACK_CHAR_MAP[pack_name]))
-                end
-            end
-        end,
-    },
-
-    {
-        id = "VANILLA",
-        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA,
-        emojis = table.values(PEARL.EMOJIS.INPUTNAME_TO_ID, true),
+        emojis = table.keys(PEARL.EMOJIS.DISCORD, true),
     },
 }
 
---- A category is represented as a table containing some data associated to the specific emoji category.
---- It also contains a list of emoji ids that are specific to this category.
---- Mapped by ID not by order.
---- @enum ClientEmojiManager.CATEGORY
-ClientEmojiManager.CATEGORY = {}
-for i, category in ipairs(ClientEmojiManager.CATEGORIES_ORDERED) do
-    if category.available ~= false then
-        --- Make sure every category has the index field (useful for sorting).
-        category.index = i
-        -- Custom emojis should be right after the frequently used ones
-        -- (similiar to how discord implements this)
-        ClientEmojiManager.CATEGORY[category.id] = category
+ClientEmojiManager.CATEGORIES_ORDERED = {
+    ClientEmojiManager.CATEGORY.FREQUENTLY_USED,
+    ClientEmojiManager.CATEGORY.VANILLA,
+}
+
+ClientEmojiManager.ALL_EMOJIS = deepcopy(ClientEmojiManager.CATEGORY.VANILLA.emojis)
+if PEARL.CONFIG.CUSTOM_EMOJIS then
+    ConcatArrays(ClientEmojiManager.ALL_EMOJIS, ClientEmojiManager.CATEGORY.DISCORD.emojis)
+
+    -- Custom emojis should be right after the frequently used ones
+    -- (similiar to how discord implements this)
+    table.insert(
+        ClientEmojiManager.CATEGORIES_ORDERED, 2, ClientEmojiManager.CATEGORY.DISCORD
+    )
+end
+
+-- Use just one list of choices so all emojis have the same probability.
+ClientEmojiManager.RANDOM_EMOJI_CHOICES = deepcopy(ClientEmojiManager.ALL_EMOJIS)
+
+-------------------------------------
+-- [[ Private Methods ]]
+-------------------------------------
+
+function ClientEmojiManager:_EnsureBounderies(t, limit)
+    while #t > limit do
+        t[#t] = nil
+    end
+end
+
+function ClientEmojiManager:_ValidatePersistentData(data)
+    self:_EnsureBounderies(data.frequently_used, MAX_FU_EMOJIS)
+
+    local names = {}
+    for i, emoji_data in ipairs(data.frequently_used) do
+        local emoji_names = {}
+        for ii, emoji_name in ipairs(emoji_data.names) do
+            if emoji_names[emoji_name] then
+                -- This emoji name is already contained on the the list of names.
+                table.remove(emoji_data.names, ii)
+            elseif names[emoji_name] then
+                -- Emoji with this name already on the emoji list.
+                table.remove(data.frequently_used, i)
+            end
+
+            emoji_names[emoji_name] = true
+            names[emoji_name] = true
+        end
     end
 end
 
@@ -186,7 +211,7 @@ end
 
 --- @return boolean
 function ClientEmojiManager:SavePersistentData()
-    if PEARL.ClusterPersistance:SetFileContent(
+    PEARL.ClusterPersistence:SetFileContent(
         PERSISTENT_DATA_FILEPATH, ZipAndEncodeString(self._persistdata), self._encode_save_data
     ) then
         self._unsaved_changes = false
@@ -198,25 +223,14 @@ end
 
 --- @return boolean
 function ClientEmojiManager:LoadPersistentData()
-    local _, datastr = PEARL.ClusterPersistance:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
+    local datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
     local data = DecodeAndUnzipString(datastr)
     if type(data) == "table" then
          -- Load up in the existing table in case it is being referenced somewhere already.
         table.update(self._persistdata, data)
 
-        -- Load up all the categories that require loading.
-        for _, category in pairs(ClientEmojiManager.CATEGORY) do
-            if category.validatefn then
-                category:validatefn(self._persistdata)
-            end
-
-            if category.loadfn then
-                category:loadfn(self._persistdata)
-            end
-        end
-        return true
+        self:_ValidatePersistentData(self._persistdata)
     end
-    return false
 end
 
 -------------------------------------

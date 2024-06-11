@@ -16,9 +16,14 @@
 local PopupDialogScreen = require("screens/redux/popupdialog")
 
 
+----------------------------------
+-- Handlers
+----------------------------------
+
 local OnPlayerEnteredLobby
 OnPlayerEnteredLobby = function(world, player)
-    if #GetPlayerClientTable() > 1 then
+    local connection_output_data = PEARL.ClientNetwork:GetConnectionOutputData()
+    if #GetPlayerClientTable() > 1 or connection_output_data.new_session_file ~= true then
         return
     end
 
@@ -58,6 +63,10 @@ OnPlayerEnteredLobby = function(world, player)
     -- Inform the player that some of his mods were blocked by the server
     TheFrontEnd:PushScreen(popup)
 end
+
+----------------------------------
+-- Listeners
+----------------------------------
 
 PEARL.AddWorldPostInit(function(world)
     world:ListenForEvent("entercharacterselect", OnPlayerEnteredLobby)
