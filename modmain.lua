@@ -86,10 +86,11 @@
         string.utf8lower = utf8strtolower
 --]]
 
+--- @TODO: Implement a way to modify the configuration files by using a command.
+
 GLOBAL.assert(GLOBAL.rawget(GLOBAL, "PEARL") == nil, "Multiple instances of the PEARL mod loaded!")
 
 local GLOBAL = GLOBAL
-local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
 --------------------------------

@@ -44,7 +44,7 @@ end
 local function WriteUntranslatedModStrings(base, original, translated, file)
     -- We are traversing the actual table from strings.lua
     -- These always start with STRINGS.PEARL
-	for k, v in pairs(original) do
+	for k, v in orderedPairs(original) do
 		local path = base and base.."."..tostring(k) or k
 
         -- Search for strings in our mod table that do not have translation
@@ -69,7 +69,7 @@ local function WriteTranslatedStrings(base, original, translated, file)
     local unmatched = {}
     -- Here we traverse the translated strings.
     -- Some of these may not base in STRINGS.PEARL
-	for path, msgstr in pairs(translated) do
+	for path, msgstr in orderedPairs(translated) do
         msgstr = normalize(msgstr)
         local msgid = normalize(table.pathget(original, path:sub(#base + 2)) or "")
 

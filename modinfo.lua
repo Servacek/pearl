@@ -23,7 +23,7 @@ description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
 
-priority = 2^31-2
+priority = 1.7976931348623e+308 -- std::numeric_limits<lua_Number>::max()
 
 dst_compatible = true
 dont_starve_compatible = false
