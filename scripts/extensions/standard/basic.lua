@@ -31,3 +31,39 @@ PEARL.unpack = function(t, ...)
 
     return unpack(t, ...)
 end
+
+local function __genOrderedIndexSafe(t)
+    local orderedIndex = {}
+    for key in pairs(t) do
+        -- Make sure the items in the list are of the same type because of the sorting.
+        t[#t + 1] = tostring(key)
+    end
+
+    table.sort(orderedIndex)
+    return orderedIndex
+end
+
+PEARL.opairs = function(t, state)
+    return function()
+        local key = nil
+        if state == nil then
+            -- the first time, generate the index
+            t.__orderedIndex = __genOrderedIndexSafe(t)
+            key = t.__orderedIndex[1]
+        else
+            -- fetch the next value
+            for i = 1, #t.__orderedIndex do
+                if t.__orderedIndex[i] == state then
+                    key = t.__orderedIndex[i+1]
+                end
+            end
+        end
+
+        if key then
+            return key, t[key]
+        end
+
+        -- no more value to return, cleanup
+        t.__orderedIndex = nil
+    end, t, nil
+end
