@@ -84,6 +84,8 @@
         string.utf8len = utf8strlen -- "byte-awate" string.len
         string.utf8upper = utf8strtoupper
         string.utf8lower = utf8strtolower
+
+    - table.sort({"string", 1}) -> attempt to compare number with string
 --]]
 
 --- @TODO: Implement a way to modify the configuration files by using a command.
