@@ -147,9 +147,6 @@ PEARL.loadfile("extensions/commands")
 
 --- @type AgreementManager
 PEARL.AgreementManager = PEARL.loadfile("libraries/agreementmanager")
-if PEARL.AgreementManager:FileExists() then
-    PEARL.AgreementManager:Load()
-end
 
 ----------------------------------
 -- Client Loader

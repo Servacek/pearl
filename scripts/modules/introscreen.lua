@@ -31,7 +31,7 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 --------------------------------------
 
 local OnPlayerEnteredGame
-local ShowAgreement, HideAgreement, CloseAgreement
+local ShowAgreement, CloseAgreement
 
 --------------------------------------
 -- [[ Locals ]]
@@ -64,20 +64,12 @@ end
 
 local function ShowScreen(screen)
     PEARL.debug("ShowScreen")
-    CloseActiveScreen()
+    --CloseActiveScreen()
 
     _active_screen = screen
     screen:Show()
 
     return TheFrontEnd:PushScreen(_active_screen)
-end
-
-local function HideScreen(screen)
-    PEARL.debug("HideScreen")
-    _active_screen = nil
-    screen:Hide()
-
-    return TheFrontEnd:PopScreen(_active_screen)
 end
 
 local function OnPlayerFinishedAgreement(data)
@@ -86,17 +78,10 @@ local function OnPlayerFinishedAgreement(data)
     if _finished then
         return
     end
-
     _finished = true
 
-    local agreed = data.agreed or false
-    local agreedintime = agreed and (os.time() - (_t_agreementstart or 0)) or nil
-    local agreed_version = PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT.version
-    local datacollection = data.datacollection or false
-
-    PEARL.AgreementManager:SyncAgreementDataWithServer(
-        agreed, datacollection, agreedintime, agreed_version
-    )
+    PEARL.AgreementManager:ClientAgreed(data)
+    PEARL.AgreementManager:SyncAgreementDataWithServer()
 end
 
 local function OnDisagreeConfirmed(data)
@@ -111,37 +96,28 @@ end
 local function WarnOnDecline(data)
     PEARL.debug("WarnOnDecline")
 
-    return ShowScreen(PopupDialogScreen(
+    local popup
+    popup = TheFrontEnd:PushScreen(PopupDialogScreen(
         STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_TITLE,
         STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_BODY,
         {
             {
                 text = STRINGS.PEARL.UI.AGREEMENT_DECLINE_BUTTON_YES,
-                cb = function()
-                    OnDisagreeConfirmed(data)
-                end,
+                cb = function() OnDisagreeConfirmed(data) end,
             },
             {
                 text = STRINGS.PEARL.UI.AGREEMENT_DECLINE_BUTTON_NO,
-                -- Go back
-                cb = ShowAgreement,
+                cb = function() TheFrontEnd:PopScreen(popup) end,
             }
         }
     ))
 end
 
-local function OnAgreed(data)
-    OnPlayerFinishedAgreement(data)
-
-    PEARL.AgreementManager:UpdateFile() -- Only save the record when we have agreed.
-end
-
 local function OnAgreementContinue(self, data)
     if data.agreed == true then
-        return OnAgreed(data)
+        return OnPlayerFinishedAgreement(data)
     end
 
-    -- HideAgreement()
     WarnOnDecline(data)
 end
 
@@ -166,15 +142,6 @@ CloseAgreement = function()
     _agreement_screen:DoClose()
 end
 
-HideAgreement = function()
-    PEARL.debug("HideAgreement")
-    if not _agreement_screen then
-        CreateAgreementScreen()
-    end
-
-    HideScreen(_agreement_screen)
-end
-
 ShowAgreement = function()
     PEARL.debug("ShowAgreement")
     -- Create only one agreement screen per session.
@@ -182,15 +149,12 @@ ShowAgreement = function()
         CreateAgreementScreen()
     end
 
-    if not _t_agreementstart then -- Do not reset, everything counts
-        _t_agreementstart = os.time()
-    end
-
-    return ShowScreen(_agreement_screen)
+    PEARL.AgreementManager:AgreementAutoDisplayed()
+    return TheFrontEnd:PushScreen(_agreement_screen)
 end
 
 local function NotifyAgreementUpdate()
-    return ShowScreen(PopupDialogScreen(
+    return TheFrontEnd:PushScreen(PopupDialogScreen(
         STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE,
         STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_BODY,
         {{
@@ -200,28 +164,31 @@ local function NotifyAgreementUpdate()
     ))
 end
 
-local function OnContinue(self)
-    CloseActiveScreen()
+local function OnContinue()
+    if PEARL.AgreementManager:IsAgreementScreenEnabled() then
+        if PEARL.AgreementManager:WasAgreementDisplayed() then
+            return NotifyAgreementUpdate()
+        end
 
-    if not PEARL.AgreementManager:IsAgreementScreenEnabled() then
-        return
+        return ShowAgreement()
     end
-
-    if PEARL.AgreementManager:AgreementDisplayed() then
-        return NotifyAgreementUpdate()
-    end
-
-    return ShowAgreement()
 end
 
 local function ShowWelcomeScreen()
+    PEARL.STORAGE.welcome_dialog = PEARL.STORAGE.welcome_dialog or {}
+    PEARL.STORAGE.welcome_dialog.displayed = true
+
     -- Welcome Popup has only one section, so index it directly.
-    return FrontEnd:InsertScreenAtIndex(PopupDialogScreen(
+    local popup
+    popup = FrontEnd:InsertScreenAtIndex(PopupDialogScreen(
         PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].title,
         PEARL.CONFIG.WELCOME_POPUP_CONTENT[1].description,
         {{
             text = STRINGS.PEARL.UI.INTRO_POPUP_BUTTON_CONTINUE,
-            cb = OnContinue
+            cb = function()
+                TheFrontEnd:PopScreen(popup)
+                OnContinue()
+            end
         }}
     ), 1)
 end
@@ -237,7 +204,11 @@ OnPlayerEnteredGame = function(world)
 
     -- Wait a tick here so everything is ready when we show the screen.
     PEARL.StaticScheduler:ExecuteInTime(0, function()
-        if PEARL.AgreementManager:IsWelcomePopupEnabled() and not PEARL.AgreementManager:AgreementDisplayed() then
+        if (not PEARL.AgreementManager:WasWelcomePopupDisplayed() and
+            PEARL.AgreementManager:IsWelcomePopupEnabled() and
+            PEARL.ClientNetwork:JoinedFirstTime() and
+            not PEARL.AgreementManager:WasAgreementDisplayed()
+        ) then
             return ShowWelcomeScreen()
         end
 
@@ -247,11 +218,7 @@ end
 
 local function OnConnectionAllowed(data)
     if data.first_time_joined == true and PEARL.AgreementManager:HasRecord() then
-        local version = PEARL.AgreementManager:GetLocalVersion()
-
-        PEARL.AgreementManager:SyncAgreementDataWithServer(
-            true, true, nil, version
-        )
+        PEARL.AgreementManager:SyncAgreementDataWithServer()
     end
 end
 

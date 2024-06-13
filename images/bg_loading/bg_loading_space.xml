@@ -2,7 +2,7 @@
 <Atlas>
     <Texture filename="bg_loading_space.tex"/>
     <Elements>
-        <Element name="bg_loading_space.tex" u1="0.000244141" u2="0.888428" v1="0.000488281" v2="0.999512"/>
+        <Element name="space.tex" u1="0.000244141" u2="0.888428" v1="0.000488281" v2="0.999512"/>
     </Elements>
     <StraightAlpha>false</StraightAlpha>
 </Atlas>

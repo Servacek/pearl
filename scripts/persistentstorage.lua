@@ -29,7 +29,12 @@
 -- [[ Constants ]]
 --------------------------------
 
-local DEFAULT_PERSISTENCE_MANAGER = PEARL.ModPersistence
+--- Either ModPersistence or ClusterPersistence
+local DEFAULT_PERSISTENCE_MANAGER = PEARL.ClusterPersistence
+
+--- MPS - Mod Persistent Storage
+local FILE_NAME = PEARL.UNIQUE_IDENTIFIER.."_mps_data.json"
+local FILE_PATH = TheNet:GetIsClient() and FILE_NAME or "../"..FILE_NAME
 
 --------------------------------
 -- [[ Class Definition ]]
@@ -40,71 +45,22 @@ local DEFAULT_PERSISTENCE_MANAGER = PEARL.ModPersistence
 --- @class STORAGE
 local STORAGE = {
     DATA = {},
-    TYPE = {
-        MACHINE = "MACHINE", -- One file per machine for all instances of this mod.
-        CLUSTER = "CLUSTER", -- One file per cluster for all shard instances of this mod (Master only write)
-        SHARD   = "SHARD",   -- Separate file for each mod instance (each shard).
-    },
-    PATH = {},
-
-    PERSISTENCE_MANAGER = {}, -- The default manager is ModPersistence
 }
-
---------------------------------
--- [[ Static ]]
---------------------------------
-
---- MPS - Mod Persistent Storage
---- Keep the storage type in the file name so even when the files change their locate we won't swap them.
-STORAGE.PATH[STORAGE.TYPE.MACHINE] = PEARL.ModPersistence:GetRootDirectoryPath().."/mps_machine_data.json"
-STORAGE.PATH[STORAGE.TYPE.CLUSTER] = "../../mps_cluster_data.json"
-STORAGE.PATH[STORAGE.TYPE.SHARD]   = MODROOT.."/data/mps_shard_data.json"
-if not PEARL.IN_UGC_FOLDER then -- Only the UGC folder provides separate mod folder for each shard.
-    STORAGE.PATH[STORAGE.TYPE.SHARD] = "../mps_shard_data.json"
-    STORAGE.PERSISTENCE_MANAGER[STORAGE.TYPE.SHARD] = PEARL.ClusterPersistence
-end
-
-STORAGE.PERSISTENCE_MANAGER[STORAGE.TYPE.CLUSTER] = PEARL.ClusterPersistence
-
---- @enum STORAGE.TYPE
-STORAGE.TYPE = {}
-for storage_type, _ in pairs(STORAGE.PATH) do
-    STORAGE.TYPE[storage_type] = storage_type
-end
 
 --------------------------------
 -- [[ Public ]]
 --------------------------------
 
---- @param storage_type STORAGE.TYPE
-function STORAGE.Save(storage_type)
-    local data = STORAGE.DATA[storage_type]
-    if table.empty(data) == false then -- Do not create the file if we have no data.
-        local storage_path = STORAGE.PATH[storage_type]
-        local manager = STORAGE.PERSISTENCE_MANAGER[storage_type] or DEFAULT_PERSISTENCE_MANAGER
-        manager:SaveDataToFile(storage_path, data, not PEARL.CONFIG.DEBUG_MODE)
+function STORAGE.Save()
+    if table.empty(STORAGE.DATA) == false then -- Do not create the file if we have no data.
+        DEFAULT_PERSISTENCE_MANAGER:SaveDataToFile(FILE_PATH, STORAGE.DATA, not PEARL.CONFIG.DEBUG_MODE)
     end
 end
 
-function STORAGE.SaveAll()
-    for storage_type, _ in pairs(STORAGE.PATH) do
-        STORAGE.Save(storage_type)
-    end
-end
-
---- @param storage_type STORAGE.TYPE
-function STORAGE.Load(storage_type)
-    local storage_path = STORAGE.PATH[storage_type]
-    --- @type Persistence
-    local manager = STORAGE.PERSISTENCE_MANAGER[storage_type] or DEFAULT_PERSISTENCE_MANAGER
-    local data = manager:LoadDataFromFile(storage_path, false)
-    STORAGE.DATA[storage_type] = type(data) == "table" and data or {}
-end
-
-function STORAGE.LoadAll()
-    for storage_type, _ in pairs(STORAGE.PATH) do
-        STORAGE.Load(storage_type)
-    end
+function STORAGE.Load()
+    print(FILE_PATH)
+    local data = DEFAULT_PERSISTENCE_MANAGER:LoadDataFromFile(FILE_PATH, false)
+    STORAGE.DATA = type(data) == "table" and data or {}
 end
 
 --------------------------------

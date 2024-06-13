@@ -227,7 +227,7 @@ function ClientNetwork:JoinedFirstTime()
     end
 
     -- If agreement record exists for this player then it's definitely not a newcomer.
-    if PEARL.AgreementManager:FileExists() and PEARL.AgreementManager:HasRecord() then
+    if PEARL.STORAGE.DATA.agreement then
         return false
     end
 

@@ -257,6 +257,7 @@ GLOBAL.PEARL = setmetatable({
     PREFAB              = "MOD_"..modname,
 
     BACKUP_ID           = "2924921999", -- In case of panic load a previous version of this mod.
+    UNIQUE_IDENTIFIER   = "3122299418", -- Unique identifier for this mod.
 
     --- @type string?
     SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
@@ -479,7 +480,7 @@ PEARL.loadfile("extensions/logging")
 PEARL.info("Loading persistent data...")
 
 PEARL.STORAGE = PEARL.loadfile("persistentstorage")
-PEARL.STORAGE.LoadAll()
+PEARL.STORAGE.Load()
 
 --------------------------------
 -- [[ Helpers ]]
