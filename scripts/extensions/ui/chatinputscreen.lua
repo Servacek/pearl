@@ -400,53 +400,53 @@ AddClassPostConstruct("screens/chatinputscreen", function(self, whisper)
             -- Hot reload for faster testing
             EmojiMenu = PEARL.loadfile("widgets/emojimenu", nil, true)
 
-            -- For debugging the animated emoji aligment
-            -- Swap testing emojis and their names, so animations are opposite colour.
-            PEARL.EMOJIS.UTF_TO_NAME[PEARL.EMOJIS.DISCORD["whitesquare"]] = "blacksquare"
-            PEARL.EMOJIS.UTF_TO_NAME[PEARL.EMOJIS.DISCORD["blacksquare"]] = "whitesquare"
+            -- -- For debugging the animated emoji aligment
+            -- -- Swap testing emojis and their names, so animations are opposite colour.
+            -- PEARL.EMOJIS.UTF_TO_NAME[PEARL.EMOJIS.DISCORD["whitesquare"]] = "blacksquare"
+            -- PEARL.EMOJIS.UTF_TO_NAME[PEARL.EMOJIS.DISCORD["blacksquare"]] = "whitesquare"
 
-            local debug_text = self.chat_edit:AddChild(Text(UIFONT, 60))
-            debug_text:SetString(PEARL.EMOJIS.DISCORD.whitesquare.." "..PEARL.EMOJIS.DISCORD.whitesquare..""..PEARL.EMOJIS.DISCORD.whitesquare)
+            -- local debug_text = self.chat_edit:AddChild(Text(UIFONT, 60))
+            -- debug_text:SetString(PEARL.EMOJIS.DISCORD.whitesquare.." "..PEARL.EMOJIS.DISCORD.whitesquare..""..PEARL.EMOJIS.DISCORD.whitesquare)
 
-            local infront = false
-            PEARL.AddClassFunctionPreCall("OnRawKey", function(self, key, down)
-                if not down then
-                    return
-                end
+            -- local infront = false
+            -- PEARL.AddClassFunctionPreCall("OnRawKey", function(self, key, down)
+            --     if not down then
+            --         return
+            --     end
 
-                if key == KEY_DOWN then
-                    debug_text:SetSize(debug_text:GetSize() - 1)
-                    return false
-                elseif key == KEY_UP then
-                    debug_text:SetSize(debug_text:GetSize() + 1)
-                    return false
-                end
+            --     if key == KEY_DOWN then
+            --         debug_text:SetSize(debug_text:GetSize() - 1)
+            --         return false
+            --     elseif key == KEY_UP then
+            --         debug_text:SetSize(debug_text:GetSize() + 1)
+            --         return false
+            --     end
 
-                local anim = next(debug_text.children)
-                if not anim then
-                    return
-                end
+            --     local anim = next(debug_text.children)
+            --     if not anim then
+            --         return
+            --     end
 
-                if key == KEY_F2 then
-                    if not infront then
-                        anim:MoveToFront()
-                    else
-                        anim:MoveToBack()
-                    end
+            --     if key == KEY_F2 then
+            --         if not infront then
+            --             anim:MoveToFront()
+            --         else
+            --             anim:MoveToBack()
+            --         end
 
-                    infront = not infront
-                    return false
-                end
+            --         infront = not infront
+            --         return false
+            --     end
 
-                local x, y = anim:GetPositionXYZ()
-                if key == KEY_LEFT then
-                    anim:SetPosition(x + 1, y)
-                    print("NEW POSITION", anim:GetPositionXYZ())
-                elseif key == KEY_RIGHT then
-                    anim:SetPosition(x - 1, y)
-                    print("NEW POSITION", anim:GetPositionXYZ())
-                end
-            end, TheFrontEnd)
+            --     local x, y = anim:GetPositionXYZ()
+            --     if key == KEY_LEFT then
+            --         anim:SetPosition(x + 1, y)
+            --         print("NEW POSITION", anim:GetPositionXYZ())
+            --     elseif key == KEY_RIGHT then
+            --         anim:SetPosition(x - 1, y)
+            --         print("NEW POSITION", anim:GetPositionXYZ())
+            --     end
+            -- end, TheFrontEnd)
         end
 
         AddEmojiMenu(self)

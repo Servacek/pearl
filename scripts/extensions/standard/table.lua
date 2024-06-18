@@ -249,20 +249,25 @@ function table:getallkeys(value)
     return keys
 end
 
+--- @param t table
+--- @param path string
+--- @return any
 function table.pathget(t, path)
     local value = t
-    for key in path:gmatch("[^%.]+") do
-        if type(value) ~= "table" then
-            return nil -- If any intermediate value is not a table, return nil
-        end
-
-        value = rawget(value, key) or rawget(value, tonumber(key))
-        if value == nil then
-            return nil -- If any key doesn't exist, return nil
+    for key in path:gmatch("[%w_]+") do
+        if type(value) == "table" then
+            if value[key] ~= nil then -- Check for explicit nil in case of falsy values
+                value = value[key]
+            else
+                value = value[tonumber(key)] -- Support for arrays
+            end
+        else
+            return nil -- Some intermediate value on the path is not a table
         end
     end
 
-    return value
+    --- If we have ended on the start, then this path is invalid.
+    return value ~= t and value or nil
 end
 
 function table.pathset(t, path, new)

@@ -46,16 +46,13 @@ local function WriteUntranslatedModStrings(base, original, translated, file)
     -- These always start with STRINGS.PEARL
 	for k, v in PEARL.opairs(original) do
 		local path = base and base.."."..tostring(k) or k
+        print("STRING", path, k, v)
 
         -- Search for strings in our mod table that do not have translation
 		if type(v) == "table" then
 			WriteUntranslatedModStrings(path, v, translated, file)
 		elseif translated[path] == nil then
-			local msgid = table.pathget(original, path:sub(#base + 2)) or ""
-			msgid = string.gsub(msgid, "\n", "\\n")
-			msgid = string.gsub(msgid, "\r", "\\r")
-			msgid = string.gsub(msgid, "\"", "\\\"")
-
+			local msgid = normalize(type(v) == "string" and v or tostring(v or ""))
             if not msgid or msgid == "" then
                 PEARL.warn("Translation", path, "doesn't map to an existing string!")
             end
@@ -70,9 +67,9 @@ local function WriteTranslatedStrings(base, original, translated, file)
     -- Here we traverse the translated strings.
     -- Some of these may not base in STRINGS.PEARL
 	for path, msgstr in PEARL.opairs(translated) do
-        msgstr = normalize(msgstr)
         local msgid = normalize(table.pathget(original, path:sub(#base + 2)) or "")
 
+        msgstr = normalize(msgstr)
         local tmatchers = #msgstr:findall(STRING_MATCH_CHAR)
         local omatchers = #msgid:findall(STRING_MATCH_CHAR)
         if tmatchers ~= omatchers then

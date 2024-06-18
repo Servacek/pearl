@@ -286,6 +286,9 @@ PEARL.X64 = APP_ARCHITECTURE == "x64"
 --- Works even with UGC mods since the paths are translated automatically by the engine.
 MODROOT = MODROOT
 
+--- ../mods/
+MODS_ROOT = MODS_ROOT
+
 --------------------------------
 -- [[ Server Mod Config ]]
 --------------------------------
@@ -753,6 +756,22 @@ end
 -- [[ Frontend ]]
 --------------------------------
 
+local function LoadExtensionMods()
+    for modname, data in pairs(PEARL.CONFIG.EXTENSION_MODS) do
+        print("EXTENSION MOD", modname, data, data.ENABLED)
+        table.dump(data)
+        if data.ENABLED == true then
+            PEARL.info("Loading extension mod", modname)
+            --- @TODO: Handle the environment with the extension specific configurations correctly.
+            PEARL.loadfile("../../"..modname.."/modmain.lua", setmetatable({
+                EXTENSION = data,
+            }, getmetatable(PEARL)), nil, function(...)
+                PEARL.error("Failed to load extension mod", modname, "Reason:", ...)
+            end)
+        end
+    end
+end
+
 -- In debug mode we want to load sometimes the frontend on servers as well to see if there is
 -- any error.
 if TheNet:GetIsClient() then-- or PEARL.CONFIG.DEBUG_MODE then
@@ -760,19 +779,37 @@ if TheNet:GetIsClient() then-- or PEARL.CONFIG.DEBUG_MODE then
     PEARL.loadfile("frontend")
     PEARL.info("Loading mod FE done.")
 
-    -- if not KnownModIndex:DoesModExist("workshop-2517433969", "1.3.1") then
-    --     if TheSim:QueueDownloadTempMod("workshop-2517433969") then
-    --         PEARL.ClientLoader:AddDeferant("extension_download")
-    --         TheSim:StartDownloadTempMods(function(...)
-    --             print(...)
+    PEARL.info("Verifying extension mods...")
+    local download_count = 0
+    for modname, data in pairs(PEARL.CONFIG.EXTENSION_MODS) do
+        if not KnownModIndex:DoesModExist(modname, data.VERSION) then
+            if TheSim:QueueDownloadTempMod(modname, data.VERSION) then
+                download_count = download_count + 1
+            end
+        end
+    end
 
-    --             -- For the love of God, let the framebuffer complete!
-    --             PEARL.WallScheduler:ExecuteInTime(0, function()
-    --                 PEARL.ClientLoader:RemoveDeferant("extension_download")
-    --             end)
-    --         end)
-    --     end
-    -- end
+    if download_count > 0 then
+        PEARL.ClientLoader:AddDeferant("extension_download")
+
+        PEARL.info("Missing", download_count, "extension mods! Downloading them right now...")
+        TheSim:StartDownloadTempMods(function(success, msg)
+            download_count = download_count - 1
+            if download_count == 0 then
+                -- For the love of God, let the framebuffer complete!
+                PEARL.WallScheduler:ExecuteInTime(0, function()
+                    PEARL.info("Extension mods downloaded!")
+                    LoadExtensionMods()
+
+                    -- Continue loading the game normally.
+                    PEARL.ClientLoader:RemoveDeferant("extension_download")
+                end)
+            end
+        end)
+    else
+        PEARL.info("All extension mods seem to loaded correctly.")
+        LoadExtensionMods()
+    end
 end
 
 --------------------------------

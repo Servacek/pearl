@@ -844,6 +844,26 @@ configuration_options = {
         type = "table",
     },
 
+    {
+        --> e.g.:
+        --[[
+            EXTENSION_MODS = {
+                ["workshop-1203020"] = {
+                    CONFIG = {
+                        SOMEFIELD = SOMEVALUE,
+                        ...
+                    }
+                    ENABLED = true,
+                },
+                ...
+            },
+        --]]
+        name = "EXTENSION_MODS",
+        default = {},
+        type = "table",
+        public = true,
+    },
+
     --------------------
     -- Network
     --------------------

@@ -80,7 +80,7 @@ local function OnPlayerFinishedAgreement(data)
     end
     _finished = true
 
-    PEARL.AgreementManager:ClientAgreed(data)
+    PEARL.AgreementManager:AgreementFinished(data)
     PEARL.AgreementManager:SyncAgreementDataWithServer()
 end
 
@@ -154,18 +154,22 @@ ShowAgreement = function()
 end
 
 local function NotifyAgreementUpdate()
-    return TheFrontEnd:PushScreen(PopupDialogScreen(
+    local popup
+    popup = TheFrontEnd:PushScreen(PopupDialogScreen(
         STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_TITLE,
         STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_BODY,
         {{
             text = STRINGS.PEARL.UI.AGREEMENT_UPDATED_POPUP_CONTINUE,
-            cb = ShowAgreement,
+            cb = function()
+                ShowAgreement()
+                TheFrontEnd:PopScreen(popup)
+            end,
         }}
     ))
 end
 
 local function OnContinue()
-    if PEARL.AgreementManager:IsAgreementScreenEnabled() then
+    if PEARL.AgreementManager:IsAgreementScreenEnabled() and not _finished then
         if PEARL.AgreementManager:WasAgreementDisplayed() then
             return NotifyAgreementUpdate()
         end

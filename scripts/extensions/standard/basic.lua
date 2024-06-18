@@ -36,15 +36,15 @@ local function __genOrderedIndexSafe(t)
     local orderedIndex = {}
     for key in pairs(t) do
         -- Make sure the items in the list are of the same type because of the sorting.
-        t[#t + 1] = tostring(key)
+        orderedIndex[#orderedIndex + 1] = tostring(key)
     end
 
     table.sort(orderedIndex)
     return orderedIndex
 end
 
-PEARL.opairs = function(t, state)
-    return function()
+PEARL.opairs = function(t)
+    return function(_, state)
         local key = nil
         if state == nil then
             -- the first time, generate the index
