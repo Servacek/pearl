@@ -45,8 +45,7 @@ local function WriteUntranslatedModStrings(base, original, translated, file)
     -- We are traversing the actual table from strings.lua
     -- These always start with STRINGS.PEARL
 	for k, v in PEARL.opairs(original) do
-		local path = base and base.."."..tostring(k) or k
-        print("STRING", path, k, v)
+		local path = base and base.."."..tostring(k) or tostring(k)
 
         -- Search for strings in our mod table that do not have translation
 		if type(v) == "table" then

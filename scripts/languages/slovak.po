@@ -3743,14 +3743,54 @@ msgctxt "STRINGS.PEARL.FULL_MONTH_NAME"
 msgid "%s %s"
 msgstr ""
 
-#. STRINGS.PEARL.GRIEFER_WARNINGS.1
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1"
-msgid ""
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.1
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.1"
+msgid "Oops?!"
 msgstr ""
 
-#. STRINGS.PEARL.GRIEFER_WARNINGS.2
-msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2"
-msgid ""
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.2
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.2"
+msgid "Has Charlie seen that?!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.3
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.3"
+msgid "Wait, isn't this griefing?"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.4
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.4"
+msgid "Maybe I should calm down a bit..."
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.1.5
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.1.5"
+msgid "My compatriots would be mad at me!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.1
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.1"
+msgid "This could end badly..."
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.2
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.2"
+msgid "I've made enough of a mess!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.3
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.3"
+msgid "What have I done?!"
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.4
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.4"
+msgid "I'm starting to hear some strange voices."
+msgstr ""
+
+#. STRINGS.PEARL.GRIEFER_WARNINGS.2.5
+msgctxt "STRINGS.PEARL.GRIEFER_WARNINGS.2.5"
+msgid "Looks like someone is getting really mad at me!"
 msgstr ""
 
 #. STRINGS.PEARL.GRIEFER_WARNINGS.BAN

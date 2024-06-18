@@ -36,10 +36,13 @@ local function __genOrderedIndexSafe(t)
     local orderedIndex = {}
     for key in pairs(t) do
         -- Make sure the items in the list are of the same type because of the sorting.
-        orderedIndex[#orderedIndex + 1] = tostring(key)
+        orderedIndex[#orderedIndex + 1] = key
     end
 
-    table.sort(orderedIndex)
+    table.sort(orderedIndex, function(a, b)
+        return tostring(a) < tostring(b)
+    end)
+
     return orderedIndex
 end
 
