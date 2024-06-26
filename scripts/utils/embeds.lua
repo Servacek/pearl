@@ -222,7 +222,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
         if data.dayleader then
             local netid = PEARL.DB:GetField(data.dayleader, "netid")
             local username = tostring(PEARL.DB:GetField(data.dayleader, "username") or "UNKNOWN")
-            local daygains = PEARL.Reputation:GetDisplayField(data.dayleader, PEARL.Reputation.FIELD.DAYGAINS)
+            local daygains = PEARL.Reputation:GetDisplayField(data.dayleader, PEARL.Reputation.FIELD.DAYGAINS, 0)
             --local reputation = PEARL.Reputation:GetOf(data.dayleader)
             --local percent = math.round(gains / math.max(reputation - gains, 1), 4) * 100
 

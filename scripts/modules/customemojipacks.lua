@@ -17,7 +17,9 @@ local Emoji = require("util/emoji")
 -- [[ Constants ]]
 --------------------------------
 
-local PATH = PEARL.MODROOT.."fonts/%s.zip"
+local FONT_ASSET_PATH = PEARL.MODROOT.."fonts/%s.zip"
+local ANIM_ASSET_PATH = PEARL.MODROOT.."anim/%s.zip"
+
 local CUSTOM_EMOJI_FONTS = {}
 local FONT_FALLBACK_TABLES = {
     DEFAULT_FALLBACK_TABLE,
@@ -28,15 +30,21 @@ local FONT_FALLBACK_TABLES = {
 -- [[ Assets ]]
 --------------------------------
 
-for emoji_pack_name, enabled in pairs(PEARL.CONFIG.CUSTOM_EMOJI_PACKS) do
+for pack_name, enabled in pairs(PEARL.CONFIG.CUSTOM_EMOJI_PACKS) do
     if enabled == true then
-        local filepath = PATH:format(emoji_pack_name)
-        local font_table = {filename = filepath, alias = emoji_pack_name, disable_color = true}
+        local filepath = FONT_ASSET_PATH:format(pack_name)
+        local font_table = {filename = filepath, alias = pack_name, disable_color = true}
 
         table.insert(CUSTOM_EMOJI_FONTS, font_table)
         table.insert(GLOBAL.FONTS, font_table)
 
         table.insert(PEARL.ENV.Assets, Asset("FONT", filepath))
+
+        if PEARL.EMOJIS.IsEmojiPackAnimated(pack_name) then
+            for emoji_name, _ in pairs(PEARL.EMOJIS.PACK_CHAR_MAP[pack_name]) do
+                table.insert(PEARL.ENV.Assets, Asset("ANIM", ANIM_ASSET_PATH:format(emoji_name)))
+            end
+        end
     end
 end
 
@@ -44,7 +52,8 @@ end
 -- [[ Autocomplete ]]
 --------------------------------
 
---- @TODO: Modify the EMOJI_ITEMS table directly?
+--- TODO: Modify the EMOJI_ITEMS table directly?
+--- This would require to modify the TheInventory which is kinda... meh
 PEARL.OverrideReturnValue(Emoji, "GetWordPredictionDictionary", function(data)
     for _, char_map in pairs(PEARL.EMOJIS.PACK_CHAR_MAP) do
         table.join(data.words, table.keys(char_map))

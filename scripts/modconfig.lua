@@ -50,7 +50,7 @@ local function ParsePublicConfigOption(option, tbl)
         tbl[option.name] = PEARL.CONFIG[option.name]
 
         --- Do not ZIP the data in debug mode, clients can handle encoded as well as raw data.
-        if option.zip == true and tbl[option.name] and not PEARL.CONFIG.DEBUG_MODE then
+        if option.zip == true and tbl[option.name] ~= nil then --and not PEARL.CONFIG.DEBUG_MODE then
             local value = tbl[option.name]
             local type = type(value)
             if type == "string" then
@@ -60,7 +60,7 @@ local function ParsePublicConfigOption(option, tbl)
                     return
                 end
 
-                tbl[option.name] = TheNet:ZipAndEncodeString(value)
+                tbl[option.name] = TheSim:ZipAndEncodeString(value)
             elseif type == "table" then
                 -- Do not zip empty tables
                 if IsTableEmpty(value) then
@@ -239,6 +239,49 @@ function ModConfig:LoadCommmonConfig()
     return config
 end
 
+function ModConfig:TryUnzipAndDecodeOption(option)
+    local config_data = PEARL.GetModConfigData(option.name)
+    print("Received", config_data, "from GetModConfigData")
+    if type(config_data) ~= "string" then
+        print(option.name, "not a string so returning", config_data)
+        return config_data -- There is nothing to be unzipped or decoded.
+    end
+
+    --- This returns an empty string on failure.
+    local unzipped, unzipped_str = pcall(TheSim.DecodeAndUnzipString, TheSim, config_data)
+    if unzipped ~= true or unzipped_str == nil or unzipped_str == "" then
+        unzipped_str = config_data -- Unzipping failed, try to use the raw zipped? string.
+
+        -- Even options marked as zipped may not be zipped.
+        -- if option.zip then
+        --     PEARL.error("Failed to unzip configuration option", option.name, "using the unzipped form instead.")
+        -- end
+    end
+
+    if unzipped_str then
+        if option.type == "string" then
+            return unzipped_str
+        elseif option.type == "table" then
+            -- Deconding for JSON strings
+            local decoded, decoded_data = pcall(json.decode, unzipped_str) --- @type boolean?, any
+            if decoded == true and type(decoded_data) == "table" then
+                return decoded_data
+            end
+
+            -- Decoding for Lua strings (from DataDumper)
+            decoded, decoded_data = RunInSandboxSafe(unzipped_str)
+            if decoded == true and type(decoded_data) == "table" then
+                return decoded_data
+            end
+
+            PEARL.error("Decoding configuration option", option.name, "failed! Returning default value...")
+            return option.default
+        end
+    end
+
+    return config_data -- Else return the default value (e. g. for table types)
+end
+
 --- @param name string|number
 --- @param value string|number|table
 function ModConfig:ApplyConfig(name, value)
@@ -246,7 +289,7 @@ function ModConfig:ApplyConfig(name, value)
         return -- We are just extending the configuration, so no erasing.
     end
 
-    if type(PEARL.DEFAULT_CONFIG[name]) ~= type(value) then
+    if PEARL.DEFAULT_CONFIG[name] ~= nil and type(PEARL.DEFAULT_CONFIG[name]) ~= type(value) then
         return error("Attempted to override option ("..name..") with an invalid value "..string.raw(tostring(value)))
     end
 
@@ -281,12 +324,12 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     local data = ModConfig:GetEnabledServerModsConfigData(PEARL.CONFIG.HIDE_SERVER_ONLY_MODS)
     local data_str = DataDumper(data, nil, false)
 
-    if PEARL.CONFIG.DEBUG_MODE then
+    --if PEARL.CONFIG.DEBUG_MODE then
         TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:")
         for _, line in pairs(data_str:split("\n")) do
             print(line)
         end
-    end
+    --end
 
     return data_str
 end)

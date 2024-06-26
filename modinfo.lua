@@ -23,6 +23,7 @@ description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
 
+-- 1/0 == math.huge == 1.#INF - But this crashes while loading GENMOD_DATA!
 priority = 1.7976931348623e+308 -- std::numeric_limits<lua_Number>::max()
 
 dst_compatible = true
@@ -485,6 +486,25 @@ configuration_options = {
     --------------------
     -- Other Modules
     --------------------
+
+    {
+        name = "MAINTENANCE_REBOOT",
+        default = nil, -- No reboot at all.
+        type = "number",
+    },
+
+    {
+        -- Useful when you are too lazy to figure out what option turns of the given module.
+        -- The "MODULE_FILE_NAME" should be case sensitive.
+        --[[
+            MODULES = {
+                <MODULE_FILE_NAME>: true|false,
+            }
+        --]]
+        name = "MODULES",
+        default = {},
+        type = "table",
+    },
 
     {
         name="BETTER_WORMWOOD_FONT",

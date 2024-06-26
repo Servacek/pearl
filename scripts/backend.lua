@@ -376,6 +376,28 @@ end end
 --- Available to clients.
 PEARL.CONFIG.DISCORD_PROXY_ENABLED = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED or PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED
 
+
+--------------------------------
+-- [[ Maintenance ]]
+--------------------------------
+
+if not PEARL.INITIAL_LAUNCH then
+
+    --- @type Cron
+    PEARL.Cron = PEARL.loadfile("cron")
+
+    do
+        local MAINTENANCE_REBOOT_HOUR = tonumber(PEARL.CONFIG.MAINTENANCE_REBOOT)
+        if MAINTENANCE_REBOOT_HOUR ~= nil then
+            PEARL.info("Configuring maintenance reboot job...")
+
+            PEARL.Cron:AddJob(PEARL.Cron:New(
+                38, 15, "*", "*", "*", PEARL.Reboot
+            ))
+        end
+    end
+end
+
 --------------------------------
 -- [[ Simulation Handlers ]]
 --------------------------------

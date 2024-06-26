@@ -389,9 +389,9 @@ local function OnRestart()
     ), PEARL.ICONS.SERVER_STATE.RESTART)
 end
 
-local function OnWorldGenComplete(world)
-    if world then
-        PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldInfo(world, nil, true))
+local function OnLoadingStateChanged(old_state, new_state)
+    if old_state == PEARL.LoadingState.Generating and new_state == PEARL.LoadingState.DoneLoading then
+        PEARL.DiscordLogger:LogEmbed(EMBEDS.WorldInfo(TheWorld, nil, true))
     end
 end
 
@@ -442,7 +442,6 @@ PEARL.AddWorldPostInit(function(world)
         world:ListenForModEvent("world_rollback", OnRollback)
         world:ListenForModEvent("world_rollback_days", OnDaysBack)
         world:ListenForModEvent("world_restart", OnRestart)
-        world:ListenForModEvent("worldgencomplete", OnWorldGenComplete)
 
         if world.components.playerspawner then
             --- Use precall because some data may be cleared during the original function execution.
@@ -469,3 +468,5 @@ PEARL.AddPrefabPostInit("forest_network", RegisterNetworkListeners)
 --> Mod Internal Events
 PEARL.EventProcessor:AddSafeEventHandler("clientconnectionclosed", OnClientConnectionClosed)
 PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
+
+PEARL.EventProcessor:AddSafeEventHandler("loading_state_changed", OnLoadingStateChanged)

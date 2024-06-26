@@ -31,12 +31,14 @@ for emoji_id, utf8_str in pairs(EMOJIS.ALL) do
     if data == nil then
         PEARL.info("Adding new emoji", name, emoji_id)
 
+        local vanilla = EMOJIS.IsEmojiVanilla(emoji_id)
         data = {
             name = name,
             id = emoji_id,
             utf8_str = utf8_str,
-            timecreated = os.time(),
+            timecreated = not vanilla and os.time() or nil,
             available = true,
+            vanilla = vanilla,
         }
         emoji_data_list[emoji_id] = data
     else
@@ -45,6 +47,14 @@ for emoji_id, utf8_str in pairs(EMOJIS.ALL) do
     end
 
     data.animated = EMOJIS.IsEmojiAnimated(emoji_id)
+
+    if data.timecreated ~= nil then
+        if data.animated then
+            data.timecreated = os.time()
+        else
+            data.timecreated = 1712348896
+        end
+    end
 end
 
 local output = CustomDataDumper(emoji_data_list, nil, false, nil, true)

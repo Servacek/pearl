@@ -111,12 +111,13 @@ PlayerRecord.AddFieldDefaults(Reputation.FIELD_DEFAULT)
 --- Returns a field normalized and ready to be displayed.
 --- @param userid string
 --- @param field Reputation.FIELD Defaults to Reputation.FIELD.VALUE
+--- @param dp integer? Number of decimal places to round to, defaults to DISPLAY_DECIMAL_PLACES
 --- @return any
-function Reputation:GetDisplayField(userid, field)
+function Reputation:GetDisplayField(userid, field, dp)
     PEARL.debug("Reputation:GetFieldOf", userid, field)
 
     local value = self:GetFieldOf(userid, field)
-    return type(value) == "number" and math.round(value, DISPLAY_DECIMAL_PLACES) or value
+    return type(value) == "number" and math.round(value, dp or DISPLAY_DECIMAL_PLACES) or value
 end
 
 --- @param userid string

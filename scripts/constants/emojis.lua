@@ -419,6 +419,16 @@ function EMOJIS.IsEmojiAvailable(emoji_id)
     )
 end
 
+function EMOJIS.IsEmojiPackAnimated(pack_name)
+    for _, category in pairs(EMOJIS.PACKS) do
+        if category[EMOJIS.PACK_TYPE.ANIMATED] == pack_name then
+            return true
+        end
+    end
+
+    return false
+end
+
 function EMOJIS.IsAnyAnimatedEmojiPackEnabled()
     for _, category in pairs(EMOJIS.PACKS) do
         for pack_type, pack_name in pairs(category) do

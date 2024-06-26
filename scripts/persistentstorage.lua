@@ -58,7 +58,6 @@ function STORAGE.Save()
 end
 
 function STORAGE.Load()
-    print(FILE_PATH)
     local data = DEFAULT_PERSISTENCE_MANAGER:LoadDataFromFile(FILE_PATH, false)
     STORAGE.DATA = type(data) == "table" and data or {}
 end

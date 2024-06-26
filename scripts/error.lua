@@ -18,6 +18,15 @@
     On clients, we should be able to send the traceback as soon as this file is loaded.
 ]]
 
+--[[
+    KNOWN ERRORS
+    - DoLuaFile Error: #[string "scripts/json.lua"]:330: Failed to scan constant at starting position 19566 from string
+       - Most likely one of the mods in the "mods" folder has some crap in it's modinfo.lua that our json is unable to parse.¨
+
+    - [00:08:05]: [string "scripts/widgets/uiclock.lua"]:252: invalid number of time segs
+      - Netvars desynchronized... again.
+--]]
+
 
 local PopupDialogScreen = require("screens/redux/popupdialog")
 

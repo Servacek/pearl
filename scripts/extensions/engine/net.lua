@@ -13,6 +13,9 @@
 --- the Ban functions so they drop player's inventory upon being called.
 --- We override the engine function itself to ensure all calls are handled this way.
 
+if not TheNet then
+    return -- There is nothing to be expanded.
+end
 
 --- @engine
 --- @class TheNet
@@ -87,4 +90,32 @@ function __index:Kick(userid, seconds, reason, author)
     end
 
     return __index_ORIGIN.Kick(TheNet, userid, seconds)
+end
+
+function __index:Say(message, ...)
+    if type(message) == "string" then
+        message = message:gsub(PEARL.CONSTS.HYBRID_EMOJI_PATTERN, function(emoji_id)
+            if PEARL.EMOJIS.IsEmojiAvailable(emoji_id) then
+                return PEARL.EMOJIS.ALL[emoji_id]
+            end
+        end)
+    end
+
+    local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+    local needs_saving = false
+    for match in message:gmatch(PEARL.CONSTS.UTF_EMOJI_PATTERN) do
+        local emoji_name = PEARL.EMOJIS.UTF_TO_NAME[match]
+        if emoji_name then
+            ClientEmojis:OnEmojiUsed(emoji_name)
+            needs_saving = true
+        end
+    end
+
+    if needs_saving then
+        ClientEmojis:SavePersistentData()
+
+        PEARL.INST:PushEvent("emojis_used")
+    end
+
+    return __index_ORIGIN.Say(TheNet, message, ...)
 end

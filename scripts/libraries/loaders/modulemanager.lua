@@ -90,6 +90,10 @@ end
 ---
 --- @return any results Any results returned by the module file.
 function ModuleManager:LoadModule(md_name)
+    if PEARL.CONFIG.MODULES[md_name] == false then
+        return PEARL.info("Skipping module", md_name, "because it's configured as disabled.")
+    end
+
     -- Add the module to the module cache and set is as disabled so it doesn't load again.
     self:AddModule(md_name)
 

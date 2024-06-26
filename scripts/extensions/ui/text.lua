@@ -38,7 +38,7 @@ local TEXT_WIDGET_OFFSET_Y = 0---3
 
 --- Using static instance, so we do not have to recreate it on simple calculations.
 local _text_widget
-local _inserted_emojis = {}
+local _emoji_anim_states = setmetatable({},{__mode = "kv"})
 local _parents = setmetatable({},{
     __mode = "kv", -- Do not let the tables stored inside to hide from the Garbage Collector!
 })
@@ -53,6 +53,7 @@ assert(_TextEditWidget_SetString and _TextWidget_SetString and _TextWidget_Reset
 -------------------------------
 
 local function GetStringSize(self, s, font, size)
+    PEARL.debug("GetStringSize", self, s, font, size, "FONT", self and self.font, self and self.size)
     --- For empty strings this goes crazy! "1.7014117331926e+038"
     if s == "" then
         return 0, 0
@@ -74,9 +75,8 @@ local function GetStringSize(self, s, font, size)
 end
 
 local function AdjustWidget(lua_widget, widget)
-    local s = lua_widget:GetString()
+    local s = lua_widget:GetString() -- The whole string content of this widget
     local prefix = s:sub(1, widget._first_index - 1)
-    --print("STRING", string.raw(s), "PREFIX", string.raw(prefix), "PROXY_STR", string.raw(widget._proxy_str), PEARL.EMOJIS.UTF_TO_NAME[widget._proxy_str])
     local prefix_width = GetStringSize(lua_widget, prefix)
     if prefix_width > 0 then
         prefix_width = prefix_width + 4
@@ -111,6 +111,22 @@ local function AdjustAllInsertedWidgets(lua_widget)
         end
     end
 end
+
+-- local function OnLuaWidgetInstRemoved(inst)
+--     print("OnLuaWidgetRemoved", inst, inst._proxy_str)
+--     local lua_widget = inst.widget
+--     if not lua_widget then
+--         return
+--     end
+
+--     print("OnLuaWidgetRemoved", lua_widget)
+--     for _, widget in pairs(lua_widget.inserted_widgets) do
+--         if widget._proxy_str ~= nil then
+--             print("REMOVING", widget._proxy_str)
+--             _emoji_anim_states[widget._proxy_str] = nil
+--         end
+--     end
+-- end
 
 --- @param widget Widget
 local function RemoveWidget(lua_widget, widget)
@@ -150,6 +166,8 @@ local function InsertWidgetAtPosition(lua_widget, widget, first, last)
     end
     lua_widget.inserted_widgets[first] = widget
 
+    --lua_widget.inst:ListenForEvent("onremove", OnLuaWidgetInstRemoved)
+
     AdjustWidget(lua_widget, widget)
 end
 
@@ -180,12 +198,14 @@ local function InsertAnimatedEmoji(lua_widget, first, last, emoji_utf8_str)
     emoji_anim_state:PlayAnimation("default", true)
     emoji_anim.GetRegionSize = GetAnimatedEmojiSize
 
-    local frame = _inserted_emojis[emoji_utf8_str] and _inserted_emojis[emoji_utf8_str]:GetCurrentAnimationFrame()
+    local frame = _emoji_anim_states[emoji_utf8_str] and _emoji_anim_states[emoji_utf8_str]:GetCurrentAnimationFrame()
+    local len = emoji_anim_state:GetCurrentAnimationLength()
+    print("FRAME", frame, "TICK", GetStaticTick(), len, GetStaticTick() % len)
     if frame ~= nil then
         emoji_anim_state:SetFrame(frame)
     end
 
-    _inserted_emojis[emoji_utf8_str] = emoji_anim_state
+    _emoji_anim_states[emoji_utf8_str] = emoji_anim_state
     InsertWidgetAtPosition(lua_widget, emoji_anim, first, last)
     emoji_anim:MoveToBack()
 end
@@ -282,19 +302,23 @@ local function OnTextPostConstruct(lua_widget)
 
     local _SetFont = lua_widget.SetFont
     lua_widget.SetFont = function(self, font, ...)
+        local old = self.font
         _SetFont(self, font, ...)
-        if self.font ~= font then
-            AdjustAllInsertedWidgets()
+        if old ~= font then
+            AdjustAllInsertedWidgets(lua_widget)
         end
     end
 
     local _SetSize = lua_widget.SetSize
     lua_widget.SetSize = function(self, size, ...)
+        local old = self.size
         _SetSize(self, size, ...)
-        if self.size ~= size then
-            AdjustAllInsertedWidgets()
+        if old ~= size then
+            AdjustAllInsertedWidgets(lua_widget)
         end
     end
+
+    OnTextUpdated(lua_widget)
 end
 
 ---------------------------

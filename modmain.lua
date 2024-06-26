@@ -114,8 +114,19 @@ local GLOBAL = GLOBAL
 local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 
 --------------------------------
+-- [[ Dependencies ]]
+--------------------------------
+
+require("events")
+require("modindex")
+require("mainfunctions")
+
+--------------------------------
 -- [[ Local Constants ]]
 --------------------------------
+
+local WORLDGEN_THREAD = WORLDGEN_MAIN == 1
+local MAIN_THREAD = not WORLDGEN_THREAD
 
 local ENV = GLOBAL.getfenv()
 local MT = {
@@ -172,45 +183,12 @@ GLOBAL.PEARL = setmetatable({
     MOD_INFO            = KnownModIndex:GetModInfo(modname),
     MOD_DATA            = KnownModIndex.savedata.known_mods[modname],
     RPC_NAME            = modname.."_rpc",
+    WORLDGEN_THREAD     = WORLDGEN_THREAD,
+    MAIN_THREAD         = MAIN_THREAD,
 
-    BOOT_TIME           = os.time() - GetTimeRealSeconds() + 1,
+    LOADING_STATE       = LoadingStates.None,
 
-    GetConfigData       = function(opt_name, no_supp, ...)
-        local data = ENV.GetModConfigData(opt_name, ...)
-        if type(data) ~= "table" or no_supp then
-            if data == nil and PEARL.DEFAULT_CONFIG then
-                return PEARL.DEFAULT_CONFIG[opt_name]
-            end
-            return data
-        end
-
-        -- Make sure the newly returned option will inherit everything from the defaults.
-        local function supplement(default, actual)
-            for name, value in pairs(default) do
-                if actual[name] == nil and actual[name] ~= value then
-                    actual[name] = value
-                elseif type(default[name]) == "table" then
-                    if type(actual[name]) ~= "table" then
-                        actual[name] = {}
-                    end
-
-                    supplement(default[name], actual[name])
-                end
-            end
-        end
-
-        for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
-            if option.name == opt_name then
-                if type(option.default) == "table" then
-                    supplement(option.default, data)
-                end
-
-                break
-            end
-        end
-
-        return data
-    end,
+    BOOT_TIME           = os.time() - ((GetTimeRealSeconds and GetTimeRealSeconds() or 0) + 1),
 
     SOURCE_DIR_NAME     = "scripts",
     DATA_DIR_NAME       = "data",
@@ -243,16 +221,16 @@ GLOBAL.PEARL = setmetatable({
         NIL         = "nil",
     },
 
-    CLIENT_SIDE         = TheNet:GetIsClient(), -- But frontend we mean client-side
-    SERVER_SIDE         = TheNet:GetIsServer(),
-    OFFLINE             = TheNet:GetIsClient() == false and TheNet:GetIsServer() == false,
+    CLIENT_SIDE         = TheNet and (TheNet:GetIsClient() and not TheNet:IsDedicated()) or false,
+    SERVER_SIDE         = TheNet and (not TheNet:GetIsClient() or TheNet:GetIsServer()) or false,
+    OFFLINE             = TheNet and ((TheNet:GetIsClient() == false and TheNet:GetIsServer() == false) or TheNet:IsDedicatedOfflineCluster()) or false,
 
     -- Whether this is the initial launch of the mod or not.
     -- We only care about this on dedicated servers.
-    INITIAL_LAUNCH      = TheSim:GetNumLaunches() == 1, -- i.e. First launch of the game (partial)
-    INITIAL_FULL_LAUNCH = TheSim:GetNumLaunches() == 2, -- First launch where the game fully loads
-    SUBSEQUENT_LAUNCH   = TheSim:GetNumLaunches() > 1,  -- Subsequent launches are always "full".
-    LAUNCH_COUNT        = TheSim:GetNumLaunches(),      -- The number of total launches from boot.
+    INITIAL_LAUNCH      = TheSim and TheSim:GetNumLaunches() == 1 or false, -- i.e. First launch of the game (partial)
+    INITIAL_FULL_LAUNCH = TheSim and TheSim:GetNumLaunches() == 2 or false, -- First launch where the game fully loads
+    SUBSEQUENT_LAUNCH   = TheSim and TheSim:GetNumLaunches() > 1 or false,  -- Subsequent launches are always "full".
+    LAUNCH_COUNT        = TheSim and TheSim:GetNumLaunches() or 0,      -- The number of total launches from boot.
 
     PREFAB              = "MOD_"..modname,
 
@@ -260,7 +238,7 @@ GLOBAL.PEARL = setmetatable({
     UNIQUE_IDENTIFIER   = "3122299418", -- Unique identifier for this mod.
 
     --- @type string?
-    SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
+    SHARDID             = TheNet and TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
 
     --- @type EventProcessor
     EventProcessor      = EventProcessor(), -- Used for sending internal events within the mod.
@@ -301,7 +279,7 @@ if type(PEARL.ModConfig) ~= "table" then
     return error("Failed to load mod configurations!")
 end
 
-if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
+if not TheNet:GetIsClient() and TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
     return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
 end
 
@@ -355,9 +333,46 @@ PEARL.loadfile("extensions/json")
 
 PEARL.loadfile("extensions/engine/net")
 
+----------------------------------
+-- Unzipping Zipped Configuration
+-- ----------------------------------
+
+-- for _, option in ipairs(PEARL.MOD_DATA.temp_config_options) do
+--     if option.zip then
+--         local value = PEARL.GetModConfigData(option.name)
+--         print(value)
+--         if type(value) == "string" then
+--             print("Attempting to unzip and decode config option", option.name)
+--             local unzipped = PEARL.ModConfig:TryUnzipAndDecodeOption(option)
+
+--             -- If the required type is a table, we cannot keep it as string, so fallback to default value.
+--             if type(option.default) == "table" and unzipped == nil then
+--                 unzipped = deepcopy(option.default)
+--             end
+
+--             option.saved = unzipped
+--             if PEARL.SERVER_SIDE then
+--                 option.saved_server = unzipped
+--             else
+--                 option.saved_client = unzipped
+--                 print("OVERRIDING", option.name, "WITH", unzipped)
+--             end
+--         end
+--     end
+-- end
+
 --------------------------------
 -- [[ Configuration ]]
 --------------------------------
+
+--[[
+    Zipping Configurations:
+    - We ZIP configuration options to save some bytes when saving
+      the data to a file (e.g. modoverrides.lua) or when sending them
+      over the network.
+
+    - This only applies to option fields like "saved" not to the "default" field.
+--]]
 
 -- Stores all the overrides of the default values for configuration options.
 -- These can come from either the config files or they can be downloaded from a server (in case of clients).
@@ -369,13 +384,20 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
         PEARL.CONFIG[option.name] = option.default
         PEARL.DEFAULT_CONFIG[option.name] = option.default
 
-        local override = PEARL.GetConfigData(option.name)
+        local override = PEARL.ModConfig:TryUnzipAndDecodeOption(option)
+        print(option.name, override)
         if override ~= option.default then
             PEARL.CONFIG_OVERRIDES[option.name] = override
         end
 
         PEARL.ModConfig:ApplyConfig(option.name, override)
     end
+end
+
+--- @TODO: The temp config is not.
+if PEARL.CLIENT_SIDE then
+    print("--------- CLIENT SIDE", PEARL.CLIENT_SIDE)
+    table.foreach(PEARL.MOD_DATA.temp_config_options, print)
 end
 
 --------------------------------
@@ -395,12 +417,14 @@ PEARL.ModPersistence = PEARL.loadlib("wrappers/persistence/modio")
 
 -- This has to be loaded before we start to use the configurations.
 -- Also it requires ClusterPersistence
-if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
+if PEARL.CONFIG.COMMON_MOD_CONFIG and PEARL.SERVER_SIDE then
     local configs = PEARL.ModConfig:LoadCommmonConfig()
     if type(configs) == "table" then
         PEARL.ModConfig:ApplyConfigs(configs)
     end
 end
+
+PEARL.EventProcessor:HandleEvent("mod_configuration_loaded")
 
 --------------------------------
 -- [[ Uncompatible Mods ]]
@@ -429,7 +453,7 @@ PEARL.CONSTS = {
     UTF_EMOJI_PATTERN = "[\243\238\239][\128-\191][\128-\191][\128-\191]?",
     DISCORD_EMOJI_PATTERN = "<a?:%S+:%d+>",
     DISCORD_EMOJI_ID_PATTERN = "<a?:%S+:(%d+)>",
-    HYBRID_EMOJI_PATTERN = ":%S+:",
+    HYBRID_EMOJI_PATTERN = ":(%S+):",
     UNICODE_EMOJI_PATTERN = "[\240][\159][\128-\191][\128-\191]", -- Used by discord for default emojis.
 
     DELIMS = {
@@ -463,11 +487,14 @@ PEARL.CONSTS = {
 PEARL.CONSTS.GAME_EMOJI_ALIAS_MATCH = PEARL.CONSTS.DELIMS.EMOJI.."(%S+)"..PEARL.CONSTS.DELIMS.EMOJI
 
 local FOLDERS = PEARL.CONFIG.SERVER_FOLDERS
-if TheNet:IsDedicated() then
+if TheNet and TheNet:IsDedicated() then
     PEARL.UGC_MODS_FOLDER = "../"..FOLDERS.UGC_MODS_ROOT.."/"..FOLDERS.CLUSTER.."/"..FOLDERS.SHARD.."/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID)
 else
     PEARL.UGC_MODS_FOLDER = "../../../workshop/content/"..tostring(DONT_STARVE_TOGETHER_APPID).."/"..tostring(PEARL.MODID)
 end
+
+PEARL.LoadingState = LoadingStates
+PEARL.LoadingStateName = table.invert(PEARL.LoadingState)
 
 --------------------------------
 -- [[ Logging ]]
@@ -484,6 +511,13 @@ PEARL.info("Loading persistent data...")
 
 PEARL.STORAGE = PEARL.loadfile("persistentstorage")
 PEARL.STORAGE.Load()
+
+-- No need to load any further when in the world generation thread.
+--*************************************************************************************************--
+if PEARL.WORLDGEN_THREAD then ----------------------------------------------------------------------------------
+    return ------------------------------------------------------------------------------------------
+end -------------------------------------------------------------------------------------------------
+--*************************************************************************************************--
 
 --------------------------------
 -- [[ Helpers ]]
@@ -722,6 +756,8 @@ if not PEARL.INITIAL_LAUNCH then
     --------------------------------
     -- [[ Wall Scheduler ]]
     --------------------------------
+    --- There is not much point in having the WallScheduler on for the first tick
+    --- since it's the initial launch and it's all in one tick.
 
     PEARL.info("Setting up the wall-scheduler...")
 

@@ -11,6 +11,8 @@
 --]==]====================================================]]
 
 
+local MARKDOWN = require("libraries/markdown")
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
@@ -106,7 +108,7 @@ end, PEARL.ServerNetwork.FILTER_PRIORITY.HIGH)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientconnectionallowed", function(userid)
     PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST:format(
-        userid -- Do only push the warning if we are sure the player has actually passed.
+        MARKDOWN.codeline(userid) -- Do only push the warning if we are sure the player has actually passed.
     ))
 end)
 

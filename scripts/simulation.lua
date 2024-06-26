@@ -81,19 +81,12 @@ _Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
     return OnShardShutdown()
 end, TheSim)
 
-----------------------------------
--- World Regeneration
-----------------------------------
-
 PEARL.AddUserDataFunctionPreCall("BeginNewSession", OnShardShutdown, TheSim)
 
--- Looks like GamePostInit isn't called when regenerating the world.
--- WorldPostInit has not yet fully loaded topology.
-local initial_session_id = TheNet:GetSessionIdentifier()
-PEARL.AddSimPostInit(function()
-    -- Looks like the session identifier has changed during the loading process.
-    -- This means the world has been regenerated.
-    if TheWorld ~= nil and initial_session_id ~= TheNet:GetSessionIdentifier() then
-        TheWorld:PushModEvent("worldgencomplete")
+PEARL.AddGlobalFunctionPreCall("NotifyLoadingState", function(loading_state)
+    if PEARL.LOADING_STATE ~= loading_state then
+        PEARL.EventProcessor:HandleEvent("loading_state_changed", PEARL.LOADING_STATE, loading_state)
+
+        PEARL.LOADING_STATE = loading_state
     end
 end)

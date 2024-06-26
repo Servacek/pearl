@@ -33,7 +33,7 @@ local PATTERN = "["..HEADER_NAME.."] [%s] %s"
 local PATTERN_DEBUG = "["..HEADER_NAME.."] [%s] %s -> %s"
 
 -- Keep it enabled by default if we fail to retrive the data.
-local ENABLED = PEARL.CONFIG.LOGGING and PEARL.CONFIG.LOGGING.ENABLED or true
+local ENABLED = not PEARL.CONFIG.LOGGING and true or PEARL.CONFIG.LOGGING.ENABLED
 local DEBUG_FILE_ENABLED = PEARL.CONFIG.LOGGING and PEARL.CONFIG.LOGGING.DEBUG_FILE or false
 
 local DEBUG_FILE_PATH = PEARL.MODROOT.."logs/debug_log.txt"

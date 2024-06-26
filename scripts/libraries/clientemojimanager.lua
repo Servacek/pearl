@@ -94,7 +94,6 @@ ClientEmojiManager.CATEGORIES_ORDERED = {
             for _, pack_name in pairs(PEARL.EMOJIS.PACKS.DISCORD) do
                 -- Load these emojis only if their pack is enabled.
                 if PEARL.EMOJIS.IsEmojiPackAvailable(pack_name) then
-                    print("ENABLING PACK", pack_name)
                     table.join(self.emojis, table.keys(PEARL.EMOJIS.PACK_CHAR_MAP[pack_name]))
                 end
             end
@@ -130,7 +129,7 @@ end
 function ClientEmojiManager:IsEmojiNew(emoji_id)
     local emoji_data = PEARL.EMOJIS.DATA[emoji_id]
     return self:IsEmojiAvailable(emoji_id) and not self:WasEmojiAlreadyDisplayed(emoji_id)
-        and (not emoji_data.timecreated or (os.time() - emoji_data.timecreated) < NEW_MAX_TIME)
+        and (emoji_data.timecreated and (os.time() - emoji_data.timecreated) < NEW_MAX_TIME)
 end
 
 --- @param category ClientEmojiManager.CATEGORY
@@ -196,27 +195,24 @@ function ClientEmojiManager:SavePersistentData()
     return false
 end
 
---- @return boolean
 function ClientEmojiManager:LoadPersistentData()
     local _, datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
     local data = DecodeAndUnzipString(datastr)
     if type(data) == "table" then
          -- Load up in the existing table in case it is being referenced somewhere already.
         table.update(self._persistdata, data)
-
-        -- Load up all the categories that require loading.
-        for _, category in pairs(ClientEmojiManager.CATEGORY) do
-            if category.validatefn then
-                category:validatefn(self._persistdata)
-            end
-
-            if category.loadfn then
-                category:loadfn(self._persistdata)
-            end
-        end
-        return true
     end
-    return false
+
+    -- Load up all the categories that require loading.
+    for _, category in pairs(ClientEmojiManager.CATEGORY) do
+        if category.validatefn then
+            category:validatefn(self._persistdata)
+        end
+
+        if category.loadfn then
+            category:loadfn(self._persistdata)
+        end
+    end
 end
 
 -------------------------------------
@@ -229,6 +225,8 @@ function ClientEmojiManager:OnEmojiUsed(emoji_id)
     local category = ClientEmojiManager.CATEGORY.FREQUENTLY_USED
     self._persistdata.frequently_used[emoji_id] = (self._persistdata.frequently_used[emoji_id] or 0) + 1
     table.reinsort(category.emojis, emoji_id, category.sortfn)
+
+    self:OnEmojiDisplayed(emoji_id)
 end
 
 function ClientEmojiManager:OnEmojiFavoriteToggled(emoji_id)

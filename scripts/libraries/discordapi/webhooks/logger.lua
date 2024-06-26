@@ -170,6 +170,7 @@ function Logger:LogLine(logline, force)
         return PEARL.error("Attempted to send an invalid logline!", logline)
     end
 
+    --- @TODO: Improve the censoring system so it doesn't censor stuff like "sekúnd"
     if PEARL.CONFIG.PROFANITY_FILTERS.enabled and ProfanityFilter:Detect(logline:GetContent()) then
         logline:Censor() -- Censor public loglines containing player names or messages.
     end

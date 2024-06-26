@@ -455,7 +455,7 @@ function EmojiMenu:_CreateEmojiScrollList(peak_percent)
             return widget:Hide()
         end
 
-        print("ASSIGNING DATA TO WIDGET", widget, data)
+        --print("ASSIGNING DATA TO WIDGET", widget, data)
         widget.data.widget = widget
         widget:MoveToFront()
         widget.category_label:Hide()
@@ -487,16 +487,12 @@ function EmojiMenu:_CreateEmojiScrollList(peak_percent)
                 end
             end
 
-            if data.name == "vibing_cat" or data.name == "Huh" then
-                widget.button.new_tag_image:Show()
-            end
-
-            print("OLD DATA", (old_data and old_data.emoji_id), "NEW DATA", (data.emoji_id), "SELECTED", (self.selected_widget_data and self.selected_widget_data.emoji_id))
+            --print("OLD DATA", (old_data and old_data.emoji_id), "NEW DATA", (data.emoji_id), "SELECTED", (self.selected_widget_data and self.selected_widget_data.emoji_id))
             --print(self.scroll_list.focused_widget_index, self.scroll_list.widgets_to_update[self.scroll_list.focused_widget_index])
             if widget.focus or (self.selected_widget_data and data == self.selected_widget_data) then
                 self:SelectEmojiWidget(widget)
             elseif (self.selected_widget_data and data ~= self.selected_widget_data) then
-                print("UNSELECT", widget)
+                --print("UNSELECT", widget)
                 self:UnselectEmojiWidget(widget)
             end
 
@@ -751,10 +747,8 @@ function EmojiMenu:RefreshSearching(search_text)
         self.scroll_list.no_emojis_msg:Show()
     end
 
-    local first_widget_data = self.last_search_data and self.last_search_data[1] or self.search_data[1]
-    --- Searching has more priority that the focused widget.
     -- Accept even nil - representing no results
-    self:SelectEmojiWidget(first_widget_data and first_widget_data.widget)
+    self:SelectEmojiWidget(self:GetFirstEmojiWidget())
 end
 
 ---------------------------

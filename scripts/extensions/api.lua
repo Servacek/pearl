@@ -399,10 +399,14 @@ end
 
 --- Overrides a global from the main game's environment.
 --- Use with care.
---- @return nil
+--- @return any origin The previous value from this global field.
 function PEARL.OverrideGlobalVariable(name, value, optional)
+    local old = PEARL.GetGlobal(name)
+
     PEARL.OverrideVariable(name, value, _G, optional)
     PEARL.OverrideVariable(name, value, PEARL.ENV, optional)
+
+    return old
 end
 
 --- @return any origin, any new
@@ -581,7 +585,7 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
 
     tp = tp and string.lower(tp) or "default"
 
-    local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
+    local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default == nil and true or PEARL.CONFIG.ANNOUNCEMENTS.default
     -- Everything overrides the default value
     if type(PEARL.CONFIG.ANNOUNCEMENTS[tp]) == "boolean" then
         enabled = PEARL.CONFIG.ANNOUNCEMENTS[tp]

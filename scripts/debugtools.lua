@@ -872,7 +872,12 @@ end
 --------------------------------
 
 function PEARL.TESTS.WallScheduler()
-
+    PEARL.WallScheduler:ExecuteInTime(5.1, function()
+        print("2. Hello World")
+    end)
+    PEARL.WallScheduler:ExecuteInTime(5, function()
+        print("1. -- Hello World 5 --")
+    end)
 end
 
 --------------------------------

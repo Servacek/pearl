@@ -15,8 +15,10 @@
 --[[
     Special scheduler for scheduling tasks when the server is paused
 
-    This works basically the same as the default sheduler except that
-    it executes the tasks even when TheSim is paused.
+    Precision of this is the same as for os.clock (microseconds) since that is used for calculating the delta.
+
+    This is the biggest value os.clock can return -> 3.4028237E+38 = 3532.1310006 after that
+    it will just overflow to -26.24506.
 ]]
 
 
@@ -29,6 +31,8 @@ local table_remove = table.remove
 local table_contains = table.contains
 local table_sort = table.sort
 
+local clock = walltime
+
 local toarrayornil = toarrayornil
 
 --------------------------------------
@@ -36,10 +40,7 @@ local toarrayornil = toarrayornil
 --------------------------------------
 
 --- @class WallScheduler
-local WallScheduler = {
-    TPS         = 60,
-    TICK_TIME   = 1 / 60,
-}
+local WallScheduler = {}
 
 ------------------------------------------
 -- [[ Constants ]]
@@ -48,27 +49,28 @@ local WallScheduler = {
 local Q_SIZE_ALLOC = 2^5
 local Q_NARR_ALLOC = 2^5
 
+local POSINF = math.huge
+local NEGINF = -math.huge
+
 --------------------------------------
 -- [[ Locals ]]
 --------------------------------------
 
 -- The number that will be added to wtime every wlimit
 -- By default, we increase wtime every 60 ticks by 1.
-local wtdelta   = 1 -- in seconds
-local wlimit    = 60 -- in ticks
+-- local wtdelta   = 1 -- in seconds
+-- local wlimit    = 60 -- in ticks
 
-local wtick = 0
+-- local wtick = 0
 -- These are relative.
 local wtime = 0 -- in seconds for default precision
 
----@type table<Task>
-local tasks = table.create(Q_SIZE_ALLOC, Q_NARR_ALLOC)
-local task_count = 0
+--- @type table<Task>, integer
+local tasks, ntasks = table.create(Q_SIZE_ALLOC, Q_NARR_ALLOC), 0
 
 -- flags
-local looping = false
-local started = false
-local srt_def = false
+local looping, srt_def = false, false
+local started
 
 --------------------------------------
 -- [[ Private Functions ]]
@@ -78,7 +80,7 @@ local srt_def = false
 -- Used for reversed sorting of the task stack.
 -- Task having ext as nil should be on the end of the stack as well.
 local function task_comp(t1, t2)
-    return (t1 and t1._ext or math.huge) > (t2 and t2._ext or -math.huge)
+    return (t1 and t1._ext or POSINF) > (t2 and t2._ext or NEGINF)
 end
 
 -- WARNING: NEVER DIRECTLY RESORT TASKS WHILE LOOPING!
@@ -107,11 +109,11 @@ local function add_task(task, nosort)
     end
 
     --PEARL.debug("Registering task:", task)
-    local prev = tasks[task_count]
-    task_count = task_count + 1
+    --local prev = tasks[ntasks]
+    ntasks = ntasks + 1
     -- Add the task to the end of the list.
     -- With that, we assume it has the lowest execution time.
-    tasks[task_count] = task
+    tasks[ntasks] = task
 
     -- Check if it needs resorting.
     -- Looks like this check has some flaws, so better be safe than sorry.
@@ -124,7 +126,7 @@ local function add_task(task, nosort)
 end
 
 local function has_task(task)
-    return task_count > 0 and table_contains(tasks, task)
+    return ntasks > 0 and table_contains(tasks, task)
 end
 
 --- @param time integer Time from now in seconds.
@@ -141,8 +143,8 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     --- @class Task
     local task = {
-        _time = time / wtdelta,
-        _ext = wtime + (initialdelay or time) / wtdelta,
+        _time = time,
+        _ext = wtime + (initialdelay or time),
         _fn = fn,
         _limit = limit,
         -- Leave this public
@@ -291,25 +293,11 @@ end
 --------------------------------------
 -- [[ Update Loop ]]
 --------------------------------------
+local last_ctime
 
--- TheSim:GetStep() -> Returns the current tick number.
--- This runs on every game tick.
---
--- dt = time_passed - time_now
--- dt is 0 if the server is paused
-local function OnWallUpdate()
-    if task_count < 1 then
-        return
-    end
 
-    if wtick < wlimit then
-        wtick = wtick + 1
-    else
-        wtick = 0
-        wtime = wtime + wtdelta
-    end
-
-    local task = tasks[task_count]
+local function ProcessTasks()
+    local task = tasks[ntasks]
 
     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
     -- are going to be executed. So just return.
@@ -320,7 +308,7 @@ local function OnWallUpdate()
     -- Iterate over the table from the back because we are removing the tasks during the
     -- iteration.
     looping = true
-    for i = task_count, 1, -1 do
+    for i = ntasks, 1, -1 do
         -- The task should always be a non-nil value.
         -- If it's not, it means we have holes in our stack and we should crash I guess!
         task = tasks[i]
@@ -356,7 +344,7 @@ local function OnWallUpdate()
             -- Using regular removing instead of just nilling the values
             -- just to be safe. This should be the end of the task list 99% of time.
             table_remove(tasks, i)
-            task_count = task_count - 1
+            ntasks = ntasks - 1
         end
     end
     looping = false
@@ -367,6 +355,45 @@ local function OnWallUpdate()
 
         sort_tasks()
     end
+
+    wtime = math.round(wtime)
+end
+
+-- TheSim:GetStep() -> Returns the current tick number.
+-- This runs on every game tick.
+--
+-- dt = time_passed - time_now
+-- dt parameter is 0 if the server is paused
+local function OnWallUpdate()
+    if ntasks < 1 then
+        return
+    end
+
+    local timenow = clock()
+    -- Only process tasks on subsequent calls, not the first one since we would have no delta.
+    if last_ctime ~= nil then
+        local dt = timenow - last_ctime
+        wtime = wtime + dt + (timenow - wtime - started)
+
+        --local offset = wtime - (os.time()- started)
+        --print("!!!!! WALLSCHEDULER OFFSET", offset, wtime)
+
+        -- local offset = math.round(wtime) - (started - os.time())
+        --wtime = wtime - offset
+
+
+        --print("DELTA:", dt, wtime)
+        -- if wtick < wlimit then
+        --     wtick = wtick + 1
+        -- else
+        --     wtick = 0
+        --     wtime = wtime + dt
+        -- end
+
+        ProcessTasks()
+    end
+
+    last_ctime = timenow
 end
 
 --------------------------------------
@@ -380,7 +407,7 @@ function WallScheduler:GetTasks()
 end
 
 function WallScheduler:DisplayTasks()
-    for i = task_count, 1, -1 do
+    for i = ntasks, 1, -1 do
         local task = tasks[i]
 
         print(task.tostring and task:tostring() or tostring(task))
@@ -391,7 +418,7 @@ end
 --- @param id integer The ID of the target task.
 --- @return Task? task The target task or nil if not found.
 function WallScheduler:GetTask(id)
-    for i = 1, task_count do
+    for i = 1, ntasks do
         if tasks[i].id == id then
             return tasks[i]
         end
@@ -434,10 +461,11 @@ function WallScheduler:StartWallUpdate()
         return PEARL.warn("The wall scheduler has already started!")
     end
 
-    started = true
+    clock() -- It's time to warm up the clock!
+    started = clock()
 
     if PEARL.CONFIG.DEBUG_MODE then
-        PEARL.AddGlobalFunctionPreCall("WallUpdate", function()
+        PEARL.AddGlobalFunctionPreCall("WallUpdate", function(dt)
             -- Always call TheSim:ProfilerPop after this, else we will crash.
             TheSim:ProfilerPush("PWallScheduler:OnUpdate")
             OnWallUpdate()
@@ -447,15 +475,6 @@ function WallScheduler:StartWallUpdate()
         -- Adds just one additional scope to the main function
         PEARL.AddGlobalFunctionPreCall("WallUpdate", OnWallUpdate)
     end
-end
-
-function WallScheduler:SetPrecision(delta, limit)
-    if started then
-        return PEARL.error("The wall scheduler has already started! Can't change the precision anymore!")
-    end
-
-    wtdelta = delta
-    wlimit = limit
 end
 
 --------------------------------------

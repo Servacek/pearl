@@ -10,6 +10,9 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--- @TODO: Make this a more generic extension
+--- Also, start the clock only when there are any events listening.
+--- Make a use of the initial delay and start the clock on the full hour.
 
 -------------------------------------
 -- [[ Constants ]]
@@ -114,6 +117,7 @@ end
 -- [[ Setup ]]
 -------------------------------------
 
+-- Looks like GamePostInit isn't called when regenerating the world.
 PEARL.AddGamePostInit(function()
     PEARL.WallScheduler:ExecutePeriodic(
         UPDATE_FREQUENCY, OnUpdate, nil, INITIAL_DELAY
