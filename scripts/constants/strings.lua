@@ -362,6 +362,25 @@ local STRINGS = {
         USERID_UNKNOWN = "<UNKNOWN>"
     },
 
+    FILES = {
+        MOUNTABLE_SCRIPTS = [[
+-- File for executing your custom Lua on the clients and server without
+-- the need to update any software uploaded to the Steam Workshop.
+--
+-- Feel free to remove the "KLEI     1" prefix from the start of this file
+-- in case it is provided.
+
+
+-- Execute code that is common for both sides here.
+
+if PEARL.FRONTEND then
+    -- Execute frontend stuff here
+else
+    -- Execute backend stuff here
+end
+        ]]
+    },
+
     LOGS        = {
         --PLAYER_COUNT            = "%s Total players: %d/%d", -- Not needed currently
         OWNER                   = "%s Owner: %s",
@@ -603,13 +622,26 @@ local STRINGS = {
 
         CONSOLE_DISABLED = "Disabled :)",
 
+
         EMOJI_MENU = {
             NO_EMOJIS_FOUND = "No emojis match your search", -- from discord
+
+            FAVORITE_BUTTON_HOVER = "Favourite",
+            UNFAVORITE_BUTTON_HOVER = "Unfavourite",
 
             OPEN_BUTTON_HOVER = "View Emojis\n(%s)",
             CLEAR_BUTTON_HOVER = "Clear\n(%s)",
 
-            SEARCH = "Search"
+            SEARCH = "Search",
+            NEW = "New!",
+        },
+
+        SCRIPTERRORWIDGET = {
+            QUIT = "Exit Game",
+            BACK = "Back to Menu",
+            REJOIN = "Continue",
+            RELOAD = "Reload Save",
+            DISABLE_MODS = "Disable Mods",
         },
 
         OPTION_CHOICES = {
@@ -622,6 +654,7 @@ local STRINGS = {
         },
 
         EMOJI_CATEGORIES = {
+            FAVORITES = "Favourites",
             FREQUENTLY_USED = "Frequently Used",
 
             DISCORD = "Discord",

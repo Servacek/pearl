@@ -243,12 +243,32 @@ end
 do
     PEARL.info("Loading server token...")
 
-    local success, token = PEARL.ClusterPersistance:GetFileContent(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
+    local success, token = PEARL.ClusterPersistence:GetFileContent(PEARL.CONSTS.SERVER_TOKEN_PATH, false)
     if not success or type(token) ~= "string" then
         return error("Could not load the server token!")
     end
 
     PEARL.SERVER_TOKEN = token:strip()
+end
+
+----------------------------------------------------------------
+-- [[ Mountable Lua ]]
+----------------------------------------------------------------
+
+do
+    PEARL.info("Loading mountable extension scripts...")
+
+    local _, lua_string = PEARL.ClusterPersistence:GetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH)
+    if lua_string then
+        PEARL.CONFIG.MOUNTABLE_LUA = lua_string
+    else
+        if PEARL.ClusterPersistence:FileExists(PEARL.MOUNTABLE_SCRIPTS_PATH) then
+            PEARL.error("Loading mountable extension scripts has failed!")
+        else
+            local INITIAL_STRING = STRINGS.PEARL.FILES.MOUNTABLE_SCRIPTS
+            PEARL.ClusterPersistence:SetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH, "\n"..INITIAL_STRING, false)
+        end
+    end
 end
 
 ----------------------------------------------------------------
@@ -279,8 +299,8 @@ end
 if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
     PEARL.info("Loading mod blocker configurations...")
 
-    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistance:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
-    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistance:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
 
     -- When the tables are empty, set them to nil to save some bytes when sending the config.
     -- Since these data are being zipped.
@@ -306,12 +326,12 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     PEARL.info("Loading custom loading tips file...")
 
     local fp = "../../loadingtips.lua"
-    if not PEARL.ClusterPersistance:FileExists(fp) then
-        PEARL.ClusterPersistance:SetFileContent(fp, "return { }")
+    if not PEARL.ClusterPersistence:FileExists(fp) then
+        PEARL.ClusterPersistence:SetFileContent(fp, "return { }")
     end
 
     -- Run the file in our environment so it has access to all the globals it could possibly need.
-    local success, data = PEARL.ClusterPersistance:LoadLuaFile(fp, false, PEARL.ENV)
+    local success, data = PEARL.ClusterPersistence:LoadLuaFile(fp, false, PEARL.ENV)
     if not success or type(data) ~= "table" then
         -- Data should be in this case the traceback.
         return PEARL.error("Failed to load the custom loading tips!", data)

@@ -194,7 +194,7 @@ end
 function ClusterUserList:Load()
     PEARL.debug("ClusterUserList:Load", self._path)
 
-    if not PEARL.ClusterPersistance:FileExists(self._path) and self._ensure ~= true then
+    if not PEARL.ClusterPersistence:FileExists(self._path) and self._ensure ~= true then
         return PEARL.info(self._path, "not found -> skipping this file...")
     end
 
@@ -202,7 +202,7 @@ function ClusterUserList:Load()
         return self._loadfn(self)
     end
 
-    local lines = PEARL.ClusterPersistance:GetAllFileLines(self._path, self._ensure, true)
+    local lines = PEARL.ClusterPersistence:GetAllFileLines(self._path, self._ensure, true)
     for _, id in ipairs(lines) do
         self:AddLocal(id)
     end
@@ -215,7 +215,7 @@ function ClusterUserList:Save()
         return self._savefn(self)
     end
 
-    PEARL.ClusterPersistance:SetFileLines(self._path, table.keys(self._ids))
+    PEARL.ClusterPersistence:SetFileLines(self._path, table.keys(self._ids))
 end
 
 function ClusterUserList:Clear()

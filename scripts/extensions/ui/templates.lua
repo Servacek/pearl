@@ -13,6 +13,8 @@
 
 local ImageButton = require("widgets/imagebutton")
 local Button = require("widgets/button")
+local Image = require("widgets/image")
+local Text = require("widgets/text")
 
 --- @class TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
@@ -92,7 +94,7 @@ function TEMPLATES.GetSocialLinkButtons(widget, hover_under)
 end
 
 local SPACING = 7
-function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
+function TEMPLATES.EmojiButton(size, dynamic_bg, bg_margin)
     local btn = Button()
 
     btn.bg = btn:AddChild(Image("images/global.xml", "square.tex"))
@@ -100,30 +102,51 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
     btn.bg:SetTint(0, 0, 0, 0)
     btn.bg:MoveToBack()
 
+    btn.locked_overlay = btn:AddChild(Image("images/global.xml", "square.tex"))
+    btn.locked_overlay:ScaleToSize(size, size)
+    btn.locked_overlay:SetTint(0, 0, 0, .6)
+    btn.locked_overlay:MoveToFront()
+    btn.locked_overlay:Hide()
+
+    local crafting_menu_atlas = resolvefilepath(CRAFTING_ATLAS)
+    btn.locked_overlay.lock_icon = btn.locked_overlay:AddChild(Image(crafting_menu_atlas, "pinslot_fg_lock.tex"))
+    btn.locked_overlay.lock_icon:SetScale(.7)
+
+    btn.new_tag_image = btn:AddChild(Image("images/global_redux.xml", "motd_sale_tag.tex"))
+    btn.new_tag_image:SetScale(.2)
+    btn.new_tag_image:SetRotation(-90)
+    btn.new_tag_image:SetPosition(-7, 7)
+
+    btn.new_tag_image.text = btn.new_tag_image:AddChild(Text(HEADERFONT, 52, STRINGS.PEARL.UI.EMOJI_MENU.NEW, UICOLOURS.BLACK))
+    btn.new_tag_image.text:SetPosition(20, 20)
+    btn.new_tag_image.text:SetRotation(45)
+    btn.new_tag_image:Hide()
+
     btn.text:SetHAlign(ANCHOR_MIDDLE)
     btn.text:SetVAlign(ANCHOR_MIDDLE)
 
-    if bg_margin == nil then
+    if dynamic_bg then
+        PEARL.AddClassFunctionPostCall("SetTextSize",
         PEARL.AddClassFunctionPostCall("SetText", function()
             local w, h = btn.text:GetRegionSize()
             btn.bg:ScaleToSize(w + (bg_margin or SPACING), h + (bg_margin or SPACING))
-        end, btn)
+        end, btn), btn)
     end
 
     btn:SetTextSize(size)
     btn:SetControl(CONTROL_PRIMARY)
 
-    btn.ongainfocus = function()
-        if scale_on_focus == true then
-            btn:SetTextSize(size + 7)
-        end
-    end
+    -- btn.ongainfocus = function()
+    --     if scale_on_focus == true then
+    --         btn:SetTextSize(size + 7)
+    --     end
+    -- end
 
-    btn.onlosefocus = function()
-        if scale_on_focus == true then
-            btn:SetTextSize(size)
-        end
-    end
+    -- btn.onlosefocus = function()
+    --     if scale_on_focus == true then
+    --         btn:SetTextSize(size)
+    --     end
+    -- end
 
     -------------
     -- Public functions
@@ -142,6 +165,16 @@ function TEMPLATES.EmojiButton(size, scale_on_focus, bg_margin)
 
     btn.HideHover = function(self)
         return btn.hovertext_root and (btn.hovertext_root._Hide or btn.hovertext_root.Hide)(btn.hovertext_root)
+    end
+
+    btn.Lock = function(self)
+        btn:Disable()
+        btn.locked_overlay:Show()
+    end
+
+    btn.Unlock = function(self)
+        btn.locked_overlay:Hide()
+        btn:Enable()
     end
 
     btn.AddHoverText = function()

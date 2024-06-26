@@ -415,7 +415,7 @@ end
 
 local function OnSaved(world)
     return PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.SAVE:format(
-        MARKDOWN.codeline(PEARL.GetShardFancyName())
+        MARKDOWN.codeline(PEARL.GetShardFancyName()), MARKDOWN.codeline(TheNet:GetCurrentSnapshot())
     ), PEARL.ICONS.SERVER_STATE.SAVE)
 end
 

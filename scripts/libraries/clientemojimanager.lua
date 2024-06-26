@@ -15,22 +15,13 @@
 -- [[ Constants ]]
 -------------------------------------
 
-local PERSISTENT_DATA_FILEPATH = PEARL.MODID.."_emoji_data"
-
-local DELIM = PEARL.CONSTS.DELIMS.EMOJI
-local EMOJI_ALIAS_FORMAT = DELIM.."%s"..DELIM
-
-local MAX_ALIAS_LEN = 32
+local PERSISTENT_DATA_FILEPATH = PEARL.UNIQUE_IDENTIFIER.."_emoji_data"
 
 local MAX_FU_EMOJIS = 32
 
--------------------------------------
--- [[ Class Declaration ]]
--------------------------------------
-
-local function compare_emoji(e1, e2)
-    return (e1.count or 1) > (e2.count or 1)
-end
+--- An emoji is considered new when it was created within a month
+--- and was not already displayed.
+local NEW_MAX_TIME = 30 * 24 * 60 * 60
 
 -------------------------------------
 -- [[ Class Declaration ]]
@@ -39,82 +30,99 @@ end
 --- @class ClientEmojiManager
 local ClientEmojiManager = {
     _persistdata = {
-        frequently_used = {}
+        frequently_used = {},
+        favourites      = {},
+        displayed       = {},
     },
 
     _encode_save_data = not PEARL.CONFIG.DEBUG_MODE,
+    _unsaved_changes = false,
 }
 
 -------------------------------------
 -- [[ Static ]]
 -------------------------------------
 
-ClientEmojiManager.CATEGORY = {
-    FREQUENTLY_USED = {
-        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED,
-        emojis = ClientEmojiManager._persistdata.frequently_used,
-        searchable = false, -- Do not allow the emojis in this category to be searchable since they are dupes.
-        maxrows = 2,
-    },
-
-    VANILLA = {
-        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA,
-        emojis = table.keys(PEARL.EMOJIS.GetOwnedVanillaEmojis(TheNet:GetUserID()), true),
-    },
-
-    DISCORD = {
-        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.DISCORD,
-        emojis = table.keys(PEARL.EMOJIS.DISCORD, true),
-    },
-}
-
 ClientEmojiManager.CATEGORIES_ORDERED = {
-    ClientEmojiManager.CATEGORY.FREQUENTLY_USED,
-    ClientEmojiManager.CATEGORY.VANILLA,
+    {
+        --- Here we want to make sure to keep the order in which the emojis were added to this category.
+        id = "FAVORITES",
+        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES,
+        emojis = ClientEmojiManager._persistdata.favourites,
+        --- Validation not needed because invalid emojis will just not be shown.
+        loadfn = function(self, data)
+            local emojis_copy = deepcopy(self.emojis)
+            table.clear(self.emojis)
+            self.emojis = table.toset(emojis_copy, self.emojis)
+        end,
+    },
+
+    {
+        id = "FREQUENTLY_USED",
+        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED,
+        emojis = {}, -- Has to be loaded
+        --searchable = false, -- Do not allow the emojis in this category to be searchable since they are dupes.
+        maxrows = 2,
+        validatefn = function(self, data)
+            table.limit(data.frequently_used, MAX_FU_EMOJIS)
+
+            for k, v in pairs(data.frequently_used) do
+                if PEARL.EMOJIS.DATA[k] == nil then
+                    data.frequently_used[k] = nil -- Rmeove invalid emojis or non-existent emojis.
+                end
+
+                -- No more, since the emoji utf8 characters do not match!
+                -- if type(v) == "table" then -- For compatibility with older saves
+                --     data.frequently_used[k] = v.count
+                -- end
+            end
+        end,
+        sortfn = function(id_a, id_b)
+            local frequently_used = ClientEmojiManager._persistdata.frequently_used
+            return frequently_used[id_a] > frequently_used[id_b]
+        end,
+        loadfn = function(self, data)
+            local frequently_used_ids = table.keys(data.frequently_used)
+            table.sort(frequently_used_ids, self.sortfn)
+            table.iclear(self.emojis)
+            table.join(self.emojis, frequently_used_ids)
+        end,
+    },
+
+    {
+        id = "DISCORD",
+        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.DISCORD,
+        emojis = {},
+        optional = true,
+        loadfn = function(self) -- Make sure this is loaded only after all the modules.
+            for _, pack_name in pairs(PEARL.EMOJIS.PACKS.DISCORD) do
+                -- Load these emojis only if their pack is enabled.
+                if PEARL.EMOJIS.IsEmojiPackAvailable(pack_name) then
+                    table.join(self.emojis, table.keys(PEARL.EMOJIS.PACK_CHAR_MAP[pack_name]))
+                end
+            end
+        end,
+    },
+
+    {
+        id = "VANILLA",
+        name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA,
+        emojis = table.values(PEARL.EMOJIS.INPUTNAME_TO_ID),
+    },
 }
 
-ClientEmojiManager.ALL_EMOJIS = deepcopy(ClientEmojiManager.CATEGORY.VANILLA.emojis)
-if PEARL.CONFIG.CUSTOM_EMOJIS then
-    ConcatArrays(ClientEmojiManager.ALL_EMOJIS, ClientEmojiManager.CATEGORY.DISCORD.emojis)
-
-    -- Custom emojis should be right after the frequently used ones
-    -- (similiar to how discord implements this)
-    table.insert(
-        ClientEmojiManager.CATEGORIES_ORDERED, 2, ClientEmojiManager.CATEGORY.DISCORD
-    )
-end
-
--- Use just one list of choices so all emojis have the same probability.
-ClientEmojiManager.RANDOM_EMOJI_CHOICES = deepcopy(ClientEmojiManager.ALL_EMOJIS)
-
--------------------------------------
--- [[ Private Methods ]]
--------------------------------------
-
-function ClientEmojiManager:_EnsureBounderies(t, limit)
-    while #t > limit do
-        t[#t] = nil
-    end
-end
-
-function ClientEmojiManager:_ValidatePersistantData(data)
-    self:_EnsureBounderies(data.frequently_used, MAX_FU_EMOJIS)
-
-    local names = {}
-    for i, emoji_data in ipairs(data.frequently_used) do
-        local emoji_names = {}
-        for ii, emoji_name in ipairs(emoji_data.names) do
-            if emoji_names[emoji_name] then
-                -- This emoji name is already contained on the the list of names.
-                table.remove(emoji_data.names, ii)
-            elseif names[emoji_name] then
-                -- Emoji with this name already on the emoji list.
-                table.remove(data.frequently_used, i)
-            end
-
-            emoji_names[emoji_name] = true
-            names[emoji_name] = true
-        end
+--- A category is represented as a table containing some data associated to the specific emoji category.
+--- It also contains a list of emoji ids that are specific to this category.
+--- Mapped by ID not by order.
+--- @enum ClientEmojiManager.CATEGORY
+ClientEmojiManager.CATEGORY = {}
+for i, category in ipairs(ClientEmojiManager.CATEGORIES_ORDERED) do
+    if category.available ~= false then
+        --- Make sure every category has the index field (useful for sorting).
+        category.index = i
+        -- Custom emojis should be right after the frequently used ones
+        -- (similiar to how discord implements this)
+        ClientEmojiManager.CATEGORY[category.id] = category
     end
 end
 
@@ -122,41 +130,16 @@ end
 -- [[ Getters ]]
 -------------------------------------
 
-function ClientEmojiManager:GetEmojiNamesMap(reload)
-    if self._emoji_names_map and not reload then
-        return self._emoji_names_map
-    end
-
-    self._emoji_names_map = self._emoji_names_map or {}
-    table.clear(self._emoji_names_map)
-
-    for _, category in ipairs(ClientEmojiManager.CATEGORIES_ORDERED) do
-        for alias, emoji in pairs(category.emojis) do
-            local alias_full = EMOJI_ALIAS_FORMAT:format(alias)
-            if not self._emoji_names_map[emoji] or self._emoji_names_map[emoji]:len() < MAX_ALIAS_LEN then
-                if self._emoji_names_map[emoji] ~= nil then
-                    self._emoji_names_map[emoji] = self._emoji_names_map[emoji].." "..alias_full
-                else
-                    self._emoji_names_map[emoji] = alias_full
-                end
-            end
-        end
-    end
-
-    return self._emoji_names_map
+function ClientEmojiManager:IsEmojiNew(emoji_id)
+    local emoji_data = PEARL.EMOJIS.DATA[emoji_id]
+    return self:IsEmojiAvailable(emoji_id) and not self:WasEmojiAlreadyDisplayed(emoji_id)
+        and (emoji_data.timecreated and (os.time() - emoji_data.timecreated) < NEW_MAX_TIME)
 end
 
-function ClientEmojiManager:GetNameFromEmoji(emoji)
-    return table.getkey(PEARL.EMOJIS.ALL, emoji)
-end
-
-function ClientEmojiManager:GetAllNamesFromEmoji(emoji)
-    return table.getallkeys(PEARL.EMOJIS.ALL, emoji)
-end
-
-function ClientEmojiManager:HasAnyEmojis()
-    for _, set in pairs(ClientEmojiManager.CATEGORIES_ORDERED) do
-        if table.empty(set) == false then
+--- @param category ClientEmojiManager.CATEGORY
+function ClientEmojiManager:HasCategoryAnyAvailableEmojis(category)
+    for _, emoji_id in pairs(category.emojis) do
+        if self:IsEmojiAvailable(emoji_id) then
             return true
         end
     end
@@ -164,56 +147,75 @@ function ClientEmojiManager:HasAnyEmojis()
     return false
 end
 
-function ClientEmojiManager:GetEmojiData(emoji, name)
-    for i, emoji_data in ipairs(self._persistdata.frequently_used) do
-        -- In case we have added a new alias to this emoji. We need to find it.
-        if emoji_data.emoji == emoji then
-            return i, emoji_data
-        end
-
-        for _, emoji_name in ipairs(emoji_data.names) do
-            if emoji_name == name then
-                return i, emoji_data
-            end
+function ClientEmojiManager:HasAnyAvailableEmojis()
+    for _, category in pairs(ClientEmojiManager.CATEGORIES_ORDERED) do
+        if self:HasCategoryAnyAvailableEmojis(category) then
+            return true
         end
     end
+
+    return false
 end
 
-local last_random_emoji_name
-function ClientEmojiManager:GetRandomEmoji()
-    local choices = ClientEmojiManager.RANDOM_EMOJI_CHOICES
-    if last_random_emoji_name ~= nil then
-        -- Do not make the last random emoji a choice.
-        table.removearrayvalue(choices, last_random_emoji_name)
+function ClientEmojiManager:HasAnyNewEmojis()
+    for emoji_id in pairs(PEARL.EMOJIS.DATA) do
+        if self:IsEmojiNew(emoji_id) then
+            return true
+        end
     end
 
-    local new_random_name = GetRandomItem(choices)
-    if last_random_emoji_name ~= nil then
-        table.insert(ClientEmojiManager.RANDOM_EMOJI_CHOICES, last_random_emoji_name)
-    end
+    return false
+end
 
-    last_random_emoji_name = new_random_name
+function ClientEmojiManager:HasAnyUnsavedChanges()
+    return self._unsaved_changes == true
+end
 
-    return PEARL.EMOJIS.ALL[new_random_name]
+function ClientEmojiManager:WasEmojiAlreadyDisplayed(emoji_id)
+    return self._persistdata.displayed[emoji_id] == true
+end
+
+function ClientEmojiManager:IsEmojiFavorite(emoji_id)
+    return table.getkey(self._persistdata.favourites, emoji_id) ~= nil
+end
+
+function ClientEmojiManager:IsEmojiAvailable(emoji_id)
+    return PEARL.EMOJIS.IsEmojiAvailable(emoji_id)
 end
 
 -------------------------------------
 -- [[ Public Methods ]]
 -------------------------------------
 
+--- @return boolean
 function ClientEmojiManager:SavePersistentData()
-    PEARL.ClusterPersistance:SetFileContent(
+    if PEARL.ClusterPersistence:SetFileContent(
         PERSISTENT_DATA_FILEPATH, ZipAndEncodeString(self._persistdata), self._encode_save_data
-    )
+    ) then
+        self._unsaved_changes = false
+        return true
+    end
+
+    return false
 end
 
 function ClientEmojiManager:LoadPersistentData()
-    local _, datastr = PEARL.ClusterPersistance:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
+    local _, datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
     local data = DecodeAndUnzipString(datastr)
     if type(data) == "table" then
+         -- Load up in the existing table in case it is being referenced somewhere already.
         table.update(self._persistdata, data)
+    end
 
-        self:_ValidatePersistantData(self._persistdata)
+    -- Load up all the categories that require loading.
+    for _, category in pairs(ClientEmojiManager.CATEGORY) do
+        if category.validatefn then
+            category:validatefn(self._persistdata)
+        end
+
+        if category.loadfn then
+            category:loadfn(self._persistdata)
+        end
     end
 end
 
@@ -221,24 +223,35 @@ end
 -- [[ Event Handlers ]]
 -------------------------------------
 
-function ClientEmojiManager:OnEmojiUsed(emoji, name)
-    PEARL.debug("ClientEmojiManager:OnEmojiUsed", emoji, name)
+function ClientEmojiManager:OnEmojiUsed(emoji_id)
+    PEARL.debug("ClientEmojiManager:OnEmojiUsed", emoji_id)
 
-    local i, emoji_data = self:GetEmojiData(emoji, name)
-    emoji_data = emoji_data or {
-        names = self:GetAllNamesFromEmoji(emoji),
-        emoji = emoji,
-        count = 0,
-    }
+    local category = ClientEmojiManager.CATEGORY.FREQUENTLY_USED
+    self._persistdata.frequently_used[emoji_id] = (self._persistdata.frequently_used[emoji_id] or 0) + 1
+    table.reinsort(category.emojis, emoji_id, category.sortfn)
 
-    emoji_data.count = (emoji_data.count or 0) + 1
+    self:OnEmojiDisplayed(emoji_id)
+end
 
-    if i ~= nil then
-        table.remove(self._persistdata.frequently_used, i)
+function ClientEmojiManager:OnEmojiFavoriteToggled(emoji_id)
+    PEARL.debug("OnEmojiFavoriteToggled", emoji_id)
+
+    if self:IsEmojiFavorite(emoji_id) then
+        table.removearrayvalue(self._persistdata.favourites, emoji_id)
+    else
+        table.insert(self._persistdata.favourites, emoji_id)
     end
-    table.insort(self._persistdata.frequently_used, emoji_data, compare_emoji)
 
-    self:_EnsureBounderies(self._persistdata.frequently_used, MAX_FU_EMOJIS)
+    self._unsaved_changes = true
+end
+
+function ClientEmojiManager:OnEmojiDisplayed(emoji_id)
+    --PEARL.debug("OnEmojiDisplayed", emoji_id)
+
+    if self._persistdata.displayed[emoji_id] == nil then
+        self._persistdata.displayed[emoji_id] = true
+        self._unsaved_changes = true
+    end
 end
 
 -------------------------------------

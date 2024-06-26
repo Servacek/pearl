@@ -139,6 +139,7 @@ GLOBAL.PEARL = setmetatable({
 
     BANNER_PATH         = "banner.txt",
     COMMONCONFIG_PATH   = "../../commonconfig.lua",
+    MOUNTABLE_SCRIPTS_PATH = "../../mountable.lua",
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
@@ -212,6 +213,7 @@ GLOBAL.PEARL = setmetatable({
     FONTS_PREFAB        = "MODFONTS_"..modname,
 
     BACKUP_ID           = "2924921999",
+    UNIQUE_IDENTIFIER   = "3122299418", -- Unique identifier for this mod.
 
     --- @type string?
     SHARDID             = TheNet:IsDedicated() and tostring(TheShard:GetShardId()) or nil,
@@ -357,13 +359,15 @@ PEARL.loadfile("extensions/standard/debug")
 
 PEARL.loadfile("extensions/json")
 
+PEARL.loadfile("extensions/engine/net")
+
 --------------------------------
 -- [[ Persistance Libs ]]
 --------------------------------
 
 --- This has to load this soon because some of the following files use it.
 --- @class ClusterPersistance
-PEARL.ClusterPersistance = PEARL.loadlib("wrappers/persistance/clusterio")
+PEARL.ClusterPersistence = PEARL.loadlib("wrappers/persistance/clusterio")
 
 --- @class ModPersistance
 PEARL.ModPersistance = PEARL.loadlib("wrappers/persistance/modio")
@@ -400,7 +404,7 @@ PEARL.CONSTS = {
     UTF_EMOJI_PATTERN = "[\243\238\239][\128-\191][\128-\191][\128-\191]?",
     DISCORD_EMOJI_PATTERN = "<a?:%S+:%d+>",
     DISCORD_EMOJI_ID_PATTERN = "<a?:%S+:(%d+)>",
-    HYBRID_EMOJI_PATTERN = ":%S+:",
+    HYBRID_EMOJI_PATTERN = ":(%S+):",
     UNICODE_EMOJI_PATTERN = "[\240][\159][\128-\191][\128-\191]", -- Used by discord for default emojis.
 
     DELIMS = {
@@ -722,10 +726,19 @@ end
 -- ModuleManager:SetLoader(PEARL.loadfile)
 
 --------------------------------
--- [[ Custom Lua ]]
+-- [[ Mountable Lua ]]
 --------------------------------
 
-RunInEnvironmentSafe(PEARL.CONFIG.CUSTOM_LUA, PEARL.ENV)
+if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
+    PEARL.info("Mounting extension scripts...")
+
+    local fn, error_message = loadstring(PEARL.CONFIG.MOUNTABLE_LUA)
+    if type(fn) == "function" and RunInEnvironmentSafe(fn, PEARL.ENV) then
+        PEARL.info("Success! Scripts were mounted.")
+    else
+        PEARL.error("Invalid mountable lua scripts provided! Error:", error_message)
+    end
+end
 
 --------------------------------
 -- [[ Mod Post-Init ]]

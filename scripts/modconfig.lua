@@ -65,7 +65,7 @@ local function ParsePublicConfigOption(option, tbl)
                     return
                 end
 
-                tbl[option.name] = TheNet:ZipAndEncodeString(value)
+                tbl[option.name] = TheSim:ZipAndEncodeString(value)
             elseif type == "table" then
                 -- Do not zip empty tables
                 if IsTableEmpty(value) then
@@ -226,7 +226,7 @@ function ModConfig:LoadBackendOverride(option)
 end
 
 function ModConfig:LoadCommmonConfig()
-    local success, config_str = PEARL.ClusterPersistance:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
+    local success, config_str = PEARL.ClusterPersistence:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
     if not success or type(config_str) ~= "string" then
         return error("Failed to load common config!")
     end

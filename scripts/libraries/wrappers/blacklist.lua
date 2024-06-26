@@ -52,7 +52,7 @@ BlackList:SetLoadFn(function(self)
     local blacklist = {}
 
     -- Even though this seems like an async function, it blocks.
-    PEARL.ClusterPersistance:ForEachLineIn(self._path, function(line)
+    PEARL.ClusterPersistence:ForEachLineIn(self._path, function(line)
         local netid = line:match(STEAM_ID_PATTERN)
         local userid = line:match(KLEI_ID_PATTERN)
         if not (netid or userid) then

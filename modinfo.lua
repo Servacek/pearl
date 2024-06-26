@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.6a"
+version = "Release 3.0.6b"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -472,9 +472,12 @@ configuration_options = {
     },
 
     {
-        name="CUSTOM_EMOJIS",
-        default = true,
-        type = "boolean",
+        name="CUSTOM_EMOJI_PACKS",
+        default = {
+            ["discord_emojis"] = true,
+            ["discord_emojis_animated"] = true,
+        },
+        type = "table",
         public = true,
     },
 
@@ -813,16 +816,6 @@ configuration_options = {
     },
 
     --------------------
-    -- Lua
-    --------------------
-
-    {
-        name = "CUSTOM_LUA", -- List of mods to be installed to clients.
-        default = function() end,
-        type = "function",
-    },
-
-    --------------------
     -- Network
     --------------------
 
@@ -1027,6 +1020,15 @@ configuration_options = {
         default = false,
         type = "boolean",
         public = true,
+        implicit = true,
+    },
+
+    { -- Executed client side and server side, do some checks in it to determine where we are first.
+        name = "MOUNTABLE_LUA",
+        default = "",
+        type = "string", -- lua loadable string (optional)
+        public = true,
+        zip = true,
         implicit = true,
     },
 }

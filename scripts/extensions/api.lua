@@ -354,7 +354,10 @@ function PEARL.AddFrontEndPreInit(precb)
     table.insert(frontend_preinits, precb)
 end
 
-function PEARL.AddClassPreConstruct(filename, classname, precb)
+--- @param filename string
+--- @param precb function
+--- @param classname string?
+function PEARL.AddClassPreConstruct(filename, precb, classname)
     require(filename)
 
 	local classdef = rawget(_G, classname)
@@ -485,7 +488,7 @@ PEARL.AddGlobalFunctionPostCall("RegisterPrefabsImpl", function(inst)
     end
 end)
 
-PEARL.AddClassPreConstruct("frontend", "FrontEnd", function(...)
+PEARL.AddClassPreConstruct("frontend", function(...)
     if TheFrontEnd then
         return false
     end
@@ -498,7 +501,7 @@ PEARL.AddClassPreConstruct("frontend", "FrontEnd", function(...)
     end
 
     return result
-end)
+end, "FrontEnd")
 
 --- Do not use because of strict.lua!
 -- Called when a value is assigned to the global table's field but only if the
@@ -632,6 +635,14 @@ function PEARL.Reboot()
     --- This is an engine side crash so no reports are sent to discord.
     PEARL.warn("Shutting down with an error status code to force the provider to restart us!")
     TheSim:Crash(true)
+end
+
+--- Similiar to Reload but reloads only the client.
+function PEARL.Rejoin()
+    local listing = TheNet:GetServerListing()
+
+    TheSim:ResetError()
+    MigrateToServer(listing.ip, listing.port, listing.netid)
 end
 
 -- Restarts only the shard this is called on.

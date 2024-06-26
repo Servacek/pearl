@@ -94,6 +94,12 @@ function table.join(t1, t2)
     end
 end
 
+function table.limit(t, limit)
+    while #t > limit do
+        t[#t] = nil
+    end
+end
+
 --- https://web.archive.org/web/20131225070434/http://snippets.luacode.org/snippets/Deep_Comparison_of_Two_Values_3
 function table.equal(t1, t2, ignore_mt)
     local ty1 = type(t1)
@@ -116,12 +122,16 @@ function table.equal(t1, t2, ignore_mt)
     return true
 end
 
-function table.update(old, new)
+function table.update(old, new, strict)
     for key, value in pairs(new) do
         if type(value) == "table" and type(old[key]) == "table" then
             -- If both the source and target have subtables, recursively update them
             table.update(old[key], value)
         else
+            if (type(old[key]) ~= type(value)) and strict == true then
+                return key
+            end
+
             -- Update or add the key-value pair in the target table
             old[key] = value
         end
@@ -239,20 +249,25 @@ function table:getallkeys(value)
     return keys
 end
 
+--- @param t table
+--- @param path string
+--- @return any
 function table.pathget(t, path)
     local value = t
-    for key in path:gmatch("[^%.]+") do
-        if type(value) ~= "table" then
-            return nil -- If any intermediate value is not a table, return nil
-        end
-
-        value = rawget(value, key) or rawget(value, tonumber(key))
-        if value == nil then
-            return nil -- If any key doesn't exist, return nil
+    for key in path:gmatch("[%w_]+") do
+        if type(value) == "table" then
+            if value[key] ~= nil then -- Check for explicit nil in case of falsy values
+                value = value[key]
+            else
+                value = value[tonumber(key)] -- Support for arrays
+            end
+        else
+            return nil -- Some intermediate value on the path is not a table
         end
     end
 
-    return value
+    --- If we have ended on the start, then this path is invalid.
+    return value ~= t and value or nil
 end
 
 function table.pathset(t, path, new)
@@ -371,13 +386,40 @@ function table.insort(t, v, cmp)
     return table.reorder(t, i, cmp)
 end
 
-function table.values(t)
+function table.reinsort(t, v, cmp)
+    table.removearrayvalue(t, v)
+    return table.insort(t, v, cmp)
+end
+
+function table.values(t, unique)
+    local keys = unique and {} or nil
     local values = {}
-    for _, v in pairs(t) do
-        values[#values + 1] = v
+    for k, v in pairs(t) do
+        if not keys or keys[k] == nil then
+            values[#values + 1] = v
+
+            if keys then
+                keys[k] = true
+            end
+        end
     end
 
     return values
+end
+
+--- Returns an array of unique values from the given table.
+function table.toset(t, set)
+    set = set or {}
+    local lk = {}
+    for i = 1, #t do
+        if lk[t[i]] == nil then
+            lk[t[i]] = true
+
+            set[#set+1] = t[i]
+        end
+    end
+
+    return set
 end
 
 -- For some reason this cannot be used as a method :/
