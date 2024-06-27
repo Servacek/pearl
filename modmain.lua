@@ -386,6 +386,15 @@ if PEARL.CONFIG.COMMON_MOD_CONFIG and TheNet:IsDedicated() then
 end
 
 --------------------------------
+-- [[ Uncompatible Mods ]]
+--------------------------------
+
+--- Allow uncompatible mods to be added dynamically.
+if table.empty(PEARL.CONFIG.UNCOMPATIBLE_MODS) == false then
+    ConcatArrays(PEARL.MOD_INFO.uncompatible_mods, PEARL.CONFIG.UNCOMPATIBLE_MODS)
+end
+
+--------------------------------
 -- [[ General Mod Constants]]
 --------------------------------
 

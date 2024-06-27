@@ -34,6 +34,8 @@ local MOD_ALLOWLIST = PEARL.CONFIG.MOD_ALLOWLIST or {}
 local ALLOWLISTING  = PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST
 local MAX_REPORTS   = 25
 
+local WORKSHOP_PREFIX = "workshop-"
+
 ---------------------------
 -- [[ Private ]]
 ---------------------------
@@ -88,7 +90,7 @@ end
 function KnownModIndex:IsModPrivate(modname)
     --- These seem to only load up when the mod is enabled from the start of the game (before joining the server).
     --- @Note: December 2023: Testing this again...
-    return not IsWorkshopMod(modname) or (TheSim:GetWorkshopVersion(modname) == "" and TheSim:GetWorkshopVersionCompatible(modname) == "")
+    return IsWorkshopMod(modname) ~= true
 end
 
 function KnownModIndex:ShouldDisableMod(modname)
@@ -109,6 +111,19 @@ function KnownModIndex:ShouldDisableMod(modname)
     end
 
     return false
+end
+
+function KnownModIndex:IsModCompatibleWith(modname, target_modname)
+    local modinfo = KnownModIndex:GetModInfo(modname)
+    if modinfo and table.empty(modinfo.uncompatible_mods) == false then
+        for _, uncompatible_modname in ipairs(modinfo.uncompatible_mods) do
+            if uncompatible_modname == target_modname or WORKSHOP_PREFIX..uncompatible_modname == target_modname then
+                return false
+            end
+        end
+    end
+
+    return true
 end
 
 function KnownModIndex:IsModAllowed(modname)

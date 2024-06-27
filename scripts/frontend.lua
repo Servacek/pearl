@@ -92,7 +92,7 @@ local function UnzipConfigData(option)
 end
 
 --- @TODO: Most of this is redundant
-PEARL.info("Loading Configuration...")
+PEARL.info("Loading configuration...")
 for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     -- Apply server changes to our public options.
     if option.public == true then
@@ -290,7 +290,7 @@ PEARL.ENV.ReloadPreloadAssets()
 -- Fonts
 ----------------------------------
 
-PEARL.debug("Loading fonts...")
+PEARL.info("Loading fonts...")
 
 PEARL.FONTS = PEARL.loadfile("constants/fonts")
 
@@ -352,12 +352,13 @@ ModuleManager:SetModuleDirectory("modules")
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
 ModuleManager:AddModule("customemojipacks", PEARL.CONFIG.CUSTOM_EMOJI_PACKS)
+ModuleManager:AddModule(
+    -- Only load the modblocker if we have any mods enabled.
+    -- Call this also for non-admins because we may want to block some uncompatible mods.
+    "modblocker", (PEARL.CONFIG.MOD_BLOCKER.ENABLED or table.empty(PEARL.MOD_INFO.uncompatible_mods) == false) and KnownModIndex:GetAllEnabledModsCount() > 1
+)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
-    ModuleManager:AddModule(
-        -- Only load the modblocker if we have any mods enabled.
-        "modblocker", PEARL.CONFIG.MOD_BLOCKER.ENABLED and KnownModIndex:GetAllEnabledModsCount() > 1
-    )
     ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )

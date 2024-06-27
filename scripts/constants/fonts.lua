@@ -59,21 +59,27 @@ end
 
 --- Credits to Aly and Whaskalmanik
 --- https://steamcommunity.com/sharedfiles/filedetails/?id=3033694168
-if PEARL.CONFIG.BETTER_WORMWOOD_FONT and not KnownModIndex:IsModEnabled("workshop-3033694168") then
-    local font = table.find(_G.FONTS, function(index, font) return font.alias == TALKINGFONT_WORMWOOD end)
-    if font then
-        PEARL.info("Overriding default wormwood talking font to a fixed version...")
-        font.filename = MODROOT.."/fonts/talkingfont_wormwood__0.zip"
-        font.alias = "better_"..TALKINGFONT_WORMWOOD
-        table.insert(PEARL.ENV.Assets, Asset("FONT", font.filename))
+local BETTER_WORMWOOD_FONT_MODNAME = "workshop-3033694168"
 
-        --AddSimPostInit(LoadFonts)
+-- We have to actually wait until all mods are loaded to see if it is enabled or not.
+PEARL.AddFrontEndPreInit(function()
+    local BETTER_WORMWOOD_FONT_DISABLED = not KnownModIndex:IsModEnabled(BETTER_WORMWOOD_FONT_MODNAME) or KnownModIndex:IsModTempDisabled(BETTER_WORMWOOD_FONT_MODNAME)
+    if PEARL.CONFIG.BETTER_WORMWOOD_FONT and BETTER_WORMWOOD_FONT_DISABLED then
+        local font = table.find(_G.FONTS, function(index, font) return font.alias == TALKINGFONT_WORMWOOD end)
+        if font then
+            PEARL.info("Overriding default wormwood talking font to a fixed version...")
+            font.filename = MODROOT.."fonts/talkingfont_wormwood__0.zip"
+            font.alias = "better_"..TALKINGFONT_WORMWOOD
+            table.insert(PEARL.ENV.Assets, Asset("FONT", font.filename))
 
-        _G.TALKINGFONT_WORMWOOD = font.alias
-    else
-        PEARL.error("Wormwood talking font not found!")
+            --AddSimPostInit(LoadFonts)
+
+            _G.TALKINGFONT_WORMWOOD = font.alias
+        else
+            PEARL.error("Wormwood talking font not found!")
+        end
     end
-end
+end)
 
 --------------------------------
 -- [[ Return ]]

@@ -37,8 +37,13 @@ all_clients_require_mod = true
 api_version = 10
 forumthread = ""
 
-mod_dependencies = {
-    {workshop = "workshop-3033694168"} -- Better Wormwood font for better language support
+mod_dependencies = {}
+uncompatible_mods = {
+    "workshop-3033694168", -- Better Wormwood (until we figure out a way how to fix the fonts)
+    "workshop-3056140321", -- Menu Remix - Again, the games font system is broken...
+                           -- Also these two are not compatible with each other as well.
+
+    "workshop-3169441836", -- We implement our own "Better" crash screen >:-)
 }
 
 -------------------------------------
@@ -337,6 +342,14 @@ configuration_options = {
         type = "table<string, boolean>",
 
         warn = true,
+        public = true,
+    },
+
+    {
+        -- Similiar to blocked mods but these will be disabled only temporary and silently.
+        name="UNCOMPATIBLE_MODS",
+        default={},
+        type = "table",
         public = true,
     },
 
