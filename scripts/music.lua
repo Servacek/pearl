@@ -28,7 +28,7 @@ local function StartErrorMusic()
 
     local emittor = focal_emittor or fe_emittor
     local music_volume = math.max(TheMixer:GetLevel("set_music"), 0.5)
-    emittor:PlaySound("custom_music/misc/technical_difficulties", "music_server_error")
+    -- emittor:PlaySound("custom_music/misc/technical_difficulties", "music_server_error")
     emittor:SetVolume("music_server_error", music_volume)
     emittor:SetMute(false)
 
@@ -39,9 +39,9 @@ local function StartErrorMusic()
     TheMixer:SetLevel("master", music_volume)
 end
 
-PEARL.EventProcessor:AddSafeEventHandler("clienterror", StartErrorMusic)
-PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
-    if reason == "ID_DST_SERVER_CRASHED" and TheMixer ~= nil then
-        StartErrorMusic()
-    end
-end)
+-- PEARL.EventProcessor:AddSafeEventHandler("clienterror", StartErrorMusic)
+-- PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
+--     if reason == "ID_DST_SERVER_CRASHED" and TheMixer ~= nil then
+--         StartErrorMusic()
+--     end
+-- end)
