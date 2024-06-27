@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.6b"
+version = "Release 3.0.6c"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
