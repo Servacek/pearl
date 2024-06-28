@@ -507,6 +507,7 @@ function PEARL.NetProfileLink(username, netid)
     ))
 end
 
+local missing_name_cache = {}
 --- @param entity string|EntityScript
 --- @return string
 function PEARL.GetStandardizedNameFor(entity, noprefix)
@@ -519,8 +520,13 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         return entity:GetDisplayName()
     end
 
-    local name = STRINGS.NAMES[string.upper(entity.prefab or "")] or entity:GetBasicDisplayName()
-    if entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
+    local name = "MISSING NAME"
+    if entity.prefab then
+        -- Do not call entity:GetBasicDisplayName if we have no prefab since some displaynamefns need it.
+        name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
+    end
+
+    if entity.name and entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
         name = entity.name -- This is for Pig Mans?
     end
 
@@ -534,6 +540,11 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
                 name = prefix.." "..name
             end
         end
+    end
+
+    if entity.prefab and name == "MISSING NAME" and missing_name_cache[entity.prefab] == nil then
+        missing_name_cache[entity.prefab] = true
+        PEARL.DiscordReporter:SendRawReportString("Entity is MISSING NAME:\nPrefab: "..string.raw(tostring(entity.prefab)))
     end
 
     return name

@@ -316,7 +316,7 @@ PEARL.loadfile("extensions/ui/playerlist")
 PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 PEARL.loadfile("extensions/ui/chatinputscreen")
---PEARL.loadfile("extensions/ui/chatsidebar")
+PEARL.loadfile("extensions/ui/chatsidebar")
 
 PEARL.loadfile("extensions/ui/scripterrorwidget")
 PEARL.loadfile("extensions/ui/loadingwidget")
