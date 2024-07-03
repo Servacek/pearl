@@ -870,7 +870,7 @@ configuration_options = {
     {
         name = "ANNOUNCEMENTS",
         default = {
-            all = true,
+            all = nil,
             default = true,
         },
         type = "table<string, boolean>",

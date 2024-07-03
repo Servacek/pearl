@@ -544,6 +544,11 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         name = entity.components.spellbook:GetSpellName() or name
     end
 
+    -- For stuff like minions and such
+    if entity.owner then
+        name = entity.owner:GetBasicDisplayName() or name
+    end
+
     if noprefix ~= true then
         for tagname, prefix in pairs(STRINGS.PEARL.TAG_PREFIXES) do
             if entity:HasTag(tagname) then

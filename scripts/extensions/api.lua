@@ -574,7 +574,7 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
 
     tp = tp and string.lower(tp) or "default"
 
-    local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default or true
+    local enabled = PEARL.CONFIG.ANNOUNCEMENTS.default
     -- Everything overrides the default value
     if type(PEARL.CONFIG.ANNOUNCEMENTS[tp]) == "boolean" then
         enabled = PEARL.CONFIG.ANNOUNCEMENTS[tp]

@@ -956,7 +956,7 @@ local function onentitydeath(doer, target, data)
     elseif leader and leader:HasTag("player") then
         return AL:EntityAct(STRINGS.PEARL.ACTIONS.KILL.FOLLOWER, doer,
             QueuedLogAction.FIELDS.OWNER, leader)
-            :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
+            :SetLogType(leader.userid == doer.userid and PEARL.CONSTS.ANN_TYPE.MURDER or PEARL.CONSTS.ANN_TYPE.KILL)
             :SetIsSilent(false)
             :SetColorEntity(doer)
             :AddTarget(target)
