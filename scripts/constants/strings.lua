@@ -358,6 +358,7 @@ local STRINGS = {
 
     REPORTS     = {
         NO_STACKTRACE = "No Traceback",
+        MISSING_NAME = "Entity `%s` has no standardized name!",
         INVALID_RPC   = "Received invalid RPC on shard `%s` from client `%s`:```lua\n%s```",
         USERID_UNKNOWN = "<UNKNOWN>"
     },
@@ -998,14 +999,6 @@ end
                 ON_FAILURE = "Failed to set the specified field!",
             },
 
-            BOOST = {
-                DESC = "Lower the server latency for a small period of time.",
-
-                ON_SUCCESS = "Lower server latency for 2 minutes!",
-                ON_TIMEOUT = "Server response latency back to normal.",
-                ON_FAILURE = "Wasn't able to lower the server latency!",
-            },
-
             SET_RARITY = {
                 ON_SUCCESS = "The rarity value for the specified item was changed.",
                 ON_DISABLED = "The Inventory Reporter module is disabled!\nYou need to enable it in the settings in order to use this command."
@@ -1125,6 +1118,8 @@ end
 
             EXEC = {
                 DESC = "Execute arbitrary Lua code on the server.",
+
+                ON_INVALID_COMMAND = "The provided command is not a valid Lua."
             },
 
             SETRARITY = {

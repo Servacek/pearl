@@ -683,11 +683,6 @@ msgctxt "STRINGS.PEARL.EMBEDS.SERVER.FOOTER"
 msgid "Session: %s"
 msgstr "Relácia: %s"
 
-#. STRINGS.UI.NOTIFICATION.CONNECTING
-msgctxt "STRINGS.UI.NOTIFICATION.CONNECTING"
-msgid "Connecting"
-msgstr "Pripájanie"
-
 #. STRINGS.PEARL.EMBEDS.SERVER.TITLE
 msgctxt "STRINGS.PEARL.EMBEDS.SERVER.TITLE"
 msgid "Server Properties"
@@ -1498,6 +1493,11 @@ msgctxt "STRINGS.PEARL.REPORTS.INVALID_RPC"
 msgid "Received invalid RPC on shard `%s` from client `%s`:```lua\n%s```"
 msgstr "Doručené neplatné RPC na shard `%s` od hráča `%s`:```lua\n%s```"
 
+#. STRINGS.PEARL.REPORTS.MISSING_NAME
+msgctxt "STRINGS.PEARL.REPORTS.MISSING_NAME"
+msgid "Entity `%s` has no standardized name!"
+msgstr "Prefabu `%s` chýba platný názov!"
+
 #. STRINGS.PEARL.REPORTS.NO_STACKTRACE
 msgctxt "STRINGS.PEARL.REPORTS.NO_STACKTRACE"
 msgid "No Traceback"
@@ -1753,26 +1753,6 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.PRETTYNAME"
 msgid "Block Mod"
 msgstr "Zakázať Modifikáciu"
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.DESC"
-msgid "Lower the server latency for a small period of time."
-msgstr "Na krátky čas zníži odozvu servera."
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_FAILURE
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_FAILURE"
-msgid "Wasn't able to lower the server latency!"
-msgstr "Nebolo možné znížiť odozvu servera."
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_SUCCESS
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_SUCCESS"
-msgid "Lower server latency for 2 minutes!"
-msgstr "Odozva servera znížená na 2 minúty!"
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_TIMEOUT
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_TIMEOUT"
-msgid "Server response latency back to normal."
-msgstr "Odozva servera bola vrátená na pôvodnú hodnotu."
-
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.BORROWED.DESC"
 msgid "Checks whether the user is also the actual owner of the game."
@@ -1882,6 +1862,11 @@ msgstr "Bolo vyhodené %sx %s z inventára hráča %s!"
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.EXEC.DESC"
 msgid "Execute arbitrary Lua code on the server."
 msgstr "Spustí ľubovoľný Lua kód na serveri."
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.EXEC.ON_INVALID_COMMAND
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.EXEC.ON_INVALID_COMMAND"
+msgid "The provided command is not a valid Lua."
+msgstr "Zadaný príkaz nie je platná Lua."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.FIRE.DESC"
@@ -2733,6 +2718,11 @@ msgctxt "STRINGS.PEARL.UI.DEFAULT_POPUP_TITLE"
 msgid "Notification"
 msgstr "Notifikácia"
 
+#. STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES
+msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES"
+msgid "Favourites"
+msgstr "Obľúbené"
+
 #. STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED
 msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED"
 msgid "Frequently Used"
@@ -2748,6 +2738,16 @@ msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER"
 msgid "Clear\n(%s)"
 msgstr "Vymazať\n(%s)"
 
+#. STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER
+msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER"
+msgid "Favourite"
+msgstr "Pridať do Obľúbených"
+
+#. STRINGS.PEARL.UI.EMOJI_MENU.NEW
+msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.NEW"
+msgid "New!"
+msgstr "Nové!"
+
 #. STRINGS.PEARL.UI.EMOJI_MENU.NO_EMOJIS_FOUND
 msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.NO_EMOJIS_FOUND"
 msgid "No emojis match your search"
@@ -2762,6 +2762,11 @@ msgstr "Zobraziť Smajlíky\n(%s)"
 msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.SEARCH"
 msgid "Search"
 msgstr "Vyhľadať"
+
+#. STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER
+msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER"
+msgid "Unfavourite"
+msgstr "Odobrať z Obľúbených"
 
 #. STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY
 msgctxt "STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY"
@@ -2863,6 +2868,11 @@ msgctxt "STRINGS.PEARL.UI.POTM_MULTIPLE_ANNOUNCEMENT"
 msgid "Best player of the month {month} is for the {times}. time {leader}! New month begins today!"
 msgstr "Najlepším hráčom mesiaca {month} je po {times}. krát {leader}! Od dnes sa počíta hráča nového mesiaca!"
 
+#. STRINGS.PEARL.UI.PROXY_SERVER.STATES.OFFLINE
+msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATES.OFFLINE"
+msgid "Offline"
+msgstr "Neaktívny"
+
 #. STRINGS.PEARL.UI.PROXY_SERVER.STATES.ONLINE
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATES.ONLINE"
 msgid "Online"
@@ -2882,6 +2892,31 @@ msgstr "Neznámy Stav"
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATES.UNREACHABLE"
 msgid "Unreachable"
 msgstr "Nedostupný"
+
+#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.BACK
+msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.BACK"
+msgid "Back to Menu"
+msgstr "Spať do Menu"
+
+#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.DISABLE_MODS
+msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.DISABLE_MODS"
+msgid "Disable Mods"
+msgstr "Vypnúť Mody"
+
+#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.QUIT
+msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.QUIT"
+msgid "Exit Game"
+msgstr "Ukončiť Hru"
+
+#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.REJOIN
+msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.REJOIN"
+msgid "Continue"
+msgstr "Pokračovať"
+
+#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.RELOAD
+msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.RELOAD"
+msgid "Reload Save"
+msgstr "Obnoviť"
 
 #. STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.DISCORD
 msgctxt "STRINGS.PEARL.UI.SOCIAL_LINK_BUTTON_HOVERS.DISCORD"
@@ -3303,6 +3338,11 @@ msgctxt "STRINGS.UI.LOBBYSCREEN.YES"
 msgid "Do it!"
 msgstr "Áno!"
 
+#. STRINGS.UI.NOTIFICATION.CONNECTING
+msgctxt "STRINGS.UI.NOTIFICATION.CONNECTING"
+msgid "Connecting"
+msgstr "Pripájanie"
+
 #. STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT
 msgctxt "STRINGS.UI.NOTIFICATION.DEFAULTVOTENAMEFMT"
 msgid "vote"
@@ -3613,26 +3653,6 @@ msgctxt "STRINGS.UI.WORLDRESETDIALOG.TITLE_LATEJOIN"
 msgid "Day %d: Everyone else is dead. Save them!"
 msgstr "Deň %d: Všetci ostatní sú mŕtvy. Zachráň ich!"
 
-#. STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES
-msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES"
-msgid "Favourites"
-msgstr "Obľúbené"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER"
-msgid "Favourite"
-msgstr "Pridať do Obľúbených"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.NEW
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.NEW"
-msgid "New!"
-msgstr "Nové!"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER"
-msgid "Unfavourite"
-msgstr "Odobrať z Obľúbených"
-
 #. STRINGS.PEARL.EMBEDS.INV.SURVIVED
 msgctxt "STRINGS.PEARL.EMBEDS.INV.SURVIVED"
 msgid "`%s/%s`"
@@ -3913,37 +3933,8 @@ msgctxt "STRINGS.PEARL.UI.MODS_BLOCKED_TITLE"
 msgid "Mods Disabled"
 msgstr ""
 
-#. STRINGS.PEARL.UI.PROXY_SERVER.STATES.OFFLINE
-msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATES.OFFLINE"
-msgid "Offline"
-msgstr ""
-
 #. STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL"
 msgid "Proxy Server:"
 msgstr ""
 
-#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.BACK
-msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.BACK"
-msgid "Back to Menu"
-msgstr "Spať do Menu"
-
-#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.DISABLE_MODS
-msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.DISABLE_MODS"
-msgid "Disable Mods"
-msgstr "Vypnúť Mody"
-
-#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.QUIT
-msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.QUIT"
-msgid "Exit Game"
-msgstr "Ukončiť Hru"
-
-#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.REJOIN
-msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.REJOIN"
-msgid "Continue"
-msgstr "Pokračovať"
-
-#. STRINGS.PEARL.UI.SCRIPTERRORWIDGET.RELOAD
-msgctxt "STRINGS.PEARL.UI.SCRIPTERRORWIDGET.RELOAD"
-msgid "Reload Save"
-msgstr "Obnoviť"

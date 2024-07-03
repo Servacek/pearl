@@ -68,8 +68,6 @@ PEARL.SafeModTableExtend("CONSTS", {
     BAD_PING_THRESHOLD          = 300, -- This is what is used for server listing filters
     BAD_PERFORMANCE_THRESHOLD   = 2, -- These are just logical values (0 - GOOD, 1 - OK, 2 - BAD)
 
-    MAX_REQUEST_RETRIES         = 3,
-
     DEFAULT_PROPAGATOR_RADIUS   = 5,
     LARGE_PROPAGATOR_RADIUS     = 8,
     MAX_FIRE_ATTEMPTS           = 3,

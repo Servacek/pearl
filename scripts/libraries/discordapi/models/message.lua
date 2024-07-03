@@ -99,15 +99,19 @@ Message.MENTION_TYPES                   = {
     EVERYONE    = "everyone", -- @everyone and @here
 }
 
-Message.FLAGS = {
-    CROSSPOSTED	            = bit.lshift(1, 0), -- this message has been published to subscribed channels (via Channel Following)
-    IS_CROSSPOST	        = bit.lshift(1, 1), -- this message originated from a message in another channel (via Channel Following)
-    SUPPRESS_EMBEDS	        = bit.lshift(1, 2), -- do not include any embeds when serializing this message
-    SOURCE_MESSAGE_DELETED	= bit.lshift(1, 3), -- the source message for this crosspost has been deleted (via Channel Following)
-    URGENT	                = bit.lshift(1, 4), -- this message came from the urgent message system
-    HAS_THREAD	            = bit.lshift(1, 5),	-- this message has an associated thread, with the same id as the message
-    EPHEMERAL	            = bit.lshift(1, 6),	-- this message is only visible to the user who invoked the Interaction
-    LOADING	                = bit.lshift(1, 7),	-- this message is an Interaction Response and the bot is "thinking"
+--- @enum Message.FLAG
+Message.FLAG = {
+    CROSSPOSTED	                            = bit.lshift(1, 0),  -- this message has been published to subscribed channels (via Channel Following)
+    IS_CROSSPOST	                        = bit.lshift(1, 1),  -- this message originated from a message in another channel (via Channel Following)
+    SUPPRESS_EMBEDS	                        = bit.lshift(1, 2),  -- do not include any embeds when serializing this message
+    SOURCE_MESSAGE_DELETED	                = bit.lshift(1, 3),  -- the source message for this crosspost has been deleted (via Channel Following)
+    URGENT	                                = bit.lshift(1, 4),  -- this message came from the urgent message system
+    HAS_THREAD	                            = bit.lshift(1, 5),	 -- this message has an associated thread, with the same id as the message
+    EPHEMERAL	                            = bit.lshift(1, 6),	 -- this message is only visible to the user who invoked the Interaction
+    LOADING	                                = bit.lshift(1, 7),	 -- this message is an Interaction Response and the bot is "thinking"
+    FAILED_TO_MENTION_SOME_ROLES_IN_THREAD	= bit.lshift(1, 8),  -- this message failed to mention some roles and add their members to the thread
+    SUPPRESS_NOTIFICATIONS	                = bit.lshift(1, 12), -- this message will not trigger push and desktop notifications
+    IS_VOICE_MESSAGE                        = bit.lshift(1, 13), -- this message is a voice message
 }
 
 Message.SILENT_PREFIX  = "@silent"
@@ -338,7 +342,7 @@ function Message:AddLogLine(logline)
     return true
 end
 
---- @param flag integer
+--- @param flag Message.FLAG
 function Message:AddFlag(flag)
     if not self._flags then
         self._flags = flag

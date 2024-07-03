@@ -27,6 +27,12 @@ require("entityscript")
 local EntityScript = EntityScript
 
 -----------------------------------
+-- [[ Static Variables ]]
+-----------------------------------
+
+EntityScript.PREFAB_NAME_OVERRIDES = {}
+
+-----------------------------------
 -- [[ Member Functions ]]
 -----------------------------------
 
@@ -256,19 +262,3 @@ if PEARL.CONFIG.PERFORMANCE_MODE then
         end, ...)
     end
 end
-
------------------------------------
--- [[ Hooks ]]
------------------------------------
-
--- PEARL.AddClassFunctionPreCall("OnBuilt", function(self, builder)
---     PEARL.debug("OnBuilt", builder, self, self.onPreBuilt)
---     self:onPreBuilt(builder)
---     if builder and builder.userid and builder.name then
---         if not self.components.built then
---             self:AddComponent("built")
---         end
-
---         self.components.built:SetBuilderData(builder.userid, builder.name)
---     end
--- end, EntityScript)

@@ -158,8 +158,12 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     -- Function definitions
 
+    function task:runnable()
+        return self.running == true or self._fn ~= nil
+    end
+
     function task:run()
-        if not self.running or not self._fn then
+        if not self:runnable() then
             return error("attempted to run an invalid task")
         end
 

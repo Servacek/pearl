@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.6gs"
+version = "Release 3.0.689"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -101,16 +101,21 @@ configuration_options = {
             },
 
             PROXY = {
-                INPUT_URL           = nil,
-                OUTPUT_URL          = nil,
+                URL                     = "http://localhost:10997",
 
-                CHAT_ENABLED        = false,
-                COMMANDS_ENABLED    = false,
+                CHAT_ENABLED            = false,
+                COMMANDS_ENABLED        = false,
 
-                SYNC_INTERVAL       = 10, -- Every 10 seconds
-                SYNC_INTERVAL_FAST  = 4,
+                MIN_FETCH_PERIOD        = 10, -- Fetch request at most once every 10 seconds
+                FETCH_TIMEOUT           = 1024,
 
-                BOOST_DELAY         = 2 * 60,  -- 5 minutes
+                START_SESSION_RETRIES   = 3,
+                FETCH_RETRIES           = 3,
+
+                TIME_BETWEEN_FETCH_RETRIES = 10,
+                TIME_BETWEEN_START_SESSION_RETRIES = 10,
+
+                ENSURE_CONNECTION_PERIOD = 30 * 60, -- Ensure every half hour
             },
 
             GUILDS = {}

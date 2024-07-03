@@ -49,6 +49,10 @@ local function OnBuilt(builder, data)
 end
 
 PEARL.AddPrefabPostInitAny(function(inst)
+    if inst.nameoverride and inst.prefab then
+        EntityScript.PREFAB_NAME_OVERRIDES[inst.prefab] = inst.nameoverride
+    end
+
     if inst and inst.userid then
         inst:SafeListenForEvent("builditem", OnBuilt)
         inst:SafeListenForEvent("buildstructure", OnBuilt)

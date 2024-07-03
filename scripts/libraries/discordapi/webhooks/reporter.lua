@@ -186,7 +186,7 @@ function Reporter:ReportUncatchedLuaError(traceback, modname)
     end
 
     self:SendRawReportMessage(Message(MARKDOWN.bold(content))
-        :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
+        :AddFlag(Message.FLAG.SUPPRESS_EMBEDS)
     )
 
     -- Disable to prevent any looping.
@@ -248,7 +248,7 @@ function Reporter:ReportClientLuaError(userid, data)
     end
 
     return self:SendRawReportMessage(Message(MARKDOWN.bold(content))
-        :AddFlag(Message.FLAGS.SUPPRESS_EMBEDS)
+        :AddFlag(Message.FLAG.SUPPRESS_EMBEDS)
     )
 end
 
