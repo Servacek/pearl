@@ -15,11 +15,16 @@
 --[[
     Module for keeping the server up-to-date. Uses Klei's API to get the latest
     release version. When the version is higher than the current one,
-    it notifies the players and shutdowns all the shards. So there needs to be
+    it notifies the players and shuts down all the shards. So there needs to be
     a third party program which then effectively updates and starts the server again.
 
     It looks like there is some Steam API for this but it seems to be still stuck in the
     last early access version of the game :/
+
+    For third party software, SteamCMD can be used as well to check
+    for new updates using the following command:
+    "./steamcmd.sh +login anonymous +app_info_update 1 +app_info_print 343050 +quit"
+
 --]]
 
 

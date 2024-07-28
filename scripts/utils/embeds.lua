@@ -204,7 +204,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             end
 
             -- This fixes the indexes text for centering
-            local index = PEARL.ICONS.LEADERBOARD_PLACES[i] or MARKDOWN.initspacing(tostring(i), 1, 2)
+            local index = PEARL.ICONS.LEADERBOARD_PLACES[i] or tostring(i):padding(1, 2)
             index_col = index_col..index.."\n"
             name_col = name_col..MARKDOWN.hlink(
                 MARKDOWN.codeline(tostring(name)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
@@ -212,7 +212,7 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
 
             local rep_fd_len = #STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.REP_COL
             local hairs = (rep_fd_len - #rep) * 3 + (max_rep_len - #rep) * 4
-            rep_col = rep_col..MARKDOWN.initspacing(MARKDOWN.codeline(rep), 0, hairs).."\n"
+            rep_col = rep_col..MARKDOWN.codeline(rep):padding(0, hairs).."\n"
         end
 
         embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.INDEX_COL, index_col, true)
@@ -257,7 +257,7 @@ function EMBEDS.ServerInfo(boot)
     local active_event = GetFirstActiveSpecialEvent() or "none"
     local title = boot == true and STRINGS.PEARL.EMBEDS.SERVER.BOOT or STRINGS.PEARL.EMBEDS.SERVER.TITLE
     local colour = boot == true and Embed.COLORS.GREEN or Embed.COLORS.DARK_GREY
-    local modv = MARKDOWN.codeline(tostring(PEARL.MOD_INFO.version))
+    local modv = MARKDOWN.codeline(tostring(PEARL.FANCY_VERSION))
     if PEARL.IS_BACKUP then
         modv = MARKDOWN.bold(STRINGS.PEARL.UI.BACKUP_TAG).."\n"..modv
     end

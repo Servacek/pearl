@@ -52,6 +52,8 @@ local MIN_DAMAGE_DEALT = 10
 
 -- For both food and fuel.
 local MAX_WASTE_TOLERANCE = .5
+local VERY_RARE_WASTE_MULT = 20 -- For very rare items (rare blueprints, etc...)
+local RARE_WASTE_MULT = 1
 
 ------------------------
 -- [[ Check Functions ]]
@@ -137,12 +139,12 @@ end
 --     return RegisterActionHandler(action, handler, defaultactioncheck)
 -- end
 
-local function RegisterPlayerActionHandler(action, handler, pre)
-    return RegisterActionHandler(action, handler, playeractioncheck, pre)
+local function RegisterPlayerActionHandler(action, handler, ...)
+    return RegisterActionHandler(action, handler, playeractioncheck, ...)
 end
 
-local function RegisterPlayerItemActionHandler(action, handler, pre)
-    return RegisterActionHandler(action, handler, playeritemactioncheck, pre)
+local function RegisterPlayerItemActionHandler(action, handler, ...)
+    return RegisterActionHandler(action, handler, playeritemactioncheck, ...)
 end
 
 ------------------------
@@ -562,35 +564,47 @@ RegisterPlayerActionHandler(ACTIONS.CHOP, function(doer, target)
 end)
 
 RegisterPlayerActionHandler(ACTIONS.ADDFUEL, function(doer, target, item)
-    local added = item.components.fuel.fuelvalue
-    local reserve = math.max(target.components.fueled.maxfuel - target.components.fueled.currentfuel, 0)
-    local waste = math.max(added - reserve, 0) / added
+    local prev_fuel_value = target.components.fueled.currentfuel
+    local ontakefuel
+    function ontakefuel(inst, data) -- Called only when the action successed
+        inst:RemoveEventCallback("takefuel", ontakefuel)
 
-    if item.components.inventoryitem:IsRare() or item.components.teacher then
-        waste = 1
-
-        -- For very rare items (rare blueprints, etc...)
-        if item.is_rare then
-            waste = 2
+        local post_fuel_value = target.components.fueled.currentfuel
+        local fuel_type = target.components.fueled.fueltype
+        local potential_value = math.max(data.fuelvalue or 0, 0)
+        local actually_added = math.max(post_fuel_value - prev_fuel_value, 0)
+        local waste_percent = (potential_value - actually_added) / potential_value
+        if item.components.inventoryitem:IsRare() or item.components.teacher then
+            local rarity = item.components.inventoryitem:GetRarityPercent()
+            local mult = item.components.inventoryitem:IsVeryRare() and VERY_RARE_WASTE_MULT or RARE_WASTE_MULT
+            waste_percent = waste_percent + (fuel_type == FUELTYPE.BURNABLE and 1 or (rarity * mult))
         end
+
+        local type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
+        local str = STRINGS.PEARL.ACTIONS.ADDFUEL.GENERIC
+        if waste_percent > MAX_WASTE_TOLERANCE then
+            str = STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
+            type = PEARL.CONSTS.ANN_TYPE.WASTE
+
+            Rep:EarnFor(doer.userid, REPUTATIONS.FUEL_WASTED * waste_percent)
+        elseif target.components.wateryprotection then
+            type = PEARL.CONSTS.ANN_TYPE.EXTINGUISH
+            Rep:EarnFor(doer.userid, REPUTATIONS.FUEL_TO_PROTECTOR * (1 - waste_percent))
+        end
+
+        AL:EntityAct(str, doer, "source", target)
+            :SetLogType(type)
+            :SetIsSilent(true)
+            :AddTarget(item, 1)
     end
 
-    local type = PEARL.CONSTS.ANN_TYPE.PROPAGATOR
-    local str = STRINGS.PEARL.ACTIONS.ADDFUEL.GENERIC
-    if waste > MAX_WASTE_TOLERANCE then
-        str = STRINGS.PEARL.ACTIONS.ADDFUEL.WASTE
-        type = PEARL.CONSTS.ANN_TYPE.WASTE
-
-        Rep:EarnFor(doer.userid, REPUTATIONS.FUEL_WASTED * waste)
-    elseif target.components.wateryprotection then
-        Rep:EarnFor(doer.userid, REPUTATIONS.FUEL_TO_PROTECTOR * (1 - waste))
-    end
-
-    AL:EntityAct(str, doer, "source", target)
-        :SetLogType(type)
-        :SetIsSilent(true)
-        :AddTarget(item, 1)
-end, true) -- We have to do the calculations before the action actually happens.
+    target:SafeListenForEvent("takefuel", ontakefuel)
+    -- This event is guarateed to be ALWAYS pushed after the action is executed.
+    -- We use this event as a cleen-up in case the event above doesn't get called.
+    PEARL.EventProcessor:AddSafeOneTimeHandler("ACTIONS.ADDFUEL", function(success)
+        target:RemoveEventCallback("takefuel", ontakefuel)
+    end)
+end, true, "ACTIONS.ADDFUEL") -- We have to do the calculations before the action actually happens.
 
 RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
     if PEARL.PREFABS.DO_DIGUP[target.prefab] == true then
@@ -1112,8 +1126,7 @@ local function onplayerhitother(player, target, damage, follower)
         return
     end
 
-    local leader = target.components.follower and target.components.follower:GetLeader()
-    if leader ~= nil and leader.userid ~= player.userid then
+    if follower then
         Rep:EarnFor(player.userid, mult * dmg * REPUTATIONS.FOLLOWER_DAMAGE)
         return
     end
@@ -1129,7 +1142,7 @@ local function onhitother(doer, data)
     -- Non-players are required to have a player leader in order for us to not ignore them.
     if not doer:HasTag("player") then
         leader = doer.components.follower and doer.components.follower:GetLeader() or nil
-        leader = leader or (doer.brain and doer.brain._leader)
+        leader = leader or (doer.brain and doer.brain._leader) or doer.owner
         if leader == nil or not leader.userid then
             return
         end

@@ -93,7 +93,7 @@ end
 
 --- @TODO: Most of this is redundant
 PEARL.info("Loading configuration...")
-for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+for _, option in ipairs(PEARL.MODINFO.configuration_options) do
     -- Apply server changes to our public options.
     if option.public == true then
         -- No ZIPing in debug mode.
@@ -355,7 +355,7 @@ ModuleManager:AddModule("customemojipacks", PEARL.CONFIG.CUSTOM_EMOJI_PACKS)
 ModuleManager:AddModule(
     -- Only load the modblocker if we have any mods enabled.
     -- Call this also for non-admins because we may want to block some uncompatible mods.
-    "modblocker", (PEARL.CONFIG.MOD_BLOCKER.ENABLED or table.empty(PEARL.MOD_INFO.uncompatible_mods) == false) and KnownModIndex:GetAllEnabledModsCount() > 1
+    "modblocker", (PEARL.CONFIG.MOD_BLOCKER.ENABLED or table.empty(PEARL.MODINFO.uncompatible_mods) == false) and KnownModIndex:GetAllEnabledModsCount() > 1
 )
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then

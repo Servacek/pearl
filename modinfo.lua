@@ -18,7 +18,8 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.689"
+version = "3.0.69"
+branch = "release"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -58,6 +59,8 @@ server_filter_tags = {
 -------------------------------------
 -- [[ Configurations ]]
 -------------------------------------
+
+--- @TODO: Add a SERVER_ONLY_MOD option
 
 --- @TAGS:
 --- - general - This configuration loads directly in modmain.lua

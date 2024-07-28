@@ -144,9 +144,10 @@ GLOBAL.PEARL = setmetatable({
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
     ENV_MT              = MT,
-    MODNAME             = modname,
     MODID               = GetWorkshopIdNumber(modname),
-    MOD_INFO            = KnownModIndex:GetModInfo(modname),
+    MODINFO             = KnownModIndex:GetModInfo(modname),
+    MODNAME             = modname,
+    MODFANCYNAME        = GetModFancyName(modname),
     RPC_NAME            = modname.."_rpc",
 
     GetConfigData       = function(opt_name, no_supp, ...)
@@ -170,7 +171,7 @@ GLOBAL.PEARL = setmetatable({
             end
         end
 
-        for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+        for _, option in ipairs(PEARL.MODINFO.configuration_options) do
             if option.name == opt_name then
                 if type(option.default) == "table" then
                     supplement(option.default, data)
@@ -246,7 +247,8 @@ PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
 PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
 PEARL.IN_UGC_FOLDER = PEARL.IS_WORKSHOP == true
 
-PEARL.VERSION       = PEARL.MOD_INFO.version
+PEARL.VERSION       = PEARL.MODINFO.version
+PEARL.FANCY_VERSION = FirstToUpper(PEARL.MODINFO.branch).." "..PEARL.VERSION
 PEARL.LUA_VERSION   = _VERSION
 
 PEARL.X32 = APP_ARCHITECTURE == "x32"
@@ -269,7 +271,7 @@ end
 
 if TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
     -- Make sure we do not leak any internal configurations
-    return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
+    return error("Current version of "..PEARL.MODINFO.name.." does only support online dedicated servers.")
 end
 
 --------------------------------
@@ -278,7 +280,15 @@ end
 
 local bf = io.open(MODROOT..""..PEARL.BANNER_PATH, "r")
 if bf then
-    print("\n"..bf:read("*a"))
+    local banner = bf:read("*a")
+    local line = banner:match("([^\n]+)\n")
+    print("FIRST LINE", line)
+    local modname = TheNet:IsDedicated() and PEARL.MODINFO.backend_name or PEARL.MODFANCYNAME
+    local name_part, version_part = " :: "..modname.." ::", "(v"..PEARL.VERSION..")"
+
+    print("\n\n "..banner:gsub("\n", "\n "):gsub("^%s*\n", ""):gsub("\n%s*$", "")
+        .."\n"..name_part..string.rep(" ", #line - #name_part - #version_part)..version_part
+    .."\n\n")
 end
 
 --------------------------------
@@ -288,7 +298,7 @@ end
 PEARL.DEFAULT_CONFIG = {}
 
 local function load_default_config()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
         if option.name ~= nil and option.default ~= nil then
             PEARL.DEFAULT_CONFIG[option.name] = option.default
 
@@ -307,7 +317,7 @@ load_default_config()
 PEARL.CONFIG_OVERRIDES = {}
 
 local function load_config_overrides()
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
         if option.name ~= nil then
             if option.saved ~= nil then
                 PEARL.CONFIG_OVERRIDES[option.name] = option.saved
@@ -391,7 +401,7 @@ end
 
 --- Allow uncompatible mods to be added dynamically.
 if table.empty(PEARL.CONFIG.UNCOMPATIBLE_MODS) == false then
-    ConcatArrays(PEARL.MOD_INFO.uncompatible_mods, PEARL.CONFIG.UNCOMPATIBLE_MODS)
+    ConcatArrays(PEARL.MODINFO.uncompatible_mods, PEARL.CONFIG.UNCOMPATIBLE_MODS)
 end
 
 --------------------------------
@@ -753,6 +763,6 @@ end
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version,
+PEARL.info("Mod loaded successfully on version:", PEARL.MODINFO.version,
     PEARL.IS_BACKUP == true and "[Backup]" or ""
 )

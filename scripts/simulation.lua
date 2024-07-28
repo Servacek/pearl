@@ -17,6 +17,8 @@
 ----------------------------------
 
 local function OnShardShutdown()
+    PEARL.debug("OnShardShutdown()")
+
     PEARL.EventProcessor:HandleEvent("shard_shutdown", false)
     PEARL.ModShutdown()
 end
@@ -78,6 +80,8 @@ PEARL.AddUserDataFunctionPreCall("Quit", OnShardShutdown, TheSim)
 -- This is not being called by the game itself, but we use this to force a reboot from inside.
 local _Crash
 _Crash  = PEARL.OverrideUserdataValue("Crash", function(self, silent, ...)
+    PEARL.debug("TheSim:Crash()")
+
     if type(_Crash) == "function" then
         if not silent then
             -- Real crash

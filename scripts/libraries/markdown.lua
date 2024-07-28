@@ -13,26 +13,25 @@
 
 
 --[[
-    Additional utility functions to the standard libraries.
+    Wrapper for markdown syntax for strings. Supports most of the markdown supported by Discord.
 
     NOTES:
         - [](<url>) displays only the embed of the url.
+        - Currently we escape hyperlinks by escaping all '[' chars
+        - Doesn't work for multiple hyperlinks:
+            -local HYPERLINK_PATTERN = "%[.+%]%(.+%)"
 --]]
 
 ---------------------------
 -- [[ Localization ]]
 ---------------------------
 
-local tp, tostring = type, tostring
+local type, tostring = type, tostring
 local string = string
 
 ---------------------------
 -- [[ Constants ]]
 ---------------------------
-
---- Note: Currently we escape hyperlinks by escaping all '[' chars
---- Note: doesn't work for multiple hyperlinks
---local HYPERLINK_PATTERN = "%[.+%]%(.+%)"
 
 local LINK_ESCAPE_PATTERN = "<%s>"
 
@@ -40,15 +39,11 @@ local MENTION_PATTERN  = "<%s%s>"
 local TIMESTAMP_PATTERN = "<t:%s>"
 local TIMESTAMP_TYPE_PATTERN = "<t:%s:%s>"
 
-local ZERO_WIDTH_SPACE = "​"
-local HAIR_WIDTH_SPACE = " "
-
-local HAIRS_PER_SPACE  = 2
-
 --------------------------------
 -- [[ Intialization ]]
 --------------------------------
 
+--- @static
 local MARKDOWN = {
     -- Do not add backslashes before backticks
     SYMBOL_PATTERN = "[%~%*%_%>%|%[~%`%:%-%#]",
@@ -66,7 +61,8 @@ local MARKDOWN = {
         HEADER_MED          = "## %s",
         HEADER_SML          = "### %s",
         SPOILER             = "||%s||",
-        LIST_ITEM           = "- %s", -- Use this instead of the asterisk to prevent any conflicts.
+        UL_ITEM             = "- %s", -- Use this instead of the asterisk to prevent any conflicts.
+        OL_ITEM             = "%d. %s",
     },
 
     MENTION_TYPE = {
@@ -87,10 +83,11 @@ local MARKDOWN = {
     },
 
     HEADER_LEVELS = {
-        DEFAULT = 0,
-        BIG     = 1,
-        MEDIUM  = 2,
-        SMALL   = 3,
+        TINY    = -1,
+        DEFAULT =  0,
+        BIG     =  1,
+        MEDIUM  =  2,
+        SMALL   =  3,
     }
 }
 
@@ -120,7 +117,8 @@ function MARKDOWN.spoiler(s)
     return s and MARKDOWN.PATTERNS.SPOILER:format(s)
 end
 
---- Formats a string to the codeline format using the discord markdown characters
+--- Formats a string to the codeline format using the discord markdown characters.
+--- Sanitizes the string before doing so without removing any visible characters.
 --- @return string result The formatted string
 function MARKDOWN.codeline(s)
     return s and MARKDOWN.PATTERNS.CODE_LINE:format(tostring(s):gsub("`", "ˋ"))
@@ -145,7 +143,7 @@ end
 function MARKDOWN.codeblock(s, lang_code)
     s = tostring(s):gsub("`", "ˋ")
 
-    if tp(lang_code) == "string" then
+    if type(lang_code) == "string" then
         return MARKDOWN.PATTERNS.CODE_BLOCK_SYNTAX:format(lang_code, s)
     end
 
@@ -174,56 +172,31 @@ function MARKDOWN.strikethrough(s)
     return MARKDOWN.PATTERNS.STRYKETHROUGH:format(s)
 end
 
-function MARKDOWN.spacestohairs(spaces)
-    return spaces * HAIRS_PER_SPACE
-end
-
--- Supports very low resulution spacing.
-function MARKDOWN.initspacing(s, count, hairs)
-    return ZERO_WIDTH_SPACE..string.rep(HAIR_WIDTH_SPACE, hairs or 0)..string.rep(" ", count or 0)..s
-end
-
 -- Do not use this with user's input
 -- Note: The link parameter can be nil.
 function MARKDOWN.hlink(s, link)
-    if tp(s) ~= "string" or tp(link) ~= "string" then
+    if type(s) ~= "string" or type(link) ~= "string" then
         return s
     end
 
     return MARKDOWN.PATTERNS.HYPERLINK:format(s, link)
 end
 
-function MARKDOWN.listitem(s, indent)
-    indent = indent or 0
-
-    return string.rep(" ", indent)..MARKDOWN.PATTERNS.LIST_ITEM:format(s);
+function MARKDOWN.listitem(s, indent, index)
+    local pt = index and MARKDOWN.PATTERNS.OL_ITEM or MARKDOWN.PATTERNS.UL_ITEM
+    return string.rep(" ", indent or 0)..pt:format(s, index);
 end
 
 function MARKDOWN.header(s, level)
     level = level or 1
+    local prefix = level < 0 and "-" or ""
 
     -- The space here IS required!
-    return string.rep("#", level).." "..s
+    return prefix..string.rep("#", math.abs(level)).." "..s
 end
 
---- @deprecated Use SUPPRESS_EMBEDS flag instead
--- Prevents the given link from creating an embed when posted
--- function string:noembed()
---     return string.format("<%s>", self)
--- end
-
---- @deprecated Use SUPPRESS_EMBEDS flag instead
--- Escapes all markdowned links in the given string, so they do not create
--- an embed when posted.
--- Note: Currently we escape links by escaping all ':' chars
--- function string:escape_links()
---     return self:gsub(URL_PATTERN, "<%1>")
--- end
-
---- @deprecated
---- Note: Currently we escape hyperlinks by escaping all '[' chars
--- function string:escape_hlinks()
---     return self:gsub("%[", "\\[")
--- end
+--------------------------------
+-- [[ Return ]]
+--------------------------------
 
 return MARKDOWN

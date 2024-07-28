@@ -202,7 +202,7 @@ PEARL.info("Loading BE configurations...")
 
 --- Load backend specific configuration options.
 --- This has to be loaded here in order to run all the important checks.
-for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+for _, option in ipairs(PEARL.MODINFO.configuration_options) do
     --if not option.general and PEARL.CONFIG[option.name] == nil then
         PEARL.ModConfig:LoadBackendOverride(option)
     --end
@@ -381,7 +381,7 @@ PEARL.loadfile("simulation")
 
 PEARL.info("Loading custom server tags...")
 for _, tag in ipairs(PEARL.CONFIG.CUSTOM_SERVER_TAGS) do
-    table.insert(PEARL.MOD_INFO.server_filter_tags, tag)
+    table.insert(PEARL.MODINFO.server_filter_tags, tag)
 end
 
 --------------------------------
@@ -400,7 +400,7 @@ end
 -- [[ Backend Name ]]
 --------------------------------
 
-PEARL.MOD_INFO.name = PEARL.MOD_INFO.backend_name or PEARL.MOD_INFO.name
+PEARL.MODINFO.name = PEARL.MODINFO.backend_name or PEARL.MODINFO.name
 
 -- No need to load any further on the initial launch.
 --*************************************************************************************************--
