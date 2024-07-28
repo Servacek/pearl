@@ -18,6 +18,7 @@
 local ENDPOINT = {
     A_OWNER_LOOKUP = "https://login.kleientertainment.com/login/FamilySharingLookup",
     A_LINK_VALIDATE = "https://login.kleientertainment.com/ValidateThirdPartyLink",
+    A_HEALTH_CHECK = "https://login.kleientertainment.com/HealthCheck", -- Same endpoint for items
 }
 
 local QUERY_TIMEOUT = 10

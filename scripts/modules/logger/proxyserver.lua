@@ -11,11 +11,29 @@
 --]==]====================================================]]
 
 
+local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+
+local MARKDOWN = PEARL.loadfile("libraries/markdown")
+
 --------------------------------
 -- [[ Local Variables ]]
 --------------------------------
 
 local running, unreachable = false, false
+
+--------------------------------
+-- [[ Local Functions ]]
+--------------------------------
+
+local function LogProxyStateMessage(message, has_failed)
+    PEARL.DiscordLogger:LogLine(LogLine(MARKDOWN.header(message, MARKDOWN.HEADER_LEVELS.TINY))
+        :SetIsRaw(true)
+    )
+
+    if has_failed then
+        PEARL.DiscordReporter:SendRawReportString(message)
+    end
+end
 
 --------------------------------
 -- [[ Event Handlers ]]
@@ -24,32 +42,30 @@ local running, unreachable = false, false
 local function OnProxyServerStart()
     if not running then
         running = true
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
+        LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
     end
 end
 
 local function OnProxyServerStop()
     if running then
         running = false
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
+        LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
     end
 end
 
 local function OnProxyServerRestarted()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
+    LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
 end
 
 local function OnProxyServerError()
-    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR)
-    PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR)
+    LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR, true)
 end
 
 local function OnProxyServerUnreachable()
     if not unreachable then
         unreachable = true
 
-        PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
-        PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH)
+        LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH, true)
     end
 end
 
