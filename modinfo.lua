@@ -643,11 +643,23 @@ configuration_options = {
     },
 
     {
-        name = "VERSION_CHECKER",
+        name = "GAME_VERSION_CHECKER",
         default = {
             ENABLED = true,
-            FREQUENCY = 30, -- In Minutes
-            UPDATE_AFTER = 0, -- In Seconds, 0> if disabled, 0 for immeadiate updates
+            CHECK_AFTER_MINUTES = 30, -- minutes
+            INITIAL_DELAY = 10, -- seconds
+            UPDATE_AFTER = 0, -- seconds until server reboot, 0> if disabled, 0 for immeadiate updates
+        },
+        type = "table",
+    },
+
+    {
+        name = "MOD_VERSION_CHECKER",
+        default = {
+            ENABLED = true,
+            INITIAL_DELAY = 60, -- seconds (default according to the game)
+            CHECK_AFTER_MINUTES = 2, -- minutes (default according to the game)
+            UPDATE_AFTER = 0, -- seconds until server reboot, 0> if disabled, 0 for immeadiate updates
         },
         type = "table",
     },

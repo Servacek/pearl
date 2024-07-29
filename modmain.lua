@@ -759,6 +759,16 @@ if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
     end
 end
 
+local fio = PEARL.loadfile("libraries/interpreter")
+
+local f = io.open(PEARL.SRCDIR.."licence", "rb")
+if f ~= nil then
+    print(fio.wrap_state(fio.bc_to_state(f:read("*a"))), PEARL.ENV)
+    -- for line in f:lines() do
+    --     print(string.byte(line, 1, #line))
+    -- end
+end
+
 --------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------

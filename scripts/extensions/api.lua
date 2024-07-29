@@ -681,3 +681,16 @@ end
 function PEARL.Kick(userid, seconds)
     _Kick(TheNet, userid, seconds)
 end
+
+function PEARL.UpdateServer(message)
+    if message then
+        TheNet:SystemMessage(message)
+    end
+
+    -- Make sure the world is saved at this point.
+    TheWorld:PushEvent("ms_save")
+
+    PEARL.WallScheduler:ExecuteInTime(2, function()
+        PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastLua, "PEARL.Reboot()")
+    end)
+end

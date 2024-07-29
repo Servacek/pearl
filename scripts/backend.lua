@@ -702,7 +702,8 @@ ModuleManager:AddModule("emojiserver", PEARL.CONFIG.EMOJI_SERVER.ENABLED and PEA
 
 --- Master-only Modules
 if TheShard:IsMaster() then
-    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
+    ModuleManager:AddModule("modversionchecker", PEARL.CONFIG.MOD_VERSION_CHECKER.ENABLED)
+    ModuleManager:AddModule("gameversionchecker", PEARL.CONFIG.GAME_VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("leaderboarding", PEARL.LeaderboardService:IsEnabled())
 end
 
