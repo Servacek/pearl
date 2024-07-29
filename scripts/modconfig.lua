@@ -61,6 +61,7 @@ local function ParsePublicConfigOption(option, tbl)
                 end
 
                 tbl[option.name] = TheSim:ZipAndEncodeString(value)
+                tbl[option.name] = TheSim:ZipAndEncodeString(value)
             elseif type == "table" then
                 -- Do not zip empty tables
                 if IsTableEmpty(value) then
@@ -123,7 +124,7 @@ end
 
 function ModConfig:GetAllSelfConfigData()
     local config_data = {}
-    for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
         if option.public then
             ParsePublicConfigOption(option, config_data)
         end
@@ -151,7 +152,7 @@ function ModConfig:GetAllConfigDataForMod(modname)
 end
 
 function ModConfig:VerifyConfig(optname, options)
-    options = options or PEARL.MOD_INFO.configuration_options
+    options = options or PEARL.MODINFO.configuration_options
     local option = GetConfigOptionByName(options, optname)
     if type(option) ~= "table" or (option.implicit == true and TheNet:IsDedicated()) then
         return error("Attempted to override an invalid or implicit option ("..optname..") in modoverrides.lua.")

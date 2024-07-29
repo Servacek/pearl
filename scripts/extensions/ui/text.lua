@@ -53,7 +53,7 @@ assert(_TextEditWidget_SetString and _TextWidget_SetString and _TextWidget_Reset
 -------------------------------
 
 local function GetStringSize(self, s, font, size)
-    PEARL.debug("GetStringSize", self, s, font, size, "FONT", self and self.font, self and self.size)
+    PEARL.debug("GetStringSize")--, self, s, font, size, "FONT", self and self.font, self and self.size)
     --- For empty strings this goes crazy! "1.7014117331926e+038"
     if s == "" then
         return 0, 0
@@ -199,8 +199,6 @@ local function InsertAnimatedEmoji(lua_widget, first, last, emoji_utf8_str)
     emoji_anim.GetRegionSize = GetAnimatedEmojiSize
 
     local frame = _emoji_anim_states[emoji_utf8_str] and _emoji_anim_states[emoji_utf8_str]:GetCurrentAnimationFrame()
-    local len = emoji_anim_state:GetCurrentAnimationLength()
-    print("FRAME", frame, "TICK", GetStaticTick(), len, GetStaticTick() % len)
     if frame ~= nil then
         emoji_anim_state:SetFrame(frame)
     end

@@ -185,7 +185,7 @@ local function OnQuit()
     end
 
     if PEARL.DiscordProxy:IsFetching() then
-        PEARL.DiscordProxy:StopFetchTask()
+        PEARL.DiscordProxy:CancelFetchTask()
     end
 end
 
@@ -268,6 +268,12 @@ if TheShard:IsMaster() then
     PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
 
     PEARL.EventProcessor:AddSafeEventHandler("proxy_fetching_done", OnProxyFetchingDone)
+
+    PEARL.WallScheduler:ExecutePeriodic(PEARL.CONFIG.DISCORD.PROXY.ENSURE_CONNECTION_PERIOD, function()
+        if not PEARL.DiscordProxy:IsRunning() then
+            PEARL.DiscordProxy:StartSession()
+        end
+    end)
 end
 
 PEARL.EventProcessor:AddSafeEventHandler("proxy_state_changed", OnProxyStateChanged)

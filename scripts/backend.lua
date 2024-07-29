@@ -68,8 +68,6 @@ PEARL.SafeModTableExtend("CONSTS", {
     BAD_PING_THRESHOLD          = 300, -- This is what is used for server listing filters
     BAD_PERFORMANCE_THRESHOLD   = 2, -- These are just logical values (0 - GOOD, 1 - OK, 2 - BAD)
 
-    MAX_REQUEST_RETRIES         = 3,
-
     DEFAULT_PROPAGATOR_RADIUS   = 5,
     LARGE_PROPAGATOR_RADIUS     = 8,
     MAX_FIRE_ATTEMPTS           = 3,
@@ -204,7 +202,7 @@ PEARL.info("Loading BE configurations...")
 
 --- Load backend specific configuration options.
 --- This has to be loaded here in order to run all the important checks.
-for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+for _, option in ipairs(PEARL.MODINFO.configuration_options) do
     --if not option.general and PEARL.CONFIG[option.name] == nil then
         PEARL.ModConfig:LoadBackendOverride(option)
     --end
@@ -307,6 +305,8 @@ if PEARL.CONFIG.MOD_BLOCKER.ENABLED then
 
     PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
     PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_BLOCKLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, true, true)
+    PEARL.CONFIG.MOD_ALLOWLIST = PEARL.ClusterPersistence:GetAllFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, true, true)
 
     -- When the tables are empty, set them to nil to save some bytes when sending the config.
     -- Since these data are being zipped.
@@ -334,9 +334,12 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     local fp = "../../loadingtips.lua"
     if not PEARL.ClusterPersistence:FileExists(fp) then
         PEARL.ClusterPersistence:SetFileContent(fp, "return { }")
+    if not PEARL.ClusterPersistence:FileExists(fp) then
+        PEARL.ClusterPersistence:SetFileContent(fp, "return { }")
     end
 
     -- Run the file in our environment so it has access to all the globals it could possibly need.
+    local success, data = PEARL.ClusterPersistence:LoadLuaFile(fp, false, PEARL.ENV)
     local success, data = PEARL.ClusterPersistence:LoadLuaFile(fp, false, PEARL.ENV)
     if not success or type(data) ~= "table" then
         -- Data should be in this case the traceback.
@@ -411,7 +414,7 @@ PEARL.loadfile("simulation")
 
 PEARL.info("Loading custom server tags...")
 for _, tag in ipairs(PEARL.CONFIG.CUSTOM_SERVER_TAGS) do
-    table.insert(PEARL.MOD_INFO.server_filter_tags, tag)
+    table.insert(PEARL.MODINFO.server_filter_tags, tag)
 end
 
 --------------------------------
@@ -430,7 +433,7 @@ end
 -- [[ Backend Name ]]
 --------------------------------
 
-PEARL.MOD_INFO.name = PEARL.MOD_INFO.backend_name or PEARL.MOD_INFO.name
+PEARL.MODINFO.name = PEARL.MODINFO.backend_name or PEARL.MODINFO.name
 
 -- No need to load any further on the initial launch.
 --*************************************************************************************************--
@@ -728,7 +731,8 @@ ModuleManager:AddModule("emojiserver", PEARL.CONFIG.EMOJI_SERVER.ENABLED and PEA
 
 --- Master-only Modules
 if TheShard:IsMaster() then
-    ModuleManager:AddModule("versionchecker", PEARL.CONFIG.VERSION_CHECKER.ENABLED)
+    ModuleManager:AddModule("modversionchecker", PEARL.CONFIG.MOD_VERSION_CHECKER.ENABLED)
+    ModuleManager:AddModule("gameversionchecker", PEARL.CONFIG.GAME_VERSION_CHECKER.ENABLED)
     ModuleManager:AddModule("leaderboarding", PEARL.LeaderboardService:IsEnabled())
 end
 

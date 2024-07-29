@@ -15,7 +15,7 @@
 -- [[ Constants ]]
 -------------------------------------
 
-local PERSISTENT_DATA_FILEPATH = PEARL.MODID.."_emoji_data"
+local PERSISTENT_DATA_FILEPATH = PEARL.UNIQUE_IDENTIFIER.."_emoji_data"
 
 local MAX_FU_EMOJIS = 32
 
@@ -45,12 +45,15 @@ local ClientEmojiManager = {
 
 ClientEmojiManager.CATEGORIES_ORDERED = {
     {
+        --- Here we want to make sure to keep the order in which the emojis were added to this category.
         id = "FAVORITES",
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES,
-        emojis = {},
+        emojis = ClientEmojiManager._persistdata.favourites,
+        --- Validation not needed because invalid emojis will just not be shown.
         loadfn = function(self, data)
-            local favourites_ids = table.keys(data.favourites)
-            table.join(table.iclear(self.emojis), favourites_ids)
+            local emojis_copy = deepcopy(self.emojis)
+            table.clear(self.emojis)
+            self.emojis = table.toset(emojis_copy, self.emojis)
         end,
     },
 
@@ -68,9 +71,10 @@ ClientEmojiManager.CATEGORIES_ORDERED = {
                     data.frequently_used[k] = nil -- Rmeove invalid emojis or non-existent emojis.
                 end
 
-                if type(v) == "table" then -- For compatibility with older saves
-                    data.frequently_used[k] = v.count
-                end
+                -- No more, since the emoji utf8 characters do not match!
+                -- if type(v) == "table" then -- For compatibility with older saves
+                --     data.frequently_used[k] = v.count
+                -- end
             end
         end,
         sortfn = function(id_a, id_b)
@@ -103,7 +107,7 @@ ClientEmojiManager.CATEGORIES_ORDERED = {
     {
         id = "VANILLA",
         name = STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA,
-        emojis = table.values(PEARL.EMOJIS.INPUTNAME_TO_ID, true),
+        emojis = table.values(PEARL.EMOJIS.INPUTNAME_TO_ID),
     },
 }
 
@@ -154,8 +158,8 @@ function ClientEmojiManager:HasAnyAvailableEmojis()
 end
 
 function ClientEmojiManager:HasAnyNewEmojis()
-    for _, emoji_data in pairs(PEARL.EMOJIS.DATA) do
-        if self:IsEmojiNew(emoji_data.emoji_id) then
+    for emoji_id in pairs(PEARL.EMOJIS.DATA) do
+        if self:IsEmojiNew(emoji_id) then
             return true
         end
     end
@@ -172,7 +176,7 @@ function ClientEmojiManager:WasEmojiAlreadyDisplayed(emoji_id)
 end
 
 function ClientEmojiManager:IsEmojiFavorite(emoji_id)
-    return self._persistdata.favourites[emoji_id] == true
+    return table.getkey(self._persistdata.favourites, emoji_id) ~= nil
 end
 
 function ClientEmojiManager:IsEmojiAvailable(emoji_id)
@@ -233,17 +237,12 @@ function ClientEmojiManager:OnEmojiFavoriteToggled(emoji_id)
     PEARL.debug("OnEmojiFavoriteToggled", emoji_id)
 
     if self:IsEmojiFavorite(emoji_id) then
-        self._persistdata.favourites[emoji_id] = nil
-        table.removearrayvalue(ClientEmojiManager.CATEGORY.FAVORITES.emojis, emoji_id)
+        table.removearrayvalue(self._persistdata.favourites, emoji_id)
     else
-        self._persistdata.favourites[emoji_id] = true
-        --- Simply add it to the end of the list.
-        table.insert(ClientEmojiManager.CATEGORY.FAVORITES.emojis, emoji_id)
+        table.insert(self._persistdata.favourites, emoji_id)
     end
 
     self._unsaved_changes = true
-
-    return self:IsEmojiFavorite(emoji_id)
 end
 
 function ClientEmojiManager:OnEmojiDisplayed(emoji_id)

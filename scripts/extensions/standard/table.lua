@@ -407,6 +407,21 @@ function table.values(t, unique)
     return values
 end
 
+--- Returns an array of unique values from the given table.
+function table.toset(t, set)
+    set = set or {}
+    local lk = {}
+    for i = 1, #t do
+        if lk[t[i]] == nil then
+            lk[t[i]] = true
+
+            set[#set+1] = t[i]
+        end
+    end
+
+    return set
+end
+
 -- For some reason this cannot be used as a method :/
 function table.dump(t, _i, _r, _visited)
     if type(t) ~= "table" then

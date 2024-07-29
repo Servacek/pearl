@@ -27,6 +27,13 @@ require("entityscript")
 local EntityScript = EntityScript
 
 -----------------------------------
+-- [[ Static Variables ]]
+-----------------------------------
+
+EntityScript.PREFAB_NAME_OVERRIDES = {}
+EntityScript.FN_TO_PCALL = {}
+
+-----------------------------------
 -- [[ Member Functions ]]
 -----------------------------------
 
@@ -212,9 +219,11 @@ end
 --- @param fn function A reference to the handler function.
 --- @param ... any Additional parameters to the handler.
 function EntityScript:SafeListenForEvent(event, fn, ...)
-    return self:ListenForEvent(event, function(...)
-        PEARL.SafeRun(fn, ...)
-    end, ...)
+    local pfn = function(...) PEARL.SafeRun(fn, ...) end
+    EntityScript.FN_TO_PCALL[fn] = pfn
+    self:ListenForEvent(event, pfn, ...)
+
+    return pfn -- Return the pcall so we have a reference to that as well.
 end
 
 --- @param event string The event name.
@@ -222,9 +231,12 @@ end
 --- @param delay integer The delay in seconds for the event handler.
 --- @param ... any Additional parameters to the handler.
 function EntityScript:ListenForEventDelayed(event, fn, delay, ...)
-    return self:ListenForEvent(event, function(...)
+    local dfn = function(...)
         PEARL.WallScheduler:ExecuteInTime(delay or 0, fn, nil, ...)
-    end, ...)
+    end
+    self:ListenForEvent(event, dfn, ...)
+
+    return dfn -- Return the delayed function so we have a reference to that as well.
 end
 
 --- Uses PEARL.SafeRun to call the event handlers.
@@ -241,8 +253,28 @@ function EntityScript:RemoveModEventCallback(event, ...)
 end
 
 -----------------------------------
--- [[ Scheduler Extensions ]]
+-- [[ Function Extensions ]]
 -----------------------------------
+
+--- When an event is added via SafeListenForEvent, the actual reference that is saved
+--- is the reference to the newly created function in the protected call.
+--- So when we try to intuitively remove it using the original function reference,
+--- it won't remove these safe versions.
+--- With this extensions, it removes both correctly.
+local _RemoveEventCallback
+_RemoveEventCallback = PEARL.AddClassFunctionPostCall("RemoveEventCallback", function(self, event, fn, ...)
+    --PEARL.debug("RemoveEventCallback", _RemoveEventCallback)
+
+    local pfn = EntityScript.FN_TO_PCALL[fn]
+    if pfn ~= nil then
+        EntityScript.FN_TO_PCALL[fn] = nil -- Time remove this reference as well.
+
+        if type(pfn) == "function" then
+            -- A pcall was used as the fn argument so nothing was actually removed
+            _RemoveEventCallback(self, event, pfn, ...) -- Really scared of an infinite loop...
+        end
+    end
+end, EntityScript)
 
 if PEARL.CONFIG.PERFORMANCE_MODE then
     --- Do not do this for DoTaskInTime since that's used for growable component.
@@ -256,19 +288,3 @@ if PEARL.CONFIG.PERFORMANCE_MODE then
         end, ...)
     end
 end
-
------------------------------------
--- [[ Hooks ]]
------------------------------------
-
--- PEARL.AddClassFunctionPreCall("OnBuilt", function(self, builder)
---     PEARL.debug("OnBuilt", builder, self, self.onPreBuilt)
---     self:onPreBuilt(builder)
---     if builder and builder.userid and builder.name then
---         if not self.components.built then
---             self:AddComponent("built")
---         end
-
---         self.components.built:SetBuilderData(builder.userid, builder.name)
---     end
--- end, EntityScript)

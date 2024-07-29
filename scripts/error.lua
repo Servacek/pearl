@@ -56,6 +56,8 @@ local function OnClientError(traceback)
     local boot_modindex_filename = "boot_"..KnownModIndex:GetModIndexName()
     SavePersistentString(boot_modindex_filename, "done", false)
 
+    PEARL.EventProcessor:HandleEvent("clienterror", traceback)
+
     local afflicter_modname = TryGetAfflicterMod(traceback)
     if (not KnownModIndex:IsModDisablingDisabled() or PEARL.CONFIG.DEBUG_MODE) then
         if KnownModIndex:IsModEnabledAny(afflicter_modname) then
@@ -77,11 +79,11 @@ local function OnClientError(traceback)
     -- No disconnecting in debug mode... We have our fancy "Realod Save" button!
     if PEARL.CONFIG.DEBUG_MODE then
         SetServerPaused(true) -- At least pause the game when viewing the error screen.
-    elseif PEARL.ClientNetwork then
-        PEARL.info("Disconnecting the user from the server...")
-        PEARL.ClientNetwork:ForceDisconnectWithReason("ID_DST_USER_CRASHED")
-    else
-        TheNet:Disconnect(false)
+    -- elseif PEARL.ClientNetwork then
+    --     PEARL.info("Disconnecting the user from the server...")
+    --     PEARL.ClientNetwork:Disconnect("ID_DST_USER_CRASHED")
+    -- else
+    --     TheNet:Disconnect(false)
     end
 
     -- Do not force abort here in case we are displaying the error.

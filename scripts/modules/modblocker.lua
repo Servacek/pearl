@@ -81,7 +81,7 @@ PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
     end
 
     if not KnownModIndex:IsModCompatibleWith(PEARL.MODNAME, modname) then
-        if not KnownModIndex:IsModEnabledAny(modname) then
+        if KnownModIndex:IsModEnabledAny(modname) then
             PEARL.info("Temporarily disabling mod", modname, "because it's not compatible!")
             KnownModIndex:TempDisable(modname)
 
@@ -93,7 +93,7 @@ PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
 
     -- Block prohibited mods while loading.
     -- Each mod calls this function exactly two times (modmain and modworldgenmain)
-    if KnownModIndex:IsModProhibited(modname) then
+    if KnownModIndex:IsModProhibited(modname) and (not TheNet:GetIsServerAdmin() or PEARL.CONFIG.DEBUG_MODE) then
         if not KnownModIndex:IsModBlocked(modname) then
             BlockMod(modname)
         end
@@ -155,20 +155,22 @@ end)
 -- Load this before frontend since on FE post init we send the CFD data.
 --
 -- At this point we can also show some popups if needed.
-PEARL.AddFrontEndPreInit(function()
-    PEARL.info("Checking the mods... again...")
+if not TheNet:GetIsServerAdmin() or PEARL.CONFIG.DEBUG_MODE then
+    PEARL.AddFrontEndPreInit(function()
+        PEARL.info("Checking the mods... again...")
 
-    -- Determines wheters at least one mod was blocked
-    -- during regular loading.
-    local bypassed = VerifyAllLoadedMods()
+        -- Determines wheters at least one mod was blocked
+        -- during regular loading.
+        local bypassed = VerifyAllLoadedMods()
 
-    --- @NODE: STRICT mode is handled by the server!
-    --- is allowed and at least one mod was blocked.
-    if bypassed then
-        -- Prohibited mods were loaded even though our efforts to stop them.
-        -- The only thing left is to disconnect the user...
-        PEARL.ClientNetwork:ForceDisconnectWithReason(
-           KnownModIndex:AreAllModsBlocked() and "ID_DST_ALL_MODS_PROHIBITED" or "ID_DST_MODS_PROHIBITED"
-        )
-    end
-end)
+        --- @NODE: STRICT mode is handled by the server!
+        --- is allowed and at least one mod was blocked.
+        if bypassed then
+            -- Prohibited mods were loaded even though our efforts to stop them.
+            -- The only thing left is to disconnect the user...
+            PEARL.ClientNetwork:Disconnect(
+            KnownModIndex:AreAllModsBlocked() and "ID_DST_ALL_MODS_PROHIBITED" or "ID_DST_MODS_PROHIBITED"
+            )
+        end
+    end)
+end

@@ -12,9 +12,7 @@
 
 
 PEARL.AddClassPreConstruct("widgets/scripterrorwidget", function(self, title, text, buttons)
-    for i, _ in pairs(buttons) do
-        buttons[i] = nil -- Remove all the default emojis, we will use our own.
-    end
+    table.clear(buttons)
 
     table.update(buttons, {
         {text=STRINGS.PEARL.UI.SCRIPTERRORWIDGET.REJOIN, cb = function()

@@ -36,6 +36,9 @@ local type = type
 
 local BLANK_PATTERN = "^[%s%c\t\n\r]*$"
 
+local ZERO_WIDTH_SPACE = "​"
+local HAIR_WIDTH_SPACE = " " -- 2 hairs per normal space
+
 -------------------------------------
 -- [[ Static Variables ]]
 -------------------------------------
@@ -69,6 +72,11 @@ end
 
 function string:strip()
     return self:match("^%s*(.-)%s*$")
+end
+
+-- Supports very low resulution spacing.
+function string:padding(count, hairs)
+    return ZERO_WIDTH_SPACE..string.rep(HAIR_WIDTH_SPACE, hairs or 0)..string.rep(" ", count or 0)..self
 end
 
 --- Slices a string into two parts.
@@ -145,6 +153,7 @@ function string:rtake(count, init, prefix)
 end
 
 --- Converts the first letter of the given string to uppercase
+--- Alternative to the Klei's global "FirstToUpper"
 --- @return string result The formatted result string
 function string:capitalize()
     return self and (self:gsub("^%l", utf8upper)) or self

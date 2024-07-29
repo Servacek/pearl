@@ -15,11 +15,16 @@
 --[[
     Module for keeping the server up-to-date. Uses Klei's API to get the latest
     release version. When the version is higher than the current one,
-    it notifies the players and shutdowns all the shards. So there needs to be
+    it notifies the players and shuts down all the shards. So there needs to be
     a third party program which then effectively updates and starts the server again.
 
     It looks like there is some Steam API for this but it seems to be still stuck in the
     last early access version of the game :/
+
+    For third party software, SteamCMD can be used as well to check
+    for new updates using the following command:
+    "./steamcmd.sh +login anonymous +app_info_update 1 +app_info_print 343050 +quit"
+
 --]]
 
 
@@ -92,7 +97,7 @@ local function IsWaitingForResponse()
 end
 
 local function IsAutoUpdateEnabled()
-    return (PEARL.CONFIG.VERSION_CHECKER.UPDATE_AFTER or 0) > 0
+    return (PEARL.CONFIG.GAME_VERSION_CHECKER.UPDATE_AFTER or 0) > 0
 end
 
 local function NotifyVersionMismatch()
@@ -100,14 +105,7 @@ local function NotifyVersionMismatch()
 end
 
 local function StartServerUpdate()
-    TheNet:SystemMessage(STRINGS.PEARL.LOGS.AUTO_UPDATE_START:format(target_version))
-
-    -- Make sure the world is saved at this point.
-    TheWorld:PushEvent("ms_save")
-
-    PEARL.WallScheduler:ExecuteInTime(2, function()
-        PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastLua, "PEARL.Reboot()")
-    end)
+    PEARL.UpdateServer(STRINGS.PEARL.LOGS.AUTO_UPDATE_START:format(target_version))
 end
 
 local function DoAutoUpdate()
@@ -115,10 +113,10 @@ local function DoAutoUpdate()
 
     if TheNet:GetPlayerCount() > 0 then
         TheNet:SystemMessage(STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST:format(
-            PEARL.CONFIG.VERSION_CHECKER.UPDATE_AFTER
+            PEARL.CONFIG.GAME_VERSION_CHECKER.UPDATE_AFTER
         ))
 
-        PEARL.WallScheduler:ExecuteInTime(PEARL.CONFIG.VERSION_CHECKER.UPDATE_AFTER * PEARL.CONSTS.FPS - 15, function()
+        PEARL.WallScheduler:ExecuteInTime(PEARL.CONFIG.GAME_VERSION_CHECKER.UPDATE_AFTER * PEARL.CONSTS.FPS - 15, function()
             TheNet:SystemMessage(STRINGS.PEARL.LOGS.AUTO_UPDATE_SECOND)
 
             PEARL.WallScheduler:ExecuteInTime(16, function()
@@ -154,6 +152,7 @@ local function CheckAppVersion()
 
         if TheNet:GetPlayerCount() <= 0 then
             -- Announce the version mismatch just once.
+            -- We assume that no new players will join again.
             StopVersionCheckTask()
         end
 
@@ -192,12 +191,12 @@ end
 local function StartVersionCheckTask()
     PEARL.debug("Starting version check task...")
 
-    assert((tonumber(PEARL.CONFIG.VERSION_CHECKER.FREQUENCY) or -1) >= 0, "Invalid version check frequency provided! Provide a positive number.")
+    assert((tonumber(PEARL.CONFIG.GAME_VERSION_CHECKER.FREQUENCY) or -1) >= 0, "Invalid version check frequency provided! Provide a positive number.")
 
     local initialdelay = PEARL.ServerNetwork:GetConnectedClientsCount() > 0 and INITIAL_DELAY or 1
     task = PEARL.WallScheduler:ExecutePeriodic(
         -- In case of a restart, wait for all the players to load before displaying the message.
-        (PEARL.CONFIG.VERSION_CHECKER.FREQUENCY * 60), DoVersionCheckTask, nil, initialdelay
+        (PEARL.CONFIG.GAME_VERSION_CHECKER.FREQUENCY * 60), DoVersionCheckTask, nil, initialdelay
     )
 end
 

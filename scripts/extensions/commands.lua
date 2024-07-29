@@ -582,33 +582,6 @@ AddCommand("count", {
     end,
 })
 
-AddCommand("boost", {
-    permission = COMMAND_PERMISSION.ADMIN,
-    slash = false,
-    console = false,
-
-    --- @param ctx CommandContext
-    fn = function(ctx)
-        local task = PEARL.WallScheduler:GetTask(PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH)
-        if not task then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_FAILURE)
-        end
-
-        local _time = task:gettime()
-        task:settime(PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL_FAST)
-        task:restart()
-
-        ctx:ExecuteAfter(PEARL.CONFIG.DISCORD.PROXY.BOOST_DELAY, function()
-            task:settime(_time or PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL)
-            task:restart()
-
-            PEARL.DiscordLogger:LogString(STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_TIMEOUT)
-        end)
-
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BOOST.ON_SUCCESS)
-    end,
-})
-
 AddCommand("profile", {
     permission = UserCommands.PERMISSION.USER,
     privateresponse = true,
@@ -1352,7 +1325,7 @@ AddCommand("note", {
 
 AddCommand("exec", {
     permission = COMMAND_PERMISSION.ADMIN,
-    routing = UserCommands.SHARD_ROUTING.NONE,
+    routing = UserCommands.SHARD_ROUTING.NONE, -- We do the routing ourselves
     console = false,
     slash = false, -- Admins can use the console right away from the game.
     options = {{name = "command"}, PARAMS.SHARD{optional = true}},
@@ -1361,7 +1334,16 @@ AddCommand("exec", {
     --- @param command string
     --- @param shardid? string
     fn = function(ctx, command, shardid)
-        PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, command)
+        local fn, errmsg = loadstring(command)
+        if type(fn) == "function" then
+            return PEARL.SendRPCToShard(PEARL.RPC.BroadcastLua, shardid, command)
+        end
+
+        if errmsg then
+            return ctx:Reply(MARKDOWN.codeblock(errmsg, "lua"))
+        end
+
+        ctx:ReplyError(STRINGS.PEARL.UI.BUILTINCOMMANDS.EXEC.ON_INVALID_COMMAND)
     end
 })
 

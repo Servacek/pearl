@@ -94,6 +94,9 @@ AddEmojiMenu = function(self)
 
         insert_index = textedit.inst.TextEditWidget:GetEditCursorPos() or 1
         self._bg:Show()
+
+        self._bg:MoveToFront()
+        self.emoji_menu:MoveToFront()
     end
 
     self.emoji_menu.onclosing = function()

@@ -500,6 +500,7 @@ PEARL.AddGlobalFunctionPostCall("RegisterPrefabsImpl", function(inst)
 end)
 
 PEARL.AddClassPreConstruct("frontend", function(...)
+PEARL.AddClassPreConstruct("frontend", function(...)
     if TheFrontEnd then
         return false
     end
@@ -512,6 +513,7 @@ PEARL.AddClassPreConstruct("frontend", function(...)
     end
 
     return result
+end, "FrontEnd")
 end, "FrontEnd")
 
 --- Do not use because of strict.lua!
@@ -675,4 +677,17 @@ function PEARL.RegenerateShard()
         -- In case this is being called from a client.
         c_remote("c_regenerateshard()")
     end
+end
+
+function PEARL.UpdateServer(message)
+    if message then
+        TheNet:SystemMessage(message)
+    end
+
+    -- Make sure the world is saved at this point.
+    TheWorld:PushEvent("ms_save")
+
+    PEARL.WallScheduler:ExecuteInTime(2, function()
+        PEARL.BroadcastRPCToAllShards(PEARL.RPC.BroadcastLua, "PEARL.Reboot()")
+    end)
 end

@@ -114,6 +114,19 @@ function KnownModIndex:ShouldDisableMod(modname)
     return false
 end
 
+function KnownModIndex:IsModCompatibleWith(modname, target_modname)
+    local modinfo = KnownModIndex:GetModInfo(modname)
+    if modinfo and table.empty(modinfo.uncompatible_mods) == false then
+        for _, uncompatible_modname in ipairs(modinfo.uncompatible_mods) do
+            if uncompatible_modname == target_modname or WORKSHOP_PREFIX..uncompatible_modname == target_modname then
+                return false
+            end
+        end
+    end
+
+    return true
+end
+
 function KnownModIndex:IsModAllowed(modname)
     if (TheNet:GetIsServerAdmin() and not PEARL.CONFIG.DEBUG_MODE) or modname == PEARL.MODNAME then
         return true -- All mods are allowed for admins

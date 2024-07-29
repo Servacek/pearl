@@ -414,7 +414,8 @@ function ServerNetwork:GetLocalClientIDs()
     return connected_clients
 end
 
---- So far, this is the most reliable approach.
+--- So far, this is the most reliable approach to get ALL connected clients on the server.
+--- This should output the same number on each connected shard.
 function ServerNetwork:GetConnectedClientsCount()
     -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
     -- We decrement this by one because of the host client for dedicated servers.

@@ -522,8 +522,23 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         name = entity.name -- This is for Pig Mans?
     end
 
+    --- Support for wormwood's proxy mutants
+    local prefab_def = _G.Prefabs[entity.prefab]
+    if prefab_def and table.empty(prefab_def.deps) == false and #prefab_def.deps == 1 then
+        local dep = prefab_def.deps[1]
+        if type(dep) == "string" and not dep:blank() and dep ~= entity.prefab then
+            local prefab = EntityScript.PREFAB_NAME_OVERRIDES[dep] or dep
+            name = STRINGS.NAMES[string.upper(prefab)] or name
+        end
+    end
+
     if entity.components.spellbook then
         name = entity.components.spellbook:GetSpellName() or name
+    end
+
+    -- For stuff like minions and such
+    if entity.owner then
+        name = entity.owner:GetBasicDisplayName() or name
     end
 
     if noprefix ~= true then
@@ -534,9 +549,15 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         end
     end
 
-    if entity.prefab and name == "MISSING NAME" and missing_name_cache[entity.prefab] == nil then
-        missing_name_cache[entity.prefab] = true
-        PEARL.DiscordReporter:SendRawReportString("Entity is MISSING NAME:\nPrefab: "..string.raw(tostring(entity.prefab)))
+    if entity.prefab and name == "MISSING NAME" then
+        if missing_name_cache[entity.prefab] == nil then
+            missing_name_cache[entity.prefab] = true
+            PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.REPORTS.MISSING_NAME:format(
+                tostring(entity.prefab)
+            ))
+        end
+
+        name = entity.prefab -- Show at least the prefab since that's more helpful.
     end
 
     return name

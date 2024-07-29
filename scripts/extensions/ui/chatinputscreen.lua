@@ -126,10 +126,16 @@ local function AddEmojiMenuButton(menu)
     btn._hasnew_img = btn:AddChild(Image("images/ui.xml", "new_label_motd2.tex"))
     btn._hasnew_img:SetScale(.3)
     local w, h = btn.bg:GetSize()
-    btn._hasnew_img:SetPosition(w / 3, h / 3)
+    btn._hasnew_img:SetPosition(w / 4, h / 3)
     btn._hasnew_img:Hide()
+    btn.glow = btn:AddChild(Image("images/global_redux.xml", "shop_glow.tex"))
+    btn.glow:RotateTo( 0, 0.8, 0.3, nil, true )
+    btn.glow:Hide()
+    btn.glow:SetScale(.75)
+    btn.glow:MoveToBack()
     if ClientEmojis:HasAnyNewEmojis() then
         btn._hasnew_img:Show()
+        btn.glow:Show()
     end
 
     local tx, ty = btn.text:GetPositionXYZ()
@@ -347,6 +353,13 @@ local function AddEmojiMenu(self)
         end
     end
 
+    self.emoji_menu.onrefresh = function()
+        if not ClientEmojis:HasAnyNewEmojis() then
+            self.emoji_menu_button._hasnew_img:Hide()
+            self.emoji_menu_button.glow:Hide()
+        end
+    end
+
     self.emoji_menu.onclosing = function()
         self.chat_edit:SetEditing(true)
         self.chat_edit.inst.TextEditWidget:SetEditCursorPos(insert_index)
@@ -358,6 +371,7 @@ local function AddEmojiMenu(self)
     self.emoji_menu.onclose = function()
         if not ClientEmojis:HasAnyNewEmojis() then
             self.emoji_menu_button._hasnew_img:Hide()
+            self.emoji_menu_button.glow:Hide()
         end
 
         -- The button is in it's focused state until the menu is closed.

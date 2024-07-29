@@ -553,6 +553,21 @@ function _G.ListFunctions(name, tbl)
     end
 
     local filename = MODROOT..""..PEARL.DATA_DIR_NAME.."/"..name:lower()..".txt"
+
+    local oldfns, newfns = {}, {}
+    local oldfile = io.open(filename, "r")
+    if oldfile then
+        local header = true
+        for line in oldfile:lines() do
+            if not header then
+                header = false
+            else
+                oldfns[line:strip()] = true
+            end
+        end
+        oldfile:close()
+    end
+
     local file, error_msg = io.open(filename, "w")
     if not file or error_msg then
         return PEARL.error(error_msg)
@@ -566,6 +581,10 @@ function _G.ListFunctions(name, tbl)
             return
         end
 
+        if oldfns[tostring(k)] == nil then
+            newfns[tostring(k)] = true
+        end
+
         functions[#functions+1] = "\t"..tostring(k).."\n"
     end)
 
@@ -576,6 +595,11 @@ function _G.ListFunctions(name, tbl)
     table.sort(functions)
 
     file:write(table.concat(functions, ""))
+
+    if table.empty(newfns) == false then
+        PEARL.debug("NEW FUNCTIONS:")
+        table.dump(newfns)
+    end
 
     local metatable = getmetatable(object)
     if type(metatable) == "table" and not IsTableEmpty(metatable) then

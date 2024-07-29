@@ -17,6 +17,7 @@ local TheShard = TheShard
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
+local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
 
 -------------------------------
@@ -117,6 +118,7 @@ local function OnShardLoaded(master)
     )
 end
 
+--- This is the first log we get from an instance.
 local function OnModBackendPostInit()
     if PEARL.IsShuttingDown() then
         return
@@ -128,7 +130,11 @@ local function OnModBackendPostInit()
     --- @type LogLine
     local logline = LogLine(MARKDOWN.bold(str))
     logline:SetSize(LogLine.SIZES.SMALL)
-    PEARL.DiscordLogger:LogLine(logline, true)
+
+    -- This works for splitting but you need to reload the channel sometimes.
+    local message = Message():AddFlag(Message.FLAG.SUPPRESS_NOTIFICATIONS)
+    message:AddLogLine(logline)
+    PEARL.DiscordLogger:LogMessage(message)
 end
 
 local function OnInvalidClientRPC(rpc_name, userid)

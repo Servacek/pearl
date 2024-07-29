@@ -28,6 +28,7 @@ local type = type
 
 local DEFAULT_REQUEST_TIMEOUT   = 10
 local TIMEOUT_RETRY_SECONDS     = 5
+local DEFAULT_MAX_RETRIES       = 3
 local MAX_TIMEOUT_RETRY_SECONDS = 60
 local URL_HOST_PATTERN          = "%w+://([%w.]+)/?"
 local REQUEST_FAILED_HEADER     = "(%s) [%d] Request Failed! Reason: %s"
@@ -43,15 +44,16 @@ local REQUEST_SEND_TIMEOUT      = 5
 --- @class Request
 --- url and method params are required.
 local Request = Class(function(self, url, method, proxy)
+    --- @type string
+    self.url = url
+    --- @type string
+    self.method = method or PEARL.HTTPClient.METHODS.GET
+
     assert(type(url) == "string", "Invalid request url supplied!")
     assert(PEARL.HTTPClient.METHODS[method], "Invalid request method supplied!")
 
     -- Lazy load all the tables!
 
-    --- @type string
-    self.url = url
-    --- @type string
-    self.method = method
     --- @type string?
     self.data = nil
     --- @type integer?
@@ -66,31 +68,19 @@ local Request = Class(function(self, url, method, proxy)
     --- @type boolean
     self.completed = false
 
-    -- --- @type fun(response: table|string, self: Request, ...: any)
-    -- self.onsuccessfn = nil
-    -- --- @type table<string, any>?
-    -- self.onsuccessfn_args = nil
-
-    -- --- @type fun(response: table|string, success: boolean, code: string, self: Request, ...: any)
-    -- self.oncompletefn = nil
-    -- --- @type table<string, any>?
-    -- self.oncompletefn_args = nil
-
-    -- --- @type fun(result, http_code, request, ...)?
-    -- self.errfn = nil
-    -- --- @type table<string, any>?
-    -- self.errfn_args = nil
-
     --- @type table<string, fun(result, request, ...)>?
     self.rcode_handlers = nil
 
     --- @type integer
     self.retries = 0
     --- @type integer
-    self.maxretries = PEARL.CONSTS.MAX_REQUEST_RETRIES
+    self.maxretries = DEFAULT_MAX_RETRIES
 
     --- @type boolean
     self.decode_response = true
+
+    --- @type table<number, boolean>
+    self.retry_codes = nil
 
     --- @type boolean
     self.proxy = proxy or false
@@ -127,12 +117,13 @@ end)
 -- [[ Static ]]
 -------------------------------------
 
+--- These are some generic ones, you can configure your own if needed.
 --- @see RestAPI.STATUS_CODES
 --- @enum RETRY_CODES
 Request.RETRY_CODES = {
-    [0] = true,
-    [100] = true,
-    [502] = true,
+    [0]     = true,
+    [100]   = true,
+    [502]   = true,
 }
 
 --- @enum GENERIC_CODES
@@ -280,6 +271,14 @@ function Request:SetIsRetryable(retryable)
     if self:IsRetryable() ~= retryable then
         self.retries = retryable and 0 or self.maxretries
     end
+
+    return self
+end
+
+--- @param retry_codes table<integer, boolean>
+--- @return Request
+function Request:SetRetryCodesTable(retry_codes)
+    self.retry_codes = retry_codes
 
     return self
 end
@@ -458,7 +457,8 @@ function Request:OnSuccess(response)
 end
 
 function Request:OnErrorResponse(code, response, reason)
-    local retryable_code = Request.RETRY_CODES[code] == true
+    local retryable_code = self.retry_codes and self.retry_codes[code]
+    retryable_code = retryable_code == nil and Request.RETRY_CODES[code] == true or retryable_code or false
     if not retryable_code then
         self:OnCantRetry()
     end

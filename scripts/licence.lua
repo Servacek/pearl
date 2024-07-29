@@ -53,7 +53,7 @@ local function Load()
         VerifyLicenceFile()
 
         if not HasServerOwnerLicense() then
-            return error(TheNet:GetUserID().." missing licence for private mod "..PEARL.MOD_INFO.name..". For more informations, please try to contact the author.")
+            return error(TheNet:GetUserID().." missing licence for private mod "..PEARL.MODINFO.name..". For more informations, please try to contact the author.")
         end
 
         PEARL.info("Licence valid.")

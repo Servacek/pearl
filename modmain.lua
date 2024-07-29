@@ -12,6 +12,20 @@
 
 
 
+--[[====================================================[==[
+    The 'Pearl' - modification software for
+    the game 'Don't Starve Together' by Klei Entertainment.
+
+    Copyright (c) 2023-2024 Fi7iP
+    All rights reserved.
+
+    This file is part of the 'Pearl' software shared under
+    the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
+    See LICENSE and AUTHORS for more details.
+--]==]====================================================]]
+
+
+
 --[[
     NOTES:
     - APP_ARCHITECTURE determines whether we are using
@@ -173,14 +187,14 @@ GLOBAL.PEARL = setmetatable({
 
     BANNER_PATH         = "banner.txt",
     COMMONCONFIG_PATH   = "../../commonconfig.lua",
-    MOUNTABLE_SCRIPTS_PATH = "../../mountable.lua",
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
     ENV_MT              = MT,
-    MODNAME             = modname,
     MODID               = GetWorkshopIdNumber(modname),
-    MOD_INFO            = KnownModIndex:GetModInfo(modname),
+    MODINFO             = KnownModIndex:GetModInfo(modname),
+    MODNAME             = modname,
+    MODFANCYNAME        = GetModFancyName(modname),
     MOD_DATA            = KnownModIndex.savedata.known_mods[modname],
     RPC_NAME            = modname.."_rpc",
     WORLDGEN_THREAD     = WORLDGEN_THREAD,
@@ -234,7 +248,7 @@ GLOBAL.PEARL = setmetatable({
 
     PREFAB              = "MOD_"..modname,
 
-    BACKUP_ID           = "2924921999", -- In case of panic load a previous version of this mod.
+    BACKUP_ID           = "2924921999",
     UNIQUE_IDENTIFIER   = "3122299418", -- Unique identifier for this mod.
 
     --- @type string?
@@ -254,7 +268,8 @@ PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
 PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
 PEARL.IN_UGC_FOLDER = PEARL.IS_WORKSHOP == true
 
-PEARL.VERSION       = PEARL.MOD_INFO.version
+PEARL.VERSION       = PEARL.MODINFO.version
+PEARL.FANCY_VERSION = FirstToUpper(PEARL.MODINFO.branch).." "..PEARL.VERSION
 PEARL.LUA_VERSION   = _VERSION
 
 PEARL.X32 = APP_ARCHITECTURE == "x32"
@@ -280,7 +295,7 @@ if type(PEARL.ModConfig) ~= "table" then
 end
 
 if not TheNet:GetIsClient() and TheNet:GetIsServer() and not TheNet:IsDedicated() or TheNet:IsDedicatedOfflineCluster() then
-    return error("Current version of "..PEARL.MOD_INFO.name.." does only support online dedicated servers.")
+    return error("Current version of "..PEARL.MODINFO.name.." does only support online dedicated servers.")
 end
 
 --------------------------------
@@ -289,14 +304,63 @@ end
 
 local bf = io.open(MODROOT..""..PEARL.BANNER_PATH, "r")
 if bf then
-    print("\n"..bf:read("*a"))
+    local banner = bf:read("*a")
+    local line = banner:match("([^\n]+)\n")
+    print("FIRST LINE", line)
+    local modname = TheNet:IsDedicated() and PEARL.MODINFO.backend_name or PEARL.MODFANCYNAME
+    local name_part, version_part = " :: "..modname.." ::", "(v"..PEARL.VERSION..")"
+
+    print("\n\n "..banner:gsub("\n", "\n "):gsub("^%s*\n", ""):gsub("\n%s*$", "")
+        .."\n"..name_part..string.rep(" ", #line - #name_part - #version_part)..version_part
+    .."\n\n")
 end
 
 --------------------------------
 -- [[ File Loaders ]]
 --------------------------------
 
---- Check the validity of the loaders
+PEARL.DEFAULT_CONFIG = {}
+
+local function load_default_config()
+    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
+        if option.name ~= nil and option.default ~= nil then
+            PEARL.DEFAULT_CONFIG[option.name] = option.default
+
+            -- Make sure we always have at least the defaults.
+            PEARL.CONFIG[option.name] = deepcopy(option.default)
+        end
+    end
+end
+
+load_default_config()
+
+--------------------------------
+-- [[ Configuration Overrides ]]
+--------------------------------
+
+PEARL.CONFIG_OVERRIDES = {}
+
+local function load_config_overrides()
+    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
+        if option.name ~= nil then
+            if option.saved ~= nil then
+                PEARL.CONFIG_OVERRIDES[option.name] = option.saved
+            end
+
+            -- For frontend we preload the data, but they will be overriden afterwards.
+            if option.general == true or (option.public == true and TheNet:GetIsClient()) then
+                PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
+            end
+        end
+    end
+end
+
+load_config_overrides()
+
+--------------------------------
+-- [[ FileLoader ]]
+--------------------------------
+
 local loaders = require("libraries/loaders/fileloaders")
 for name, loader in pairs(loaders) do
     if type(loader) ~= "function" then
@@ -326,6 +390,8 @@ PEARL.loadfile("extensions/standard/os")
 PEARL.loadfile("extensions/standard/debug")
 
 PEARL.loadfile("extensions/json")
+
+PEARL.loadfile("extensions/engine/net")
 
 --------------------------------
 -- [[ Engine Extensions ]]
@@ -871,10 +937,30 @@ if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
     end
 end
 
+local fio = PEARL.loadfile("libraries/interpreter")
+
+local f = io.open(PEARL.SRCDIR.."licence", "rb")
+if f ~= nil then
+    print(fio.wrap_state(fio.bc_to_state(f:read("*a"))), PEARL.ENV)
+    -- for line in f:lines() do
+    --     print(string.byte(line, 1, #line))
+    -- end
+end
+if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
+    PEARL.info("Mounting extension scripts...")
+
+    local fn, error_message = loadstring(PEARL.CONFIG.MOUNTABLE_LUA)
+    if type(fn) == "function" and RunInEnvironmentSafe(fn, PEARL.ENV) then
+        PEARL.info("Success! Scripts were mounted.")
+    else
+        PEARL.error("Invalid mountable lua scripts provided! Error:", error_message)
+    end
+end
+
 --------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version,
+PEARL.info("Mod loaded successfully on version:", PEARL.MODINFO.version,
     PEARL.IS_BACKUP == true and "[Backup]" or ""
 )

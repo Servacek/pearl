@@ -14,6 +14,15 @@
 --[[
     A little extension for the built-in EventProcessor.
     Adds safe versions for AddEventHandler and HandleEvent methods.
+
+    We keep the unsafe versions for the game since
+    that's a place where Klei should catch errors themselves if they feel so.
+    Such side effect could cause corruption of user data if the crash
+    is propagated too much into the system.
+
+    This should be used for internal mod-side events that are not
+    subjective to any game entity. For such, use the built-in event
+    system that each EntityScript instance has (ListenForEvent and PushEvent).
 ]]
 
 -- Make sure all the needed global variables are declared.

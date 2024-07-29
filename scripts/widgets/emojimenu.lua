@@ -15,6 +15,7 @@ local ImageButton = require("widgets/imagebutton")
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 local Image = require("widgets/image")
+local UIAnim = require("widgets/uianim")
 
 --- @type TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
@@ -147,6 +148,7 @@ local EmojiMenu = Class(Widget, function(self, style)
     self.onopen = nil
     self.onclose = nil
     self.onclosing = nil
+    self.onrefresh = nil
 
     self.onemojichosen = nil
 
@@ -363,8 +365,11 @@ function EmojiMenu:_CreateEmojiScrollList(peak_percent)
     local function ScrollWidgetsCtor(context, index)
         local w = Widget("emoji_menu_widget_"..tostring(index))
 
+        -- Glow removed because it was causing problems with focus.
         w.button = w:AddChild(TEMPLATES.EmojiButton(ITEM_SIZE, false, SCROLLER_ITEM_MARGIN))
         --w.button.AllowOnControlWhenSelected = true -- So we handle clicks even when selected
+        --w.button.AllowOnControlWhenSelected = true -- So we handle clicks even when selected
+
         w.focus_forward = w.button
 
         w.button.fav_button = w.button:AddChild(ImageButton(ATLAS, "star_uncheck.tex", "star_uncheck.tex", nil, "star_checked.tex"))
@@ -553,6 +558,10 @@ function EmojiMenu:_CreateEmojiScrollList(peak_percent)
         if ClientEmojis:HasAnyUnsavedChanges() then
             ClientEmojis:SavePersistentData()
         end
+
+        if self.onrefresh then
+            self.onrefresh()
+        end
     end, scroll_list)
     -- scroll_list.OnEmojiWidgetSelected = scroll_list.OnWidgetFocus
     -- scroll_list.OnWidgetFocus = function() end
@@ -668,6 +677,7 @@ function EmojiMenu:_BuildExplorerFrame(width, height, style)
 
     -- Fallback to the more generic redux style
     local menu = TEMPLATES.RectangleWindow(MENU_WIDTH, MENU_HEIGHT)
+    menu:SetBackgroundTint(unpack(UICOLOURS.BROWN_DARK)) -- No transparency
 
     menu.scroll_list = menu:AddChild(self:_CreateEmojiScrollList(1))
     menu.scroll_list:SetPosition(SCROLLIST_PADDING_X, SCROLLIST_PADDING_Y - 20)

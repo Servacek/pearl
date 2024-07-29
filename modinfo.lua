@@ -18,7 +18,8 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.6b"
+version = "3.0.69"
+branch = "release"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -40,7 +41,11 @@ forumthread = ""
 
 mod_dependencies = {}
 uncompatible_mods = {
-    "workshop-3033694168" -- Better Wormwood (until we figure out a way how to fix the fonts)
+    "workshop-3033694168", -- Better Wormwood (until we figure out a way how to fix the fonts)
+    "workshop-3056140321", -- Menu Remix - Again, the games font system is broken...
+                           -- Also these two are not compatible with each other as well.
+
+    "workshop-3169441836", -- We implement our own "Better" crash screen >:-)
 }
 
 -------------------------------------
@@ -55,6 +60,8 @@ server_filter_tags = {
 -------------------------------------
 -- [[ Configurations ]]
 -------------------------------------
+
+--- @TODO: Add a SERVER_ONLY_MOD option
 
 --- @TAGS:
 --- - general - This configuration loads directly in modmain.lua
@@ -98,17 +105,21 @@ configuration_options = {
             },
 
             PROXY = {
-                INPUT_URL           = nil,
-                OUTPUT_URL          = nil,
-                REPORT_URL          = nil,
+                URL                     = "http://localhost:10997",
 
-                CHAT_ENABLED        = false,
-                COMMANDS_ENABLED    = false,
+                CHAT_ENABLED            = false,
+                COMMANDS_ENABLED        = false,
 
-                SYNC_INTERVAL       = 10, -- Every 10 seconds
-                SYNC_INTERVAL_FAST  = 4,
+                MIN_FETCH_PERIOD        = 10, -- Fetch request at most once every 10 seconds
+                FETCH_TIMEOUT           = 1024,
 
-                BOOST_DELAY         = 2 * 60,  -- 5 minutes
+                START_SESSION_RETRIES   = 3,
+                FETCH_RETRIES           = 3,
+
+                TIME_BETWEEN_FETCH_RETRIES = 10,
+                TIME_BETWEEN_START_SESSION_RETRIES = 10,
+
+                ENSURE_CONNECTION_PERIOD = 30 * 60, -- Ensure every half hour
             },
 
             GUILDS = {}
@@ -671,11 +682,23 @@ configuration_options = {
     },
 
     {
-        name = "VERSION_CHECKER",
+        name = "GAME_VERSION_CHECKER",
         default = {
             ENABLED = true,
-            FREQUENCY = 30, -- In Minutes
-            UPDATE_AFTER = 0, -- In Seconds, 0> if disabled, 0 for immeadiate updates
+            CHECK_AFTER_MINUTES = 30, -- minutes
+            INITIAL_DELAY = 10, -- seconds
+            UPDATE_AFTER = 0, -- seconds until server reboot, 0> if disabled, 0 for immeadiate updates
+        },
+        type = "table",
+    },
+
+    {
+        name = "MOD_VERSION_CHECKER",
+        default = {
+            ENABLED = true,
+            INITIAL_DELAY = 60, -- seconds (default according to the game)
+            CHECK_AFTER_MINUTES = 2, -- minutes (default according to the game)
+            UPDATE_AFTER = 0, -- seconds until server reboot, 0> if disabled, 0 for immeadiate updates
         },
         type = "table",
     },
@@ -921,7 +944,7 @@ configuration_options = {
     {
         name = "ANNOUNCEMENTS",
         default = {
-            all = true,
+            all = nil,
             default = true,
         },
         type = "table",

@@ -242,6 +242,9 @@ PEARL.ENV.Assets = {
     Asset("IMAGE", "images/emoji_menu.tex"),
     Asset("ATLAS", "images/emoji_menu.xml"),
 
+    Asset("IMAGE", "images/emoji_menu.tex"),
+    Asset("ATLAS", "images/emoji_menu.xml"),
+
     Asset("IMAGE", PEARL.ASSETS.SOCIAL_BUTTONS.TEX),
     Asset("ATLAS", PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS),
 
@@ -266,7 +269,7 @@ PEARL.ENV.ReloadPreloadAssets()
 -- Fonts
 ----------------------------------
 
-PEARL.debug("Loading fonts...")
+PEARL.info("Loading fonts...")
 
 PEARL.FONTS = PEARL.loadfile("constants/fonts")
 
@@ -286,6 +289,9 @@ PEARL.info("Loading user interface extensions...")
 --- Load the extensions to the fundemental components first.
 PEARL.loadfile("extensions/ui/text")
 
+--- Load the extensions to the fundemental components first.
+PEARL.loadfile("extensions/ui/text")
+
 PEARL.loadfile("extensions/ui/templates")
 
 PEARL.loadfile("extensions/ui/playerlist")
@@ -293,7 +299,9 @@ PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 PEARL.loadfile("extensions/ui/chatinputscreen")
 PEARL.loadfile("extensions/ui/chatsidebar")
+PEARL.loadfile("extensions/ui/chatsidebar")
 
+PEARL.loadfile("extensions/ui/scripterrorwidget")
 PEARL.loadfile("extensions/ui/loadingwidget")
 PEARL.loadfile("extensions/ui/scripterrorwidget")
 
@@ -328,13 +336,13 @@ ModuleManager:SetModuleDirectory("modules")
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
 ModuleManager:AddModule("customemojipacks", PEARL.CONFIG.CUSTOM_EMOJI_PACKS)
-ModuleManager:AddModule("emojiautocomplete", PEARL.CONFIG.EMOJI_AUTOCOMPLETE)
+ModuleManager:AddModule(
+    -- Only load the modblocker if we have any mods enabled.
+    -- Call this also for non-admins because we may want to block some uncompatible mods.
+    "modblocker", (PEARL.CONFIG.MOD_BLOCKER.ENABLED or table.empty(PEARL.MODINFO.uncompatible_mods) == false) and KnownModIndex:GetAllEnabledModsCount() > 1
+)
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
-    ModuleManager:AddModule(
-        -- Only load the modblocker if we have any mods enabled.
-        "modblocker", PEARL.CONFIG.MOD_BLOCKER.ENABLED and KnownModIndex:GetAllEnabledModsCount() > 1
-    )
     ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )

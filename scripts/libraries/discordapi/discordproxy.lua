@@ -17,13 +17,13 @@ local UserCommands = require("usercommands")
 local Command = PEARL.loadfile("libraries/discordapi/models/command")
 local Library = PEARL.loadfile("models/library")
 
+walltime() -- Warm up the walltime since the first result is weird.
+
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
 
 local BASE_URL = PEARL.CONFIG.DISCORD.PROXY.URL or ""
-
-local MAX_RETRIES = 3
 
 local STATE = {
     FAILED      = 0,
@@ -40,10 +40,10 @@ local URL = {
     COMMANDS    = BASE_URL.."/commands",
 }
 
-local FETCH_REQUEST_TIMEOUT = 5
-local RETRY_TIMEOUT         = 10
-
-local START_SESSION_RETRIES = 3
+local MIN_FETCH_PERIOD = PEARL.CONFIG.DISCORD.PROXY.MIN_FETCH_PERIOD
+local FETCH_RETRY_CODES = {
+    [200] = true, -- Success status code but not all data were sent - server hang up the connection
+}
 
 --------------------------------
 -- [[ Class Declaration ]]
@@ -57,6 +57,8 @@ local DiscordProxy = {
 
     --- @type Task?
     fetch_task = nil,
+    --- @type number
+    fetch_last_start_time = 0,
 
     --- @type table<string, table<string, any>?>
     events = {
@@ -184,16 +186,18 @@ local function OnProxyUnreachable()
     PEARL.EventProcessor:HandleEvent("proxy_server_unreachable")
 end
 
-local function OnInputFetchingDone(data, t)
-    if not DiscordProxy:IsRunning() then
+local function OnInputFetchingSuccessed(data)
+    if DiscordProxy.fetch_task and not DiscordProxy.fetch_task.running then
+        DiscordProxy:RestartFetchTask()
+    end
+
+    if DiscordProxy.state ~= DiscordProxy.STATE.RUNNING then
         DiscordProxy:SetState(DiscordProxy.STATE.RUNNING)
     end
 
-    if type(data) ~= "table" then
-        return
+    if type(data) == "table" then
+        PEARL.EventProcessor:HandleEvent("proxy_fetching_done", data)
     end
-
-    PEARL.EventProcessor:HandleEvent("proxy_fetching_done", data)
 end
 
 local function OnFetchingFailed(response, request)
@@ -244,18 +248,29 @@ local function OnProxyResponseFailed()
 end
 
 local function OnFetchInput()
+    PEARL.debug("OnFetchInput", DiscordProxy.fetch_last_start_time)
+
+    --- @TODO: This isn't reliable, send a buffered request when the event happens!
     -- Do it explicitly. Since implicit method changes are prohibited.
-    local request
-    if table.empty(DiscordProxy.events) == false then
-        request = PEARL.HTTPClient:POST(DiscordProxy.URL.INPUT, OnInputFetchingDone, DiscordProxy.events, FETCH_REQUEST_TIMEOUT)
-    else
-        request = PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT, OnInputFetchingDone, FETCH_REQUEST_TIMEOUT)
+    --local request
+    -- if table.empty(DiscordProxy.events) == false then
+    --     request = PEARL.HTTPClient:POST(DiscordProxy.URL.INPUT,
+    --         OnInputFetchingSuccessed, DiscordProxy.events, PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT
+    --     )
+    -- else
+    local request = PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT, OnInputFetchingSuccessed, PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT)
+    -- end
+
+    DiscordProxy.fetch_last_start_time = walltime() or 0
+    if DiscordProxy.fetch_task and DiscordProxy.fetch_task.running then
+        DiscordProxy.fetch_task:stop() -- Stop until fetching is done - implementing a serial periodic task.
     end
 
     request
         -- We will retry again implicitly on the next cycle.
-        :SetMaxRetries(MAX_RETRIES)
-        :SetTimeBetweenRetries(RETRY_TIMEOUT)
+        :SetMaxRetries(PEARL.CONFIG.DISCORD.PROXY.FETCH_RETRIES)
+        :SetTimeBetweenRetries(PEARL.CONFIG.DISCORD.PROXY.TIME_BETWEEN_FETCH_RETRIES)
+        :SetRetryCodesTable(FETCH_RETRY_CODES)
         :AddOnError(OnFetchingFailed)
         :AddStatusCodeHandle(500, OnProxyInternalError)
         :AddStatusCodeHandle(204, function() end) -- Ignore empty responses
@@ -335,7 +350,7 @@ function DiscordProxy:StartSession(retries)
 
     PEARL.info("Sending start session request to input proxy server...")
 
-    PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, nil, {
+    PEARL.HTTPClient:POST(DiscordProxy.URL.SESSION, OnSessionStarted, {
         -- Keep our data in sync from the start.
         players = DiscordProxy:GetPlayerAutocompleteData(),
         shards  = DiscordProxy:GetShardAutocompleteData(),
@@ -345,11 +360,12 @@ function DiscordProxy:StartSession(retries)
             messages = PEARL.CONFIG.DISCORD.PROXY.CHAT_ENABLED,
             commands = PEARL.CONFIG.DISCORD.PROXY.COMMANDS_ENABLED,
             period   = PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL,
+            timeout  = PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT,
         },
     })
-    :AddOnSuccess(OnSessionStarted)
     :AddOnError(OnSessionStartFailed)
-    :SetMaxRetries(retries or START_SESSION_RETRIES)
+    :SetTimeBetweenRetries(PEARL.CONFIG.DISCORD.PROXY.TIME_BETWEEN_START_SESSION_RETRIES)
+    :SetMaxRetries(retries or PEARL.CONFIG.DISCORD.PROXY.START_SESSION_RETRIES)
     :Send()
 
     self:SetState(DiscordProxy.STATE.CONNECTING)
@@ -418,6 +434,8 @@ end
 
 --- @return Request
 function DiscordProxy:SyncCommands()
+    PEARL.debug("DiscordProxy:SyncCommands")
+
     local sync_data = {
         commands = {},
         version  = UserCommands.VERSION,
@@ -437,7 +455,7 @@ function DiscordProxy:SyncCommands()
         :Send())
 end
 
-function DiscordProxy:StopFetchTask()
+function DiscordProxy:CancelFetchTask()
     if self.fetch_task then
         self.fetch_task:cancel()
         self.fetch_task = nil
@@ -445,21 +463,27 @@ function DiscordProxy:StopFetchTask()
 end
 
 function DiscordProxy:RestartFetchTask()
-    local period = PEARL.CONFIG.DISCORD.PROXY.SYNC_INTERVAL
+    local time_until_next_fetch = MIN_FETCH_PERIOD - ((walltime() or 0) - DiscordProxy.fetch_last_start_time)
+    PEARL.debug("DiscordProxy:RestartFetchTask", time_until_next_fetch)
+    if self.fetch_task and self.fetch_task:runnable() and time_until_next_fetch and time_until_next_fetch <= 0 then -- It's time already!
+        self.fetch_task:run()
+        return
+    end
 
-    if self.fetch_task then
+    local period = math.min(time_until_next_fetch or MIN_FETCH_PERIOD, MIN_FETCH_PERIOD)
+    if self.fetch_task and self.fetch_task._fn then
         PEARL.info("Restarting the fetching task...")
 
         -- Ensure we use the default interval in case it was changed before by some commands.
         self.fetch_task:settime(period)
         self.fetch_task:restart()
-        return
-    end
+    else
+        PEARL.info("Starting a new fetching task...")
 
-    PEARL.info("Starting the fetching task...")
-    self.fetch_task = PEARL.WallScheduler:ExecutePeriodic(
-        period, OnFetchInput, nil, nil, PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH, self
-    )
+        self.fetch_task = PEARL.WallScheduler:ExecutePeriodic(
+            period, OnFetchInput, nil, 0, PEARL.CONSTS.TASK_ID.INPUTPROXY_FETCH, self
+        )
+    end
 end
 
 --------------------------------
