@@ -191,12 +191,13 @@ end
 local function StartVersionCheckTask()
     PEARL.debug("Starting version check task...")
 
-    assert((tonumber(PEARL.CONFIG.GAME_VERSION_CHECKER.FREQUENCY) or -1) >= 0, "Invalid version check frequency provided! Provide a positive number.")
+    assert((tonumber(PEARL.CONFIG.GAME_VERSION_CHECKER.CHECK_AFTER_MINUTES) or -1) >= 0, "Invalid version check frequency provided! Provide a positive number.")
 
-    local initialdelay = PEARL.ServerNetwork:GetConnectedClientsCount() > 0 and INITIAL_DELAY or 1
+    local initialdelay = PEARL.ServerNetwork:GetConnectedClientsCount() > 0 and PEARL.CONFIG.GAME_VERSION_CHECKER.INITIAL_DELAY or 1
+    local check_after_seconds = PEARL.CONFIG.GAME_VERSION_CHECKER.CHECK_AFTER_MINUTES * 60
     task = PEARL.WallScheduler:ExecutePeriodic(
         -- In case of a restart, wait for all the players to load before displaying the message.
-        (PEARL.CONFIG.GAME_VERSION_CHECKER.FREQUENCY * 60), DoVersionCheckTask, nil, initialdelay
+        check_after_seconds, DoVersionCheckTask, nil, initialdelay
     )
 end
 

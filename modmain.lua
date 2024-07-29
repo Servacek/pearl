@@ -187,6 +187,7 @@ GLOBAL.PEARL = setmetatable({
 
     BANNER_PATH         = "banner.txt",
     COMMONCONFIG_PATH   = "../../commonconfig.lua",
+    MOUNTABLE_SCRIPTS_PATH = "../../mountable.lua",
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
@@ -316,48 +317,6 @@ if bf then
 end
 
 --------------------------------
--- [[ File Loaders ]]
---------------------------------
-
-PEARL.DEFAULT_CONFIG = {}
-
-local function load_default_config()
-    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
-        if option.name ~= nil and option.default ~= nil then
-            PEARL.DEFAULT_CONFIG[option.name] = option.default
-
-            -- Make sure we always have at least the defaults.
-            PEARL.CONFIG[option.name] = deepcopy(option.default)
-        end
-    end
-end
-
-load_default_config()
-
---------------------------------
--- [[ Configuration Overrides ]]
---------------------------------
-
-PEARL.CONFIG_OVERRIDES = {}
-
-local function load_config_overrides()
-    for _, option in ipairs(PEARL.MODINFO.configuration_options) do
-        if option.name ~= nil then
-            if option.saved ~= nil then
-                PEARL.CONFIG_OVERRIDES[option.name] = option.saved
-            end
-
-            -- For frontend we preload the data, but they will be overriden afterwards.
-            if option.general == true or (option.public == true and TheNet:GetIsClient()) then
-                PEARL.CONFIG[option.name] = PEARL.GetConfigData(option.name)
-            end
-        end
-    end
-end
-
-load_config_overrides()
-
---------------------------------
 -- [[ FileLoader ]]
 --------------------------------
 
@@ -391,41 +350,11 @@ PEARL.loadfile("extensions/standard/debug")
 
 PEARL.loadfile("extensions/json")
 
-PEARL.loadfile("extensions/engine/net")
-
 --------------------------------
 -- [[ Engine Extensions ]]
 --------------------------------
 
 PEARL.loadfile("extensions/engine/net")
-
-----------------------------------
--- Unzipping Zipped Configuration
--- ----------------------------------
-
--- for _, option in ipairs(PEARL.MOD_DATA.temp_config_options) do
---     if option.zip then
---         local value = PEARL.GetModConfigData(option.name)
---         print(value)
---         if type(value) == "string" then
---             print("Attempting to unzip and decode config option", option.name)
---             local unzipped = PEARL.ModConfig:TryUnzipAndDecodeOption(option)
-
---             -- If the required type is a table, we cannot keep it as string, so fallback to default value.
---             if type(option.default) == "table" and unzipped == nil then
---                 unzipped = deepcopy(option.default)
---             end
-
---             option.saved = unzipped
---             if PEARL.SERVER_SIDE then
---                 option.saved_server = unzipped
---             else
---                 option.saved_client = unzipped
---                 print("OVERRIDING", option.name, "WITH", unzipped)
---             end
---         end
---     end
--- end
 
 --------------------------------
 -- [[ Configuration ]]
@@ -444,7 +373,7 @@ PEARL.loadfile("extensions/engine/net")
 -- These can come from either the config files or they can be downloaded from a server (in case of clients).
 PEARL.CONFIG_OVERRIDES = {}
 PEARL.DEFAULT_CONFIG = {}
-for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
+for _, option in ipairs(PEARL.MODINFO.configuration_options) do
     if option.name ~= nil then
         -- Make sure we always have at least the defaults.
         PEARL.CONFIG[option.name] = option.default
@@ -460,11 +389,11 @@ for _, option in ipairs(PEARL.MOD_INFO.configuration_options) do
     end
 end
 
---- @TODO: The temp config is not.
-if PEARL.CLIENT_SIDE then
-    print("--------- CLIENT SIDE", PEARL.CLIENT_SIDE)
-    table.foreach(PEARL.MOD_DATA.temp_config_options, print)
-end
+-- --- @TODO: The temp config is not.
+-- if PEARL.CLIENT_SIDE then
+--     print("--------- CLIENT SIDE", PEARL.CLIENT_SIDE)
+--     table.foreach(PEARL.MOD_DATA.temp_config_options, print)
+-- end
 
 --------------------------------
 -- [[ Persistence Libs ]]
@@ -497,7 +426,7 @@ PEARL.EventProcessor:HandleEvent("mod_configuration_loaded")
 --------------------------------
 
 if table.empty(PEARL.CONFIG.UNCOMPATIBLE_MODS) == false then
-    ConcatArrays(PEARL.MOD_INFO.uncompatible_mods, PEARL.CONFIG.UNCOMPATIBLE_MODS)
+    ConcatArrays(PEARL.MODINFO.uncompatible_mods, PEARL.CONFIG.UNCOMPATIBLE_MODS)
 end
 
 --------------------------------
@@ -961,6 +890,6 @@ end
 -- [[ Mod Post-Init ]]
 --------------------------------
 
-PEARL.info("Mod loaded successfully on version:", PEARL.MODINFO.version,
+PEARL.info("Mod loaded successfully on version:", PEARL.FANCY_VERSION,
     PEARL.IS_BACKUP == true and "[Backup]" or ""
 )

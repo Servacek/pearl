@@ -500,7 +500,6 @@ PEARL.AddGlobalFunctionPostCall("RegisterPrefabsImpl", function(inst)
 end)
 
 PEARL.AddClassPreConstruct("frontend", function(...)
-PEARL.AddClassPreConstruct("frontend", function(...)
     if TheFrontEnd then
         return false
     end
@@ -513,7 +512,6 @@ PEARL.AddClassPreConstruct("frontend", function(...)
     end
 
     return result
-end, "FrontEnd")
 end, "FrontEnd")
 
 --- Do not use because of strict.lua!

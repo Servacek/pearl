@@ -334,12 +334,9 @@ if PEARL.CONFIG.CUSTOM_LOADING_TIPS then do
     local fp = "../../loadingtips.lua"
     if not PEARL.ClusterPersistence:FileExists(fp) then
         PEARL.ClusterPersistence:SetFileContent(fp, "return { }")
-    if not PEARL.ClusterPersistence:FileExists(fp) then
-        PEARL.ClusterPersistence:SetFileContent(fp, "return { }")
     end
 
     -- Run the file in our environment so it has access to all the globals it could possibly need.
-    local success, data = PEARL.ClusterPersistence:LoadLuaFile(fp, false, PEARL.ENV)
     local success, data = PEARL.ClusterPersistence:LoadLuaFile(fp, false, PEARL.ENV)
     if not success or type(data) ~= "table" then
         -- Data should be in this case the traceback.

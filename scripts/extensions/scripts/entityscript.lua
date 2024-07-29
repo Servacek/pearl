@@ -13,7 +13,6 @@
 
 
 local PEARL = PEARL
-local TheSim = TheSim
 local table, tostring = table, tostring
 
 -----------------------------------
@@ -261,8 +260,8 @@ end
 --- So when we try to intuitively remove it using the original function reference,
 --- it won't remove these safe versions.
 --- With this extensions, it removes both correctly.
-local _RemoveEventCallback
-_RemoveEventCallback = PEARL.AddClassFunctionPostCall("RemoveEventCallback", function(self, event, fn, ...)
+local _RemoveEventCallback --- @type function
+_RemoveEventCallback = assert(PEARL.AddClassFunctionPostCall("RemoveEventCallback", function(self, event, fn, ...)
     --PEARL.debug("RemoveEventCallback", _RemoveEventCallback)
 
     local pfn = EntityScript.FN_TO_PCALL[fn]
@@ -274,7 +273,7 @@ _RemoveEventCallback = PEARL.AddClassFunctionPostCall("RemoveEventCallback", fun
             _RemoveEventCallback(self, event, pfn, ...) -- Really scared of an infinite loop...
         end
     end
-end, EntityScript)
+end, EntityScript))
 
 if PEARL.CONFIG.PERFORMANCE_MODE then
     --- Do not do this for DoTaskInTime since that's used for growable component.
