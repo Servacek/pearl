@@ -16,13 +16,11 @@
 ---@diagnostic disable: lowercase-global
 
 name = "Pearl"
-backend_name = "PearlOS"
+server_side_name = "PearlOS"
 author = "Fi7iP"
 version = "3.0.69"
 branch = "release"
-description = [[
-    “I'd been meaning to fix the place up for a while...” - Crabby Hermit
-]]
+description = "An extensive set of software tools for managing and operating your starving servers!"
 
 -- 1/0 == math.huge == 1.#INF - But this crashes while loading GENMOD_DATA!
 priority = 1.7976931348623e+308 -- std::numeric_limits<lua_Number>::max()
@@ -890,8 +888,8 @@ configuration_options = {
     {
         --> e.g.:
         --[[
-            EXTENSION_MODS = {
-                ["workshop-1203020"] = {
+            APPLICATIONS = {
+                ["1203020"] = { -- Workshop ID of the APP
                     CONFIG = {
                         SOMEFIELD = SOMEVALUE,
                         ...
@@ -901,7 +899,7 @@ configuration_options = {
                 ...
             },
         --]]
-        name = "EXTENSION_MODS",
+        name = "APPLICATIONS",
         default = {},
         type = "table",
         public = true,

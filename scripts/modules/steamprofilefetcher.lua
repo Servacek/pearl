@@ -11,7 +11,7 @@
 --]==]====================================================]]
 
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 
 -------------------------------------
 -- [[ Constants ]]

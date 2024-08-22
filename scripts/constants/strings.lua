@@ -21,7 +21,7 @@
 -- Note: Prefer %s over %d because sometimes we want to format
 -- the number variables as a codeline.
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 
 ------------------------------------
 -- Mod Specific Strings
@@ -382,10 +382,10 @@ local STRINGS = {
 
 -- Execute code that is common for both sides here.
 
-if PEARL.FRONTEND then
-    -- Execute frontend stuff here
+if PEARL.CLIENT_SIDE then
+    -- Execute client-side stuff here
 else
-    -- Execute backend stuff here
+    -- Execute server-side stuff here
 end
         ]]
     },

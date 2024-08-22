@@ -17,7 +17,7 @@ local ImageButton = require("widgets/imagebutton")
 local ChatSidebar = require("widgets/redux/chatsidebar")
 
 local EmojiMenu = PEARL.loadfile("widgets/emojimenu")
-local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+local ClientEmojis = PEARL.loadfile("libs/clientemojimanager")
 
 local AddEmojiMenu
 

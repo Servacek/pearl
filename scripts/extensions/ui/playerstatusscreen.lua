@@ -24,7 +24,7 @@ local Text = require("widgets/text")
 local TEMPLATES = require("widgets/redux/templates")
 
 --- @class DiscordProxy
-local DiscordProxy = PEARL.loadlib("discordapi/discordproxy")
+local DiscordProxy = PEARL.loadfile("libs/discordapi/discordproxy")
 
 --- @class PlayerStatusScreen
 local PlayerStatusScreen = require("screens/playerstatusscreen")

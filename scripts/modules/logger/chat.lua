@@ -17,9 +17,9 @@ local PEARL = PEARL
 local string = string
 local GetSkinDescription, GetSkinName, GetColorForItem, UserToName = GetSkinDescription, GetSkinName, GetColorForItem, UserToName
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
+local Embed = PEARL.loadfile("libs/discordapi/models/embed")
 
 
 

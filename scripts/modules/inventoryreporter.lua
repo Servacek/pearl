@@ -15,10 +15,10 @@
     Logs suspicious intentories to discord.
 --]]
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
-local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+local ItemDepositor = PEARL.loadfile("libs/itemdepositor")
 
 -------------------------------
 -- [[ Constants ]]

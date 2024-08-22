@@ -9,7 +9,6 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @category Backend
 
 
 --[[
@@ -18,7 +17,7 @@
     If the mod blocker's strict mode is enabled,
 --]]
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
 --------------------------------------

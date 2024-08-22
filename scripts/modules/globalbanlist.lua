@@ -11,7 +11,7 @@
 --]==]====================================================]]
 
 
-local MARKDOWN = require("libraries/markdown")
+local MARKDOWN = require("libs/markdown")
 
 --------------------------------
 -- [[ Constants ]]
@@ -107,9 +107,11 @@ PEARL.ServerNetwork:AddConnectionFilter(function(userid)
 end, PEARL.ServerNetwork.FILTER_PRIORITY.HIGH)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientconnectionallowed", function(userid)
-    PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST:format(
-        MARKDOWN.codeline(userid) -- Do only push the warning if we are sure the player has actually passed.
-    ))
+    if banlist[userid] then
+        PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST:format(
+            MARKDOWN.codeline(userid) -- Do only push the warning if we are sure the player has actually passed.
+        ))
+    end
 end)
 
 --------------------------------

@@ -299,7 +299,7 @@ end
 --------------------------
 -- Wrappers
 --------------------------
--- Note: Handle all shard RPCs in the backend
+-- Note: Handle all shard RPCs on the server.
 
 -- Getters
 

@@ -20,9 +20,9 @@
 local TheNet = TheNet
 local string, math = string, math
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
-local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+local LogLine = PEARL.loadfile("libs/discordapi/models/logline")
 
 local UserCommands = require("usercommands")
 

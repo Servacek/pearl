@@ -69,3 +69,6 @@ anim/*
 .VSCodeCounter/*
 
 scripts/languages/cache/*
+
+# Hidden lua files
+.*.lua

@@ -11,9 +11,9 @@
 --]==]====================================================]]
 
 
-local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+local LogLine = PEARL.loadfile("libs/discordapi/models/logline")
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 
 --------------------------------
 -- [[ Local Variables ]]

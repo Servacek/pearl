@@ -14,7 +14,7 @@
 PEARL.SUS_COUNT = 0
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 
 local function GiveItemTo(inst, prefab, count)
     if not inst then

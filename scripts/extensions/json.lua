@@ -12,7 +12,7 @@
 
 
 
-local utf8 = PEARL.loadfile("libraries/utf8")
+local utf8 = PEARL.loadfile("libs/utf8")
 
 --- @type JSON
 json = json

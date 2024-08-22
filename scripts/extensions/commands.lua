@@ -9,7 +9,6 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @category FrontEnd & BackEnd
 --- @alias PlayerInst EntityScript
 --- @alias ClientTable table<string, any>
 
@@ -28,20 +27,20 @@ require("consolecommands")
 --- @type UserCommands
 local UserCommands = require("usercommands")
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 
 local ChatMessage = PEARL.loadfile("models/chatmessage")
 local CommandContext = PEARL.loadfile("models/commandcontext")
-local OptionChoice = PEARL.loadfile("libraries/discordapi/models/choice")
+local OptionChoice = PEARL.loadfile("libs/discordapi/models/choice")
 
 local MESSAGES = PEARL.loadfile("utils/messages")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 
-local Leaderboard = PEARL.loadfile("libraries/database/models/leaderboard")
+local Leaderboard = PEARL.loadfile("libs/database/models/leaderboard")
 
-local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+local ItemDepositor = PEARL.loadfile("libs/itemdepositor")
 
 -------------------------------------
 -- Localization

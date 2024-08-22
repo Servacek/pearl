@@ -9,7 +9,7 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @category BE
+
 
 --[[
     Periodically checks for new versions of mods and automatically updates the server,

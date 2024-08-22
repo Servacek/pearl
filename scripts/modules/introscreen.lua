@@ -9,7 +9,7 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @category FrontEnd
+
 
 --- @TODO: Create some extensible json client-side persistence system.
 --- Maybe even make it also server-side?

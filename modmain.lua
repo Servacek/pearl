@@ -116,13 +116,32 @@
         string.utf8lower = utf8strtolower
 
     - table.sort({"string", 1}) -> attempt to compare number with string
+
+    - module and package.seeall are deprecated methods of implementing
+      the modern require behaviour. In original Lua 5.1 require didn't
+      return the results of the file so you would have to call:
+        module("MODULENAME")
+      at the top of the file in order to create an separate environment.
+      The old require("MODULENAME") function would then basically just extend the environment
+      it is called in with the module specific functions. The only example
+      of the game using this is the "json.lua" file. That's why it seems to appear
+      as a weird global out of nowhere.
+
+      The package.seeall was used in combination with the module function
+      to enable the environment to use the actual global environment. It basically
+      just sets a metatable with the __index function pointing to the global environment.
+
+    - package.loadlib "dynamic libraries not enabled: check your Lua installation"
+        - how unexpected...
+
+    - package.cpath = ""
 --]]
 
 --- @TODO: perhaps TheSim:GetModDirectoryNames() could be used to detect local mods?
 
 --- @TODO: Implement a way to modify the configuration files by using a command.
 
-GLOBAL.assert(GLOBAL.rawget(GLOBAL, "PEARL") == nil, "Multiple instances of the PEARL mod loaded!")
+GLOBAL.assert(GLOBAL.rawget(GLOBAL, "PEARL") == nil, "Multiple instances of the "..modname.." mod loaded!")
 
 local GLOBAL = GLOBAL
 local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
@@ -154,22 +173,13 @@ local MT = {
 }
 
 --------------------------------
--- [[ Local Functions ]]
+-- [[ Setup ]]
 --------------------------------
 
 -- Setup the enviroment so we do not have to type GLOBAL
 -- everytime we access something from that table.
---- @return table
-local function setupenv()
-    -- Modify the metatable of the current safe separated mod environment.
-    return setmetatable(ENV, MT)
-end
-
---------------------------------
--- [[ Setup ]]
---------------------------------
-
-setupenv()
+-- Modify the metatable of the current safe separated mod environment.
+setmetatable(ENV, MT)
 
 -- This is where we store basically all mod specific functions and variables
 -- so it doesn't conflict with any ingame or other mod stuff.
@@ -211,7 +221,7 @@ GLOBAL.PEARL = setmetatable({
     MODULES_DIR_NAME    = "modules",
     FILTERS_DIR_NAME    = "filters",
     IMAGES_DIR_NAME     = "images",
-    LIBRARY_DIR_NAME    = "libraries",
+    LIBRARY_DIR_NAME    = "libs",
 
     DEFAULT_LANGUAGE    = "english",
     LANGUAGES = {
@@ -269,6 +279,8 @@ PEARL.IS_WORKSHOP   = PEARL.WORKSHOP_ID ~= nil
 PEARL.IS_BACKUP     = (PEARL.BACKUP_ID ~= nil and (PEARL.WORKSHOP_ID == PEARL.BACKUP_ID)) or false
 PEARL.IN_UGC_FOLDER = PEARL.IS_WORKSHOP == true
 
+PEARL.LICENCE_FILE  = PEARL.SRCDIR..".licence"
+
 PEARL.VERSION       = PEARL.MODINFO.version
 PEARL.FANCY_VERSION = FirstToUpper(PEARL.MODINFO.branch).." "..PEARL.VERSION
 PEARL.LUA_VERSION   = _VERSION
@@ -308,7 +320,7 @@ if bf then
     local banner = bf:read("*a")
     local line = banner:match("([^\n]+)\n")
     print("FIRST LINE", line)
-    local modname = TheNet:IsDedicated() and PEARL.MODINFO.backend_name or PEARL.MODFANCYNAME
+    local modname = TheNet:IsDedicated() and PEARL.MODINFO.server_side_name or PEARL.MODFANCYNAME
     local name_part, version_part = " :: "..modname.." ::", "(v"..PEARL.VERSION..")"
 
     print("\n\n "..banner:gsub("\n", "\n "):gsub("^%s*\n", ""):gsub("\n%s*$", "")
@@ -320,7 +332,7 @@ end
 -- [[ FileLoader ]]
 --------------------------------
 
-local loaders = require("libraries/loaders/fileloaders")
+local loaders = require("libs/loaders/fileloaders")
 for name, loader in pairs(loaders) do
     if type(loader) ~= "function" then
         return error("Failed to load "..name.."! "..tostring(loader))
@@ -334,7 +346,6 @@ end
 --- Adding it manually here instead of the loop for autocomplete to be smarter.
 PEARL.loadfilefn    = loaders.loadfilefn
 PEARL.loadfile      = loaders.loadfile
-PEARL.loadlib       = loaders.loadlib
 
 --------------------------------
 -- [[ Standard Libs ]]
@@ -401,10 +412,10 @@ end
 
 --- This has to load this soon because some of the following files use it.
 --- @class ClusterPersistence
-PEARL.ClusterPersistence = PEARL.loadlib("wrappers/persistence/clusterio")
+PEARL.ClusterPersistence = PEARL.loadfile("libs/wrappers/persistence/clusterio")
 
 --- @class ModPersistence
-PEARL.ModPersistence = PEARL.loadlib("wrappers/persistence/modio")
+PEARL.ModPersistence = PEARL.loadfile("libs/wrappers/persistence/modio")
 
 --------------------------------
 -- [[ Common Config ]]
@@ -532,9 +543,10 @@ PEARL.loadfile("extensions/api")
 -- [[ Static Scheduler ]]
 ----------------------------------
 
--- In frontend, use staticScheduler for background tasks
--- In backend, staticScheduler doesn't work so wallScheduler is what should be used.
+-- On clients, use staticScheduler for background tasks
+-- On servers, staticScheduler doesn't work when sim is paused so wallScheduler is what should be used.
 PEARL.info("Loading static scheduler...")
+require("scheduler")
 --- @type Scheduler
 PEARL.StaticScheduler = staticScheduler
 
@@ -543,7 +555,16 @@ PEARL.StaticScheduler = staticScheduler
 --------------------------------
 -- Load after API.
 
+PEARL.info("Loading Event Processor extensions...")
 PEARL.loadfile("extensions/eventprocessor")
+
+--------------------------------
+-- [[ Byte Code Interpreter ]]
+--------------------------------
+
+PEARL.info("Loading custom Lua interpreter...")
+--- @class LuaInterpreter
+PEARL.LuaInterpreter = PEARL.loadfile("libs/interpreter")
 
 --------------------------------
 -- [[ License ]]
@@ -553,7 +574,7 @@ PEARL.loadfile("extensions/eventprocessor")
 if TheNet:GetIsServer() then
     --- We are working with files here so load after the io extension
     PEARL.info("Loading licence...")
-    PEARL.loadfile("licence")
+    PEARL.LuaInterpreter:LoadLuacFile(PEARL.LICENCE_FILE)()
 end
 
 --------------------------------
@@ -757,7 +778,7 @@ if not PEARL.INITIAL_LAUNCH then
     PEARL.info("Setting up the wall-scheduler...")
 
     --- @type WallScheduler
-    PEARL.WallScheduler = PEARL.loadfile("libraries/wallscheduler")
+    PEARL.WallScheduler = PEARL.loadfile("libs/wallscheduler")
     PEARL.WallScheduler:StartWallUpdate()
 
     --------------------------------
@@ -768,53 +789,78 @@ if not PEARL.INITIAL_LAUNCH then
 
     --- Even the client needs to use some requests from time to time
     --- @type HTTPClient
-    PEARL.HTTPClient = PEARL.loadfile("libraries/http/httpclient")
+    PEARL.HTTPClient = PEARL.loadfile("libs/http/httpclient")
 end
 
 --------------------------------
--- [[ Backend ]]
+-- [[ Server Side ]]
 --------------------------------
 
 --- TheNet:GetIsClient return's false when we disconnect.
 --- Looks like TheNet:IsDedicated works even without the network!
 if TheNet:IsDedicated() and not TheNet:GetIsClient() then
-    PEARL.info("Loading mod BE...")
-    PEARL.loadfile("backend")
-    PEARL.info("Loading mod BE done.")
+    PEARL.info("Loading server side...")
+    PEARL.loadfile("serverside")
+    PEARL.info("Loading server side done.")
 end
 
 --------------------------------
--- [[ Frontend ]]
+-- [[ Client-Side ]]
 --------------------------------
 
 local function LoadExtensionMods()
-    for modname, data in pairs(PEARL.CONFIG.EXTENSION_MODS) do
-        print("EXTENSION MOD", modname, data, data.ENABLED)
-        table.dump(data)
+    for workshop_id, data in pairs(PEARL.CONFIG.APPLICATIONS) do
         if data.ENABLED == true then
-            PEARL.info("Loading extension mod", modname)
+            local app_modname = "workshop-"..workshop_id
+            local initenv = KnownModIndex:GetModInfo(modname)
+            local env = CreateEnvironment(app_modname, PEARL.WORLDGEN_THREAD, false)
+            env.modinfo = initenv
+            env.EXTENSION = data
+
+            package.path = MODS_ROOT..app_modname.."\\scripts\\?.lua;"..package.path
+            local manifest
+            --manifests are on by default for workshop mods, off by default for local mods.
+            --manifests can be toggled on and off in modinfo with forcemanifest = false or forcemanifest = true
+            if((initenv.forcemanifest == nil and IsWorkshopMod(env.modname)) or
+                (initenv.forcemanifest ~= nil and initenv.forcemanifest)) then
+                ManifestManager:LoadModManifest(app_modname, initenv.version)
+                manifest = env.modname
+            end
+            table.insert(package.assetpath, {path = MODS_ROOT..app_modname.."\\", manifest = manifest})
+
+            print(string.rep("-s", 50))
+            print(env.GetModConfigData("SHOWMOON"))
+            PEARL.info("Loading extension mod", app_modname)
+            local function errcb(reason)
+                PEARL.error("Failed to load app", app_modname, "Reason:", reason)
+            end
+
             --- @TODO: Handle the environment with the extension specific configurations correctly.
-            PEARL.loadfile("../../"..modname.."/modmain.lua", setmetatable({
-                EXTENSION = data,
-            }, getmetatable(PEARL)), nil, function(...)
-                PEARL.error("Failed to load extension mod", modname, "Reason:", ...)
-            end)
+            local fn = PEARL.loadfilefn(MODS_ROOT..app_modname.."/".."modmain.lua", errcb)
+            if fn then
+                xpcall(fn, errcb)
+            end
+
+            -- ModManager:InitializeModMain(
+            --     app_modname, setmetatable(env, getmetatable(PEARL)), "modmain.lua", true
+            -- )
         end
     end
 end
 
--- In debug mode we want to load sometimes the frontend on servers as well to see if there is
--- any error.
+-- In debug mode we want to load sometimes the client-side code on servers
+-- to see if there is any error.
 if TheNet:GetIsClient() then-- or PEARL.CONFIG.DEBUG_MODE then
-    PEARL.info("Loading mod FE...")
-    PEARL.loadfile("frontend")
-    PEARL.info("Loading mod FE done.")
+    PEARL.info("Loading client side...")
+    PEARL.loadfile("clientside")
+    PEARL.info("Loading client side done.")
 
     PEARL.info("Verifying extension mods...")
     local download_count = 0
-    for modname, data in pairs(PEARL.CONFIG.EXTENSION_MODS) do
-        if not KnownModIndex:DoesModExist(modname, data.VERSION) then
-            if TheSim:QueueDownloadTempMod(modname, data.VERSION) then
+    for workshop_id, data in pairs(PEARL.CONFIG.APPLICATIONS) do
+        local app_modname = "workshop-"..workshop_id
+        if not KnownModIndex:DoesModExist(app_modname, data.VERSION) then
+            if TheSim:QueueDownloadTempMod(app_modname, data.VERSION) then
                 download_count = download_count + 1
             end
         end
@@ -825,17 +871,18 @@ if TheNet:GetIsClient() then-- or PEARL.CONFIG.DEBUG_MODE then
 
         PEARL.info("Missing", download_count, "extension mods! Downloading them right now...")
         TheSim:StartDownloadTempMods(function(success, msg)
-            download_count = download_count - 1
-            if download_count == 0 then
-                -- For the love of God, let the framebuffer complete!
-                PEARL.WallScheduler:ExecuteInTime(0, function()
-                    PEARL.info("Extension mods downloaded!")
-                    LoadExtensionMods()
+            print("TheSim:StartDownloadTempMods", success, msg, download_count)
+            --- Called when all the mods are downloaded.
+            download_count = download_count -1
 
-                    -- Continue loading the game normally.
-                    PEARL.ClientLoader:RemoveDeferant("extension_download")
-                end)
-            end
+            -- For the love of God, let the framebuffer complete!
+            PEARL.WallScheduler:ExecuteInTime(0, function()
+                PEARL.info("Extension mods downloaded!")
+                LoadExtensionMods()
+
+                -- Continue loading the game normally.
+                PEARL.ClientLoader:RemoveDeferant("extension_download")
+            end)
         end)
     else
         PEARL.info("All extension mods seem to loaded correctly.")
@@ -846,35 +893,15 @@ end
 --------------------------------
 -- [[ Commmon Modules ]]
 --------------------------------
--- Modules loaded on both, Fronted and Backend.
+-- Modules loaded on both, clients and servers.
 
--- local ModuleManager = PEARL.loadfile("libraries/loaders/modulemanager")
+-- local ModuleManager = PEARL.loadfile("libs/loaders/modulemanager")
 -- ModuleManager:SetLoader(PEARL.loadfile)
 
 --------------------------------
 -- [[ Mountable Lua ]]
 --------------------------------
 
-if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
-    PEARL.info("Mounting extension scripts...")
-
-    local fn, error_message = loadstring(PEARL.CONFIG.MOUNTABLE_LUA)
-    if type(fn) == "function" and RunInEnvironmentSafe(fn, PEARL.ENV) then
-        PEARL.info("Success! Scripts were mounted.")
-    else
-        PEARL.error("Invalid mountable lua scripts provided! Error:", error_message)
-    end
-end
-
-local fio = PEARL.loadfile("libraries/interpreter")
-
-local f = io.open(PEARL.SRCDIR.."licence", "rb")
-if f ~= nil then
-    print(fio.wrap_state(fio.bc_to_state(f:read("*a"))), PEARL.ENV)
-    -- for line in f:lines() do
-    --     print(string.byte(line, 1, #line))
-    -- end
-end
 if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
     PEARL.info("Mounting extension scripts...")
 

@@ -24,7 +24,7 @@ return {
         available = true,
         id = "Huh",
         name = "Huh",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃕",
         vanilla = false,
     },
@@ -42,7 +42,7 @@ return {
         available = true,
         id = "Jam",
         name = "Jam",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃖",
         vanilla = false,
     },
@@ -51,7 +51,7 @@ return {
         available = true,
         id = "PepeKek",
         name = "PepeKek",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃗",
         vanilla = false,
     },
@@ -60,7 +60,7 @@ return {
         available = true,
         id = "PepeLaughs",
         name = "PepeLaughs",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃘",
         vanilla = false,
     },
@@ -69,7 +69,7 @@ return {
         available = true,
         id = "PoggiesFast",
         name = "PoggiesFast",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃙",
         vanilla = false,
     },
@@ -78,7 +78,7 @@ return {
         available = true,
         id = "TeaTime",
         name = "TeaTime",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃚",
         vanilla = false,
     },
@@ -96,7 +96,7 @@ return {
         available = true,
         id = "aware",
         name = "aware",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃛",
         vanilla = false,
     },
@@ -105,7 +105,7 @@ return {
         available = true,
         id = "bongocat",
         name = "bongocat",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃜",
         vanilla = false,
     },
@@ -114,7 +114,7 @@ return {
         available = true,
         id = "burn",
         name = "burn",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃝",
         vanilla = false,
     },
@@ -141,7 +141,7 @@ return {
         available = true,
         id = "clap",
         name = "clap",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃞",
         vanilla = false,
     },
@@ -595,7 +595,7 @@ return {
         available = true,
         id = "eyes",
         name = "eyes",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃟",
         vanilla = false,
     },
@@ -730,7 +730,7 @@ return {
         available = true,
         id = "peepoHey",
         name = "peepoHey",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃠",
         vanilla = false,
     },
@@ -793,7 +793,7 @@ return {
         available = true,
         id = "tumtum",
         name = "tumtum",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃡",
         vanilla = false,
     },
@@ -802,7 +802,7 @@ return {
         available = true,
         id = "vibing_cat",
         name = "vibing_cat",
-        timecreated = 1722261441, -- 07/29/24 15:57:21
+        timecreated = 1722346130, -- 07/30/24 15:28:50
         utf8_str = "󰃢",
         vanilla = false,
     },

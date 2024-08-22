@@ -11,7 +11,7 @@
 --]==]====================================================]]
 
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 
 
 local tests = {}

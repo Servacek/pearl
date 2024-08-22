@@ -27,9 +27,9 @@ local UserCommands = require("usercommands")
 --- @type EmojiMenu
 local EmojiMenu = PEARL.loadfile("widgets/emojimenu")
 
-local Colour = PEARL.loadfile("libraries/datastructures/colour")
+local Colour = PEARL.loadfile("libs/datastructures/colour")
 
-local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+local ClientEmojis = PEARL.loadfile("libs/clientemojimanager")
 
 ---------------------------
 -- [[ Constants ]]

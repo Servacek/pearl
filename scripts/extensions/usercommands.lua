@@ -13,8 +13,8 @@
 
 local CommandContext = PEARL.loadfile("models/commandcontext")
 
-local Colour = PEARL.loadfile("libraries/datastructures/colour")
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local Colour = PEARL.loadfile("libs/datastructures/colour")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 
 local UpvalueHacker = PEARL.loadfile("utils/upvaluehacker")
 
@@ -691,7 +691,7 @@ function UserCommands.AddCustomCommand(name, command)
     assert(type(name) == "string", "Missing or invalid command name!")
 
     if (command.slash == false and command.console == false) and not TheNet:GetIsServer() then
-        return -- Ignore backend-only commands
+        return -- Ignore server-only commands
     end
 
     local origin = UserCommands.GetCommandFromName(name)

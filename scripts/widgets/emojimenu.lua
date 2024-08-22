@@ -20,7 +20,7 @@ local UIAnim = require("widgets/uianim")
 --- @type TEMPLATES
 local TEMPLATES = require("widgets/redux/templates")
 
-local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+local ClientEmojis = PEARL.loadfile("libs/clientemojimanager")
 
 ---------------------------
 -- [[ Constants ]]

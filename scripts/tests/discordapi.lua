@@ -14,10 +14,10 @@
 
 ---@diagnostic disable: invisible
 
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
+local Embed = PEARL.loadfile("libs/discordapi/models/embed")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 
-local _, PRIVATE = PEARL.loadlib("discordapi/restapi")
+local _, PRIVATE = PEARL.loadfile("libs/discordapi/restapi")
 assert(PRIVATE, "Private function for discordrest api not provided in DEBUG MODE!")
 
 ----------------------------------------

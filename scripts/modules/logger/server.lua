@@ -14,11 +14,11 @@
 
 local TheShard = TheShard
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
+local LogLine = PEARL.loadfile("libs/discordapi/models/logline")
 
 -------------------------------
 -- [[ Locals ]]
@@ -119,7 +119,7 @@ local function OnShardLoaded(master)
 end
 
 --- This is the first log we get from an instance.
-local function OnModBackendPostInit()
+local function OnSystemPostInit()
     if PEARL.IsShuttingDown() then
         return
     end
@@ -187,7 +187,7 @@ end)
 --- (translations, rpcs, ...)
 PEARL.AddFrontEndPostInit(function(fe)
     if TheShard:IsMaster() and not PEARL.INIT then
-        OnModBackendPostInit()
+        OnSystemPostInit()
     end
 end)
 

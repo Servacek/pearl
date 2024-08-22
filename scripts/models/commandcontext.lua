@@ -11,8 +11,8 @@
 --]==]====================================================]]
 
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local Colour = PEARL.loadfile("libraries/datastructures/colour")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
+local Colour = PEARL.loadfile("libs/datastructures/colour")
 
 --------------------------------------
 -- [[ Constants ]]

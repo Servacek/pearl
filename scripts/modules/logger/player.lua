@@ -18,7 +18,7 @@ Temporary solution for logging.
 local containers = require("containers")
 
 --- @type ActionLog
-local AL = PEARL.loadfile("libraries/actionlog")
+local AL = PEARL.loadfile("libs/actionlog")
 local QueuedLogAction = PEARL.loadfile("models/queuedlogaction")
 
 ------------------------

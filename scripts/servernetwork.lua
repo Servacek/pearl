@@ -18,7 +18,7 @@
     This is like an higher level 'TheNet' for dedicated servers.
 --]]
 
-local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+local ItemDepositor = PEARL.loadfile("libs/itemdepositor")
 local ChatMessage = PEARL.loadfile("models/chatmessage")
 
 ----------------------------------

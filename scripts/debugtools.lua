@@ -20,8 +20,8 @@
 local CommandContext = PEARL.loadfile("models/commandcontext")
 local UserCommands = require("usercommands")
 
-local Embed = PEARL.loadfile('libraries/discordapi/models/embed')
-local Message = PEARL.loadfile('libraries/discordapi/models/message')
+local Embed = PEARL.loadfile("libs/discordapi/models/embed")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 
 local EMBEDS = PEARL.loadfile("utils/embeds")
 
@@ -323,7 +323,7 @@ end
 --------------------------------
 -- [[ LogLine Tests ]]
 --------------------------------
-local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
+local LogLine = PEARL.loadfile("libs/discordapi/models/logline")
 
 function PEARL.TESTS.LogLineTestBuild()
     local logline = LogLine("Temporary Content")
@@ -836,7 +836,7 @@ end
 -- [[ Queue ]]
 --------------------------------
 --- Maybe replace the Queue with a normal table instead of the userdata?
-local Queue = PEARL.loadfile("libraries/datastructures/queue")
+local Queue = PEARL.loadfile("libs/datastructures/queue")
 function PEARL.TESTS.Queue()
     local max = 5
     local queue = Queue(max)

@@ -13,7 +13,7 @@
 --- While reloading this file, reload these as well.
 --- So we do not have to c_reset the server each time a change/fix is made.
 local QueuedLogAction = PEARL.loadfile("models/queuedlogaction", nil, true)
-local ActionLog = PEARL.loadfile("libraries/actionlog", nil, true)
+local ActionLog = PEARL.loadfile("libs/actionlog", nil, true)
 
 PEARL.ActionLog = ActionLog
 

@@ -18,7 +18,7 @@ require("stacktrace")
 local EncodeBase64 = PEARL.loadfile('utils/base64encoder')
 local PlayerMetadata = PEARL.loadfile("models/playermetadata")
 
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
 
 --------------------------------
 
@@ -601,8 +601,8 @@ function PEARL.GetBurnableEntitiesNearPos(pos, radius, ...)
     )
 end
 
-function PEARL.HandleError(err)
-    local stacktrace = StackTrace(err) or err
+function PEARL.HandleError(err, stacktrace)
+    stacktrace = stacktrace or (StackTrace(err) or err)
     PEARL.error(
         "Catched lua error:", stacktrace or "Unknown"
     )
@@ -610,7 +610,7 @@ function PEARL.HandleError(err)
     --- @TODO: Replace this with an event.
     -- Try to always print at least something when an error happens.
     local traceback = stacktrace or STRINGS.PEARL.REPORTS.NO_STACKTRACE
-    -- This function is being used in frontend as well!
+    -- This function is being used on clients as well!
     if PEARL.DiscordReporter and PEARL.DiscordReporter:IsEnabled() then
         PEARL.DiscordReporter:ReportCatchedLuaError(traceback)
     elseif PEARL.ClientNetwork then

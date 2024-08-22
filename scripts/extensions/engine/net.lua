@@ -25,7 +25,7 @@ TheNet = TheNet --- @type TheNet
 -- Provides access to the original functions
 local __index_ORIGIN = shallowcopy(__index)
 
-local ItemDepositor = PEARL.loadfile("libraries/itemdepositor")
+local ItemDepositor = PEARL.loadfile("libs/itemdepositor")
 
 --------------------------------
 -- [[ Private ]]
@@ -101,7 +101,7 @@ function __index:Say(message, ...)
         end)
     end
 
-    local ClientEmojis = PEARL.loadfile("libraries/clientemojimanager")
+    local ClientEmojis = PEARL.loadfile("libs/clientemojimanager")
     local needs_saving = false
     for match in message:gmatch(PEARL.CONSTS.UTF_EMOJI_PATTERN) do
         local emoji_name = PEARL.EMOJIS.UTF_TO_NAME[match]

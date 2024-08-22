@@ -3780,7 +3780,7 @@ msgstr ""
 
 #. STRINGS.PEARL.FILES.MOUNTABLE_SCRIPTS
 msgctxt "STRINGS.PEARL.FILES.MOUNTABLE_SCRIPTS"
-msgid "-- File for executing your custom Lua on the clients and server without\n-- the need to update any software uploaded to the Steam Workshop.\n--\n-- Feel free to remove the \"KLEI     1\" prefix from the start of this file\n-- in case it is provided.\n\n\n-- Execute code that is common for both sides here.\n\nif PEARL.FRONTEND then\n    -- Execute frontend stuff here\nelse\n    -- Execute backend stuff here\nend\n        "
+msgid "-- File for executing your custom Lua on the clients and server without\n-- the need to update any software uploaded to the Steam Workshop.\n--\n-- Feel free to remove the \"KLEI     1\" prefix from the start of this file\n-- in case it is provided.\n\n\n-- Execute code that is common for both sides here.\n\nif PEARL.CLIENT_SIDE then\n    -- Execute client-side stuff here\nelse\n    -- Execute server-side stuff here\nend\n        "
 msgstr ""
 
 #. STRINGS.PEARL.FULL_MONTH_NAME

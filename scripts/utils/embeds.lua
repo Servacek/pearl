@@ -15,9 +15,9 @@ local TEMPLATES = require("widgets/redux/templates")
 local Customize = require("map/customize")
 
 --- @type Embed
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
-local MARKDOWN = PEARL.loadfile("libraries/markdown")
-local Colour = PEARL.loadfile("libraries/datastructures/colour")
+local Embed = PEARL.loadfile("libs/discordapi/models/embed")
+local MARKDOWN = PEARL.loadfile("libs/markdown")
+local Colour = PEARL.loadfile("libs/datastructures/colour")
 
 -------------------------------------
 -- [[ Constants ]]

@@ -13,12 +13,12 @@
 
 local UserCommands = require("usercommands")
 
-local Message = PEARL.loadfile("libraries/discordapi/models/message")
-local Embed = PEARL.loadfile("libraries/discordapi/models/embed")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
+local Embed = PEARL.loadfile("libs/discordapi/models/embed")
 
 local ChatMessage = PEARL.loadfile("models/chatmessage")
 
-local Colour = PEARL.loadfile("libraries/datastructures/colour")
+local Colour = PEARL.loadfile("libs/datastructures/colour")
 
 ----------------------------------
 -- Constants

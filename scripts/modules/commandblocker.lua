@@ -9,7 +9,6 @@
     the terms of RECEX SHARED SOURCE LICENSE (version 1.0).
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
---- @category FrontEnd
 
 local UserCommands = require("usercommands")
 
@@ -17,7 +16,7 @@ local UserCommands = require("usercommands")
 -- [[ Handlers ]]
 --------------------------------
 
--- PlayerPostInit in FrontEnd is like GamePostInit in BackEnd
+-- PlayerPostInit on clients is like GamePostInit on servers
 -- At this point everything should have already added it's commands.
 PEARL.AddPlayerPostInit(function()
     for _, name in ipairs(UserCommands.GetCommandNames()) do

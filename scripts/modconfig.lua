@@ -183,7 +183,7 @@ function ModConfig:GetEnabledServerModsConfigDataString(client_only)
 end
 
 --- Push mod config warnings only for the server owner to see.
-function ModConfig:LoadBackendOverride(option)
+function ModConfig:LoadServerSideOverride(option)
     if option.saved ~= nil then
         if option.master_only and TheShard:IsSecondary() then
             PEARL.warn("Option", option.name, "is only available for the master shard!")
