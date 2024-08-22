@@ -133,6 +133,7 @@ function ModPersistance:SaveDataToFile(fp, data, ensure, encode)
     local data_str
     if PEARL.CONFIG.DEBUG_MODE then
         -- In debug mode, we use datadumper with identation for better readability.
+        -- The DataDumper seems to be pretty unreliable so this is recommended only for debugging.
         data_str = CustomDataDumper(data, nil, false, 2, true)
     else
         local success, str = pcall(json.encode, data)
@@ -154,30 +155,36 @@ function ModPersistance:SaveDataToFile(fp, data, ensure, encode)
     return self:WriteToFile(fp, data_str)
 end
 
+--- @param fp filepath Starting from the <GAME INSTALL DIR>\data directory
+--- @param ensure boolean Whether to create the file that's being loaded if it doesn't exist.
 --- @return table?
 function ModPersistance:LoadDataFromFile(fp, ensure)
-    local str = self:ReadFromFile(fp, ensure)
-    if type(str) ~= "string" then
+    local raw_str = self:ReadFromFile(fp, ensure)
+    if type(raw_str) ~= "string" then
         return
     end
 
-    -- Decoding and un-encoded string should return nil
-    local decoded = TheSim:DecodeAndUnzipString(str)
-    str = decoded and #decoded > 0 and decoded or str
-
-    local success, data = pcall(json.decode, str)
+    -- Try to JSON decode the raw string first.
+    local success, data = pcall(json.decode, raw_str)
     if not success or type(data) ~= "table" then
-        local _, result
-        local fn = loadstring(str)
+        PEARL.debug("Failed to JSON decode the raw string, trying to unzip it first...")
+        local decoded_str = TheSim:DecodeAndUnzipString(raw_str)
+        success, data = pcall(json.decode, decoded_str)
+    end
+
+    -- If everything fails, last attempt is to interpret the raw_string as Lua.
+    if not success or type(data) ~= "table" then
+        PEARL.debug("Everything has failed so far! Trying to deseperately interpret it as Lua...")
+        local fn, errmsg = loadstring(raw_str)
         if type(fn) == "function" then
-            _, result = RunInEnvironmentSafe(fn, DEFAULT_LOADING_ENV)
+            local ok, result = RunInEnvironmentSafe(fn, DEFAULT_LOADING_ENV)
+            if ok == true and type(result) == "table" then
+                return result
+            end
         end
 
-        if type(result) ~= "table" then
-            return
-        end
-
-        data = result
+        PEARL.debug("Failed to load the provided file completely.", errmsg)
+        return -- nil on total failure
     end
 
     return data

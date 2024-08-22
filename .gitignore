@@ -68,3 +68,5 @@ data/*
 .VSCodeCounter/*
 
 scripts/languages/cache/*
+.tocompile/*
+.tocompile

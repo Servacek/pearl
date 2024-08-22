@@ -159,7 +159,11 @@ function ModConfig:VerifyConfig(optname, options)
     options = options or PEARL.MOD_INFO.configuration_options
     local option = GetConfigOptionByName(options, optname)
     if type(option) ~= "table" or (option.implicit == true and TheNet:IsDedicated()) then
-        return error("Attempted to override an invalid or implicit option ("..optname..") in modoverrides.lua.")
+        if PEARL.CONFIG.DEBUG_MODE then
+            return print("[PEARL] [Warn] Overriding an invalid or implicit option ("..optname..").")
+        else
+            return error("Attempted to override an invalid or implicit option ("..optname..").")
+        end
     end
 end
 
@@ -258,13 +262,13 @@ function ModConfig:ApplyConfig(name, value, _loaded)
         PEARL.ModConfig:VerifyConfig(name)
     end
 
-    if type(value) == "table" then
+    if type(value) == "table" and _loaded[name] ~= nil then
         table.update(_loaded[name], value)
         -- for sub_name, sub_value in pairs(value) do
         --     self:ApplyConfig(sub_name, sub_value, _loaded[name])
         -- end
     else
-        _loaded[name] = value
+        _loaded[name] = deepcopy(value)
     end
 end
 

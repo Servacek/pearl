@@ -22,7 +22,7 @@ local RECORD = {
     TIME = 4,
 
     SIZE = 4,
-    MIN_SIZE = 2,
+    MIN_SIZE = 4, -- This is completely reworked in the newer versions anyway.
 }
 
 --- 1.2.3;KU_ZC2919302;100203103020;169200202003

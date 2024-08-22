@@ -78,6 +78,9 @@
 
     - TheNet:Disconnect() is REALLY unstable!
 
+    - It is not guaranteed for TheSim:DecodeAndUnzip to return an empty string
+      on all operating systems (on Debian it doesn't for example).
+
     - Built-in utf8 library:
         string.utf8char = utf8char -- decode a codepoint
         string.utf8sub = utf8substr -- "byte-aware" string.sub
