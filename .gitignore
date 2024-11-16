@@ -68,5 +68,6 @@ data/*
 .VSCodeCounter/*
 
 scripts/languages/cache/*
-.tocompile/*
-.tocompile
+
+# Ignore all folders prefixed with a dot.
+.*/

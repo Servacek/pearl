@@ -31,6 +31,8 @@ local table_sort = table.sort
 
 local toarrayornil = toarrayornil
 
+local math_huge = math.huge
+
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
@@ -78,14 +80,14 @@ local srt_def = false
 -- Used for reversed sorting of the task stack.
 -- Task having ext as nil should be on the end of the stack as well.
 local function task_comp(t1, t2)
-    return (t1 and t1._ext or math.huge) > (t2 and t2._ext or -math.huge)
+    return (t1 and t1.ext or math_huge) > (t2 and t2.ext or -math_huge)
 end
 
 -- WARNING: NEVER DIRECTLY RESORT TASKS WHILE LOOPING!
 -- Sort the tasks according to the execution time (ext)
 --
 -- Re-sort of tasks is needed when:
--- - we change the _ext of a task
+-- - we change the ext of a task
 -- - we add a new task to the stack.
 local function sort_tasks()
     -- If this is called from inside the wall update loop then defer the sort.
@@ -142,11 +144,14 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
     --- @class Task
     local task = {
         _time = time / wtdelta,
-        _ext = wtime + (initialdelay or time) / wtdelta,
+        --- @type number The relative execution time of the task.
+        ext = wtime + (initialdelay or time) / wtdelta,
         _fn = fn,
         _limit = limit,
-        -- Leave this public
+        --- @type boolean Whether the task id running or not.
         running = true, -- The task is running from the start by default
+        --- @type number? The identification number of the task.
+        --- Used for retrieving specific tasks from the queue.
         id = id,
         _args = toarrayornil(...),
         _errfn = nil, --- @type function?
@@ -212,8 +217,8 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
             return PEARL.error("Attempted to set an invalid execution time!")
         end
 
-        if ext ~= self._ext then
-            self._ext = ext
+        if ext ~= self.ext then
+            self.ext = ext
 
             -- Even though this can be unnecessary sometimes, it's better to be safe.
             sort_tasks()
@@ -271,7 +276,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     function task:tostring()
         return string.format("Task[%s]<limit=%s,time=%s,ext=%s,running=%s,src=%s>",
-            tostring(self.id), tostring(self._limit), tostring(self._time), tostring(self._ext), tostring(self.running), tostring(self._src)
+            tostring(self.id), tostring(self._limit), tostring(self._time), tostring(self.ext), tostring(self.running), tostring(self._src)
         )
     end
 
@@ -280,7 +285,7 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
         self._time = 0
         self._fn = nil
         self._errfn = nil
-        self._ext = -1 -- This will ensure the task will get to the back eventually.
+        self.ext = -1 -- This will ensure the task will get to the back eventually.
         self._limit = 0 -- Disable the task.
         self.id = nil
 
@@ -317,7 +322,7 @@ local function OnWallUpdate()
 
     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
     -- are going to be executed. So just return.
-    if task and task._ext and task._ext > wtime then
+    if task and task.ext and task.ext > wtime then
         return
     end
 
@@ -333,7 +338,7 @@ local function OnWallUpdate()
         -- Also since the limit only decreses on task 'cancel' and 'run' internally,
         -- it should be nil or higher than 0 if running is set to true as well.
         if task.running then
-            if task._ext > wtime then
+            if task.ext > wtime then
                 break -- Other tasks should be even worse...
             end
 
