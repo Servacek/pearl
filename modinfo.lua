@@ -18,7 +18,7 @@
 name = "Pearl"
 server_side_name = "PearlOS"
 author = "Fi7iP"
-version = "3.0.69"
+version = "3.0.7"
 branch = "release"
 description = "An extensive set of software tools for managing and operating your starving servers!"
 
