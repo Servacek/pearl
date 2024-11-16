@@ -33,6 +33,8 @@ local ICONS = {
     UNSYNC = "<:disconnect:1030926979463135313>",
     TAG    = "<:tag:1244348001607225435>",
 
+    JOIN = "<:join:1259809158212096073>",
+
     TRASHCAN = "<:trashcan:1218550122082734170>",
     BEEWAX = "<:beeswax:1218883727036383272>",
 

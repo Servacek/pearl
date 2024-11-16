@@ -254,7 +254,7 @@ function RestAPI:RateLimitForTime(seconds)
 
         -- If the task already exists then increase it's number of seconds.
         if self._rate_limit_task ~= nil and type(self._rate_limit_task.exec_time) == "number" then
-            self._rate_limit_task:setexttime(self._rate_limit_task._ext + seconds)
+            self._rate_limit_task:setexttime(self._rate_limit_task.ext + seconds)
             return
         end
 

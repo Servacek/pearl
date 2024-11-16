@@ -155,7 +155,11 @@ function ModConfig:VerifyConfig(optname, options)
     options = options or PEARL.MODINFO.configuration_options
     local option = GetConfigOptionByName(options, optname)
     if type(option) ~= "table" or (option.implicit == true and TheNet:IsDedicated()) then
-        return error("Attempted to override an invalid or implicit option ("..optname..") in modoverrides.lua.")
+        if PEARL.CONFIG.DEBUG_MODE then
+            return print("[PEARL] [Warn] Overriding an invalid or implicit option ("..optname..").")
+        else
+            return error("Attempted to override an invalid or implicit option ("..optname..").")
+        end
     end
 end
 

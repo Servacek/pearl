@@ -72,3 +72,6 @@ scripts/languages/cache/*
 
 # Hidden lua files
 .*.lua
+
+# Ignore all folders prefixed with a dot.
+.*/

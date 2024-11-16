@@ -16,6 +16,7 @@ local TheShard = TheShard
 
 local MARKDOWN = PEARL.loadfile("libs/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
+local ICONS = PEARL.loadfile("constants/icons")
 
 local Message = PEARL.loadfile("libs/discordapi/models/message")
 local LogLine = PEARL.loadfile("libs/discordapi/models/logline")
@@ -104,7 +105,27 @@ local function OnInitialFullLaunch()
         return
     end
 
+    --- @TODO: This is just an proof-of-concept and it needs improvements!
     PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerInfo(true))
+        :SetDefaultTable({
+            components = {
+                {
+                    type = 1,
+                    components = {
+                        {
+                            type = 2,
+                            label = "Pripojiť sa",
+                            style = 5,
+                            url = "https://tinyurl.com/542d759a",
+                            emoji = {
+                                id = (ICONS.JOIN:split(":")[3]:gsub(">", "")),
+                                name = ICONS.JOIN:split(":")[2],
+                            },
+                        }
+                    }
+                }
+            }
+        })
 end
 
 local function OnShardLoaded(master)

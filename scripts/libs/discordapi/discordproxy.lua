@@ -471,7 +471,7 @@ function DiscordProxy:RestartFetchTask()
     end
 
     local period = math.min(time_until_next_fetch or MIN_FETCH_PERIOD, MIN_FETCH_PERIOD)
-    if self.fetch_task and self.fetch_task._fn then
+    if self.fetch_task and self.fetch_task:runnable() then
         PEARL.info("Restarting the fetching task...")
 
         -- Ensure we use the default interval in case it was changed before by some commands.
