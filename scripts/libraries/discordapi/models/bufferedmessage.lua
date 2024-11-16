@@ -113,6 +113,7 @@ function BufferedMessage:Stop()
     end
 end
 
+--- @TODO: Remove this (probably the whole thing needs to be looked at again...)
 function BufferedMessage:Clear()
     self._flags = nil
     self._content = nil
@@ -125,7 +126,13 @@ function BufferedMessage:Clear()
         iclear(self._embeds)
     end
 
-    self:ClearAllowedMentions()
+    if self._allowed_mentions then
+        table.clear(self._allowed_mentions)
+    end
+
+    if self._default_table then
+        table.clear(self._default_table)
+    end
 end
 
 -------------------------------------

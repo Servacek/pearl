@@ -32,6 +32,8 @@ local ICONS = {
     SYNC   = "<:connect:1166026349157302332>",
     UNSYNC = "<:disconnect:1030926979463135313>",
 
+    JOIN = "<:join:1259809158212096073>",
+
     TRASHCAN = "<:trashcan:1218550122082734170>",
     BEEWAX = "<:beeswax:1218883727036383272>",
 
