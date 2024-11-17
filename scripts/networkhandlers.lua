@@ -146,7 +146,6 @@ PEARL.AddWorldPostInit(function(world)
         PEARL.debug("ClientOnDisconnected", data.userid, data.expected)
 
         if data and data.userid then
-            print("CONNECTED", PEARL.ServerNetwork:IsClientConnected(data.userid))
             if PEARL.ServerNetwork:IsClientConnected(data.userid) then
                 data.expected = false
             end

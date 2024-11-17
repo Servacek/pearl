@@ -138,8 +138,8 @@ end
 
 function Cron:ShouldExecute(job)
     local min, hour, dom, mon, dow = split_timestamp(os.time())
-    print(min, hour, dom, mon, dow)
-    print( job[FIELDS.MIN], job[FIELDS.HOUR], job[FIELDS.DOM], job[FIELDS.MON], job[FIELDS.DOW])
+    --print(min, hour, dom, mon, dow)
+    --print( job[FIELDS.MIN], job[FIELDS.HOUR], job[FIELDS.DOM], job[FIELDS.MON], job[FIELDS.DOW])
     return (job[FIELDS.MIN] == WILDCARD or job[FIELDS.MIN] == min) and
            (job[FIELDS.HOUR] == WILDCARD or job[FIELDS.HOUR] == hour) and
            (job[FIELDS.DOM] == WILDCARD or job[FIELDS.DOM] == dom) and
