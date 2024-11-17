@@ -545,6 +545,17 @@ configuration_options = {
         public = true,
     },
 
+    {
+        name="CUSTOM_CHAT_AUTOCOMPLETE",
+        type="boolean",
+        default=true,
+        public=true,
+        options={
+            true,
+            false,
+        },
+    },
+
     { -- This is an improved version of the game's emoji autocomplete.
         name="EMOJI_AUTOCOMPLETE",
         default = true,

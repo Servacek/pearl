@@ -203,23 +203,19 @@ local function AddEmojiMenuButton(menu)
 end
 
 local function ExpandWordPredictorWithCustomCommands(predictor, commands)
-    local permission = UserCommands.GetPermissionLevel(
-        TheNet:GetIsServerAdmin() and COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
-    )
-
     for _, v in pairs(predictor.dictionaries) do
         if v.delim == PEARL.CONSTS.DELIMS.SLASH_COMMAND then
             v.num_chars = COMMAND_PREDICTION_CHARS
-
             for name, command in pairs(commands) do
-                local commandpermission = UserCommands.GetPermissionLevel(command.permission)
-
                 -- Only autocomplete the commands we have permission to.
-                if permission >= commandpermission and not table.contains(v.words, name) then
-                    table.insert(v.words, name)
+                if UserCommands.HasAccessToCommand(command) then
+                    for _, alias in pairs({name, PEARL.unpack(command.aliases)}) do
+                        if not table.contains(v.words, alias) then
+                            table.insert(v.words, alias)
+                        end
+                    end
                 end
             end
-
             break -- Extend only once
         end
     end

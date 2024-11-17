@@ -483,6 +483,17 @@ function UserCommands.GetPermissionLevel(permission)
     return UserCommands.PERMISSION_LEVEL[permission] or 0
 end
 
+function UserCommands.HasAccessToCommand(command)
+    local commandpermission = UserCommands.GetPermissionLevel(command.permission)
+    local permission = UserCommands.GetPermissionLevel(
+        TheNet:GetIsServerAdmin() and COMMAND_PERMISSION.ADMIN or COMMAND_PERMISSION.USER
+    )
+
+    return permission >= commandpermission and (
+        command.hasaccessfn == nil or command.hasaccessfn(command, ThePlayer) ~= false
+    )
+end
+
 function UserCommands.CalculatePermissionFor(userid)
     local client = userid and TheNet:GetClientTableForUser(userid)
     return ((client and client.admin) or (PEARL.AdminList:Contains(userid))) and

@@ -1618,6 +1618,7 @@ UserCommands.CustomizeCommand("regenerate", function(command)
     command.paramsoptional = command.paramsoptional or {}
     command.paramtypes = {["seed"] = "number"}
     command.aliases = command.aliases or {}
+    command.slash = true
 
     table.insert(command.params, PARAMS.SHARD.name)
     table.insert(command.paramsoptional, true)

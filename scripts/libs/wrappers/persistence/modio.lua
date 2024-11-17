@@ -70,7 +70,7 @@ end
 --- @param encode boolean? Whether to encode the content before saving or not.
 --- @return boolean success, string? errmsg
 function ModPersistence:SetFileContent(path, content, encode)
-    PEARL.debug("ModPersistence:SetFileContent", path, content, encode)
+    PEARL.debug("ModPersistence:SetFileContent", path, encode)
     -- Klei has some weird checks here when opening files with special characters in path.
     -- This throws an error when the path cotains a ':' for example (this makes sense actually).
     local _, wf, errmsg, success
@@ -87,7 +87,6 @@ function ModPersistence:SetFileContent(path, content, encode)
     success, errmsg = wf:write(content)
     wf:close()
 
-    PEARL.debug("DATA WRITTEN", success, errmsg)
     return success and errmsg == nil or false, errmsg
 end
 

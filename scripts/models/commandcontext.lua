@@ -151,6 +151,7 @@ end
 --------------------------------------
 
 function CommandContext:ExecuteAfter(time, fn, ...)
+    PEARL.debug("CommandContext:ExecuteAfter", time)
     local task = PEARL.WallScheduler:ExecuteInTime(time, fn, nil, ...)
     if task then
         task:seterrfn(function()
