@@ -331,7 +331,7 @@ local function OnResetCountDownStop(self)
     end
 end
 
-local function OnPlayerDisconnected(world, player)
+local function OnPlayerDespawned(world, player)
     if not player or not player.Transform then
         return
     end
@@ -452,7 +452,7 @@ PEARL.AddWorldPostInit(function(world)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_playerdespawnanddelete", OnPlayerDespawnAndDelete)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
-        world:SafeListenForEvent("ms_playerdisconnected", OnPlayerDisconnected)
+        world:SafeListenForEvent("ms_playerdespawn", OnPlayerDespawned)
         -- There as some weird "purely virtual function" crashes here, even after a delay.
         -- world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
         world:SafeListenForEvent("master_autosaverupdate", OnSaved)

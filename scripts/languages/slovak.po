@@ -518,6 +518,11 @@ msgctxt "STRINGS.PEARL.EMBEDS.MODS.TITLE"
 msgid "%s's Enabled Mods"
 msgstr "Posledné Klientské Modifikácie Hráča %s"
 
+#. STRINGS.PEARL.EMBEDS.MODS.UNKNOWN_MOD
+msgctxt "STRINGS.PEARL.EMBEDS.MODS.UNKNOWN_MOD"
+msgid "Unknown Mod"
+msgstr "Neznáma Modifikácia"
+
 #. STRINGS.PEARL.EMBEDS.PLAYERS.EMPTY
 msgctxt "STRINGS.PEARL.EMBEDS.PLAYERS.EMPTY"
 msgid "Nobody is playing..."
@@ -768,6 +773,11 @@ msgctxt "STRINGS.PEARL.LOGS.AUTH"
 msgid "%s authenticated as %s"
 msgstr "%s autentifikovaný/á ako %s"
 
+#. STRINGS.PEARL.LOGS.AUTO_SAVE
+msgctxt "STRINGS.PEARL.LOGS.AUTO_SAVE"
+msgid "Auto-Saving world on shard %s as snapshot %s..."
+msgstr "Automatické ukladanie sveta shardu %s ako uloženie číslo %s..."
+
 #. STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST
 msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST"
 msgid "Server's version is outdated, new players aren't able to connect.\nIt will be automatically updated in %s minute(s)."
@@ -837,6 +847,11 @@ msgstr "Vraciam server späť o %s dní!"
 msgctxt "STRINGS.PEARL.LOGS.DAYSBACK_COUNT_AFTER"
 msgid "Rolling server %s day(s) back in %s second(s)!"
 msgstr "Vraciam server späť o %s dní za %s sekúnd!"
+
+#. STRINGS.PEARL.LOGS.DESPAWN_AT
+msgctxt "STRINGS.PEARL.LOGS.DESPAWN_AT"
+msgid "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
+msgstr "%s opustil/a shard %s na pozícii X: %2.2f Y: %2.2f Z: %2.2f"
 
 #. STRINGS.PEARL.LOGS.DISCONNECT
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT"
@@ -998,6 +1013,11 @@ msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_TITLE"
 msgid "%s %s's Inventory"
 msgstr "%s Inventár hráča %s"
 
+#. STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED
+msgctxt "STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED"
+msgid "**Last uncatched crash log for player (`%s`) %s:**"
+msgstr "**Chybový výpis posledného neočakávaného odpojenia hráča (`%s`) %s:**"
+
 #. STRINGS.PEARL.LOGS.LIGHTNING_STRIKE
 msgctxt "STRINGS.PEARL.LOGS.LIGHTNING_STRIKE"
 msgid "Lightning stuck near %s!"
@@ -1007,6 +1027,11 @@ msgstr "Blesk udrel v blízkosti %s!"
 msgctxt "STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT"
 msgid "Localization process for client %s has timed out!"
 msgstr "Hráč %s sa nelokalizoval včas."
+
+#. STRINGS.PEARL.LOGS.LOST_CONNECTION
+msgctxt "STRINGS.PEARL.LOGS.LOST_CONNECTION"
+msgid "> %s\nNext time this user joins the game, attempts will be made to fetch the crash logs."
+msgstr "> %s\nPri ďalšom pripojení do hry, prebehne niekoľko pokusov o ziskanie chybových výpisov."
 
 #. STRINGS.PEARL.LOGS.LOW_PERFORMANCE
 msgctxt "STRINGS.PEARL.LOGS.LOW_PERFORMANCE"
@@ -1062,6 +1087,11 @@ msgstr "%s opustil konštantu ako %s"
 msgctxt "STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST"
 msgid "The player %s is banned on the external banlist. Keep an eye on them."
 msgstr "Hráč %s je na externom banliste. Dajte si na neho pozor."
+
+#. STRINGS.PEARL.LOGS.PLAYER_RENAMED
+msgctxt "STRINGS.PEARL.LOGS.PLAYER_RENAMED"
+msgid "%s was renamed from %s to %s."
+msgstr "%s bol/a premenovaný/á z %s na %s"
 
 #. STRINGS.PEARL.LOGS.PRECIPITATION_START
 msgctxt "STRINGS.PEARL.LOGS.PRECIPITATION_START"
@@ -2593,6 +2623,16 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.WORLD.DESC"
 msgid "Show information about the current world."
 msgstr "Zobrazí informácie o aktuálnom svete."
 
+#. STRINGS.PEARL.UI.CLIENTERROR_DETAIL
+msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL"
+msgid "The error was reported to the server owner."
+msgstr "Chyba bola nahlásená správcovi servera."
+
+#. STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF
+msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF"
+msgid "The error was reported to the server owner.\nWe will make sure to take a look into it!"
+msgstr "Chyba bola nahlásená správcovi servera.\nUrčite sa na pozrieme!"
+
 #. STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING"
 msgid "If you want to use coordinates, please provide at least the X and Z values! The Y value defaults to the ground Y coordinate."
@@ -3763,11 +3803,6 @@ msgctxt "STRINGS.PEARL.EMBEDS.MODS.THMB_URL"
 msgid "https://cdn.discordapp.com/attachments/1066442901380403333/1093953980482211862/wrench.png"
 msgstr ""
 
-#. STRINGS.PEARL.EMBEDS.MODS.UNKNOWN_MOD
-msgctxt "STRINGS.PEARL.EMBEDS.MODS.UNKNOWN_MOD"
-msgid "Unknown Mod"
-msgstr ""
-
 #. STRINGS.PEARL.EMBEDS.PLAYERS.AUTHOR_ICON_URL
 msgctxt "STRINGS.PEARL.EMBEDS.PLAYERS.AUTHOR_ICON_URL"
 msgid "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png"
@@ -3918,20 +3953,10 @@ msgctxt "STRINGS.PEARL.HM_TIME_FORMAT"
 msgid "%dh %dm"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.AUTO_SAVE
-msgctxt "STRINGS.PEARL.LOGS.AUTO_SAVE"
-msgid "Auto-Saving world on shard %s as snapshot %s..."
-msgstr "Automatické ukladanie sveta shardu %s ako uloženie číslo %s..."
-
 #. STRINGS.PEARL.LOGS.DEPTH_WORMS
 msgctxt "STRINGS.PEARL.LOGS.DEPTH_WORMS"
 msgid "Depth Worms"
 msgstr ""
-
-#. STRINGS.PEARL.LOGS.DESPAWN_AT
-msgctxt "STRINGS.PEARL.LOGS.DESPAWN_AT"
-msgid "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
-msgstr "%s opustil/a shard %s na pozícii X: %2.2f Y: %2.2f Z: %2.2f"
 
 #. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
 msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
@@ -3948,24 +3973,9 @@ msgctxt "STRINGS.PEARL.LOGS.ITEM"
 msgid "%dx %s"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED
-msgctxt "STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED"
-msgid "**Last uncatched crash log for player (`%s`) %s:**"
-msgstr ""
-
-#. STRINGS.PEARL.LOGS.LOST_CONNECTION
-msgctxt "STRINGS.PEARL.LOGS.LOST_CONNECTION"
-msgid "> %s\nNext time this user joins the game, attempts will be made to fetch the crash logs."
-msgstr ""
-
 #. STRINGS.PEARL.LOGS.PHASE
 msgctxt "STRINGS.PEARL.LOGS.PHASE"
 msgid "%s"
-msgstr ""
-
-#. STRINGS.PEARL.LOGS.PLAYER_RENAMED
-msgctxt "STRINGS.PEARL.LOGS.PLAYER_RENAMED"
-msgid "%s was renamed from %s to %s."
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.PLAYER_REPORT
@@ -4011,16 +4021,6 @@ msgstr ""
 #. STRINGS.PEARL.SHARDS.SECONDARY
 msgctxt "STRINGS.PEARL.SHARDS.SECONDARY"
 msgid "Caves"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CLIENTERROR_DETAIL
-msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL"
-msgid "The error was reported to the server owner."
-msgstr ""
-
-#. STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF
-msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF"
-msgid "The error was reported to the server owner.\nWe will make sure to take a look into it!"
 msgstr ""
 
 #. STRINGS.PEARL.UI.DM_DESIGNATOR
@@ -4077,3 +4077,4 @@ msgstr ""
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL"
 msgid "Proxy Server:"
 msgstr ""
+

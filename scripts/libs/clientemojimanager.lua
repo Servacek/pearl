@@ -200,9 +200,10 @@ function ClientEmojiManager:SavePersistentData()
 end
 
 function ClientEmojiManager:LoadPersistentData()
-    local _, datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
+    local datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
     local data = DecodeAndUnzipString(datastr)
-    if table.empty(data) ~= false then
+    if table.empty(data) ~= false and type(datastr) == "string" then
+        local _
         _, data = RunInSandbox(datastr) -- Try undecoded.
     end
     if type(data) == "table" then

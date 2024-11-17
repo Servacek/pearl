@@ -76,7 +76,7 @@ local function OnClientError(traceback)
         ChatHistory:Clear()
     end
 
-    -- No disconnecting in debug mode... We have our fancy "Realod Save" button!
+    -- No "real" disconnecting here, we have the "Reload Button"!
     if PEARL.CONFIG.DEBUG_MODE then
         SetServerPaused(true) -- At least pause the game when viewing the error screen.
     -- elseif PEARL.ClientNetwork then
@@ -85,6 +85,12 @@ local function OnClientError(traceback)
     -- else
     --     TheNet:Disconnect(false)
     end
+
+    --- Notify the server that we have been practically disconnected,
+    --- even through the connection still exists, we are stuck on the error page.
+    PEARL.SendRawRPCToServer(
+        PEARL.RPC.ClientDisconnected, "ID_DST_USER_CRASHED", true
+    )
 
     -- Do not force abort here in case we are displaying the error.
     if KnownModIndex:IsModKnownBad(afflicter_modname) then

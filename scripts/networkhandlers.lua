@@ -11,9 +11,18 @@
 --]==]====================================================]]
 
 
+-- Forced disconnections which were expected but should be highlighted.
+local EXPECTED_DISCONNECT_REASON = {
+    -- When we receive such a message, it means the player is aware of what
+    -- happened to them and either shuts down the game afterwards or
+    -- displays the error widget (depending on whether FE was already loaded or not).
+    -- In both cases we have the crash log already so there is nothing unexpected or mysterious here.
+    ["ID_DST_USER_CRASHED"] = true,
+}
 
+-- Disconnection we do not want to highligh. No additional message will be displayed.
 local GRACEFULL_DISCONNECT_REASON = {
-    ["ID_DST_DISCONNECT_REQUESTED"] = true
+    ["ID_DST_DISCONNECT_REQUESTED"] = true,
 }
 
 ----------------------------------
@@ -216,8 +225,9 @@ PEARL.AddRawServerUseridRPCHandler("ClientDisconnected", function(userid, reason
         return PEARL.ServerNetwork:OnInvalidRPCFromClient("ClientDisconnected", userid)
     end
 
-    if GRACEFULL_DISCONNECT_REASON[reason] then
-        return PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
+    if GRACEFULL_DISCONNECT_REASON[reason] or EXPECTED_DISCONNECT_REASON[reason] then
+        PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
+        if GRACEFULL_DISCONNECT_REASON[reason] then return end -- Do not show any additional message
     end
 
     PEARL.debug("RPC: ClientDisconnected", reason, force)
