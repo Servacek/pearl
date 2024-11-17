@@ -135,6 +135,12 @@
         - how unexpected...
 
     - package.cpath = ""
+
+    - WARNING: TheSim:DecodeAndUnzipString does return a non-blank string on Linux systems
+               even when the decoding is not successfull!!! ALWAYS check the validity of the result.
+        - To verify whether a string is zipped the following method can be used:
+            TheSim:ZipAndEncodeString(TheSim:DecodeAndUnzipString(s)) == s
+        - This will return true if the string s is zipped and false otherwise.
 --]]
 
 --- @TODO: perhaps TheSim:GetModDirectoryNames() could be used to detect local mods?

@@ -202,6 +202,9 @@ end
 function ClientEmojiManager:LoadPersistentData()
     local _, datastr = PEARL.ClusterPersistence:GetFileContent(PERSISTENT_DATA_FILEPATH, true)
     local data = DecodeAndUnzipString(datastr)
+    if table.empty(data) ~= false then
+        _, data = RunInSandbox(datastr) -- Try undecoded.
+    end
     if type(data) == "table" then
          -- Load up in the existing table in case it is being referenced somewhere already.
         table.update(self._persistdata, data)

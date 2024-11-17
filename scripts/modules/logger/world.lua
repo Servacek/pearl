@@ -331,6 +331,17 @@ local function OnResetCountDownStop(self)
     end
 end
 
+local function OnPlayerDisconnected(world, player)
+    if not player or not player.Transform then
+        return
+    end
+
+    local x, y, z = player.Transform:GetWorldPosition()
+    PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.DESPAWN_AT:format(
+        player:GetDisplayName(), PEARL.GetShardFancyName(), x, y, z
+    ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
+end
+
 local function OnPlayerSpawned(player, x, y, z)
     if not (player and player.userid ~= "") then
         return
@@ -441,6 +452,7 @@ PEARL.AddWorldPostInit(function(world)
         world:SafeListenForEvent("ms_playerdespawnandmigrate", OnPlayerMigrating)
         world:SafeListenForEvent("ms_playerdespawnanddelete", OnPlayerDespawnAndDelete)
         world:SafeListenForEvent("ms_newplayerspawned", OnNewPlayerSpawn)
+        world:SafeListenForEvent("ms_playerdisconnected", OnPlayerDisconnected)
         -- There as some weird "purely virtual function" crashes here, even after a delay.
         -- world:SafeListenForEvent("ms_playerspawn", OnPlayerSpawned)
         world:SafeListenForEvent("master_autosaverupdate", OnSaved)

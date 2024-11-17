@@ -86,11 +86,15 @@ function Persistence:LoadDataFromFile(path, ensure)
         return
     end
 
-    -- Decoding and un-encoded string should return nil or an empty string!
-    local decoded = TheSim:DecodeAndUnzipString(str)
-    str = decoded and #decoded > 0 and not decoded:blank() and decoded or str
-
+    -- trying undecoded
     local success, data = pcall(json.decode, str)
+    if success and type(data) == "table" then
+        return data
+    end
+
+    -- trying decoded
+    local decoded_str = TheSim:DecodeAndUnzipString(str)
+    success, data = pcall(json.decode, decoded_str)
     if success and type(data) == "table" then
         return data
     end
@@ -98,7 +102,8 @@ function Persistence:LoadDataFromFile(path, ensure)
     local _, result
     --- There seems to be some bug in the DataDumper that causes a redundant coma in an empty array.
     str = str:gsub("{[\n%s]*,[\n%s]*}", "{}")
-    local fn = loadstring(str)
+    decoded_str = decoded_str:gsub("{[\n%s]*,[\n%s]*}", "{}")
+    local fn = loadstring(str) or loadstring(decoded_str)
     if type(fn) == "function" then
         _, result = RunInEnvironmentSafe(fn, DEFAULT_LOADING_ENV)
     end
@@ -107,9 +112,7 @@ function Persistence:LoadDataFromFile(path, ensure)
         return
     end
 
-    data = result
-
-    return data
+    return result
 end
 
 --------------------------------

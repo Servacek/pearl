@@ -743,8 +743,9 @@ end
 
 function ServerNetwork:OnRawConnectionData(userid, data)
     -- All the data is untrusted in this case.
+    -- Also data here is always being encoded and zipped to speed up the transmission.
     local data_tbl = DecodeAndUnzipString(data)
-    if type(data_tbl) ~= "table" or IsTableEmpty(data_tbl) then
+    if type(data_tbl) ~= "table" or table.empty(data_tbl) then
         return self:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 

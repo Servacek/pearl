@@ -449,6 +449,7 @@ end
         SPAWN                   = "Spawning %s in shard %s",
         SPAWN_AT                = "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f",
         SPAWN_AT_BASE_NEAR      = "Player %s was spawned at the base near %s",
+        DESPAWN_AT              = "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f",
 
         PRECIPITATION_START     = "It started %s!",
         PRECIPITATION_STOP      = "It stopped %s.",

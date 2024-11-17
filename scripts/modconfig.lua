@@ -250,39 +250,44 @@ function ModConfig:TryUnzipAndDecodeOption(option)
         return config_data -- There is nothing to be unzipped or decoded.
     end
 
-    --- This returns an empty string on failure.
-    local unzipped, unzipped_str = pcall(TheSim.DecodeAndUnzipString, TheSim, config_data)
-    if unzipped ~= true or unzipped_str == nil or unzipped_str == "" then
-        unzipped_str = config_data -- Unzipping failed, try to use the raw zipped? string.
-
-        -- Even options marked as zipped may not be zipped.
-        -- if option.zip then
-        --     PEARL.error("Failed to unzip configuration option", option.name, "using the unzipped form instead.")
-        -- end
-    end
-
-    if unzipped_str then
-        if option.type == "string" then
-            return unzipped_str
-        elseif option.type == "table" then
-            -- Deconding for JSON strings
-            local decoded, decoded_data = pcall(json.decode, unzipped_str) --- @type boolean?, any
-            if decoded == true and type(decoded_data) == "table" then
-                return decoded_data
-            end
-
-            -- Decoding for Lua strings (from DataDumper)
-            decoded, decoded_data = RunInSandboxSafe(unzipped_str)
-            if decoded == true and type(decoded_data) == "table" then
-                return decoded_data
-            end
-
-            PEARL.error("Decoding configuration option", option.name, "failed! Returning default value...")
-            return option.default
+    local raw_str = config_data
+    if option.type == "string" then
+        local is_zipped = TheSim:ZipAndEncodeString(TheSim:DecodeAndUnzipString(raw_str)) == raw_str
+        return is_zipped and TheSim:DecodeAndUnzipString(raw_str) or raw_str
+    elseif option.type == "table" then
+        -- Try the raw version
+        local decoded, decoded_data = pcall(json.decode, raw_str) --- @type boolean?, any
+        if decoded == true and type(decoded_data) == "table" then
+            return decoded_data
         end
+
+        -- Trying the unzipped version
+        local unzipped_str = TheSim:DecodeAndUnzipString(raw_str)
+        decoded, decoded_data = pcall(json.decode, unzipped_str) --- @type boolean?, any
+        if decoded == true and type(decoded_data) == "table" then
+            return decoded_data
+        end
+
+        -- Decoding for Lua strings (from DataDumper)
+
+        -- Trying the raw version
+        decoded, decoded_data = RunInSandboxSafe(raw_str)
+        if decoded == true and type(decoded_data) == "table" then
+            return decoded_data
+        end
+
+        decoded, decoded_data = RunInSandboxSafe(unzipped_str)
+        if decoded == true and type(decoded_data) == "table" then
+            return decoded_data
+        end
+
+        PEARL.error("Decoding configuration option", option.name, "failed! Returning default value...")
+        return option.default
     end
 
-    return config_data -- Else return the default value (e. g. for table types)
+    -- We currently do only zip strings and dumped tables.
+    -- integers, and booleans can be passed without converting them to string.
+    return raw_str -- Else return the default value
 end
 
 --- @param name string|number

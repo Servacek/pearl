@@ -235,6 +235,7 @@ PEARL.AddRawServerRPCHandler("ClientError", function(userid, datastr)
         return PEARL.error("Client", userid, "crashed! Reports to discord are either disabled or not initialized!", datastr)
     end
 
+    -- datastr here should be always zipped.
     local data = checkstring(datastr) and DecodeAndUnzipString(datastr)
     if type(data) ~= "table" or
         (data.mod and type(data.mod) ~= "table") or

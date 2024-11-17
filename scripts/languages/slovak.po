@@ -3921,12 +3921,17 @@ msgstr ""
 #. STRINGS.PEARL.LOGS.AUTO_SAVE
 msgctxt "STRINGS.PEARL.LOGS.AUTO_SAVE"
 msgid "Auto-Saving world on shard %s as snapshot %s..."
-msgstr ""
+msgstr "Automatické ukladanie sveta shardu %s ako uloženie číslo %s..."
 
 #. STRINGS.PEARL.LOGS.DEPTH_WORMS
 msgctxt "STRINGS.PEARL.LOGS.DEPTH_WORMS"
 msgid "Depth Worms"
 msgstr ""
+
+#. STRINGS.PEARL.LOGS.DESPAWN_AT
+msgctxt "STRINGS.PEARL.LOGS.DESPAWN_AT"
+msgid "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
+msgstr "%s opustil/a shard %s na pozícii X: %2.2f Y: %2.2f Z: %2.2f"
 
 #. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
 msgctxt "STRINGS.PEARL.LOGS.INV_REPORT_ITEM"
@@ -4072,4 +4077,3 @@ msgstr ""
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL"
 msgid "Proxy Server:"
 msgstr ""
-
