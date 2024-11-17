@@ -821,6 +821,13 @@ PEARL.OverrideReturnValue(_G, "UserToClient", function(client, input)
     return client
 end)
 
+--- @TODO: This would break commandblocker.lua since it relies on the completeness of the list.
+-- PEARL.OverrideReturnValue(UserCommands, "GetCommandNames", function(names)
+--     return table.ifilter(names, function(_, name)
+--         return UserCommands.HasAccessToCommand(UserCommands.GetCommandFromName(name))
+--     end)
+-- end)
+
 -------------------------------------
 -- RPCs
 -------------------------------------

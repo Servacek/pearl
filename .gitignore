@@ -75,3 +75,6 @@ scripts/languages/cache/*
 
 # Ignore all folders prefixed with a dot.
 .*/
+
+# For the VS Code run extension
+tempCodeRunnerFile.lua

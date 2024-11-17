@@ -21,6 +21,8 @@ end
 
 --------------------------
 
+--- This works only for key-value based arrays since
+--- for other type of arrays it may create holes in it.
 function table:filter(checkfn)
     local result = {}
     for k, v in pairs(self) do
@@ -30,6 +32,23 @@ function table:filter(checkfn)
     end
 
     return result
+end
+
+--- This works for only for arrays since it uses indexes.
+function table:ifilter(checkfn)
+    local new_index = 1
+    local size_orig = #self
+    for old_index, v in ipairs(self) do
+        if checkfn(old_index, v) then
+            self[new_index] = v
+            new_index = new_index + 1
+        end
+    end
+
+    --- Now clear the filtered out part.
+    for i = new_index, size_orig do
+        self[i] = nil
+    end
 end
 
 function table.size(t)

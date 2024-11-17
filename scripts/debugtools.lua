@@ -18,7 +18,9 @@
 
 
 local CommandContext = PEARL.loadfile("models/commandcontext")
-local UserCommands = require("usercommands")
+-- Make UserCommands global for easier debugging
+UserCommands = require("usercommands")
+_G.UserCommands = UserCommands
 
 local Embed = PEARL.loadfile("libs/discordapi/models/embed")
 local Message = PEARL.loadfile("libs/discordapi/models/message")
