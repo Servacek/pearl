@@ -38,6 +38,7 @@ local URL = {
     SESSION     = BASE_URL.."/session",
     MESSAGE     = BASE_URL.."/message",
     COMMANDS    = BASE_URL.."/commands",
+    REPORT      = BASE_URL.."/client_log_report"
 }
 
 local MIN_FETCH_PERIOD = PEARL.CONFIG.DISCORD.PROXY.MIN_FETCH_PERIOD

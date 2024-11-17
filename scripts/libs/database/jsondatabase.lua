@@ -70,9 +70,11 @@ JSONDB = Library(JSONDB)
 
 -- Currently we determine this by checking if "lastseentime" is nil,
 -- since lastseentime is asigned after the first leave.
+-- WARNING: Prefer to use ServerNetwork:IsClientFirstTimeOnServer
+-- since this lasts only for 5 seconds after the player joins.
 function JSONDB:FirstTimeJoined(userid)
     local record = self:GetRecordFor(userid)
-    return record and record.lastseentime == nil
+    return record and (record.lastseentime == nil or record.lastseentime >= os.time() - 10)
 end
 
 --- @TODO: add these to some separate lib
@@ -364,6 +366,7 @@ function JSONDB:SaveRecordFor(userid, record)
         return true
     end
 
+    --- Revert last update since we didn't actually update the physical file.
     record.lastupdate = lastupdate
 
     PEARL.error("Failed to save record for", userid)

@@ -319,7 +319,6 @@ local bf = io.open(MODROOT..""..PEARL.BANNER_PATH, "r")
 if bf then
     local banner = bf:read("*a")
     local line = banner:match("([^\n]+)\n")
-    print("FIRST LINE", line)
     local modname = TheNet:IsDedicated() and PEARL.MODINFO.server_side_name or PEARL.MODFANCYNAME
     local name_part, version_part = " :: "..modname.." ::", "(v"..PEARL.VERSION..")"
 
@@ -391,7 +390,6 @@ for _, option in ipairs(PEARL.MODINFO.configuration_options) do
         PEARL.DEFAULT_CONFIG[option.name] = option.default
 
         local override = PEARL.ModConfig:TryUnzipAndDecodeOption(option)
-        print(option.name, override)
         if override ~= option.default then
             PEARL.CONFIG_OVERRIDES[option.name] = override
         end

@@ -359,12 +359,36 @@ end
 --- @param prefab string
 --- @param stacksize number?
 function PEARL.PrefabToName(prefab, stacksize)
-    local name = STRINGS.NAMES[prefab and string.upper(prefab)] or prefab or "MISSING_NAME"
-    if stacksize  and stacksize > 1 then
-        return STRINGS.PEARL.LOGS.ITEM:format(stacksize, name)
+    local success = true
+    local name = "MISSING NAME"
+    if prefab then
+        -- Do not call entity:GetBasicDisplayName if we have no prefab since some displaynamefns need it.
+        name = STRINGS.NAMES[string.upper(prefab)] or name
+
+        local demutated_prefab = prefab:gsub("_mutantproxy_", "_")
+        local dewomrowooded_prefab = demutated_prefab:gsub("wormwood_", "")
+        name = STRINGS.NAMES[string.upper(dewomrowooded_prefab)] or name
     end
 
-    return name
+    --- Support for wormwood's proxy mutants
+    local prefab_def = _G.Prefabs[prefab]
+    if prefab_def and table.empty(prefab_def.deps) == false and #prefab_def.deps == 1 then
+        local dep = prefab_def.deps[1]
+        if type(dep) == "string" and not dep:blank() and dep ~= prefab then
+            prefab = EntityScript.PREFAB_NAME_OVERRIDES[dep] or dep
+            name = STRINGS.NAMES[string.upper(prefab)] or name
+        end
+    end
+
+    if not name then
+        name = prefab or name -- Try to fallback to the prefab atleast
+        success = false
+    end
+
+    if stacksize  and stacksize > 1 then
+        return STRINGS.PEARL.LOGS.ITEM:format(stacksize, name), success
+    end
+    return name, success
 end
 
 local TRUE = {
@@ -512,24 +536,13 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         return entity:GetDisplayName()
     end
 
-    local name = "MISSING NAME"
-    if entity.prefab then
-        -- Do not call entity:GetBasicDisplayName if we have no prefab since some displaynamefns need it.
-        name = STRINGS.NAMES[string.upper(entity.prefab)] or entity:GetBasicDisplayName()
+    local name, success = PEARL.PrefabToName(entity.prefab)
+    if not success then
+        name = "MISSING NAME"
     end
 
     if entity.name and entity.components.named and string.find(string.lower(entity.name), string.lower(name), nil, true) then
-        name = entity.name -- This is for Pig Mans?
-    end
-
-    --- Support for wormwood's proxy mutants
-    local prefab_def = _G.Prefabs[entity.prefab]
-    if prefab_def and table.empty(prefab_def.deps) == false and #prefab_def.deps == 1 then
-        local dep = prefab_def.deps[1]
-        if type(dep) == "string" and not dep:blank() and dep ~= entity.prefab then
-            local prefab = EntityScript.PREFAB_NAME_OVERRIDES[dep] or dep
-            name = STRINGS.NAMES[string.upper(prefab)] or name
-        end
+        name = entity.name or name -- This is for Pig Mans?
     end
 
     if entity.components.spellbook then
@@ -658,6 +671,15 @@ function PEARL.CountPrefabs(prefab)
     end
 
     return count
+end
+
+--- @return EntityScript?
+function PEARL.FindPrefab(prefab, checkfn)
+    for _, ent in pairs(Ents) do
+        if ent.prefab == prefab and (not checkfn or checkfn(ent) == true) then
+            return ent
+        end
+    end
 end
 
 function PEARL.ToISO8601UTC(timestamp)

@@ -246,9 +246,7 @@ end
 
 function ModConfig:TryUnzipAndDecodeOption(option)
     local config_data = PEARL.GetModConfigData(option.name)
-    print("Received", config_data, "from GetModConfigData")
     if type(config_data) ~= "string" then
-        print(option.name, "not a string so returning", config_data)
         return config_data -- There is nothing to be unzipped or decoded.
     end
 
@@ -329,12 +327,12 @@ rawset(_G, "GetEnabledServerModsConfigData", function()
     local data = ModConfig:GetEnabledServerModsConfigData(PEARL.CONFIG.HIDE_SERVER_ONLY_MODS)
     local data_str = DataDumper(data, nil, false)
 
-    --if PEARL.CONFIG.DEBUG_MODE then
+    if PEARL.CONFIG.DEBUG_MODE then
         TheSim:LuaPrint("[PEARL] [Debug] PUBLIC SERVER CONFIG DATA:")
         for _, line in pairs(data_str:split("\n")) do
             print(line)
         end
-    --end
+    end
 
     return data_str
 end)

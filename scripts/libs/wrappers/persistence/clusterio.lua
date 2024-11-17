@@ -57,7 +57,9 @@ function ClusterPersistence:GetFileContent(path, ensure)
     end
 
     TheSim:GetPersistentString(path, function(successfull, str)
-        result = str
+        if successfull then
+            result = str
+        end
     end)
 
     return result

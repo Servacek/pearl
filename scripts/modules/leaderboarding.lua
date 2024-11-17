@@ -94,6 +94,10 @@ local function AnnounceNewPOTM(userid, month, year)
         netid = PEARL.NetProfileLink(name, netid)
     end
 
+    if not name or not mention then
+        return -- Sorry, but we do not know who you are for some reason.
+    end
+
     local leader_months_count = table.size(PEARL.DB:GetField(userid, "leader_months", {}))
     local pt = leader_months_count > 1 and STRINGS.PEARL.UI.POTM_MULTIPLE_ANNOUNCEMENT or STRINGS.PEARL.UI.POTM_ANNOUNCEMENT
     pt = pt.."\n"..STRINGS.PEARL.UI.MONTHLY_LEADERBOARD_RESET

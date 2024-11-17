@@ -273,7 +273,9 @@ end
 -- [[ Agreement/Welcome screen configurations ]]
 ----------------------------------------------------------------
 
-if PEARL.CONFIG.INTRO_SCREEN then
+--- @TODO: This doesn't work in this version,
+--- and the previous version didn't work very well either.
+if PEARL.CONFIG.INTRO_SCREEN and false then
     PEARL.info("Loading agreement and welcome files...")
 
     -- These are arrays of sections.
@@ -713,6 +715,7 @@ ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("steamprofilefetcher", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("globalbanlist", PEARL.CONFIG.GLOBAL_BANLIST.ENABLED and PEARL.CONFIG.GLOBAL_BANLIST.URL)
 ModuleManager:AddModule("autoban", PEARL.CONFIG.AUTOBAN.ENABLED)
+ModuleManager:AddModule("whereisbase", PEARL.CONFIG.BASE_SPAWNER.ENABLED)
 
 --- Filters
 ModuleManager:AddModule("filters/usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)

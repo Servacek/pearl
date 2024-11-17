@@ -201,7 +201,15 @@ local function OnClientDisconnected(userid, expected, reason, reason_title)
     local content = MARKDOWN.codeline(pattern:format((name or userid), shardname, userid, reason or ""))
     local logline = LogLine(content)
     if expected == false then -- Post admins the uncensored version
-        PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOST_CONNECTION:format(content))
+        PEARL.WallScheduler:ExecuteInTime(0, function()
+            local last_unexpected_disconnection = PEARL.DB:GetField(userid, "last_unexpected_disconnection")
+            local last_joined_time = PEARL.DB:GetField(userid, "lastjoinedtime")
+            local was_saved_to_db = ((tonumber(last_joined_time) or 0) < (tonumber(last_unexpected_disconnection) or 0))
+            PEARL.DiscordReporter:SendRawReportString(
+                was_saved_to_db and STRINGS.PEARL.LOGS.LOST_CONNECTION:format(content) or content
+            )
+        end)
+
         logline:SetContent(MARKDOWN.underline(content)):SetIcon(PEARL.ICONS.PLAYER_STATE.CONNECTION_LOST)
     end
 
@@ -272,7 +280,7 @@ local function OnNewPlayerSpawn(self, player)
     ), PEARL.ICONS.PLAYER_PREFABS[player.prefab] or PEARL.ICONS.PLAYER_PREFABS.unknown)
 
     -- We have to also support the case where the agreement is disabled.
-    if not PEARL.DB:FirstTimeJoined(player.userid) then
+    if not PEARL.ServerNetwork:IsClientFirstTimeOnServer(player.userid) then
         return
     end
 
@@ -446,8 +454,9 @@ PEARL.AddWorldPostInit(function(world)
         if world.components.playerspawner then
             --- Use precall because some data may be cleared during the original function execution.
             PEARL.AddClassFunctionPreCall("SpawnAtLocation", function(self, world, player, x, y, z, isloading)
+                -- isloading is nil on initial spawn (at the florid postern)
                 -- For non-loading players we have the "ms_newplayerspawned" event.
-                if player and x and y and z and isloading then
+                if player and x and y and z then --and isloading then
                     OnPlayerSpawned(player, x, y, z)
                 end
             end, world.components.playerspawner)

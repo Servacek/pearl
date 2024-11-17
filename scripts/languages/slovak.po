@@ -681,7 +681,7 @@ msgstr "Seed Sveta"
 #. STRINGS.PEARL.EMBEDS.SERVER.FOOTER
 msgctxt "STRINGS.PEARL.EMBEDS.SERVER.FOOTER"
 msgid "Session: %s • Snapshot: #%s"
-msgstr "Relácia: %s"
+msgstr "Relácia: %s • Uloženie: #%s"
 
 #. STRINGS.PEARL.EMBEDS.SERVER.TITLE
 msgctxt "STRINGS.PEARL.EMBEDS.SERVER.TITLE"
@@ -1282,6 +1282,11 @@ msgstr "Hráč %s vstúpil do shardu %s"
 msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT"
 msgid "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
 msgstr "Spawnovanie hráča %s na sharde %s a pozícií: X: %2.2f Y: %2.2f Z: %2.2f"
+
+#. STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR
+msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR"
+msgid "Player %s was spawned at the base near %s"
+msgstr "%s bol/a presunutý/á do základne ku %s"
 
 #. STRINGS.PEARL.LOGS.STAFF_CALLED
 msgctxt "STRINGS.PEARL.LOGS.STAFF_CALLED"
@@ -2206,7 +2211,7 @@ msgstr "Zobraziť Herný Profil"
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.REBOOT.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.REBOOT.DESC"
 msgid "Turn off and on the server."
-msgstr "Vypne server."
+msgstr "Vypne a zapne server."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.RELOAD.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.RELOAD.DESC"
@@ -2423,6 +2428,41 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.PRETTYNAME"
 msgid "Spawn Entity"
 msgstr "Vytvoriť Entitu"
 
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.DESC"
+msgid "Spawns a basic base at the chosen location in the world."
+msgstr "Postavý provizornú základňu na zvolenej lokácii vo svete."
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.ON_MISSING
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.ON_MISSING"
+msgid "Location %s was not found!"
+msgstr "Lokácia %s nebola nájdená!"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.ON_SUCCESS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.ON_SUCCESS"
+msgid "Base was spawned at %s!"
+msgstr "Základňa bola postavená pri %s!"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.OASIS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.OASIS"
+msgid "Oasis"
+msgstr "Oáza"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.PINGKING
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.PINGKING"
+msgid "Ping King"
+msgstr "Prasačí Kráľ"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.PORTAL
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.PORTAL"
+msgid "Florid Postern"
+msgstr "Portál"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.PRETTYNAME"
+msgid "Spawn Base"
+msgstr "Postaviť Základňu"
+
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.STATS.DESC"
 msgid "Shows your current statistics and place on the leaderboard."
@@ -2483,6 +2523,26 @@ msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TAKE.PRETTYNAME"
 msgid "Take Item"
 msgstr "Odobrať Item"
 
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.BAD_TARGET
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.BAD_TARGET"
+msgid "Please provide either the target entity or the target coordinates."
+msgstr "Zadajte buď odkaz cieľ alebo jeho súradnice."
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.DESC
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.DESC"
+msgid "Teleports the specified player to the specified location or entity."
+msgstr "Teleportuje zadaného hráča na určené miesto alebo objekt."
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.ON_SUCCESS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.ON_SUCCESS"
+msgid "Player was teleported to X: %s Y: %s Z: %s"
+msgstr "Hráč bol teleportovaný na X: %s Y: %s Z: %s"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.PRETTYNAME
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.PRETTYNAME"
+msgid "Teleport Player"
+msgstr "Teleportovať Hráča"
+
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.UNBAN.DESC"
 msgid "Removes the given player from the blacklist."
@@ -2532,6 +2592,11 @@ msgstr "Zrušiť Prepojenie Účtov"
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.WORLD.DESC"
 msgid "Show information about the current world."
 msgstr "Zobrazí informácie o aktuálnom svete."
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING"
+msgid "If you want to use coordinates, please provide at least the X and Z values! The Y value defaults to the ground Y coordinate."
+msgstr "Ak chcete používať súradnice, zadajte hodnoty pre X a Z!"
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.DB_DISABLED"
@@ -2622,6 +2687,11 @@ msgstr "Pre deň %d nebol nájdený žiaden snapshot."
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_FOUND"
 msgid "Player not found!"
 msgstr "Hráč nebol nájdený!"
+
+#. STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_SPECIFIED_ENOUGH
+msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_SPECIFIED_ENOUGH"
+msgid "There are %s people with the name %s. Please use their ID instead."
+msgstr "Existuje %s hráčov s menom %s. Pre upresnenie použite ID hráča."
 
 #. STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID
 msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PREFAB_INVALID"
@@ -2786,7 +2856,7 @@ msgstr "Pokračovať"
 #. STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.TITLE
 msgctxt "STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.TITLE"
 msgid "The Server is Empty! For now..."
-msgstr "Server je Prázdny! Zatiaľ..."
+msgstr "Server je prázdny! Zatiaľ..."
 
 #. STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.VISIT_DISCORD_BUTTON
 msgctxt "STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.VISIT_DISCORD_BUTTON"
@@ -3938,26 +4008,6 @@ msgctxt "STRINGS.PEARL.SHARDS.SECONDARY"
 msgid "Caves"
 msgstr ""
 
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.BAD_TARGET
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.BAD_TARGET"
-msgid "Please provide either the target entity or the target coordinates."
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.DESC
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.DESC"
-msgid "Teleports the specified player to the specified location or entity."
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.ON_SUCCESS
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.ON_SUCCESS"
-msgid "Player was teleported to X: %s Y: %s Z: %s"
-msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.PRETTYNAME
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.TELEPORT.PRETTYNAME"
-msgid "Teleport Player"
-msgstr ""
-
 #. STRINGS.PEARL.UI.CLIENTERROR_DETAIL
 msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL"
 msgid "The error was reported to the server owner."
@@ -3966,16 +4016,6 @@ msgstr ""
 #. STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF
 msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL_SELF"
 msgid "The error was reported to the server owner.\nWe will make sure to take a look into it!"
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.COORDINATES_MISSING"
-msgid "If you want to use coordinates, please provide at least the X and Z values! The Y value defaults to the ground Y coordinate."
-msgstr ""
-
-#. STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_SPECIFIED_ENOUGH
-msgctxt "STRINGS.PEARL.UI.CMD_ERRORS.PLAYER_NOT_SPECIFIED_ENOUGH"
-msgid "There are %s people with the name %s. Please use their ID instead."
 msgstr ""
 
 #. STRINGS.PEARL.UI.DM_DESIGNATOR

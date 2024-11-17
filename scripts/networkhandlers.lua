@@ -142,9 +142,11 @@ PEARL.AddWorldPostInit(function(world)
 
     -- Called everytime even when banned but with no info.
     world:SafeListenForEvent("ms_clientdisconnected", function(self, data)
+        -- data.expected is not supplied by the game, we use for testing.
         PEARL.debug("ClientOnDisconnected", data.userid, data.expected)
 
         if data and data.userid then
+            print("CONNECTED", PEARL.ServerNetwork:IsClientConnected(data.userid))
             if PEARL.ServerNetwork:IsClientConnected(data.userid) then
                 data.expected = false
             end
@@ -155,6 +157,7 @@ PEARL.AddWorldPostInit(function(world)
     end)
 
     world:SafeListenForEvent("ms_playerdisconnected", function(self, data)
+        -- This seems to be always false...
         PEARL.debug("ms_playerdisconnected", data.player, data.wasExpected)
     end)
 
@@ -187,6 +190,8 @@ PEARL.AddWorldPostInit(function(world)
     ---------------------------
 
     world:ListenForModEvent("clientconnectionclosed", function(self, data)
+        PEARL.debug("clientconnectionclosed", data.userid, data.reason)
+
         if not data and not data.userid then
             return
         end

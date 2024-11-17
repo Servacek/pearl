@@ -71,11 +71,13 @@ SteamAPI.PROFILE_VISIBILITY = {
 
 local function OnQueryCompleted(steamid, index, finishcb)
     local sequence = SteamAPI._query_sequences[steamid]
-    sequence[index] = nil
-    if table.empty(sequence) then
-        SteamAPI._query_sequences[steamid] = nil
-        if type(finishcb) == "function" then
-            finishcb()
+    if  table.empty(sequence) == false and index ~= nil then
+        sequence[index] = nil
+        if table.empty(sequence) == true then
+            SteamAPI._query_sequences[steamid] = nil
+            if type(finishcb) == "function" then
+                finishcb()
+            end
         end
     end
 end

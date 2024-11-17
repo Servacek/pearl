@@ -35,8 +35,6 @@ local clock = walltime
 
 local toarrayornil = toarrayornil
 
-local math_huge = math.huge
-
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
@@ -60,10 +58,10 @@ local NEGINF = -math.huge
 
 -- The number that will be added to wtime every wlimit
 -- By default, we increase wtime every 60 ticks by 1.
--- local wtdelta   = 1 -- in seconds
--- local wlimit    = 60 -- in ticks
+local wtdelta = 1 -- in seconds
+local wlimit  = 60 -- in ticks
 
--- local wtick = 0
+local wtick = 0
 -- These are relative.
 local wtime = 0 -- in seconds for default precision
 
@@ -82,7 +80,7 @@ local started
 -- Used for reversed sorting of the task stack.
 -- Task having ext as nil should be on the end of the stack as well.
 local function task_comp(t1, t2)
-    return (t1 and t1._ext or POSINF) > (t2 and t2._ext or NEGINF)
+    return (t1 and t1.ext or POSINF) > (t2 and t2.ext or NEGINF)
 end
 
 -- WARNING: NEVER DIRECTLY RESORT TASKS WHILE LOOPING!
@@ -145,8 +143,9 @@ local function create_task(time, fn, limit, initialdelay, id, ...)
 
     --- @class Task
     local task = {
-        _time = time,
-        _ext = wtime + (initialdelay or time),
+        _time = time / wtdelta,
+        --- @type number The relative execution time of the task.
+        ext = wtime + (initialdelay or time) / wtdelta,
         _fn = fn,
         _limit = limit,
         --- @type boolean Whether the task id running or not.
@@ -324,7 +323,80 @@ local function OnTaskFailed(task, err)
 end
 
 
-local function ProcessTasks()
+--- This implementation should also account for tasks that took a long time,
+--- since it calculates the delta between the last call and the current call.
+--- But there are still some issues to be solved (like clock overflow)
+-- local function ProcessTasks()
+--     local task = tasks[ntasks]
+
+--     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
+--     -- are going to be executed. So just return.
+--     if task and task.ext and task.ext > wtime then
+--         return
+--     end
+
+--     print("PROCESS TASKS")
+--     -- Iterate over the table from the back because we are removing the tasks during the
+--     -- iteration.
+--     looping = true
+--     for i = ntasks, 1, -1 do
+--         -- The task should always be a non-nil value.
+--         -- If it's not, it means we have holes in our stack and we should crash I guess!
+--         task = tasks[i]
+
+--         -- If the task is running, task.ext and task.run should never be nil!
+--         -- Also since the limit only decreses on task 'cancel' and 'run' internally,
+--         -- it should be nil or higher than 0 if running is set to true as well.
+--         if task.running and (task._limit == nil or task._limit > 0) then
+--             if task.ext > wtime then
+--                 break -- Other tasks should be even worse...
+--             end
+
+--             --- Sadly xpcall in Lua 5.1 doesn't support
+--             --- supplying arguments to the function being called.
+--             xpcall(
+--                 function() task:run() end,
+--                 function(...) OnTaskFailed(task, ...) end
+--             )
+--         end
+
+--         -- Check the limit after we have called the task since it can change during the call.
+--         if task._limit ~= nil and task._limit <= 0 then
+--             -- Using regular removing instead of just nilling the values
+--             -- just to be safe. This should be the end of the task list 99% of time.
+--             table_remove(tasks, i)
+--             ntasks = ntasks - 1
+--         end
+--     end
+--     looping = false
+
+--     -- Handle deffered sort.
+--     if srt_def == true then
+--         srt_def = false
+
+--         sort_tasks()
+--     end
+
+--     wtime = math.round(wtime)
+-- end
+
+-- TheSim:GetStep() -> Returns the current tick number.
+-- This runs on every game tick.
+--
+-- dt = time_passed - time_now
+-- dt parameter is 0 if the server is paused
+local function OnWallUpdate()
+    if ntasks < 1 then
+        return
+    end
+
+    if wtick < wlimit then
+        wtick = wtick + 1
+    else
+        wtick = 0
+        wtime = wtime + wtdelta
+    end
+
     local task = tasks[ntasks]
 
     -- If the lowest exec_time is still higher than wall time, NONE of the tasks
@@ -344,17 +416,27 @@ local function ProcessTasks()
         -- If the task is running, task.ext and task.run should never be nil!
         -- Also since the limit only decreses on task 'cancel' and 'run' internally,
         -- it should be nil or higher than 0 if running is set to true as well.
-        if task.running and (task._limit == nil or task._limit > 0) then
-            if task._ext > wtime then
+        if task.running then
+            if task.ext > wtime then
                 break -- Other tasks should be even worse...
             end
 
-            --- Sadly xpcall in Lua 5.1 doesn't support
-            --- supplying arguments to the function being called.
-            xpcall(
-                function() task:run() end,
-                function(...) OnTaskFailed(task, ...) end
-            )
+            local success, result = pcall(task.run, task)
+            if success == false then
+                PEARL.error("Failed to run task:", task:tostring())
+                PEARL.HandleError(result)
+
+                if task._errfn then
+                    local _errfn_success, _errfn_result = pcall(task._errfn)
+                    if _errfn_success == false then
+                        PEARL.error("Failed to handle task error:", _errfn_result)
+                    end
+                end
+
+                -- Make sure the task is going to be removed immediately this tick.
+                PEARL.error("Cancelling...")
+                task:cancel()
+            end
         end
 
         -- Check the limit after we have called the task since it can change during the call.
@@ -373,45 +455,6 @@ local function ProcessTasks()
 
         sort_tasks()
     end
-
-    wtime = math.round(wtime)
-end
-
--- TheSim:GetStep() -> Returns the current tick number.
--- This runs on every game tick.
---
--- dt = time_passed - time_now
--- dt parameter is 0 if the server is paused
-local function OnWallUpdate()
-    if ntasks < 1 then
-        return
-    end
-
-    local timenow = clock()
-    -- Only process tasks on subsequent calls, not the first one since we would have no delta.
-    if last_ctime ~= nil then
-        local dt = timenow - last_ctime
-        wtime = wtime + dt + (timenow - wtime - started)
-
-        --local offset = wtime - (os.time()- started)
-        --print("!!!!! WALLSCHEDULER OFFSET", offset, wtime)
-
-        -- local offset = math.round(wtime) - (started - os.time())
-        --wtime = wtime - offset
-
-
-        --print("DELTA:", dt, wtime)
-        -- if wtick < wlimit then
-        --     wtick = wtick + 1
-        -- else
-        --     wtick = 0
-        --     wtime = wtime + dt
-        -- end
-
-        ProcessTasks()
-    end
-
-    last_ctime = timenow
 end
 
 --------------------------------------
@@ -479,8 +522,8 @@ function WallScheduler:StartWallUpdate()
         return PEARL.warn("The wall scheduler has already started!")
     end
 
-    clock() -- It's time to warm up the clock!
-    started = clock()
+    -- clock() -- It's time to warm up the clock!
+    -- started = clock()
 
     if PEARL.CONFIG.DEBUG_MODE then
         PEARL.AddGlobalFunctionPreCall("WallUpdate", function(dt)

@@ -38,7 +38,7 @@ local MOD_AFFLICTER_PATTERN = "../mods/([^/]+)/.+" --"%#?%[string \"../mods/([^/
 local CLIENT_LOG_BACKUP_FILENAME_PATTERN = "client_log_%Y-%m-%d-%H-%M-%S.txt"
 local CLIENT_LOG_BACKUP_PATH = "../../backup/client_log/%s"
 
-local CLIENT_LOG_TIMESTAMP_TOLERANCE = 5
+local CLIENT_LOG_TIMESTAMP_TOLERANCE = 60 -- Seconds
 local MAX_CLIENT_LOG_LENGTH = 10000
 local GRACEFULL_SHUTDOWN_PT = "%[%d%d:%d%d:%d%d%]: Shutting down[\r\n]*$" -- This should be on the last line of the file.
 
@@ -172,7 +172,7 @@ local function GetClientLogForTime(timestamp)
         local logfilename = GetClientLogFileNameForTime(timestamp + modifier)
         local logfilepath = CLIENT_LOG_BACKUP_PATH:format(logfilename)
         local log = PEARL.ClusterPersistence:GetFileContent(logfilepath)
-        if log then
+        if log and not log:blank() then
             return log, logfilename
         end
     end
@@ -231,8 +231,6 @@ end)
 PEARL.AddRawServerRPCHandler("ClientError", function(userid, datastr)
     PEARL.debug("ClientError", userid)
 
-    PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
-
     if not PEARL.DiscordReporter or PEARL.DiscordReporter:IsDisabled() then
         return PEARL.error("Client", userid, "crashed! Reports to discord are either disabled or not initialized!", datastr)
     end
@@ -276,7 +274,7 @@ end
 function PEARL.SendClientLogToThirdParty(log, filename, title)
     PEARL.info("Sending our client logs to a third party service for error identification...")
 
-    PEARL.HTTPClient:POST(PEARL.CONFIG.DISCORD.PROXY.REPORT_URL, function()
+    PEARL.HTTPClient:POST(PEARL.CONFIG.DISCORD.PROXY.URL.."/client_log_report", function()
         logs_sent = true
     end, {
         content = title,

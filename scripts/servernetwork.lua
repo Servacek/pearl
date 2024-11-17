@@ -57,6 +57,9 @@ local conn_filters = {}
 --- @type table<string, table>
 local async_conn_filters = {}
 
+--- @type table<string, table>
+local acknowledgment_data = {}
+
 --- Let the cfd data be persistent.
 --- @type table<string, table<any, any>>
 local conn_data_cache = PEARL.GameInstParams:GetModParam("conn_data_cache") or {}
@@ -116,12 +119,13 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
 
     -- If all the filters have successfully passed, then the connection should be allowed.
     PEARL.debug("Allowing connection for", userid)
-    ServerNetwork:SendUserConnectionAllowedFor(userid, {
+    local data = {
         first_time_joined = PEARL.DB:IsEnabled() and PEARL.DB:FirstTimeJoined(userid) or false,
         new_session_file = not PEARL.ServerNetwork:UserSessionExists(userid),
         last_unexpected_disconnection = PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "last_unexpected_disconnection"),
         last_joined_time = PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "lastjoinedtime")
-    })
+    }
+    ServerNetwork:SendUserConnectionAllowedFor(userid, data)
 end
 
 local function filter_comp(a, b)
@@ -240,7 +244,7 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason
     -- Since we are shutting down, the disconnect event
     -- wont be pushed anymore so do it now.
     if PEARL.IsShuttingDown() then
-        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, reason, reason_title)
+        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, true, reason, reason_title)
     end
 end
 
@@ -269,8 +273,13 @@ end
 function ServerNetwork:SendUserConnectionAllowedFor(userid, data)
     PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid)
 
+    acknowledgment_data[userid] = data
     PEARL.EventProcessor:HandleEvent("clientconnectionallowed", userid, data)
     PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, json.encode(data))
+end
+
+function ServerNetwork:IsClientFirstTimeOnServer(userid)
+    return acknowledgment_data[userid] and acknowledgment_data[userid].first_time_joined == true
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)
@@ -471,7 +480,7 @@ end
 
 --- Whether the client is connected to the current shard.
 function ServerNetwork:IsClientConnected(userid)
-    return userid and connected_clients[userid] == true
+    return connected_clients[userid] == true
 end
 
 function ServerNetwork:IsShardConnected(shardid)
@@ -654,6 +663,8 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
 end
 
 function ServerNetwork:OnClientDisconnectedLocally(userid)
+    PEARL.debug("OnClientDisconnectedLocally")
+
     joining_clients[userid] = nil
     connected_clients[userid] = nil
 end
@@ -745,7 +756,8 @@ end
 ----------------------------------
 
 function ServerNetwork:PrintDebugInfo()
-    table.dump(conn_data_cache)
+    table.dump(connected_clients)
+    table.dump(joining_clients)
 end
 
 ----------------------------------

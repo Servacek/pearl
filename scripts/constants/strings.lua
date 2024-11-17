@@ -448,6 +448,7 @@ end
 
         SPAWN                   = "Spawning %s in shard %s",
         SPAWN_AT                = "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f",
+        SPAWN_AT_BASE_NEAR      = "Player %s was spawned at the base near %s",
 
         PRECIPITATION_START     = "It started %s!",
         PRECIPITATION_STOP      = "It stopped %s.",
@@ -885,6 +886,20 @@ end
                 DESC       = "Spawns any entity by their prefab.",
 
                 ON_SUCCESS = "Spawned %dx %s",
+            },
+
+            SPAWNBASE = {
+                PRETTYNAME = "Spawn Base",
+                DESC       = "Spawns a basic base at the chosen location in the world.",
+
+                ON_SUCCESS = "Base was spawned at %s!",
+                ON_MISSING = "Location %s was not found!",
+
+                OPTIONS = {
+                    PINGKING = "Ping King",
+                    OASIS = "Oasis",
+                    PORTAL = "Florid Postern",
+                }
             },
 
             REMOVEALL = {

@@ -11,7 +11,7 @@
 --]==]====================================================]]
 
 
-local LogLine = PEARL.loadfile("libs/discordapi/models/logline")
+local Message = PEARL.loadfile("libs/discordapi/models/message")
 
 local MARKDOWN = PEARL.loadfile("libs/markdown")
 
@@ -25,13 +25,15 @@ local running, unreachable = false, false
 -- [[ Local Functions ]]
 --------------------------------
 
-local function LogProxyStateMessage(message, has_failed)
-    PEARL.DiscordLogger:LogLine(LogLine(MARKDOWN.header(message, MARKDOWN.HEADER_LEVELS.TINY))
-        :SetIsRaw(true)
-    )
+local function LogProxyStateText(text, has_failed)
+    local icon = has_failed and PEARL.ICONS.X or PEARL.ICONS.INFO
+    PEARL.DiscordLogger:LogMessage(Message(MARKDOWN.header(
+        icon.." "..text, MARKDOWN.HEADER_LEVELS.TINY
+    )))
+
 
     if has_failed then
-        PEARL.DiscordReporter:SendRawReportString(message)
+        PEARL.DiscordReporter:SendRawReportString(text)
     end
 end
 
@@ -42,30 +44,30 @@ end
 local function OnProxyServerStart()
     if not running then
         running = true
-        LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
+        LogProxyStateText(STRINGS.PEARL.LOGS.PROXY_SERVER_STARTED)
     end
 end
 
 local function OnProxyServerStop()
     if running then
         running = false
-        LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
+        LogProxyStateText(STRINGS.PEARL.LOGS.PROXY_SERVER_STOPPED)
     end
 end
 
 local function OnProxyServerRestarted()
-    LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
+    LogProxyStateText(STRINGS.PEARL.LOGS.PROXY_SERVER_RESTARTED)
 end
 
 local function OnProxyServerError()
-    LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR, true)
+    LogProxyStateText(STRINGS.PEARL.LOGS.PROXY_SERVER_ERROR, true)
 end
 
 local function OnProxyServerUnreachable()
     if not unreachable then
         unreachable = true
 
-        LogProxyStateMessage(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH, true)
+        LogProxyStateText(STRINGS.PEARL.LOGS.PROXY_SERVER_UNREACH, true)
     end
 end
 

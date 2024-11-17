@@ -80,6 +80,11 @@ local STATIC_CHOICES = {
         OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.YES_NO.YES, true),
         OptionChoice(STRINGS.PEARL.UI.OPTION_CHOICES.YES_NO.NO, false),
     },
+    BASE_SPAWN_LOCATION = {
+        OptionChoice(STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.PORTAL, "multiplayer_portal"),
+        OptionChoice(STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.OASIS, "oasislake"),
+        OptionChoice(STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.OPTIONS.PINGKING, "statueglommer"),
+    }
 }
 
 ------------------------------------
@@ -903,6 +908,33 @@ AddCommand("deposit", {
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DEPOSIT.SOME:format(
             total_amount, item_name or "UNKNOWN", player.name
         )..postfix)
+    end,
+})
+
+AddCommand("spawnbase", {
+    permission = COMMAND_PERMISSION.ADMIN,
+    options = {{
+        name = "location", type = "string", optional = false,
+        choices = STATIC_CHOICES.BASE_SPAWN_LOCATION,
+    }},
+
+    --- Dependencies
+    SpawnGenericBaseAt = PEARL.loadfile("map/static_layouts/generic_base"),
+
+    --- @param ctx CommandContext
+    --- @param location_prefab string
+    fn = function(ctx, location_prefab)
+        local location = PEARL.FindPrefab(location_prefab, function(ent) return ent.Transform ~= nil end)
+        if not location or not location.Transform then
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.ON_MISSING:format(
+                PEARL.PrefabToName(location_prefab)
+            ))
+        end
+        ctx.command.SpawnGenericBaseAt(location.Transform:GetWorldPosition())
+
+        ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWNBASE.ON_SUCCESS:format(
+            PEARL.GetStandardizedNameFor(location)
+        ))
     end,
 })
 

@@ -32,6 +32,7 @@ local DEFAULT_FIELD_VALUES = {
     totaldays = 0,
     daysalive = 0,
     deathscount = 0,
+    username = "UNKNOWN",
 }
 
 --- @enum PlayerRecord.DEFAULT_FIELD_FALLBACKS
@@ -40,7 +41,10 @@ local DEFAULT_FIELD_FALLBACKS = {
     joinedtime = function(userid) return os.time() end,
     netid = function(userid) return TheNet:GetNetIdForUser(userid) end,
     userid = function(userid) return userid end,
-    username = function(userid) return PEARL.GetUserName(userid) end,
+    username = function(userid)
+        local client = userid and TheNet:GetClientTableForUser(userid)
+        return client and client.name or DEFAULT_FIELD_VALUES.username
+    end
 }
 
 local TOSTRING_PT = "<DatabaseRecord %s>[uptodate=%s,userid=%s]"

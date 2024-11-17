@@ -23,9 +23,9 @@ local DAY_PERCENT_SEGMENT = .1
 
 -- RECORDS ARE CREATED HERE
 local function OnSynchronousFiltersDoneFor(userid, allowed, data)
-    if allowed == false then
-        return -- Do not create new records when we fail
-    end
+    --if allowed == false then
+    --    return -- Do not create new records when we fail
+    --end
 
     -- This is the place where we want to create the record if needed.
     if not PEARL.DB:HasRecordFile(userid) then

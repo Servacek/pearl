@@ -123,7 +123,7 @@ configuration_options = {
             GUILDS = {}
         },
         type = "table<string, any>",
-        public = "DISCORD.PROXY.REPORT_URL",
+        public = "DISCORD.PROXY.URL",
         checks = {
             ID = "string",
             TOKEN = "string",
@@ -302,8 +302,8 @@ configuration_options = {
             ENABLED = true,
             ENSURE_PROFILE = true,
 
-            MAX_REPUTATION = 40,
-            MIN_REPUTATION = -40,
+            MAX_REPUTATION = 0,
+            MIN_REPUTATION = -49,
         },
         type = "boolean",
     },
@@ -495,6 +495,19 @@ configuration_options = {
     --------------------
     -- Other Modules
     --------------------
+
+    {
+        name="BASE_SPAWNER",
+        default = {
+            ENABLED = false,
+            TRUSTED_ONLY = true,
+            BASE_RADIUS = 16,
+            UNIQUE_BASE_STRUCTURE_THRESHOLD = 4,
+            SPAWN_STRUCTURE_PREFAB = "firepit",
+        },
+        type = "table",
+        public = true,
+    },
 
     {
         name = "MAINTENANCE_REBOOT",

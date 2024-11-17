@@ -62,55 +62,52 @@ end
 
 --- @return boolean
 function Persistence:SaveDataToFile(path, data, encode)
-    local data_str
+    PEARL.debug("Persistence:SaveDataToFile", path)
+    local data_str, success = nil, true
     if PEARL.CONFIG.DEBUG_MODE then
         -- In debug mode, we use datadumper with identation for better readability.
         data_str = CustomDataDumper(data, nil, false, 2, true)
     else
-        local success, str = pcall(json.encode, data)
-        if not success or type(str) ~= "string" then
-            return false
-        end
-
-        data_str = str
+        success, data_str = pcall(json.encode, data)
     end
 
-    if encode == true and data_str then
-        data_str = TheSim:ZipAndEncodeString(data_str)
-    end
-
-    if type(data_str) ~= "string" then
+    if not success or type(data_str) ~= "string" then
         return false
     end
 
-    return self:SetFileContent(path, data_str)
+    return self:SetFileContent(path, data_str, encode)
 end
 
 --- @return table?
 function Persistence:LoadDataFromFile(path, ensure)
+    PEARL.debug("Persistence:LoadDataFromFile", path, ensure)
     local str = self:GetFileContent(path, ensure)
     if type(str) ~= "string" then
         return
     end
 
-    -- Decoding and un-encoded string should return nil
+    -- Decoding and un-encoded string should return nil or an empty string!
     local decoded = TheSim:DecodeAndUnzipString(str)
-    str = decoded and #decoded > 0 and decoded or str
+    str = decoded and #decoded > 0 and not decoded:blank() and decoded or str
 
     local success, data = pcall(json.decode, str)
-    if not success or type(data) ~= "table" then
-        local _, result
-        local fn = loadstring(str)
-        if type(fn) == "function" then
-            _, result = RunInEnvironmentSafe(fn, DEFAULT_LOADING_ENV)
-        end
-
-        if type(result) ~= "table" then
-            return
-        end
-
-        data = result
+    if success and type(data) == "table" then
+        return data
     end
+
+    local _, result
+    --- There seems to be some bug in the DataDumper that causes a redundant coma in an empty array.
+    str = str:gsub("{[\n%s]*,[\n%s]*}", "{}")
+    local fn = loadstring(str)
+    if type(fn) == "function" then
+        _, result = RunInEnvironmentSafe(fn, DEFAULT_LOADING_ENV)
+    end
+
+    if type(result) ~= "table" then
+        return
+    end
+
+    data = result
 
     return data
 end

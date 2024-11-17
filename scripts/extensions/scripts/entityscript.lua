@@ -36,10 +36,13 @@ EntityScript.FN_TO_PCALL = {}
 -- [[ Member Functions ]]
 -----------------------------------
 
+--- Whether this entity is a base structure.
+--- WARNING: Doesn't count items that are not built by a player.
+--- @return boolean
 function EntityScript:IsBaseStructure()
     return self:IsValid()
         and self:HasOneOfTags(PEARL.CONSTS.BASE_STRUCTURE_TAGS)
-        and self.components.built and self.components.built.doer
+        and self.components.built ~= nil and self.components.built.doer ~= nil
 end
 
 function EntityScript:IsResourcePlant()

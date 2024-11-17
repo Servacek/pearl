@@ -70,22 +70,25 @@ end
 --- @param encode boolean? Whether to encode the content before saving or not.
 --- @return boolean success, string? errmsg
 function ModPersistence:SetFileContent(path, content, encode)
+    PEARL.debug("ModPersistence:SetFileContent", path, content, encode)
     -- Klei has some weird checks here when opening files with special characters in path.
     -- This throws an error when the path cotains a ':' for example (this makes sense actually).
     local _, wf, errmsg, success
     wf, errmsg = io.open(path, "w")
-    if wf then
-        if encode == true then
-            content = TheSim:ZipAndEncodeString(content)
-        end
-
-        success, errmsg = wf:write(content)
-        wf:close()
-
-        return success and errmsg == nil or false, errmsg
+    if not wf then
+        PEARL.debug("Failed to open file in write mode!", errmsg)
+        return false, errmsg
     end
 
-    return false, errmsg
+    if encode == true then
+        content = TheSim:ZipAndEncodeString(content)
+    end
+
+    success, errmsg = wf:write(content)
+    wf:close()
+
+    PEARL.debug("DATA WRITTEN", success, errmsg)
+    return success and errmsg == nil or false, errmsg
 end
 
 --- @param path string Path to the file for writing.
@@ -121,6 +124,7 @@ end
 --- @param ensure boolean? Whether to make sure the file exists or not.
 --- @return string? result
 function ModPersistence:GetFileContent(path, ensure)
+    PEARL.debug("ModPersistence:GetFileContent", path, ensure)
     if ensure == true and io.ensure(path) then
         return
     end

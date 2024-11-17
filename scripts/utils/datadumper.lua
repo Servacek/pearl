@@ -323,5 +323,12 @@ local function DataDumper(value, varname, fastmode, ident, generic, fancy)
     end
 end
 
+---------------------------------
+-- [[ Return ]]
+---------------------------------
 
-return DataDumper
+--- @return string
+return function(...)
+    --- There seems to be some bug in the DataDumper that causes a redundant coma in an empty array.
+    return DataDumper(...):gsub("{[\n%s]*,[\n%s]*}", "{}")
+end
