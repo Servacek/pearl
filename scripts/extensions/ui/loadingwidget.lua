@@ -244,7 +244,10 @@ PEARL.AddClassPostConstruct("widgets/redux/loadingwidget", function(self, ...)
     self:SetEnabled(true)
 
     -- We should send CFD right from the start so this should be always true in this case.
-    if PEARL.ClientNetwork:HasSentCFD() and PEARL.ClientNetwork:IsWaitingForResponse() then
+    if PEARL.ClientNetwork:HasSentCFD() and PEARL.ClientNetwork:IsWaitingForResponse()
+        and PEARL.ClientLoader:IsLoadDefered()
+        and PEARL.ClientLoader:HasDeferant("verification")
+    then
         self:SetLoadingTip(STRINGS.PEARL.UI.LOADING_VERIFICATION, LT_TYPES.CONTROLS)
 
         -- Hide the loading label since it's not actually true.

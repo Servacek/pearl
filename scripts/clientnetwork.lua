@@ -248,7 +248,8 @@ function ClientNetwork:OnTimeout()
 
     PEARL.warn("Server response timed out!")
     if PEARL.CONFIG.FAIL_SAFE_NETWORK then
-        return PEARL.info("Ignoring because of fail safe network configuration...")
+        PEARL.info("Ignoring because of fail safe network configuration...")
+        return self:OnConnectionAllowed({})
     end
 
     -- Disconnect the client if we didn't get the response from the server in time.

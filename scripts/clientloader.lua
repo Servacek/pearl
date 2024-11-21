@@ -213,6 +213,10 @@ function ClientLoader:IsLoadDefered()
     return load_defered == true and IsLoaderOverriden()
 end
 
+function ClientLoader:HasDeferant(name)
+    return deferants[name] ~= nil
+end
+
 ---------------------------------
 -- [[ Post-Inits ]]
 ---------------------------------

@@ -107,7 +107,7 @@ local ServerNetwork = {
 ----------------------------------
 
 local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
-    PEARL.debug("Async filters finished with result", allowed, "reason", reason)
+    PEARL.debug("Filters finished with result", allowed, "reason", reason)
 
     if not ServerNetwork:IsClientConnectedAny(userid) then
         return PEARL.debug("Already disconnected... Deffering filter results...")
@@ -246,6 +246,8 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason
     if PEARL.IsShuttingDown() then
         PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, true, reason, reason_title)
     end
+
+    self:OnClientDisconnectedLocally(userid)
 end
 
 -- This is a more forcefull version of SendUserDisconnectFor
@@ -254,7 +256,7 @@ function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_ti
 
     -- If no reason is specified and it's immediate disconnect, keep it silent.
     -- Because we can use the disconnection internally (e. g. server updates)
-    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
+    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason, true)
 
     -- Give a few seconds to the client so he can peacefully disconnect.
     PEARL.WallScheduler:ExecuteInTime(CLOSE_CONNECTION_FINALIZE_AFTER, function()
@@ -363,7 +365,7 @@ function ServerNetwork:RunJoinServerFiltersFor(userid)
         end
 
         if allowed == false then -- Check for explicit false
-            PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason)
+            PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason, true)
 
             return false
         end
@@ -662,6 +664,7 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
     PEARL.EventProcessor:HandleEvent("invalidrpc", rpc_name, userid)
 end
 
+--- Locally means in our system.
 function ServerNetwork:OnClientDisconnectedLocally(userid)
     PEARL.debug("OnClientDisconnectedLocally")
 
