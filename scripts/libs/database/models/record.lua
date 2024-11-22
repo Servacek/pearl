@@ -23,27 +23,27 @@ local type = type
 -- [[ Constants ]]
 ------------------------------------------
 
+--- By default each value is nil.
+--- @enum PlayerRecord.STATIC_DEFAULTS
+--- @type table<string, number|boolean|string|table>
+local STATIC_DEFAULTS = {
+    totaldays   = 0,
+    daysalive   = 0,
+    deathscount = 0,
+}
+
 --- In case the value is function (functions cannot be JSON serialized) the function
 --- is called and it's return value is used as the default value instead.
 --- This allows for dynamic default values.
---- @enum PlayerRecord.DEFAULT_FIELD_VALUES
---- @type table<string, number|boolean|string|table>
-local DEFAULT_FIELD_VALUES = {
-    totaldays = 0,
-    daysalive = 0,
-    deathscount = 0,
-    username = "UNKNOWN",
-}
-
---- @enum PlayerRecord.DEFAULT_FIELD_FALLBACKS
+--- @enum PlayerRecord.DYNAMIC_DEFAULTS
 --- @type table<string, fun(userid: string): number|boolean|string|table>
-local DEFAULT_FIELD_FALLBACKS = {
+local DYNAMIC_DEFAULTS = {
     joinedtime = function(userid) return os.time() end,
     netid = function(userid) return TheNet:GetNetIdForUser(userid) end,
     userid = function(userid) return userid end,
     username = function(userid)
         local client = userid and TheNet:GetClientTableForUser(userid)
-        return client and client.name or DEFAULT_FIELD_VALUES.username
+        return client and client.name or STATIC_DEFAULTS.username
     end
 }
 
@@ -58,8 +58,6 @@ local DAY_IN_SECONDS = 24 * 60 * 60
 --- @class PlayerRecord
 --- @field _data table
 local PlayerRecord = Class(function(self, userid, data)
-    --PEARL.debug("PlayerRecord", userid)
-
     self:Init(userid, data)
 end)
 
@@ -110,10 +108,11 @@ function PlayerRecord:__index(field)
     end
 
     local value = self._data[field]
-    if value ~= nil then
+    if value ~= nil and value ~= STATIC_DEFAULTS[field] then
         return value
     end
 
+    --- Defaults are also dynamic, so run this in case something could change.
     local default = PlayerRecord.GetDefaultForField(field, self._data.userid)
     if default ~= nil then
         -- Make sure we save the defaults as well, since it may not be available the next time.
@@ -134,15 +133,15 @@ end
 -- [[ Static Fields ]]
 ------------------------------------------
 
-PlayerRecord.DEFAULT_FIELD_VALUES = DEFAULT_FIELD_VALUES
-PlayerRecord.DEFAULT_FIELD_FALLBACKS = DEFAULT_FIELD_FALLBACKS
+PlayerRecord.STATIC_DEFAULTS = STATIC_DEFAULTS
+PlayerRecord.DYNAMIC_DEFAULTS = DYNAMIC_DEFAULTS
 
-PlayerRecord.TEMPLATE = DEFAULT_FIELD_VALUES
+PlayerRecord.TEMPLATE = STATIC_DEFAULTS
 
 --- @param userid string
 --- @return PlayerRecord
 function PlayerRecord.New(userid)
-    local data = deepcopy(DEFAULT_FIELD_VALUES)
+    local data = deepcopy(STATIC_DEFAULTS)
     data.joinedtime = os.time()
 
     local record = PlayerRecord(userid, data)
@@ -153,18 +152,19 @@ end
 
 --- @param defaults table<string, any>
 function PlayerRecord.AddFieldDefaults(defaults)
-    table.update(DEFAULT_FIELD_VALUES, defaults)
+    table.update(STATIC_DEFAULTS, defaults)
 end
 
 --- @param field Reputation.FIELD
 --- @param userid string? The ID of the player this field belongs to (used for dynamic defaults).
 --- @return any
 function PlayerRecord.GetDefaultForField(field, userid)
-    if userid ~= nil and DEFAULT_FIELD_FALLBACKS[field] then
-        return deepcopy(DEFAULT_FIELD_FALLBACKS[field](userid))
+    --- Prioritize dynamic
+    if userid ~= nil and type(DYNAMIC_DEFAULTS[field]) == "function" then
+        return deepcopy(DYNAMIC_DEFAULTS[field](userid))
     end
 
-    return deepcopy(DEFAULT_FIELD_VALUES[field])
+    return deepcopy(STATIC_DEFAULTS[field])
 end
 
 ------------------------------------------
@@ -176,6 +176,8 @@ function PlayerRecord:GetData()
     return self._data
 end
 
+--- Whether this record is being actively written, that means the player
+--- is connected to the server.
 --- @return boolean
 function PlayerRecord:IsActive()
     -- This should actually check if the last shardid is the current shardid,
@@ -183,6 +185,7 @@ function PlayerRecord:IsActive()
     return PEARL.ServerNetwork:IsClientConnected(self._data.userid)
 end
 
+--- Whether the record is writeable on the current shard.
 --- @return boolean
 function PlayerRecord:IsWriteable()
     return self._data.lastshardid == nil or self._data.lastshardid == PEARL.SHARDID or
@@ -190,6 +193,7 @@ function PlayerRecord:IsWriteable()
         self:IsActive()
 end
 
+--- Whether the user's record was recently created (less than a day).
 --- @return boolean
 function PlayerRecord:IsNovice()
     if not self._data.joinedtime then
@@ -253,7 +257,7 @@ end
 
 function PlayerRecord:Validate(userid)
     --- Backwards compatibility in case we add new default fields.
-    for field, value in pairs(DEFAULT_FIELD_VALUES) do
+    for field, value in pairs(STATIC_DEFAULTS) do
         if self._data[field] == nil then
             if type(value) == "function" then
                 self._data[field] = value(userid)
@@ -263,7 +267,7 @@ function PlayerRecord:Validate(userid)
         end
     end
 
-    for field, value in pairs(DEFAULT_FIELD_FALLBACKS) do
+    for field, value in pairs(DYNAMIC_DEFAULTS) do
         if self._data[field] == nil then
             self._data[field] = value(userid)
         end
