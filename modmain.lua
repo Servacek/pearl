@@ -527,6 +527,23 @@ PEARL.STORAGE.Load()
 -- [[ Mountable Lua ]]
 --------------------------------
 
+if TheNet:GetIsServer() then
+    PEARL.info("Loading mountable extension scripts...")
+
+    local lua_string = PEARL.ClusterPersistence:GetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH)
+    if lua_string then
+        PEARL.CONFIG.MOUNTABLE_LUA = lua_string
+    else
+        if PEARL.ClusterPersistence:FileExists(PEARL.MOUNTABLE_SCRIPTS_PATH) then
+            PEARL.error("Loading mountable extension scripts has failed!")
+        else
+            local INITIAL_STRING = STRINGS.PEARL.FILES.MOUNTABLE_SCRIPTS
+            PEARL.ClusterPersistence:SetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH, "\n"..INITIAL_STRING, false)
+            PEARL.info("File mountable.lua created.")
+        end
+    end
+end
+
 --- Load this right after the configurations, so we can dynamically override them if needed.
 --- This requires logging to be loaded as well.
 if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
