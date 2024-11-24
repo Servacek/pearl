@@ -144,8 +144,8 @@ function ClientNetwork:SendCFDToServer()
     ))
 
     self:SetCFDSent(true)
-    PEARL.ClientLoader:AddDeferant(DEFERANT.VERIFICATION)
-    self:StartTimeout()
+    --PEARL.ClientLoader:AddDeferant(DEFERANT.VERIFICATION)
+    --self:StartTimeout()
 end
 
 function ClientNetwork:GetConnectionInputData()
@@ -157,6 +157,7 @@ function ClientNetwork:GetConnectionInputData()
     }
 end
 
+--- Data received from the server when
 function ClientNetwork:GetConnectionOutputData()
     return _connection_output_data
 end

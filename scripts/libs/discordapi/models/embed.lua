@@ -13,6 +13,8 @@
 --[[
     For the embed object, you can set every field except type (it will be rich regardless of if you try to set it),
     provider, video, and any height, width, or proxy_url values for images.
+
+    NOTE: Author and footer section of an embed is not being parsed for emojis.
 --]]
 
 ------------------------------------------

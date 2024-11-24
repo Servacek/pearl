@@ -375,6 +375,7 @@ configuration_options = {
     {
         name = "CUSTOM_LOADING_TIPS",
         default = false,
+        public = true,
         options = {
             true,
             false,
@@ -834,6 +835,7 @@ configuration_options = {
             CACHE = true,
         },
         type = "table",
+        public = true,
 
         checks = {
             ALLOWED_LOCALES = "table",

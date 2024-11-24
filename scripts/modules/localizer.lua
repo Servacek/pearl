@@ -14,52 +14,59 @@
 -- [[ Setup - Server ]]
 --------------------------------
 
-PEARL.ServerNetwork:AddConnectionFilter(function(userid, cfd)
-    local locale = cfd.locale and string.upper(cfd.locale)
-    if type(locale) ~= "string" or #locale <= 0 then
-        PEARL.warn("Invalid locale!")
-        return PEARL.CONFIG.FAIL_SAFE_NETWORK
+--- @note Rewritten to be a more performant client-side module
+-- PEARL.ServerNetwork:AddConnectionFilter(function(userid, cfd)
+--     local locale = cfd.locale and string.upper(cfd.locale)
+--     if type(locale) ~= "string" or #locale <= 0 then
+--         PEARL.warn("Invalid locale!")
+--         return PEARL.CONFIG.FAIL_SAFE_NETWORK
+--     end
+
+--     PEARL.info("Client", userid, "localized as", cfd.locale)
+
+--     -- If the player was already loaded we do not care about localization.
+--     -- This happens for example during migration.
+--     if (
+--         (PEARL.CONFIG.LOCALIZER.CACHE and PEARL.ServerNetwork:IsLocaleAllowed(
+--             PEARL.DB:GetField(userid, "allowedlocale")
+--         )) or
+--         PEARL.AllowList:Contains(userid) or
+--         PEARL.WhiteList:Contains(userid) or
+--         (PEARL.AdminList:Contains(userid) and not PEARL.CONFIG.DEBUG_MODE)
+--     ) then
+--         PEARL.debug("Client allowed.")
+--         return true -- Allow the connection
+--     end
+
+--     -- Check only if the locale is allowed explicitly
+--     -- So by default everything is prohibited
+--     -- Everything else should be checked before sending the localization request
+--     -- Cache only successfull localizations.
+--     if PEARL.ServerNetwork:IsLocaleAllowed(locale) then
+--         PEARL.info("Locale allowed.")
+
+--         if PEARL.CONFIG.LOCALIZER.CACHE then
+--             PEARL.info("Caching localized userid...")
+--             -- Save the allowed locale in case our locale policy changes in the future.
+--             PEARL.DB:SetField(userid, "allowedlocale", locale)
+--         end
+
+--         return true -- Allow the connection
+--     end
+
+--     PEARL.info("Locale prohibited.")
+--     -- Do not allow further loading
+--     return false, "ID_DST_LOCALE_BLOCKED"
+-- end)
+
+--- Wait for FE so we can display the popup
+PEARL.AddFrontEndPostInit(function()
+    local locale = TheNet:GetCountryCode()
+    local allowed = PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES[locale] == true or
+        table.contains(PEARL.CONFIG.LOCALIZER.ALLOWED_LOCALES, locale)
+
+    if not allowed then
+        PEARL.ClientNetwork:ForceDisconnectWithReason(
+            "ID_DST_LOCALE_BLOCKED", false, false)
     end
-
-    PEARL.info("Client", userid, "localized as", cfd.locale)
-    local lastlocale = PEARL.DB:GetField(userid, "lastlocale")
-    PEARL.DB:SafeSetField(userid, "lastlocale", locale)
-    if lastlocale ~= nil and lastlocale ~= locale then
-        -- Maybe push this to discord as well?
-        PEARL.warn("Locale for", userid, "changed from", lastlocale, "to", locale)
-    end
-
-    -- If the player was already loaded we do not care about localization.
-    -- This happens for example during migration.
-    if (
-        (PEARL.CONFIG.LOCALIZER.CACHE and PEARL.ServerNetwork:IsLocaleAllowed(
-            PEARL.DB:GetField(userid, "allowedlocale")
-        )) or
-        PEARL.AllowList:Contains(userid) or
-        PEARL.WhiteList:Contains(userid) or
-        (PEARL.AdminList:Contains(userid) and not PEARL.CONFIG.DEBUG_MODE)
-    ) then
-        PEARL.debug("Client allowed.")
-        return true -- Allow the connection
-    end
-
-    -- Check only if the locale is allowed explicitly
-    -- So by default everything is prohibited
-    -- Everything else should be checked before sending the localization request
-    -- Cache only successfull localizations.
-    if PEARL.ServerNetwork:IsLocaleAllowed(locale) then
-        PEARL.info("Locale allowed.")
-
-        if PEARL.CONFIG.LOCALIZER.CACHE then
-            PEARL.info("Caching localized userid...")
-            -- Save the allowed locale in case our locale policy changes in the future.
-            PEARL.DB:SetField(userid, "allowedlocale", locale)
-        end
-
-        return true -- Allow the connection
-    end
-
-    PEARL.info("Locale prohibited.")
-    -- Do not allow further loading
-    return false, "ID_DST_LOCALE_BLOCKED"
 end)

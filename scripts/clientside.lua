@@ -343,6 +343,7 @@ ModuleManager:AddModule(
 )
 
 if PEARL.CONFIG.DEBUG_MODE or not TheNet:GetIsServerAdmin() then
+    ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
     ModuleManager:AddModule(
         "afk", (PEARL.CONFIG.AFK_TIME > 0) or (PEARL.CONFIG.AFK_TIME_KICK > 0)
     )

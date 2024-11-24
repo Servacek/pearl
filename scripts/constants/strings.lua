@@ -437,6 +437,7 @@ end
         MIGRATING               = "%s is migrating to shard %s.",
         WARNED                  = "%s was warned for griefing!",
         PLAYER_RENAMED          = "%s was renamed from %s to %s.",
+        CLIENT_LOCALE_CHANGED   = "Locale for %s changed from %s to %s",
         STAFF_CALLED            = "Admins and server moderators were notified.",
         SKIN_RECEIVED           = "%s received %s!",
         QUAKE_START             = "An earthquake has started!",

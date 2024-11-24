@@ -38,7 +38,7 @@ local MOD_AFFLICTER_PATTERN = "../mods/([^/]+)/.+" --"%#?%[string \"../mods/([^/
 local CLIENT_LOG_BACKUP_FILENAME_PATTERN = "client_log_%Y-%m-%d-%H-%M-%S.txt"
 local CLIENT_LOG_BACKUP_PATH = "../../backup/client_log/%s"
 
-local CLIENT_LOG_TIMESTAMP_TOLERANCE = 60 -- Seconds
+local CLIENT_LOG_TIMESTAMP_TOLERANCE = 300 -- Seconds (5 minutes)
 local MAX_CLIENT_LOG_LENGTH = 10000
 local GRACEFULL_SHUTDOWN_PT = "%[%d%d:%d%d:%d%d%]: Shutting down[\r\n]*$" -- This should be on the last line of the file.
 
@@ -77,7 +77,7 @@ local function OnClientError(traceback)
     end
 
     -- No "real" disconnecting here, we have the "Reload Button"!
-    if PEARL.CONFIG.DEBUG_MODE then
+    if PEARL.CONFIG.DEBUG_MODE and TheFrontEnd ~= nil then
         SetServerPaused(true) -- At least pause the game when viewing the error screen.
     -- elseif PEARL.ClientNetwork then
     --     PEARL.info("Disconnecting the user from the server...")
@@ -168,6 +168,8 @@ local function GetClientLogFileNameForTime(timestamp)
     return os.date(CLIENT_LOG_BACKUP_FILENAME_PATTERN, timestamp)
 end
 
+--- @TODO: Make the CLIENT_LOG_TIMESTAMP_TOLERANCE much larger and search for the files
+--- asynchronously.
 local function GetClientLogForTime(timestamp)
     --- @Note: Currently this method won't work because the backup folder has
     ---        logs containing their backup time instead of their last modification time.

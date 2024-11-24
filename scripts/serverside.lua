@@ -265,6 +265,7 @@ do
         else
             local INITIAL_STRING = STRINGS.PEARL.FILES.MOUNTABLE_SCRIPTS
             PEARL.ClusterPersistence:SetFileContent(PEARL.MOUNTABLE_SCRIPTS_PATH, "\n"..INITIAL_STRING, false)
+            PEARL.info("File mountable.lua created.")
         end
     end
 end
@@ -700,7 +701,7 @@ ModuleManager:AddModule("timeupdates", true)
 ModuleManager:AddModule("rephandlers", true)
 
 --- Configurable modules
-ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
+--- ModuleManager:AddModule("localizer", PEARL.CONFIG.LOCALIZER.ENABLED)
 ModuleManager:AddModule("altdentifier", PEARL.CONFIG.BAN_ALT_ACCOUNTS)
 -- This needs some refactoring and will probably be migrated to the clients.
 --ModuleManager:AddModule("pingreporter", PEARL.CONFIG.REPORT_BAD_SERVER_LATENCY or PEARL.CONFIG.REPORT_BAD_CLIENT_LATENCY)

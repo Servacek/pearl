@@ -212,6 +212,7 @@ function PEARL.GetShardFancyName()
     return PEARL.CONFIG.SHARD_NAME or PEARL.GetShardFancyNameByID(PEARL.SHARDID)
 end
 
+--- @TODO: Seems to not be working properly for some reason.
 function PEARL.GetSeasonFancyName()
     local state = TheWorld and TheWorld.state
     local season_prefab = state and state.season

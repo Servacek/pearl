@@ -159,6 +159,7 @@ local setmetatable, rawget = GLOBAL.setmetatable, GLOBAL.rawget
 require("events")
 require("modindex")
 require("mainfunctions")
+require("stacktrace")
 
 --------------------------------
 -- [[ Local Constants ]]
@@ -521,6 +522,23 @@ PEARL.info("Loading persistent data...")
 
 PEARL.STORAGE = PEARL.loadfile("persistentstorage")
 PEARL.STORAGE.Load()
+
+--------------------------------
+-- [[ Mountable Lua ]]
+--------------------------------
+
+--- Load this right after the configurations, so we can dynamically override them if needed.
+--- This requires logging to be loaded as well.
+if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
+    PEARL.info("Mounting extension scripts...")
+
+    local fn, error_message = loadstring(PEARL.CONFIG.MOUNTABLE_LUA)
+    if type(fn) == "function" and RunInEnvironmentSafe(fn, PEARL.ENV) then
+        PEARL.info("Success! Scripts were mounted.")
+    else
+        PEARL.error("Invalid mountable lua scripts provided! Error:", error_message)
+    end
+end
 
 -- No need to load any further when in the world generation thread.
 --*************************************************************************************************--
@@ -903,24 +921,11 @@ end
 -- ModuleManager:SetLoader(PEARL.loadfile)
 
 --------------------------------
--- [[ Mountable Lua ]]
---------------------------------
-
-if type(PEARL.CONFIG.MOUNTABLE_LUA) == "string" then
-    PEARL.info("Mounting extension scripts...")
-
-    local fn, error_message = loadstring(PEARL.CONFIG.MOUNTABLE_LUA)
-    if type(fn) == "function" and RunInEnvironmentSafe(fn, PEARL.ENV) then
-        PEARL.info("Success! Scripts were mounted.")
-    else
-        PEARL.error("Invalid mountable lua scripts provided! Error:", error_message)
-    end
-end
-
---------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------
 
 PEARL.info("Mod loaded successfully on version:", PEARL.FANCY_VERSION,
     PEARL.IS_BACKUP == true and "[Backup]" or ""
 )
+
+PEARL.EventProcessor:HandleEvent("modloaded")

@@ -128,6 +128,21 @@ function AccountBindings:Get(bindtype)
     return self._bindings[bindtype]
 end
 
+--- @param bindtype string|table<string, number>
+--- @return table<string>? userids
+function AccountBindings:GetUserIDs(bindtype)
+    local userids = {}
+    for _, userid in pairs(self._bindings[bindtype]) do
+        if type(userid) == "table" then
+            table.join(userids, userid)
+        else
+            userids[#userids+1] = userid
+        end
+    end
+
+    return userids
+end
+
 --- Checks whether userid is bound with value in any way.
 --- @return boolean
 function AccountBindings:Exists(userid, value, bindtype)

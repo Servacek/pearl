@@ -120,7 +120,7 @@ end)
 
 -- Only download the new version on first complete instance (number 2)
 local request
-if PEARL.INIT_FULL then
+if PEARL.INITIAL_FULL_LAUNCH then
     request = FetchBanlistFromURL(BANLIST_URL)
 end
 

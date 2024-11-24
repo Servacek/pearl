@@ -139,12 +139,14 @@ local function OnClientUnbanned(userid)
     end
 end
 
---- @type table<string, Task>
+--- @type table<string, number>
 local buffer = {}
 local buffer_task
 local function OnBufferDone()
-    buffer_task:cancel()
-    buffer_task = nil
+    if buffer_task then
+        buffer_task:cancel()
+        buffer_task = nil
+    end
 
     -- Clear the buffer and handle the changes for the players inside it.
     for userid, old_rep in pairs(buffer) do
@@ -175,6 +177,17 @@ local function OnReputationChanged(userid, old, new)
     if not buffer_task then
         buffer_task = PEARL.WallScheduler:ExecuteInTime(REP_BUFFER_TIME, OnBufferDone)
     end
+end
+
+function PEARL.RecalculateLeaderboards()
+    -- Buffer all the players and add them to the leaderboard.
+    for _, userid in pairs(PEARL.DB:GetAllRecordedUserIDs()) do
+        if not buffer[userid] then
+            buffer[userid] = PEARL.Reputation:GetOf(userid)
+        end
+    end
+
+    OnBufferDone()
 end
 
 local function OnNewDay()
@@ -258,29 +271,28 @@ end)
 -- [[ Init ]]
 --------------------------------
 
---- @TODO: Make sure everyone from the DB is on the leaderboard (in case it was disabled for while)
-local verified = false
 local function OnInit()
     if PEARL.LeaderboardService:IsAnySessionActive() then
-        --if PEARL.LeaderboardService:NeedsToUpdateUI() then
+        if PEARL.LeaderboardService:NeedsToUpdateUI() then
+            -- This will handle the missing message on it's own.
             PEARL.LeaderboardService:UpdateUI()
-        --elseif not verified then
-        --     local request = PEARL.DiscordLeaderBoarder:VerifyUpdatingMessageExists()
-        --     if request then
-        --         request:AddStatusCodeHandle(404, function()
-        --             PEARL.LeaderboardService:StartNewSession()
-        --         end)
-
-        --         verified = true
-        --     end
-        -- end
+        else
+            local request = PEARL.DiscordLeaderBoarder:VerifyUpdatingMessageExists()
+            if request then
+                request:AddStatusCodeHandle(404, function()
+                    PEARL.info("Updating message not found! Creating a new one...")
+                    PEARL.LeaderboardService:StartNewSession()
+                end)
+            end
+        end
 
         return
     end
 
+    PEARL.info("No leaderboarding session is active, creating a new one...")
+    PEARL.RecalculateLeaderboards()
     PEARL.LeaderboardService:StartNewSession()
 end
 
-PEARL.AddGamePostInit(OnInit)
-
+--- We need the proxy server in order to properly update leaderboards.
 PEARL.EventProcessor:AddSafeEventHandler("proxy_server_start", OnInit)

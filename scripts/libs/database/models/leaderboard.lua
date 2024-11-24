@@ -244,6 +244,8 @@ function Leaderboard:AddPlayer(userid)
 end
 
 function Leaderboard:UpdatePlayerPosition(position)
+    PEARL.debug("Leaderboard:UpdatePlayerPosition", position)
+
     local new_position = table.reorder(self.data.players, position, self.sortfn)
     if new_position ~= position then -- If the position has actually changed.
         self:OnChange(self:IsPositionVisible(position) or self:IsPositionVisible(new_position))
@@ -386,6 +388,8 @@ function Leaderboard:OnSave()
 end
 
 function Leaderboard:OnReputationChanged(userid)
+    PEARL.debug("Leaderboard:OnReputationChanged", userid)
+
     local position = self:GetPositionFor(userid)
     if position then
         self:UpdatePlayerPosition(position)

@@ -192,21 +192,10 @@ PEARL.AddWorldPostInit(function(world)
             was_paused_by = not tostring(data.source):empty() and data.source or nil
         end
     end)
+end)
 
-    ---------------------------
-    -- Mod Events
-    ---------------------------
-
-    world:ListenForModEvent("clientconnectionclosed", function(self, data)
-        PEARL.debug("clientconnectionclosed", data.userid, data.reason)
-
-        if not data and not data.userid then
-            return
-        end
-
-        PEARL.ServerNetwork:OnClientDisconnectedLocally(data.userid)
-        PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
-    end)
+PEARL.EventProcessor:AddSafeEventHandler("clientconnectionclosed", function(userid, reason)
+    PEARL.ServerNetwork:OnClientDisconnectedLocally(userid)
 end)
 
 --- @NOTE when connecting directly, make sure the server is fully loaded before clients can connect.

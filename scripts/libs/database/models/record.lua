@@ -30,6 +30,7 @@ local STATIC_DEFAULTS = {
     totaldays   = 0,
     daysalive   = 0,
     deathscount = 0,
+    username    = "USERNAME",
 }
 
 --- In case the value is function (functions cannot be JSON serialized) the function

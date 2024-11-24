@@ -81,8 +81,13 @@ PEARL.UpdateEmojiFallbacks = DoUpdate
 -- [[ Setup ]]
 --------------------------------------
 
-if PEARL.INIT_FULL and PEARL.CONFIG.EMOJI_SERVER.AUTOUPDATE and TheShard:IsMaster() then
+if PEARL.INITIAL_FULL_LAUNCH and PEARL.CONFIG.EMOJI_SERVER.AUTOUPDATE and TheShard:IsMaster() then
     DoUpdate()
 else
     LoadEmojiList(EMOJI_LIST)
+
+    -- When loading fails, try to download the newest version from the server.
+    if not is_loaded and TheShard:IsMaster() then
+        DoUpdate()
+    end
 end

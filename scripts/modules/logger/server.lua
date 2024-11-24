@@ -169,10 +169,18 @@ local function OnErrorCatched(traceback)
 end
 
 local function OnDatabaseFieldChanged(userid, field, new_value, old_value)
-    if field == "username" then
+    if field == "username" and old_value ~= nil then
         PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.PLAYER_RENAMED:format(
             MARKDOWN.codeline(userid), MARKDOWN.codeline(old_value), MARKDOWN.codeline(new_value)
         ), PEARL.ICONS.TAG)
+    end
+
+    if field == "lastlocale" and old_value ~= nil then
+        PEARL.DiscordReporter:SendRawReportMessage(
+            STRINGS.PEARL.LOGS.LOCALE_CHANGED:format(
+                MARKDOWN.codeline(userid), MARKDOWN.codeline(old_value), MARKDOWN.codeline(new_value)
+            )
+        )
     end
 end
 
@@ -207,7 +215,8 @@ end)
 --- This is actually the point where most of the mod's stuff is loaded.
 --- (translations, rpcs, ...)
 PEARL.AddFrontEndPostInit(function(fe)
-    if TheShard:IsMaster() and not PEARL.INIT then
+    -- Run only on the first launch
+    if TheShard:IsMaster() and not PEARL.SUBSEQUENT_LAUNCH then
         OnSystemPostInit()
     end
 end)

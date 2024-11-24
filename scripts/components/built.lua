@@ -35,7 +35,7 @@ function Built:SetBuilder(builder)
 end
 
 function Built:SetBuilderData(userid, name)
-    PEARL.debug("Built:SetBuilderData", userid, name)
+    --PEARL.debug("Built:SetBuilderData", userid, name)
 
     if not self.doer then
         self.doer = Doer()
@@ -66,7 +66,7 @@ end
 --------------------------------
 
 function Built:OnSave()
-    PEARL.debug("Built:OnSave", self.doer)
+    --PEARL.debug("Built:OnSave", self.doer)
 
     return {
         doer = self.doer:GetData(),
@@ -78,7 +78,7 @@ function Built:OnSave()
 end
 
 function Built:OnLoad(data)
-    PEARL.debug("Built:OnLoad", self.doer)
+    --PEARL.debug("Built:OnLoad", self.doer)
 
     self.doer = data.doer and Doer(data.doer) or nil
     self.ingredients = data.ingredients

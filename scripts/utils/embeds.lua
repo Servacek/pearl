@@ -660,6 +660,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         :AddField(P_STRINGS.FD_NAMES.PLAYED, MARKDOWN.codeline(STRINGS.PEARL.PROPORTION:format(
             daysalive, totaldays
         )), true)
+        :AddField(P_STRINGS.FD_NAMES.JOINED, MARKDOWN.timestamp(dbr.joinedtime or ""), true)
         :AddField(P_STRINGS.FD_NAMES.DEATHS, MARKDOWN.codeline(deathscount), true)
         :AddField(P_STRINGS.FD_NAMES.REP, repstring, true)
         :AddField(P_STRINGS.FD_NAMES.SEEN, last_seen_time, true)

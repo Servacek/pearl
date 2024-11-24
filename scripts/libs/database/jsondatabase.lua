@@ -96,7 +96,18 @@ end
 --- All userids saved in the DB
 --- @return table<string>
 function JSONDB:GetAllRecordedUserIDs()
-    return table.values(PEARL.AccountBindings:Get(PEARL.AccountBindings.DEFAULT_BINDING_TYPE) or {})
+    local userids, lookup = {}, {}
+    for _, binding_type in pairs(PEARL.AccountBindings.BINDING_TYPE) do
+        local binding_userids = PEARL.AccountBindings:GetUserIDs(binding_type)
+        for _, userid in pairs(binding_userids) do
+            if not lookup[userid] then
+                lookup[userid] = true
+                userids[#userids + 1] = userid
+            end
+        end
+    end
+
+    return userids
 end
 
 --- @param userid string

@@ -122,6 +122,10 @@ local function OnClientConnectionAllowed(userid, data)
     SaveSessionInfoFor(userid)
 end
 
+local function OnClientDataReceived(userid, data)
+    PEARL.DB:SafeSetField(userid, "lastlocale", data.locale)
+end
+
 local function OnRecordLoadedFor(userid, record)
     local lastban = record and record:GetLastBan()
     local banned = PEARL.BlackList:Contains(userid)
@@ -319,6 +323,7 @@ PEARL.EventProcessor:AddSafeEventHandler("clientbanned", OnClientBanned)
 PEARL.EventProcessor:AddSafeEventHandler("clientunbanned", OnClientUnbanned)
 
 PEARL.EventProcessor:AddSafeEventHandler("clientprofiledata", OnClientProfileData)
+PEARL.EventProcessor:AddSafeEventHandler("clientdatareceived", OnClientDataReceived)
 
 PEARL.EventProcessor:AddSafeEventHandler("db_savingrecord", OnSavingRecordFor)
 
