@@ -134,7 +134,9 @@ function AccountBindings:GetUserIDs(bindtype)
     local userids = {}
     for _, userid in pairs(self._bindings[bindtype]) do
         if type(userid) == "table" then
-            table.join(userids, userid)
+            for id, _ in pairs(userid) do
+                userids[#userids+1] = id
+            end
         else
             userids[#userids+1] = userid
         end

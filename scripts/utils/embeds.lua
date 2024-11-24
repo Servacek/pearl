@@ -226,10 +226,12 @@ function EMBEDS.Leaderboard(leaderboard, monthly)
             --local reputation = PEARL.Reputation:GetOf(data.dayleader)
             --local percent = math.round(gains / math.max(reputation - gains, 1), 4) * 100
 
-            embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.DAY_PLAYER, string.format("%s %s +%s",
-                PEARL.ICONS.ARROW_UP, MARKDOWN.hlink(
-                MARKDOWN.codeline(tostring(username)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
-            ), daygains))
+            if daygains > 0 then
+                embed:AddField(STRINGS.PEARL.EMBEDS.LEADERBOARD.FD_NAMES.DAY_PLAYER, string.format("%s %s +%s",
+                    PEARL.ICONS.ARROW_UP, MARKDOWN.hlink(
+                    MARKDOWN.codeline(tostring(username)), netid and PEARL.CONSTS.STEAM_ACCOUNT_URL:format(netid) or nil
+                ), daygains))
+            end
         end
     end
 

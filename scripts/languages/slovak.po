@@ -803,6 +803,11 @@ msgctxt "STRINGS.PEARL.LOGS.CAVES_STATE_UPDATE"
 msgid "Secondary shard Caves has been %s."
 msgstr "Sekundárny shard Caves bol %s."
 
+#. STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED
+msgctxt "STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED"
+msgid "Locale for %s changed from %s to %s"
+msgstr "Národnosť hráča %s sa zmenila z %s na %s"
+
 #. STRINGS.PEARL.LOGS.CLIENT_UNBANNED
 msgctxt "STRINGS.PEARL.LOGS.CLIENT_UNBANNED"
 msgid "%s was removed from the banlist!"
@@ -3953,11 +3958,6 @@ msgctxt "STRINGS.PEARL.HM_TIME_FORMAT"
 msgid "%dh %dm"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED
-msgctxt "STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED"
-msgid "Locale for %s changed from %s to %s"
-msgstr "Národnosť hráča %s sa zmenila z %s na %s"
-
 #. STRINGS.PEARL.LOGS.DEPTH_WORMS
 msgctxt "STRINGS.PEARL.LOGS.DEPTH_WORMS"
 msgid "Depth Worms"
@@ -4082,3 +4082,4 @@ msgstr ""
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL"
 msgid "Proxy Server:"
 msgstr ""
+
