@@ -69,6 +69,11 @@ local function LoadBanlistFromString(str)
 end
 
 local function LoadBanlistFromFile(filename)
+    if not io.exists(filename) then
+        -- This can happen when we fail to download the banlist.
+        return PEARL.error("Global banlist file", filename, "does not exist!")
+    end
+
     PEARL.info("Loading banned userids from local file", filename.."...")
 
     for line in io.lines(filename) do
