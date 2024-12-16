@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "3.0.69"
+version = "3.0.68b"
 branch = "release"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
@@ -422,6 +422,17 @@ configuration_options = {
     {
         name = "HIDE_SERVER_ONLY_MODS",
         default = false,
+        options = {
+            true,
+            false,
+        },
+        type = "boolean",
+    },
+
+
+    {
+        name = "CONFIG_VERIFICATION",
+        default = true,
         options = {
             true,
             false,

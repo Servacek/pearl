@@ -156,6 +156,10 @@ function ModConfig:GetAllConfigDataForMod(modname)
 end
 
 function ModConfig:VerifyConfig(optname, options)
+    if PEARL.CONFIG and PEARL.CONFIG.CONFIG_VERIFICATION == false or PEARL.IS_BACKUP then
+        return -- No verification
+    end
+
     options = options or PEARL.MODINFO.configuration_options
     local option = GetConfigOptionByName(options, optname)
     if type(option) ~= "table" or (option.implicit == true and TheNet:IsDedicated()) then
