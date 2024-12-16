@@ -262,7 +262,7 @@ function ModConfig:ApplyConfig(name, value, _loaded)
         PEARL.ModConfig:VerifyConfig(name)
     end
 
-    if type(value) == "table" then
+    if type(value) == "table" and type(_loaded[name]) == "table" then
         table.update(_loaded[name], value)
         -- for sub_name, sub_value in pairs(value) do
         --     self:ApplyConfig(sub_name, sub_value, _loaded[name])
