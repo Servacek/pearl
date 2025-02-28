@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="b5">
+    <folder>
+        <file id="0" name="frame_0.png" width="52" height="52"/>
+        <file id="1" name="frame_1.png" width="52" height="52"/>
+        <file id="2" name="frame_2.png" width="52" height="52"/>
+        <file id="3" name="frame_3.png" width="52" height="52"/>
+        <file id="4" name="frame_4.png" width="52" height="52"/>
+        <file id="5" name="frame_5.png" width="52" height="52"/>
+        <file id="6" name="frame_6.png" width="52" height="52"/>
+        <file id="7" name="frame_7.png" width="52" height="52"/>
+        <file id="8" name="frame_8.png" width="52" height="52"/>
+        <file id="9" name="frame_9.png" width="52" height="52"/>
+        <file id="10" name="frame_10.png" width="52" height="52"/>
+        <file id="11" name="frame_11.png" width="52" height="52"/>
+    </folder>
+    <entity name="5770pepecheers">
+        <animation name="default" length="2400">
+            <mainline>
+            <key id="0" time="0"> <object_ref id="0" key="0"/> </key>
+            <key id="1" time="200"> <object_ref id="1" key="1"/> </key>
+            <key id="2" time="400"> <object_ref id="2" key="2"/> </key>
+            <key id="3" time="600"> <object_ref id="3" key="3"/> </key>
+            <key id="4" time="800"> <object_ref id="4" key="4"/> </key>
+            <key id="5" time="1000"> <object_ref id="5" key="5"/> </key>
+            <key id="6" time="1200"> <object_ref id="6" key="6"/> </key>
+            <key id="7" time="1400"> <object_ref id="7" key="7"/> </key>
+            <key id="8" time="1600"> <object_ref id="8" key="8"/> </key>
+            <key id="9" time="1800"> <object_ref id="9" key="9"/> </key>
+            <key id="10" time="2000"> <object_ref id="10" key="10"/> </key>
+            <key id="11" time="2200"> <object_ref id="11" key="11"/> </key>
+            </mainline>
+            <timeline name="default">
+            <key id="0" time="0"> <object id="0" file="0"/> </key>
+            <key id="1" time="200"> <object id="1" file="1"/> </key>
+            <key id="2" time="400"> <object id="2" file="2"/> </key>
+            <key id="3" time="600"> <object id="3" file="3"/> </key>
+            <key id="4" time="800"> <object id="4" file="4"/> </key>
+            <key id="5" time="1000"> <object id="5" file="5"/> </key>
+            <key id="6" time="1200"> <object id="6" file="6"/> </key>
+            <key id="7" time="1400"> <object id="7" file="7"/> </key>
+            <key id="8" time="1600"> <object id="8" file="8"/> </key>
+            <key id="9" time="1800"> <object id="9" file="9"/> </key>
+            <key id="10" time="2000"> <object id="10" file="10"/> </key>
+            <key id="11" time="2200"> <object id="11" file="11"/> </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

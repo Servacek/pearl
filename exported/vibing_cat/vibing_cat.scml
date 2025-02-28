@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="b5">
+    <folder>
+        <file id="0" name="frame_0.png" width="52" height="52"/>
+        <file id="1" name="frame_1.png" width="52" height="52"/>
+        <file id="2" name="frame_2.png" width="52" height="52"/>
+        <file id="3" name="frame_3.png" width="52" height="52"/>
+        <file id="4" name="frame_4.png" width="52" height="52"/>
+        <file id="5" name="frame_5.png" width="52" height="52"/>
+        <file id="6" name="frame_6.png" width="52" height="52"/>
+        <file id="7" name="frame_7.png" width="52" height="52"/>
+        <file id="8" name="frame_8.png" width="52" height="52"/>
+        <file id="9" name="frame_9.png" width="52" height="52"/>
+        <file id="10" name="frame_10.png" width="52" height="52"/>
+        <file id="11" name="frame_11.png" width="52" height="52"/>
+        <file id="12" name="frame_12.png" width="52" height="52"/>
+        <file id="13" name="frame_13.png" width="52" height="52"/>
+        <file id="14" name="frame_14.png" width="52" height="52"/>
+        <file id="15" name="frame_15.png" width="52" height="52"/>
+        <file id="16" name="frame_16.png" width="52" height="52"/>
+        <file id="17" name="frame_17.png" width="52" height="52"/>
+        <file id="18" name="frame_18.png" width="52" height="52"/>
+        <file id="19" name="frame_19.png" width="52" height="52"/>
+        <file id="20" name="frame_20.png" width="52" height="52"/>
+        <file id="21" name="frame_21.png" width="52" height="52"/>
+        <file id="22" name="frame_22.png" width="52" height="52"/>
+        <file id="23" name="frame_23.png" width="52" height="52"/>
+        <file id="24" name="frame_24.png" width="52" height="52"/>
+        <file id="25" name="frame_25.png" width="52" height="52"/>
+        <file id="26" name="frame_26.png" width="52" height="52"/>
+        <file id="27" name="frame_27.png" width="52" height="52"/>
+        <file id="28" name="frame_28.png" width="52" height="52"/>
+        <file id="29" name="frame_29.png" width="52" height="52"/>
+        <file id="30" name="frame_30.png" width="52" height="52"/>
+        <file id="31" name="frame_31.png" width="52" height="52"/>
+        <file id="32" name="frame_32.png" width="52" height="52"/>
+        <file id="33" name="frame_33.png" width="52" height="52"/>
+        <file id="34" name="frame_34.png" width="52" height="52"/>
+        <file id="35" name="frame_35.png" width="52" height="52"/>
+        <file id="36" name="frame_36.png" width="52" height="52"/>
+        <file id="37" name="frame_37.png" width="52" height="52"/>
+        <file id="38" name="frame_38.png" width="52" height="52"/>
+        <file id="39" name="frame_39.png" width="52" height="52"/>
+        <file id="40" name="frame_40.png" width="52" height="52"/>
+        <file id="41" name="frame_41.png" width="52" height="52"/>
+        <file id="42" name="frame_42.png" width="52" height="52"/>
+        <file id="43" name="frame_43.png" width="52" height="52"/>
+        <file id="44" name="frame_44.png" width="52" height="52"/>
+        <file id="45" name="frame_45.png" width="52" height="52"/>
+        <file id="46" name="frame_46.png" width="52" height="52"/>
+        <file id="47" name="frame_47.png" width="52" height="52"/>
+        <file id="48" name="frame_48.png" width="52" height="52"/>
+        <file id="49" name="frame_49.png" width="52" height="52"/>
+        <file id="50" name="frame_50.png" width="52" height="52"/>
+        <file id="51" name="frame_51.png" width="52" height="52"/>
+        <file id="52" name="frame_52.png" width="52" height="52"/>
+        <file id="53" name="frame_53.png" width="52" height="52"/>
+        <file id="54" name="frame_54.png" width="52" height="52"/>
+        <file id="55" name="frame_55.png" width="52" height="52"/>
+        <file id="56" name="frame_56.png" width="52" height="52"/>
+        <file id="57" name="frame_57.png" width="52" height="52"/>
+        <file id="58" name="frame_58.png" width="52" height="52"/>
+        <file id="59" name="frame_59.png" width="52" height="52"/>
+        <file id="60" name="frame_60.png" width="52" height="52"/>
+        <file id="61" name="frame_61.png" width="52" height="52"/>
+        <file id="62" name="frame_62.png" width="52" height="52"/>
+        <file id="63" name="frame_63.png" width="52" height="52"/>
+        <file id="64" name="frame_64.png" width="52" height="52"/>
+        <file id="65" name="frame_65.png" width="52" height="52"/>
+        <file id="66" name="frame_66.png" width="52" height="52"/>
+        <file id="67" name="frame_67.png" width="52" height="52"/>
+        <file id="68" name="frame_68.png" width="52" height="52"/>
+        <file id="69" name="frame_69.png" width="52" height="52"/>
+        <file id="70" name="frame_70.png" width="52" height="52"/>
+        <file id="71" name="frame_71.png" width="52" height="52"/>
+        <file id="72" name="frame_72.png" width="52" height="52"/>
+        <file id="73" name="frame_73.png" width="52" height="52"/>
+        <file id="74" name="frame_74.png" width="52" height="52"/>
+        <file id="75" name="frame_75.png" width="52" height="52"/>
+        <file id="76" name="frame_76.png" width="52" height="52"/>
+        <file id="77" name="frame_77.png" width="52" height="52"/>
+        <file id="78" name="frame_78.png" width="52" height="52"/>
+        <file id="79" name="frame_79.png" width="52" height="52"/>
+        <file id="80" name="frame_80.png" width="52" height="52"/>
+        <file id="81" name="frame_81.png" width="52" height="52"/>
+        <file id="82" name="frame_82.png" width="52" height="52"/>
+        <file id="83" name="frame_83.png" width="52" height="52"/>
+        <file id="84" name="frame_84.png" width="52" height="52"/>
+        <file id="85" name="frame_85.png" width="52" height="52"/>
+        <file id="86" name="frame_86.png" width="52" height="52"/>
+        <file id="87" name="frame_87.png" width="52" height="52"/>
+        <file id="88" name="frame_88.png" width="52" height="52"/>
+        <file id="89" name="frame_89.png" width="52" height="52"/>
+        <file id="90" name="frame_90.png" width="52" height="52"/>
+        <file id="91" name="frame_91.png" width="52" height="52"/>
+        <file id="92" name="frame_92.png" width="52" height="52"/>
+        <file id="93" name="frame_93.png" width="52" height="52"/>
+        <file id="94" name="frame_94.png" width="52" height="52"/>
+        <file id="95" name="frame_95.png" width="52" height="52"/>
+        <file id="96" name="frame_96.png" width="52" height="52"/>
+        <file id="97" name="frame_97.png" width="52" height="52"/>
+        <file id="98" name="frame_98.png" width="52" height="52"/>
+        <file id="99" name="frame_99.png" width="52" height="52"/>
+        <file id="100" name="frame_100.png" width="52" height="52"/>
+        <file id="101" name="frame_101.png" width="52" height="52"/>
+        <file id="102" name="frame_102.png" width="52" height="52"/>
+        <file id="103" name="frame_103.png" width="52" height="52"/>
+        <file id="104" name="frame_104.png" width="52" height="52"/>
+        <file id="105" name="frame_105.png" width="52" height="52"/>
+        <file id="106" name="frame_106.png" width="52" height="52"/>
+        <file id="107" name="frame_107.png" width="52" height="52"/>
+        <file id="108" name="frame_108.png" width="52" height="52"/>
+        <file id="109" name="frame_109.png" width="52" height="52"/>
+        <file id="110" name="frame_110.png" width="52" height="52"/>
+        <file id="111" name="frame_111.png" width="52" height="52"/>
+        <file id="112" name="frame_112.png" width="52" height="52"/>
+        <file id="113" name="frame_113.png" width="52" height="52"/>
+        <file id="114" name="frame_114.png" width="52" height="52"/>
+        <file id="115" name="frame_115.png" width="52" height="52"/>
+        <file id="116" name="frame_116.png" width="52" height="52"/>
+        <file id="117" name="frame_117.png" width="52" height="52"/>
+        <file id="118" name="frame_118.png" width="52" height="52"/>
+        <file id="119" name="frame_119.png" width="52" height="52"/>
+        <file id="120" name="frame_120.png" width="52" height="52"/>
+        <file id="121" name="frame_121.png" width="52" height="52"/>
+        <file id="122" name="frame_122.png" width="52" height="52"/>
+        <file id="123" name="frame_123.png" width="52" height="52"/>
+        <file id="124" name="frame_124.png" width="52" height="52"/>
+        <file id="125" name="frame_125.png" width="52" height="52"/>
+        <file id="126" name="frame_126.png" width="52" height="52"/>
+        <file id="127" name="frame_127.png" width="52" height="52"/>
+        <file id="128" name="frame_128.png" width="52" height="52"/>
+        <file id="129" name="frame_129.png" width="52" height="52"/>
+        <file id="130" name="frame_130.png" width="52" height="52"/>
+        <file id="131" name="frame_131.png" width="52" height="52"/>
+        <file id="132" name="frame_132.png" width="52" height="52"/>
+        <file id="133" name="frame_133.png" width="52" height="52"/>
+        <file id="134" name="frame_134.png" width="52" height="52"/>
+        <file id="135" name="frame_135.png" width="52" height="52"/>
+        <file id="136" name="frame_136.png" width="52" height="52"/>
+        <file id="137" name="frame_137.png" width="52" height="52"/>
+        <file id="138" name="frame_138.png" width="52" height="52"/>
+        <file id="139" name="frame_139.png" width="52" height="52"/>
+        <file id="140" name="frame_140.png" width="52" height="52"/>
+        <file id="141" name="frame_141.png" width="52" height="52"/>
+        <file id="142" name="frame_142.png" width="52" height="52"/>
+        <file id="143" name="frame_143.png" width="52" height="52"/>
+        <file id="144" name="frame_144.png" width="52" height="52"/>
+        <file id="145" name="frame_145.png" width="52" height="52"/>
+        <file id="146" name="frame_146.png" width="52" height="52"/>
+        <file id="147" name="frame_147.png" width="52" height="52"/>
+        <file id="148" name="frame_148.png" width="52" height="52"/>
+        <file id="149" name="frame_149.png" width="52" height="52"/>
+        <file id="150" name="frame_150.png" width="52" height="52"/>
+        <file id="151" name="frame_151.png" width="52" height="52"/>
+        <file id="152" name="frame_152.png" width="52" height="52"/>
+        <file id="153" name="frame_153.png" width="52" height="52"/>
+        <file id="154" name="frame_154.png" width="52" height="52"/>
+        <file id="155" name="frame_155.png" width="52" height="52"/>
+        <file id="156" name="frame_156.png" width="52" height="52"/>
+        <file id="157" name="frame_157.png" width="52" height="52"/>
+    </folder>
+    <entity name="vibing_cat">
+        <animation name="default" length="6320">
+            <mainline>
+            <key id="0" time="0"> <object_ref id="0" key="0"/> </key>
+            <key id="1" time="40"> <object_ref id="1" key="1"/> </key>
+            <key id="2" time="80"> <object_ref id="2" key="2"/> </key>
+            <key id="3" time="120"> <object_ref id="3" key="3"/> </key>
+            <key id="4" time="160"> <object_ref id="4" key="4"/> </key>
+            <key id="5" time="200"> <object_ref id="5" key="5"/> </key>
+            <key id="6" time="240"> <object_ref id="6" key="6"/> </key>
+            <key id="7" time="280"> <object_ref id="7" key="7"/> </key>
+            <key id="8" time="320"> <object_ref id="8" key="8"/> </key>
+            <key id="9" time="360"> <object_ref id="9" key="9"/> </key>
+            <key id="10" time="400"> <object_ref id="10" key="10"/> </key>
+            <key id="11" time="440"> <object_ref id="11" key="11"/> </key>
+            <key id="12" time="480"> <object_ref id="12" key="12"/> </key>
+            <key id="13" time="520"> <object_ref id="13" key="13"/> </key>
+            <key id="14" time="560"> <object_ref id="14" key="14"/> </key>
+            <key id="15" time="600"> <object_ref id="15" key="15"/> </key>
+            <key id="16" time="640"> <object_ref id="16" key="16"/> </key>
+            <key id="17" time="680"> <object_ref id="17" key="17"/> </key>
+            <key id="18" time="720"> <object_ref id="18" key="18"/> </key>
+            <key id="19" time="760"> <object_ref id="19" key="19"/> </key>
+            <key id="20" time="800"> <object_ref id="20" key="20"/> </key>
+            <key id="21" time="840"> <object_ref id="21" key="21"/> </key>
+            <key id="22" time="880"> <object_ref id="22" key="22"/> </key>
+            <key id="23" time="920"> <object_ref id="23" key="23"/> </key>
+            <key id="24" time="960"> <object_ref id="24" key="24"/> </key>
+            <key id="25" time="1000"> <object_ref id="25" key="25"/> </key>
+            <key id="26" time="1040"> <object_ref id="26" key="26"/> </key>
+            <key id="27" time="1080"> <object_ref id="27" key="27"/> </key>
+            <key id="28" time="1120"> <object_ref id="28" key="28"/> </key>
+            <key id="29" time="1160"> <object_ref id="29" key="29"/> </key>
+            <key id="30" time="1200"> <object_ref id="30" key="30"/> </key>
+            <key id="31" time="1240"> <object_ref id="31" key="31"/> </key>
+            <key id="32" time="1280"> <object_ref id="32" key="32"/> </key>
+            <key id="33" time="1320"> <object_ref id="33" key="33"/> </key>
+            <key id="34" time="1360"> <object_ref id="34" key="34"/> </key>
+            <key id="35" time="1400"> <object_ref id="35" key="35"/> </key>
+            <key id="36" time="1440"> <object_ref id="36" key="36"/> </key>
+            <key id="37" time="1480"> <object_ref id="37" key="37"/> </key>
+            <key id="38" time="1520"> <object_ref id="38" key="38"/> </key>
+            <key id="39" time="1560"> <object_ref id="39" key="39"/> </key>
+            <key id="40" time="1600"> <object_ref id="40" key="40"/> </key>
+            <key id="41" time="1640"> <object_ref id="41" key="41"/> </key>
+            <key id="42" time="1680"> <object_ref id="42" key="42"/> </key>
+            <key id="43" time="1720"> <object_ref id="43" key="43"/> </key>
+            <key id="44" time="1760"> <object_ref id="44" key="44"/> </key>
+            <key id="45" time="1800"> <object_ref id="45" key="45"/> </key>
+            <key id="46" time="1840"> <object_ref id="46" key="46"/> </key>
+            <key id="47" time="1880"> <object_ref id="47" key="47"/> </key>
+            <key id="48" time="1920"> <object_ref id="48" key="48"/> </key>
+            <key id="49" time="1960"> <object_ref id="49" key="49"/> </key>
+            <key id="50" time="2000"> <object_ref id="50" key="50"/> </key>
+            <key id="51" time="2040"> <object_ref id="51" key="51"/> </key>
+            <key id="52" time="2080"> <object_ref id="52" key="52"/> </key>
+            <key id="53" time="2120"> <object_ref id="53" key="53"/> </key>
+            <key id="54" time="2160"> <object_ref id="54" key="54"/> </key>
+            <key id="55" time="2200"> <object_ref id="55" key="55"/> </key>
+            <key id="56" time="2240"> <object_ref id="56" key="56"/> </key>
+            <key id="57" time="2280"> <object_ref id="57" key="57"/> </key>
+            <key id="58" time="2320"> <object_ref id="58" key="58"/> </key>
+            <key id="59" time="2360"> <object_ref id="59" key="59"/> </key>
+            <key id="60" time="2400"> <object_ref id="60" key="60"/> </key>
+            <key id="61" time="2440"> <object_ref id="61" key="61"/> </key>
+            <key id="62" time="2480"> <object_ref id="62" key="62"/> </key>
+            <key id="63" time="2520"> <object_ref id="63" key="63"/> </key>
+            <key id="64" time="2560"> <object_ref id="64" key="64"/> </key>
+            <key id="65" time="2600"> <object_ref id="65" key="65"/> </key>
+            <key id="66" time="2640"> <object_ref id="66" key="66"/> </key>
+            <key id="67" time="2680"> <object_ref id="67" key="67"/> </key>
+            <key id="68" time="2720"> <object_ref id="68" key="68"/> </key>
+            <key id="69" time="2760"> <object_ref id="69" key="69"/> </key>
+            <key id="70" time="2800"> <object_ref id="70" key="70"/> </key>
+            <key id="71" time="2840"> <object_ref id="71" key="71"/> </key>
+            <key id="72" time="2880"> <object_ref id="72" key="72"/> </key>
+            <key id="73" time="2920"> <object_ref id="73" key="73"/> </key>
+            <key id="74" time="2960"> <object_ref id="74" key="74"/> </key>
+            <key id="75" time="3000"> <object_ref id="75" key="75"/> </key>
+            <key id="76" time="3040"> <object_ref id="76" key="76"/> </key>
+            <key id="77" time="3080"> <object_ref id="77" key="77"/> </key>
+            <key id="78" time="3120"> <object_ref id="78" key="78"/> </key>
+            <key id="79" time="3160"> <object_ref id="79" key="79"/> </key>
+            <key id="80" time="3200"> <object_ref id="80" key="80"/> </key>
+            <key id="81" time="3240"> <object_ref id="81" key="81"/> </key>
+            <key id="82" time="3280"> <object_ref id="82" key="82"/> </key>
+            <key id="83" time="3320"> <object_ref id="83" key="83"/> </key>
+            <key id="84" time="3360"> <object_ref id="84" key="84"/> </key>
+            <key id="85" time="3400"> <object_ref id="85" key="85"/> </key>
+            <key id="86" time="3440"> <object_ref id="86" key="86"/> </key>
+            <key id="87" time="3480"> <object_ref id="87" key="87"/> </key>
+            <key id="88" time="3520"> <object_ref id="88" key="88"/> </key>
+            <key id="89" time="3560"> <object_ref id="89" key="89"/> </key>
+            <key id="90" time="3600"> <object_ref id="90" key="90"/> </key>
+            <key id="91" time="3640"> <object_ref id="91" key="91"/> </key>
+            <key id="92" time="3680"> <object_ref id="92" key="92"/> </key>
+            <key id="93" time="3720"> <object_ref id="93" key="93"/> </key>
+            <key id="94" time="3760"> <object_ref id="94" key="94"/> </key>
+            <key id="95" time="3800"> <object_ref id="95" key="95"/> </key>
+            <key id="96" time="3840"> <object_ref id="96" key="96"/> </key>
+            <key id="97" time="3880"> <object_ref id="97" key="97"/> </key>
+            <key id="98" time="3920"> <object_ref id="98" key="98"/> </key>
+            <key id="99" time="3960"> <object_ref id="99" key="99"/> </key>
+            <key id="100" time="4000"> <object_ref id="100" key="100"/> </key>
+            <key id="101" time="4040"> <object_ref id="101" key="101"/> </key>
+            <key id="102" time="4080"> <object_ref id="102" key="102"/> </key>
+            <key id="103" time="4120"> <object_ref id="103" key="103"/> </key>
+            <key id="104" time="4160"> <object_ref id="104" key="104"/> </key>
+            <key id="105" time="4200"> <object_ref id="105" key="105"/> </key>
+            <key id="106" time="4240"> <object_ref id="106" key="106"/> </key>
+            <key id="107" time="4280"> <object_ref id="107" key="107"/> </key>
+            <key id="108" time="4320"> <object_ref id="108" key="108"/> </key>
+            <key id="109" time="4360"> <object_ref id="109" key="109"/> </key>
+            <key id="110" time="4400"> <object_ref id="110" key="110"/> </key>
+            <key id="111" time="4440"> <object_ref id="111" key="111"/> </key>
+            <key id="112" time="4480"> <object_ref id="112" key="112"/> </key>
+            <key id="113" time="4520"> <object_ref id="113" key="113"/> </key>
+            <key id="114" time="4560"> <object_ref id="114" key="114"/> </key>
+            <key id="115" time="4600"> <object_ref id="115" key="115"/> </key>
+            <key id="116" time="4640"> <object_ref id="116" key="116"/> </key>
+            <key id="117" time="4680"> <object_ref id="117" key="117"/> </key>
+            <key id="118" time="4720"> <object_ref id="118" key="118"/> </key>
+            <key id="119" time="4760"> <object_ref id="119" key="119"/> </key>
+            <key id="120" time="4800"> <object_ref id="120" key="120"/> </key>
+            <key id="121" time="4840"> <object_ref id="121" key="121"/> </key>
+            <key id="122" time="4880"> <object_ref id="122" key="122"/> </key>
+            <key id="123" time="4920"> <object_ref id="123" key="123"/> </key>
+            <key id="124" time="4960"> <object_ref id="124" key="124"/> </key>
+            <key id="125" time="5000"> <object_ref id="125" key="125"/> </key>
+            <key id="126" time="5040"> <object_ref id="126" key="126"/> </key>
+            <key id="127" time="5080"> <object_ref id="127" key="127"/> </key>
+            <key id="128" time="5120"> <object_ref id="128" key="128"/> </key>
+            <key id="129" time="5160"> <object_ref id="129" key="129"/> </key>
+            <key id="130" time="5200"> <object_ref id="130" key="130"/> </key>
+            <key id="131" time="5240"> <object_ref id="131" key="131"/> </key>
+            <key id="132" time="5280"> <object_ref id="132" key="132"/> </key>
+            <key id="133" time="5320"> <object_ref id="133" key="133"/> </key>
+            <key id="134" time="5360"> <object_ref id="134" key="134"/> </key>
+            <key id="135" time="5400"> <object_ref id="135" key="135"/> </key>
+            <key id="136" time="5440"> <object_ref id="136" key="136"/> </key>
+            <key id="137" time="5480"> <object_ref id="137" key="137"/> </key>
+            <key id="138" time="5520"> <object_ref id="138" key="138"/> </key>
+            <key id="139" time="5560"> <object_ref id="139" key="139"/> </key>
+            <key id="140" time="5600"> <object_ref id="140" key="140"/> </key>
+            <key id="141" time="5640"> <object_ref id="141" key="141"/> </key>
+            <key id="142" time="5680"> <object_ref id="142" key="142"/> </key>
+            <key id="143" time="5720"> <object_ref id="143" key="143"/> </key>
+            <key id="144" time="5760"> <object_ref id="144" key="144"/> </key>
+            <key id="145" time="5800"> <object_ref id="145" key="145"/> </key>
+            <key id="146" time="5840"> <object_ref id="146" key="146"/> </key>
+            <key id="147" time="5880"> <object_ref id="147" key="147"/> </key>
+            <key id="148" time="5920"> <object_ref id="148" key="148"/> </key>
+            <key id="149" time="5960"> <object_ref id="149" key="149"/> </key>
+            <key id="150" time="6000"> <object_ref id="150" key="150"/> </key>
+            <key id="151" time="6040"> <object_ref id="151" key="151"/> </key>
+            <key id="152" time="6080"> <object_ref id="152" key="152"/> </key>
+            <key id="153" time="6120"> <object_ref id="153" key="153"/> </key>
+            <key id="154" time="6160"> <object_ref id="154" key="154"/> </key>
+            <key id="155" time="6200"> <object_ref id="155" key="155"/> </key>
+            <key id="156" time="6240"> <object_ref id="156" key="156"/> </key>
+            <key id="157" time="6280"> <object_ref id="157" key="157"/> </key>
+            </mainline>
+            <timeline name="default">
+            <key id="0" time="0"> <object id="0" file="0"/> </key>
+            <key id="1" time="40"> <object id="1" file="1"/> </key>
+            <key id="2" time="80"> <object id="2" file="2"/> </key>
+            <key id="3" time="120"> <object id="3" file="3"/> </key>
+            <key id="4" time="160"> <object id="4" file="4"/> </key>
+            <key id="5" time="200"> <object id="5" file="5"/> </key>
+            <key id="6" time="240"> <object id="6" file="6"/> </key>
+            <key id="7" time="280"> <object id="7" file="7"/> </key>
+            <key id="8" time="320"> <object id="8" file="8"/> </key>
+            <key id="9" time="360"> <object id="9" file="9"/> </key>
+            <key id="10" time="400"> <object id="10" file="10"/> </key>
+            <key id="11" time="440"> <object id="11" file="11"/> </key>
+            <key id="12" time="480"> <object id="12" file="12"/> </key>
+            <key id="13" time="520"> <object id="13" file="13"/> </key>
+            <key id="14" time="560"> <object id="14" file="14"/> </key>
+            <key id="15" time="600"> <object id="15" file="15"/> </key>
+            <key id="16" time="640"> <object id="16" file="16"/> </key>
+            <key id="17" time="680"> <object id="17" file="17"/> </key>
+            <key id="18" time="720"> <object id="18" file="18"/> </key>
+            <key id="19" time="760"> <object id="19" file="19"/> </key>
+            <key id="20" time="800"> <object id="20" file="20"/> </key>
+            <key id="21" time="840"> <object id="21" file="21"/> </key>
+            <key id="22" time="880"> <object id="22" file="22"/> </key>
+            <key id="23" time="920"> <object id="23" file="23"/> </key>
+            <key id="24" time="960"> <object id="24" file="24"/> </key>
+            <key id="25" time="1000"> <object id="25" file="25"/> </key>
+            <key id="26" time="1040"> <object id="26" file="26"/> </key>
+            <key id="27" time="1080"> <object id="27" file="27"/> </key>
+            <key id="28" time="1120"> <object id="28" file="28"/> </key>
+            <key id="29" time="1160"> <object id="29" file="29"/> </key>
+            <key id="30" time="1200"> <object id="30" file="30"/> </key>
+            <key id="31" time="1240"> <object id="31" file="31"/> </key>
+            <key id="32" time="1280"> <object id="32" file="32"/> </key>
+            <key id="33" time="1320"> <object id="33" file="33"/> </key>
+            <key id="34" time="1360"> <object id="34" file="34"/> </key>
+            <key id="35" time="1400"> <object id="35" file="35"/> </key>
+            <key id="36" time="1440"> <object id="36" file="36"/> </key>
+            <key id="37" time="1480"> <object id="37" file="37"/> </key>
+            <key id="38" time="1520"> <object id="38" file="38"/> </key>
+            <key id="39" time="1560"> <object id="39" file="39"/> </key>
+            <key id="40" time="1600"> <object id="40" file="40"/> </key>
+            <key id="41" time="1640"> <object id="41" file="41"/> </key>
+            <key id="42" time="1680"> <object id="42" file="42"/> </key>
+            <key id="43" time="1720"> <object id="43" file="43"/> </key>
+            <key id="44" time="1760"> <object id="44" file="44"/> </key>
+            <key id="45" time="1800"> <object id="45" file="45"/> </key>
+            <key id="46" time="1840"> <object id="46" file="46"/> </key>
+            <key id="47" time="1880"> <object id="47" file="47"/> </key>
+            <key id="48" time="1920"> <object id="48" file="48"/> </key>
+            <key id="49" time="1960"> <object id="49" file="49"/> </key>
+            <key id="50" time="2000"> <object id="50" file="50"/> </key>
+            <key id="51" time="2040"> <object id="51" file="51"/> </key>
+            <key id="52" time="2080"> <object id="52" file="52"/> </key>
+            <key id="53" time="2120"> <object id="53" file="53"/> </key>
+            <key id="54" time="2160"> <object id="54" file="54"/> </key>
+            <key id="55" time="2200"> <object id="55" file="55"/> </key>
+            <key id="56" time="2240"> <object id="56" file="56"/> </key>
+            <key id="57" time="2280"> <object id="57" file="57"/> </key>
+            <key id="58" time="2320"> <object id="58" file="58"/> </key>
+            <key id="59" time="2360"> <object id="59" file="59"/> </key>
+            <key id="60" time="2400"> <object id="60" file="60"/> </key>
+            <key id="61" time="2440"> <object id="61" file="61"/> </key>
+            <key id="62" time="2480"> <object id="62" file="62"/> </key>
+            <key id="63" time="2520"> <object id="63" file="63"/> </key>
+            <key id="64" time="2560"> <object id="64" file="64"/> </key>
+            <key id="65" time="2600"> <object id="65" file="65"/> </key>
+            <key id="66" time="2640"> <object id="66" file="66"/> </key>
+            <key id="67" time="2680"> <object id="67" file="67"/> </key>
+            <key id="68" time="2720"> <object id="68" file="68"/> </key>
+            <key id="69" time="2760"> <object id="69" file="69"/> </key>
+            <key id="70" time="2800"> <object id="70" file="70"/> </key>
+            <key id="71" time="2840"> <object id="71" file="71"/> </key>
+            <key id="72" time="2880"> <object id="72" file="72"/> </key>
+            <key id="73" time="2920"> <object id="73" file="73"/> </key>
+            <key id="74" time="2960"> <object id="74" file="74"/> </key>
+            <key id="75" time="3000"> <object id="75" file="75"/> </key>
+            <key id="76" time="3040"> <object id="76" file="76"/> </key>
+            <key id="77" time="3080"> <object id="77" file="77"/> </key>
+            <key id="78" time="3120"> <object id="78" file="78"/> </key>
+            <key id="79" time="3160"> <object id="79" file="79"/> </key>
+            <key id="80" time="3200"> <object id="80" file="80"/> </key>
+            <key id="81" time="3240"> <object id="81" file="81"/> </key>
+            <key id="82" time="3280"> <object id="82" file="82"/> </key>
+            <key id="83" time="3320"> <object id="83" file="83"/> </key>
+            <key id="84" time="3360"> <object id="84" file="84"/> </key>
+            <key id="85" time="3400"> <object id="85" file="85"/> </key>
+            <key id="86" time="3440"> <object id="86" file="86"/> </key>
+            <key id="87" time="3480"> <object id="87" file="87"/> </key>
+            <key id="88" time="3520"> <object id="88" file="88"/> </key>
+            <key id="89" time="3560"> <object id="89" file="89"/> </key>
+            <key id="90" time="3600"> <object id="90" file="90"/> </key>
+            <key id="91" time="3640"> <object id="91" file="91"/> </key>
+            <key id="92" time="3680"> <object id="92" file="92"/> </key>
+            <key id="93" time="3720"> <object id="93" file="93"/> </key>
+            <key id="94" time="3760"> <object id="94" file="94"/> </key>
+            <key id="95" time="3800"> <object id="95" file="95"/> </key>
+            <key id="96" time="3840"> <object id="96" file="96"/> </key>
+            <key id="97" time="3880"> <object id="97" file="97"/> </key>
+            <key id="98" time="3920"> <object id="98" file="98"/> </key>
+            <key id="99" time="3960"> <object id="99" file="99"/> </key>
+            <key id="100" time="4000"> <object id="100" file="100"/> </key>
+            <key id="101" time="4040"> <object id="101" file="101"/> </key>
+            <key id="102" time="4080"> <object id="102" file="102"/> </key>
+            <key id="103" time="4120"> <object id="103" file="103"/> </key>
+            <key id="104" time="4160"> <object id="104" file="104"/> </key>
+            <key id="105" time="4200"> <object id="105" file="105"/> </key>
+            <key id="106" time="4240"> <object id="106" file="106"/> </key>
+            <key id="107" time="4280"> <object id="107" file="107"/> </key>
+            <key id="108" time="4320"> <object id="108" file="108"/> </key>
+            <key id="109" time="4360"> <object id="109" file="109"/> </key>
+            <key id="110" time="4400"> <object id="110" file="110"/> </key>
+            <key id="111" time="4440"> <object id="111" file="111"/> </key>
+            <key id="112" time="4480"> <object id="112" file="112"/> </key>
+            <key id="113" time="4520"> <object id="113" file="113"/> </key>
+            <key id="114" time="4560"> <object id="114" file="114"/> </key>
+            <key id="115" time="4600"> <object id="115" file="115"/> </key>
+            <key id="116" time="4640"> <object id="116" file="116"/> </key>
+            <key id="117" time="4680"> <object id="117" file="117"/> </key>
+            <key id="118" time="4720"> <object id="118" file="118"/> </key>
+            <key id="119" time="4760"> <object id="119" file="119"/> </key>
+            <key id="120" time="4800"> <object id="120" file="120"/> </key>
+            <key id="121" time="4840"> <object id="121" file="121"/> </key>
+            <key id="122" time="4880"> <object id="122" file="122"/> </key>
+            <key id="123" time="4920"> <object id="123" file="123"/> </key>
+            <key id="124" time="4960"> <object id="124" file="124"/> </key>
+            <key id="125" time="5000"> <object id="125" file="125"/> </key>
+            <key id="126" time="5040"> <object id="126" file="126"/> </key>
+            <key id="127" time="5080"> <object id="127" file="127"/> </key>
+            <key id="128" time="5120"> <object id="128" file="128"/> </key>
+            <key id="129" time="5160"> <object id="129" file="129"/> </key>
+            <key id="130" time="5200"> <object id="130" file="130"/> </key>
+            <key id="131" time="5240"> <object id="131" file="131"/> </key>
+            <key id="132" time="5280"> <object id="132" file="132"/> </key>
+            <key id="133" time="5320"> <object id="133" file="133"/> </key>
+            <key id="134" time="5360"> <object id="134" file="134"/> </key>
+            <key id="135" time="5400"> <object id="135" file="135"/> </key>
+            <key id="136" time="5440"> <object id="136" file="136"/> </key>
+            <key id="137" time="5480"> <object id="137" file="137"/> </key>
+            <key id="138" time="5520"> <object id="138" file="138"/> </key>
+            <key id="139" time="5560"> <object id="139" file="139"/> </key>
+            <key id="140" time="5600"> <object id="140" file="140"/> </key>
+            <key id="141" time="5640"> <object id="141" file="141"/> </key>
+            <key id="142" time="5680"> <object id="142" file="142"/> </key>
+            <key id="143" time="5720"> <object id="143" file="143"/> </key>
+            <key id="144" time="5760"> <object id="144" file="144"/> </key>
+            <key id="145" time="5800"> <object id="145" file="145"/> </key>
+            <key id="146" time="5840"> <object id="146" file="146"/> </key>
+            <key id="147" time="5880"> <object id="147" file="147"/> </key>
+            <key id="148" time="5920"> <object id="148" file="148"/> </key>
+            <key id="149" time="5960"> <object id="149" file="149"/> </key>
+            <key id="150" time="6000"> <object id="150" file="150"/> </key>
+            <key id="151" time="6040"> <object id="151" file="151"/> </key>
+            <key id="152" time="6080"> <object id="152" file="152"/> </key>
+            <key id="153" time="6120"> <object id="153" file="153"/> </key>
+            <key id="154" time="6160"> <object id="154" file="154"/> </key>
+            <key id="155" time="6200"> <object id="155" file="155"/> </key>
+            <key id="156" time="6240"> <object id="156" file="156"/> </key>
+            <key id="157" time="6280"> <object id="157" file="157"/> </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

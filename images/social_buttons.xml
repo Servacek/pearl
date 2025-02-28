@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Atlas>
+    <Texture filename="social_buttons.tex"/>
+    <Elements>
+        <Element name="agreement_button.tex" u1="0.000976563" u2="0.223633" v1="0.552734" v2="0.998047"/>
+        <Element name="agreement_button_hover.tex" u1="0.000976563" u2="0.223633" v1="0.103516" v2="0.548828"/>
+        <Element name="discord_button.tex" u1="0.225586" u2="0.448242" v1="0.552734" v2="0.998047"/>
+        <Element name="discord_button_hover.tex" u1="0.225586" u2="0.448242" v1="0.103516" v2="0.548828"/>
+        <Element name="twitch_button.tex" u1="0.450195" u2="0.672852" v1="0.552734" v2="0.998047"/>
+        <Element name="twitch_button_hover.tex" u1="0.450195" u2="0.672852" v1="0.103516" v2="0.548828"/>
+        <Element name="youtube_button.tex" u1="0.674805" u2="0.897461" v1="0.552734" v2="0.998047"/>
+        <Element name="youtube_button_hover.tex" u1="0.674805" u2="0.897461" v1="0.103516" v2="0.548828"/>
+    </Elements>
+</Atlas>
+

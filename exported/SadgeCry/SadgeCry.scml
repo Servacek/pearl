@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="b5">
+    <folder>
+        <file id="0" name="frame_0.png" width="52" height="52"/>
+        <file id="1" name="frame_1.png" width="52" height="52"/>
+        <file id="2" name="frame_2.png" width="52" height="52"/>
+        <file id="3" name="frame_3.png" width="52" height="52"/>
+        <file id="4" name="frame_4.png" width="52" height="52"/>
+        <file id="5" name="frame_5.png" width="52" height="52"/>
+        <file id="6" name="frame_6.png" width="52" height="52"/>
+        <file id="7" name="frame_7.png" width="52" height="52"/>
+        <file id="8" name="frame_8.png" width="52" height="52"/>
+        <file id="9" name="frame_9.png" width="52" height="52"/>
+        <file id="10" name="frame_10.png" width="52" height="52"/>
+        <file id="11" name="frame_11.png" width="52" height="52"/>
+        <file id="12" name="frame_12.png" width="52" height="52"/>
+        <file id="13" name="frame_13.png" width="52" height="52"/>
+        <file id="14" name="frame_14.png" width="52" height="52"/>
+        <file id="15" name="frame_15.png" width="52" height="52"/>
+        <file id="16" name="frame_16.png" width="52" height="52"/>
+        <file id="17" name="frame_17.png" width="52" height="52"/>
+        <file id="18" name="frame_18.png" width="52" height="52"/>
+        <file id="19" name="frame_19.png" width="52" height="52"/>
+    </folder>
+    <entity name="SadgeCry">
+        <animation name="default" length="2000">
+            <mainline>
+            <key id="0" time="0"> <object_ref id="0" key="0"/> </key>
+            <key id="1" time="100"> <object_ref id="1" key="1"/> </key>
+            <key id="2" time="200"> <object_ref id="2" key="2"/> </key>
+            <key id="3" time="300"> <object_ref id="3" key="3"/> </key>
+            <key id="4" time="400"> <object_ref id="4" key="4"/> </key>
+            <key id="5" time="500"> <object_ref id="5" key="5"/> </key>
+            <key id="6" time="600"> <object_ref id="6" key="6"/> </key>
+            <key id="7" time="700"> <object_ref id="7" key="7"/> </key>
+            <key id="8" time="800"> <object_ref id="8" key="8"/> </key>
+            <key id="9" time="900"> <object_ref id="9" key="9"/> </key>
+            <key id="10" time="1000"> <object_ref id="10" key="10"/> </key>
+            <key id="11" time="1100"> <object_ref id="11" key="11"/> </key>
+            <key id="12" time="1200"> <object_ref id="12" key="12"/> </key>
+            <key id="13" time="1300"> <object_ref id="13" key="13"/> </key>
+            <key id="14" time="1400"> <object_ref id="14" key="14"/> </key>
+            <key id="15" time="1500"> <object_ref id="15" key="15"/> </key>
+            <key id="16" time="1600"> <object_ref id="16" key="16"/> </key>
+            <key id="17" time="1700"> <object_ref id="17" key="17"/> </key>
+            <key id="18" time="1800"> <object_ref id="18" key="18"/> </key>
+            <key id="19" time="1900"> <object_ref id="19" key="19"/> </key>
+            </mainline>
+            <timeline name="default">
+            <key id="0" time="0"> <object id="0" file="0"/> </key>
+            <key id="1" time="100"> <object id="1" file="1"/> </key>
+            <key id="2" time="200"> <object id="2" file="2"/> </key>
+            <key id="3" time="300"> <object id="3" file="3"/> </key>
+            <key id="4" time="400"> <object id="4" file="4"/> </key>
+            <key id="5" time="500"> <object id="5" file="5"/> </key>
+            <key id="6" time="600"> <object id="6" file="6"/> </key>
+            <key id="7" time="700"> <object id="7" file="7"/> </key>
+            <key id="8" time="800"> <object id="8" file="8"/> </key>
+            <key id="9" time="900"> <object id="9" file="9"/> </key>
+            <key id="10" time="1000"> <object id="10" file="10"/> </key>
+            <key id="11" time="1100"> <object id="11" file="11"/> </key>
+            <key id="12" time="1200"> <object id="12" file="12"/> </key>
+            <key id="13" time="1300"> <object id="13" file="13"/> </key>
+            <key id="14" time="1400"> <object id="14" file="14"/> </key>
+            <key id="15" time="1500"> <object id="15" file="15"/> </key>
+            <key id="16" time="1600"> <object id="16" file="16"/> </key>
+            <key id="17" time="1700"> <object id="17" file="17"/> </key>
+            <key id="18" time="1800"> <object id="18" file="18"/> </key>
+            <key id="19" time="1900"> <object id="19" file="19"/> </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

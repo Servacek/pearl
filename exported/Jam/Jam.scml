@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="b5">
+    <folder>
+        <file id="0" name="frame_0.png" width="52" height="52"/>
+        <file id="1" name="frame_1.png" width="52" height="52"/>
+        <file id="2" name="frame_2.png" width="52" height="52"/>
+        <file id="3" name="frame_3.png" width="52" height="52"/>
+    </folder>
+    <entity name="Jam">
+        <animation name="default" length="280">
+            <mainline>
+            <key id="0" time="0"> <object_ref id="0" key="0"/> </key>
+            <key id="1" time="70"> <object_ref id="1" key="1"/> </key>
+            <key id="2" time="140"> <object_ref id="2" key="2"/> </key>
+            <key id="3" time="210"> <object_ref id="3" key="3"/> </key>
+            </mainline>
+            <timeline name="default">
+            <key id="0" time="0"> <object id="0" file="0"/> </key>
+            <key id="1" time="70"> <object id="1" file="1"/> </key>
+            <key id="2" time="140"> <object id="2" file="2"/> </key>
+            <key id="3" time="210"> <object id="3" file="3"/> </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

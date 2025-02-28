@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="b5">
+    <folder>
+        <file id="0" name="frame_0.png" width="52" height="52"/>
+        <file id="1" name="frame_1.png" width="52" height="52"/>
+        <file id="2" name="frame_2.png" width="52" height="52"/>
+        <file id="3" name="frame_3.png" width="52" height="52"/>
+        <file id="4" name="frame_4.png" width="52" height="52"/>
+        <file id="5" name="frame_5.png" width="52" height="52"/>
+        <file id="6" name="frame_6.png" width="52" height="52"/>
+        <file id="7" name="frame_7.png" width="52" height="52"/>
+        <file id="8" name="frame_8.png" width="52" height="52"/>
+        <file id="9" name="frame_9.png" width="52" height="52"/>
+        <file id="10" name="frame_10.png" width="52" height="52"/>
+        <file id="11" name="frame_11.png" width="52" height="52"/>
+        <file id="12" name="frame_12.png" width="52" height="52"/>
+        <file id="13" name="frame_13.png" width="52" height="52"/>
+        <file id="14" name="frame_14.png" width="52" height="52"/>
+        <file id="15" name="frame_15.png" width="52" height="52"/>
+        <file id="16" name="frame_16.png" width="52" height="52"/>
+        <file id="17" name="frame_17.png" width="52" height="52"/>
+        <file id="18" name="frame_18.png" width="52" height="52"/>
+        <file id="19" name="frame_19.png" width="52" height="52"/>
+        <file id="20" name="frame_20.png" width="52" height="52"/>
+        <file id="21" name="frame_21.png" width="52" height="52"/>
+        <file id="22" name="frame_22.png" width="52" height="52"/>
+        <file id="23" name="frame_23.png" width="52" height="52"/>
+        <file id="24" name="frame_24.png" width="52" height="52"/>
+        <file id="25" name="frame_25.png" width="52" height="52"/>
+        <file id="26" name="frame_26.png" width="52" height="52"/>
+        <file id="27" name="frame_27.png" width="52" height="52"/>
+        <file id="28" name="frame_28.png" width="52" height="52"/>
+        <file id="29" name="frame_29.png" width="52" height="52"/>
+        <file id="30" name="frame_30.png" width="52" height="52"/>
+        <file id="31" name="frame_31.png" width="52" height="52"/>
+        <file id="32" name="frame_32.png" width="52" height="52"/>
+        <file id="33" name="frame_33.png" width="52" height="52"/>
+        <file id="34" name="frame_34.png" width="52" height="52"/>
+        <file id="35" name="frame_35.png" width="52" height="52"/>
+        <file id="36" name="frame_36.png" width="52" height="52"/>
+        <file id="37" name="frame_37.png" width="52" height="52"/>
+        <file id="38" name="frame_38.png" width="52" height="52"/>
+        <file id="39" name="frame_39.png" width="52" height="52"/>
+    </folder>
+    <entity name="blobcathug">
+        <animation name="default" length="1200">
+            <mainline>
+            <key id="0" time="0"> <object_ref id="0" key="0"/> </key>
+            <key id="1" time="30"> <object_ref id="1" key="1"/> </key>
+            <key id="2" time="60"> <object_ref id="2" key="2"/> </key>
+            <key id="3" time="90"> <object_ref id="3" key="3"/> </key>
+            <key id="4" time="120"> <object_ref id="4" key="4"/> </key>
+            <key id="5" time="150"> <object_ref id="5" key="5"/> </key>
+            <key id="6" time="180"> <object_ref id="6" key="6"/> </key>
+            <key id="7" time="210"> <object_ref id="7" key="7"/> </key>
+            <key id="8" time="240"> <object_ref id="8" key="8"/> </key>
+            <key id="9" time="270"> <object_ref id="9" key="9"/> </key>
+            <key id="10" time="300"> <object_ref id="10" key="10"/> </key>
+            <key id="11" time="330"> <object_ref id="11" key="11"/> </key>
+            <key id="12" time="360"> <object_ref id="12" key="12"/> </key>
+            <key id="13" time="390"> <object_ref id="13" key="13"/> </key>
+            <key id="14" time="420"> <object_ref id="14" key="14"/> </key>
+            <key id="15" time="450"> <object_ref id="15" key="15"/> </key>
+            <key id="16" time="480"> <object_ref id="16" key="16"/> </key>
+            <key id="17" time="510"> <object_ref id="17" key="17"/> </key>
+            <key id="18" time="540"> <object_ref id="18" key="18"/> </key>
+            <key id="19" time="570"> <object_ref id="19" key="19"/> </key>
+            <key id="20" time="600"> <object_ref id="20" key="20"/> </key>
+            <key id="21" time="630"> <object_ref id="21" key="21"/> </key>
+            <key id="22" time="660"> <object_ref id="22" key="22"/> </key>
+            <key id="23" time="690"> <object_ref id="23" key="23"/> </key>
+            <key id="24" time="720"> <object_ref id="24" key="24"/> </key>
+            <key id="25" time="750"> <object_ref id="25" key="25"/> </key>
+            <key id="26" time="780"> <object_ref id="26" key="26"/> </key>
+            <key id="27" time="810"> <object_ref id="27" key="27"/> </key>
+            <key id="28" time="840"> <object_ref id="28" key="28"/> </key>
+            <key id="29" time="870"> <object_ref id="29" key="29"/> </key>
+            <key id="30" time="900"> <object_ref id="30" key="30"/> </key>
+            <key id="31" time="930"> <object_ref id="31" key="31"/> </key>
+            <key id="32" time="960"> <object_ref id="32" key="32"/> </key>
+            <key id="33" time="990"> <object_ref id="33" key="33"/> </key>
+            <key id="34" time="1020"> <object_ref id="34" key="34"/> </key>
+            <key id="35" time="1050"> <object_ref id="35" key="35"/> </key>
+            <key id="36" time="1080"> <object_ref id="36" key="36"/> </key>
+            <key id="37" time="1110"> <object_ref id="37" key="37"/> </key>
+            <key id="38" time="1140"> <object_ref id="38" key="38"/> </key>
+            <key id="39" time="1170"> <object_ref id="39" key="39"/> </key>
+            </mainline>
+            <timeline name="default">
+            <key id="0" time="0"> <object id="0" file="0"/> </key>
+            <key id="1" time="30"> <object id="1" file="1"/> </key>
+            <key id="2" time="60"> <object id="2" file="2"/> </key>
+            <key id="3" time="90"> <object id="3" file="3"/> </key>
+            <key id="4" time="120"> <object id="4" file="4"/> </key>
+            <key id="5" time="150"> <object id="5" file="5"/> </key>
+            <key id="6" time="180"> <object id="6" file="6"/> </key>
+            <key id="7" time="210"> <object id="7" file="7"/> </key>
+            <key id="8" time="240"> <object id="8" file="8"/> </key>
+            <key id="9" time="270"> <object id="9" file="9"/> </key>
+            <key id="10" time="300"> <object id="10" file="10"/> </key>
+            <key id="11" time="330"> <object id="11" file="11"/> </key>
+            <key id="12" time="360"> <object id="12" file="12"/> </key>
+            <key id="13" time="390"> <object id="13" file="13"/> </key>
+            <key id="14" time="420"> <object id="14" file="14"/> </key>
+            <key id="15" time="450"> <object id="15" file="15"/> </key>
+            <key id="16" time="480"> <object id="16" file="16"/> </key>
+            <key id="17" time="510"> <object id="17" file="17"/> </key>
+            <key id="18" time="540"> <object id="18" file="18"/> </key>
+            <key id="19" time="570"> <object id="19" file="19"/> </key>
+            <key id="20" time="600"> <object id="20" file="20"/> </key>
+            <key id="21" time="630"> <object id="21" file="21"/> </key>
+            <key id="22" time="660"> <object id="22" file="22"/> </key>
+            <key id="23" time="690"> <object id="23" file="23"/> </key>
+            <key id="24" time="720"> <object id="24" file="24"/> </key>
+            <key id="25" time="750"> <object id="25" file="25"/> </key>
+            <key id="26" time="780"> <object id="26" file="26"/> </key>
+            <key id="27" time="810"> <object id="27" file="27"/> </key>
+            <key id="28" time="840"> <object id="28" file="28"/> </key>
+            <key id="29" time="870"> <object id="29" file="29"/> </key>
+            <key id="30" time="900"> <object id="30" file="30"/> </key>
+            <key id="31" time="930"> <object id="31" file="31"/> </key>
+            <key id="32" time="960"> <object id="32" file="32"/> </key>
+            <key id="33" time="990"> <object id="33" file="33"/> </key>
+            <key id="34" time="1020"> <object id="34" file="34"/> </key>
+            <key id="35" time="1050"> <object id="35" file="35"/> </key>
+            <key id="36" time="1080"> <object id="36" file="36"/> </key>
+            <key id="37" time="1110"> <object id="37" file="37"/> </key>
+            <key id="38" time="1140"> <object id="38" file="38"/> </key>
+            <key id="39" time="1170"> <object id="39" file="39"/> </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>

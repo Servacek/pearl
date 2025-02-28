@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spriter_data scml_version="1.0" generator="BrashMonkey Spriter" generator_version="b5">
+    <folder>
+        <file id="0" name="frame_0.png" width="52" height="52"/>
+        <file id="1" name="frame_1.png" width="52" height="52"/>
+    </folder>
+    <entity name="clap">
+        <animation name="default" length="400">
+            <mainline>
+            <key id="0" time="0"> <object_ref id="0" key="0"/> </key>
+            <key id="1" time="200"> <object_ref id="1" key="1"/> </key>
+            </mainline>
+            <timeline name="default">
+            <key id="0" time="0"> <object id="0" file="0"/> </key>
+            <key id="1" time="200"> <object id="1" file="1"/> </key>
+            </timeline>
+        </animation>
+    </entity>
+</spriter_data>
