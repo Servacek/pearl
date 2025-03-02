@@ -38,13 +38,19 @@ local DEFAULT_RPC_TIMEOUT = 5
 -- Netvars
 ----------------------------------
 
-local _server_slots
-PEARL.AddWorldNetworkPostInit(function(inst)
-    if _server_slots == nil then
-        _server_slots = net_byte(inst.GUID, "_server_slots")
-        _server_slots:set(TheNet:GetDefaultMaxPlayers())
-    end
-end)
+-- local _server_slots
+-- PEARL.AddWorldNetworkPostInit(function(inst)
+--     if _server_slots == nil then
+--         _server_slots = net_byte(inst.GUID, "_server_slots")
+--         _server_slots:set(TheNet:GetDefaultMaxPlayers())
+            -- --- @param slots integer
+            -- function ServerNetwork:SetClientSlots(slots)
+            --     if _server_slots then
+            --         _server_slots:set(slots)
+            --     end
+            -- end
+--     end
+-- end)
 
 ----------------------------------
 -- Locals
@@ -644,13 +650,6 @@ function ServerNetwork:AddJoinServerFilter(filter)
     PEARL.debug("ServerNetwork:AddJoinServerFilter", filter)
 
     return table.insert(join_filters, filter)
-end
-
---- @param slots integer
-function ServerNetwork:SetClientSlots(slots)
-    if _server_slots then
-        _server_slots:set(slots)
-    end
 end
 
 function ServerNetwork:CacheClientTableFor(userid)

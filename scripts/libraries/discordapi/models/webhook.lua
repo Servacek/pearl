@@ -34,13 +34,8 @@ end
 -------------------------------------
 
 --- @class Webhook: Library
-local Webhook = Class(function(self, id, token)
-    self._id = id
-    self._token = token
-
-    self.url = PEARL.CONSTS.DISCORD.WEBHOOK_URL_TEMPLATE:format(
-        PEARL.CONSTS.DISCORD.API_VERSION, self._id, self._token
-    )
+local Webhook = Class(function(self, url)
+    self.url = url
 
     -- Webhook info
     self.avatar = nil
@@ -64,22 +59,9 @@ Webhook.TYPES = {
 -- [[ Getters ]]
 -------------------------------------
 
-function Webhook:GetID()
-    return self._id
-end
-
-function Webhook:GetToken()
-    return self._token
-end
-
-function Webhook:GetURL()
-    return self.url
-end
-
 function Webhook:IsValid()
     return (
-        type(self._token) == "string" and #self._token > 0 and
-        type(self._id) == "string" and #self._id > 0
+        type(self.url) == "string" and #self.url > 0
     )
 end
 

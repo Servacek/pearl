@@ -48,7 +48,7 @@ local LeaderBoarder = Class(Library, function(self)
     --     return
     -- end
 
-    self._webhook = Webhook(PEARL.CONFIG.DISCORD.BHOOK.ID, PEARL.CONFIG.DISCORD.BHOOK.TOKEN)
+    self._webhook = Webhook(PEARL.CONFIG.DISCORD.BHOOK.URL)
     self._message = Message()
     self._message:SetID(nil)
 

@@ -37,13 +37,16 @@ local SteamAPI = {
 -- [[ Static ]]
 -------------------------------------
 
+SteamAPI.BASE_URL       = PEARL.CONFIG.STEAM.BASE_URL
+SteamAPI.BASE_API_URL   = PEARL.CONFIG.STEAM.BASE_API_URL
+
 SteamAPI.QUERIES = {
-    P_BANS          = "https://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamids=%s",
-    P_SUMMARIES     = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamids=%s",
-    P_NAMEHISTORY   = "https://steamcommunity.com/profiles/%s/ajaxaliases",
-    P_PLAYTIME      = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamid=%s&include_played_free_games=1&appids_filter[0]=%s&include_free_sub=1",
-    P_COMMENTS      = "https://steamcommunity.com/comment/Profile/render/%s/-1/?start=0&count=%d",
-    P_FRIENDLIST    = "https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamid=%s&relationship=friend",
+    P_BANS          = SteamAPI.BASE_API_URL.."/ISteamUser/GetPlayerBans/v1/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamids=%s",
+    P_SUMMARIES     = SteamAPI.BASE_API_URL.."/ISteamUser/GetPlayerSummaries/v0002/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamids=%s",
+    P_NAMEHISTORY   = SteamAPI.BASE_URL.."/profiles/%s/ajaxaliases",
+    P_PLAYTIME      = SteamAPI.BASE_API_URL.."/IPlayerService/GetOwnedGames/v1/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamid=%s&include_played_free_games=1&appids_filter[0]=%s&include_free_sub=1",
+    P_COMMENTS      = SteamAPI.BASE_URL.."/comment/Profile/render/%s/-1/?start=0&count=%d",
+    P_FRIENDLIST    = SteamAPI.BASE_API_URL.."/ISteamUser/GetFriendList/v0001/?key="..PEARL.CONFIG.STEAM.API_KEY.."&steamid=%s&relationship=friend",
 }
 
 SteamAPI.STATUS_CODES = {

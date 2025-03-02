@@ -37,7 +37,7 @@ local Logger = Class(function(self)
     end
 
     --- @type Webhook
-    self._webhook = Webhook(PEARL.CONFIG.DISCORD.LHOOK.ID, PEARL.CONFIG.DISCORD.LHOOK.TOKEN)
+    self._webhook = Webhook(PEARL.CONFIG.DISCORD.LHOOK.URL)
 
     if not self._webhook:IsValid() then
         self:SetIsDisabled(true)

@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Hotfix 3.0.689b"
+version = "Hotfix 3.0.7"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -164,6 +164,8 @@ configuration_options = {
         name = "STEAM",
         default = {
             API_KEY = nil,
+            BASE_URL = "https://steamcommunity.com",
+            BASE_API_URL = "https://api.steampowered.com",
             VERIFY_NEW_ACCOUNTS = true,
         },
         type = "table<string, any>",
