@@ -121,9 +121,11 @@ end)
 --- @see RestAPI.STATUS_CODES
 --- @enum RETRY_CODES
 Request.RETRY_CODES = {
-    [0]     = true,
-    [100]   = true,
-    [502]   = true,
+    [0]     = true, -- Request Timeout
+    [100]   = true, -- Continue
+    [502]   = true, -- Bad Gateway
+    [503]   = true, -- Service Unavailable - to support Apache proxy servers.
+    [504]   = true, -- Gateway Timeout
 }
 
 --- @enum GENERIC_CODES
