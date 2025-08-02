@@ -315,6 +315,7 @@ local STRINGS = {
             LOC_MODS = "Local Mods",
             PUB_MODS = "Steam Workshop Mods",
             TITLE = "%s's Enabled Mods",
+            TITLE_SERVER = "Enabled Mods on the Server",
             THMB_URL = "https://cdn.discordapp.com/attachments/1066442901380403333/1093953980482211862/wrench.png",
             FOOTER = "%s/%s",
             ALLOWLIST = "Allowlist is enabled.",
@@ -382,7 +383,7 @@ end
         ]]
     },
 
-    LOGS        = {
+     LOGS        = {
         --PLAYER_COUNT            = "%s Total players: %d/%d", -- Not needed currently
         OWNER                   = "%s Owner: %s",
         ITEM                    = "%dx %s",
@@ -428,6 +429,8 @@ end
         LOCALIZATION_TIMEOUT    = "Localization process for client %s has timed out!",
         MIGRATING               = "%s is migrating to shard %s.",
         WARNED                  = "%s was warned for griefing!",
+        PLAYER_RENAMED          = "%s was renamed from %s to %s.",
+        CLIENT_LOCALE_CHANGED   = "Locale for %s changed from %s to %s",
         STAFF_CALLED            = "Admins and server moderators were notified.",
         SKIN_RECEIVED           = "%s received %s!",
         QUAKE_START             = "An earthquake has started!",
@@ -439,6 +442,8 @@ end
 
         SPAWN                   = "Spawning %s in shard %s",
         SPAWN_AT                = "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f",
+        SPAWN_AT_BASE_NEAR      = "Player %s was spawned at the base near %s",
+        DESPAWN_AT              = "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f",
 
         PRECIPITATION_START     = "It started %s!",
         PRECIPITATION_STOP      = "It stopped %s.",
@@ -471,7 +476,8 @@ end
         DAYSBACK_AFTER          = "Rolling server back to day %s in %s second(s)!",
         DAYSBACK_COUNT          = "Rolling server %s day(s) back!",
         DAYSBACK_COUNT_AFTER    = "Rolling server %s day(s) back in %s second(s)!",
-        SAVE                    = "Saving world on shard %s...",
+        SAVE                    = "Saving world on shard %s as snapshot %s...",
+        AUTO_SAVE               = "Auto-Saving world on shard %s as snapshot %s...",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
         SHUTDOWN_ERROR          = "Shard %s has crashed!",
@@ -492,22 +498,25 @@ end
         SIM_PAUSED              = "Simulation was paused.",
         SIM_UNPAUSED            = "Simulation was unpaused.",
 
+        LAST_CRASH_LOG_FETCHED  = "**Last uncatched crash log for player (`%s`) %s:**",
+        LOST_CONNECTION         = "> %s\nNext time this user joins the game, attempts will be made to fetch the crash logs.",
+
         -- We assume that catched exceptions are always caused by us.
-        EXC_CATCHED_SERVER      = "Catched exception:\n%s",
-        EXC_CATCHED_SHARD       = "Catched exception on shard %s:\n%s",
-        EXC_CATCHED_CLIENT      = "Catched exception on client (%s) %s:\n%s",
+        EXC_CATCHED_SERVER      = "**Catched exception**\n%s",
+        EXC_CATCHED_SHARD       = "**Catched exception on shard %s**\n%s",
+        EXC_CATCHED_CLIENT      = "**Catched exception on client (%s) %s**\n%s",
 
-        EXC_SERVER              = "Uncatched exception:\n%s",
-        EXC_SHARD               = "Uncatched exception on shard %s:\n%s",
-        EXC_CLIENT              = "Uncatched exception on client (%s) %s:\n%s",
+        EXC_SERVER              = "**Uncatched exception**\n%s",
+        EXC_SHARD               = "**Uncatched exception on shard %s**\n%s",
+        EXC_CLIENT              = "**Uncatched exception on client (%s) %s**\n%s",
 
-        EXC_SELF_SERVER         = "Caused uncatched exception:\n%s",
-        EXC_SELF_SHARD          = "Caused uncatched exception on shard %s:\n%s",
-        EXC_SELF_CLIENT         = "Caused uncatched exception on client (%s) %s:\n%s",
+        EXC_SELF_SERVER         = "**Caused uncatched exception**\n%s",
+        EXC_SELF_SHARD          = "**Caused uncatched exception on shard %s**\n%s",
+        EXC_SELF_CLIENT         = "**Caused uncatched exception on client (%s) %s**\n%s",
 
-        EXC_MOD_SERVER          = "Mod %s caused uncatched exception:\n%s",
-        EXC_MOD_SHARD           = "Mod %s caused uncatched exception on shard %s:\n%s",
-        EXC_MOD_CLIENT          = "Mod %s caused uncatched exception on client (%s) %s:\n%s",
+        EXC_MOD_SERVER          = "**Mod %s caused uncatched exception**\n%s",
+        EXC_MOD_SHARD           = "**Mod %s caused uncatched exception on shard %s**\n%s",
+        EXC_MOD_CLIENT          = "**Mod %s caused uncatched exception on client (%s) %s**\n%s",
 
         EXC_ENABLED_MODS        = "Enabled Mods (%s):\n%s",
 
@@ -546,10 +555,10 @@ end
         USER_INACTIVE           = "%s went away...",
         USER_INACTIVE_KICKED    = "%s was kicked for inactivity.",
 
-        SEARCH_RESULTS_FOR = "**Search results for `%s` (`%d`):**",
+        SEARCH_RESULTS_FOR      = "Search results for `%s` (`%d`):",
 
-        PLAYER_REPORT         = "%s [@here] `%s` %s **%s**: %s",
-        PLAYER_REPORT_EMPTY   = "%s [@here] `%s` %s **%s**",
+        PLAYER_REPORT           = "%s [@here] `%s` %s **%s**: %s",
+        PLAYER_REPORT_EMPTY     = "%s [@here] `%s` %s **%s**",
     },
 
     SHARD_STATE             = {
@@ -949,6 +958,7 @@ end
 
                 NO_CFD     = "Failed to fetch player's mods!",
                 NO_MODS    = "This player does not use any mods now.",
+                NO_SERVER_MODS = "This server is completely vanilla!",
                 ON_SUCCESS = "The mod list was sent to discord.",
             },
 

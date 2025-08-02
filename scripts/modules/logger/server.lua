@@ -16,6 +16,7 @@ local TheShard = TheShard
 
 local MARKDOWN = PEARL.loadfile("libraries/markdown")
 local EMBEDS = PEARL.loadfile("utils/embeds")
+local ICONS = PEARL.loadfile("constants/icons")
 
 local Message = PEARL.loadfile("libraries/discordapi/models/message")
 local LogLine = PEARL.loadfile("libraries/discordapi/models/logline")
@@ -46,6 +47,7 @@ local function OnShutdown(error)
     )
 end
 
+--- @TODO: Log temporary bans
 local function OnClientBanned(userid)
     -- Log only offline players being banned, since they are announced by the game itself otherwise.
     if userid and not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
@@ -97,13 +99,33 @@ local function OnServerUnpaused(doer)
     )
 end
 
-local function OnFirstLaunch()
+local function OnInitialFullLaunch()
     -- TheWorld should exist at this point
     if _is_shutting_down then
         return
     end
 
+    --- @TODO: This is just an proof-of-concept and it needs improvements!
     PEARL.DiscordLogger:LogEmbed(EMBEDS.ServerInfo(true))
+        :SetDefaultTable({
+            components = {
+                {
+                    type = 1,
+                    components = {
+                        {
+                            type = 2,
+                            label = "Pripojiť sa",
+                            style = 5,
+                            url = "https://tinyurl.com/542d759a",
+                            emoji = {
+                                id = (ICONS.JOIN:split(":")[3]:gsub(">", "")),
+                                name = ICONS.JOIN:split(":")[2],
+                            },
+                        }
+                    }
+                }
+            }
+        })
 end
 
 local function OnShardLoaded(master)
@@ -118,7 +140,7 @@ local function OnShardLoaded(master)
 end
 
 --- This is the first log we get from an instance.
-local function OnModBackendPostInit()
+local function OnSystemPostInit()
     if PEARL.IsShuttingDown() then
         return
     end
@@ -146,6 +168,22 @@ local function OnErrorCatched(traceback)
 
 end
 
+local function OnDatabaseFieldChanged(userid, field, new_value, old_value)
+    if field == "username" and old_value ~= nil then
+        PEARL.DiscordLogger:LogStringHighlighted(STRINGS.PEARL.LOGS.PLAYER_RENAMED:format(
+            MARKDOWN.codeline(userid), MARKDOWN.codeline(old_value), MARKDOWN.codeline(new_value)
+        ), PEARL.ICONS.TAG)
+    end
+
+    if field == "lastlocale" and old_value ~= nil then
+        PEARL.DiscordReporter:SendRawReportMessage(
+            STRINGS.PEARL.LOGS.LOCALE_CHANGED:format(
+                MARKDOWN.codeline(userid), MARKDOWN.codeline(old_value), MARKDOWN.codeline(new_value)
+            )
+        )
+    end
+end
+
 -------------------------------
 -- [[ Listeners ]]
 -------------------------------
@@ -169,7 +207,7 @@ PEARL.AddSimPostInit(function()
 
         -- initial + current
         if PEARL.IsFirstLaunch() then
-            OnFirstLaunch()
+            OnInitialFullLaunch()
         end
     end
 end)
@@ -177,8 +215,9 @@ end)
 --- This is actually the point where most of the mod's stuff is loaded.
 --- (translations, rpcs, ...)
 PEARL.AddFrontEndPostInit(function(fe)
-    if TheShard:IsMaster() and TheSim:GetNumLaunches() > 1 then
-        OnModBackendPostInit()
+    -- Run only on the first launch
+    if TheShard:IsMaster() and not PEARL.SUBSEQUENT_LAUNCH then
+        OnSystemPostInit()
     end
 end)
 
@@ -191,9 +230,10 @@ if TheShard:IsMaster() then
 
     PEARL.EventProcessor:AddSafeEventHandler("simulation_unpaused", OnSimUnpaused)
 
-    --- @DEBUG
     PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerPaused)
-    PEARL.EventProcessor:AddSafeEventHandler("server_paused", OnServerUnpaused)
+    PEARL.EventProcessor:AddSafeEventHandler("server_unpaused", OnServerUnpaused)
 end
 
 PEARL.EventProcessor:AddSafeEventHandler("errorcatched", OnErrorCatched)
+
+PEARL.EventProcessor:AddSafeEventHandler("db_fieldchanged", OnDatabaseFieldChanged)

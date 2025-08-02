@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Hotfix 3.0.7-503"
+version = "Release 3.0.7e+308"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -415,6 +415,20 @@ configuration_options = {
         name = "EMPTY_SERVER_POPUP",
         default = true,
         type = "boolean",
+        public = true,
+    },
+
+
+    {
+        name="BASE_SPAWNER",
+        default = {
+            ENABLED = false,
+            TRUSTED_ONLY = true,
+            BASE_RADIUS = 16,
+            UNIQUE_BASE_STRUCTURE_THRESHOLD = 4,
+            SPAWN_STRUCTURE_PREFAB = "firepit",
+        },
+        type = "table",
         public = true,
     },
 

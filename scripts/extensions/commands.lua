@@ -372,11 +372,29 @@ AddCommand("admins", {
 
 AddCommand("mods", {
     permission = COMMAND_PERMISSION.ADMIN,
-    options = {PARAMS.PLAYER},
+    options = {PARAMS.PLAYER{optional = true}},
 
     --- @param ctx CommandContext
-    --- @param userid string
+    --- @param userid string?
     fn = function(ctx, userid)
+        if userid == nil then
+            -- No player specified, show mods of the server itself.
+            local server_mod_names = ModManager:GetServerModsNames()
+            if table.empty(server_mod_names) then
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS)
+            end
+
+            local server_mod_data = {
+                list = table.map(server_mod_names, function(modname)
+                    return KnownModIndex:CreateReportForMod(modname)
+                end),
+                count = #server_mod_names,
+            }
+            return ctx:ReplyDiscordEmbed(EMBEDS.ModsList(server_mod_data)
+                :SetTitle(STRINGS.PEARL.EMBEDS.MODS.TITLE_SERVER)
+            )
+        end
+
         -- First try to get the mods from the CFD since that"s faster
         local cfd = PEARL.ServerNetwork:GetCachedCFDFor(userid)
         local mods = cfd and cfd.enabled_mods

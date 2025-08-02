@@ -860,22 +860,22 @@ msgstr "%s bol/a neočakávane odpojený/á od shardu %s ako %s %s"
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_CLIENT"
-msgid "Catched exception on client (%s) %s:\n%s"
+msgid "**Catched exception on client (%s) %s**\n%s"
 msgstr "**Zachytená výnimka hráča (%s) %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_SERVER"
-msgid "Catched exception:\n%s"
+msgid "**Catched exception**\n%s"
 msgstr "**Zachytená výnimka**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_CATCHED_SHARD"
-msgid "Catched exception on shard %s:\n%s"
+msgid "**Catched exception on shard %s**\n%s"
 msgstr "**Zachytená výnimka shardu %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_CLIENT"
-msgid "Uncatched exception on client (%s) %s:\n%s"
+msgid "**Uncatched exception on client (%s) %s**\n%s"
 msgstr "**Neočakávaná výnimka hráča (%s) %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_ENABLED_MODS
@@ -885,42 +885,42 @@ msgstr "Aktívne Modifikácie Hry (%s)\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_MOD_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_CLIENT"
-msgid "Mod %s caused uncatched exception on client (%s) %s:\n%s"
+msgid "**Mod %s caused uncatched exception on client (%s) %s**\n%s"
 msgstr "**Mod %s spôsobil výnimku hráča (%s) %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_MOD_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_SERVER"
-msgid "Mod %s caused uncatched exception:\n%s"
+msgid "**Mod %s caused uncatched exception**\n%s"
 msgstr "**Mod %s spôsobil výnimku**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_MOD_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_MOD_SHARD"
-msgid "Mod %s caused uncatched exception on shard %s:\n%s"
+msgid "**Mod %s caused uncatched exception on shard %s**\n%s"
 msgstr "**Mod %s spôsobil výnimku shardu %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_SELF_CLIENT
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_CLIENT"
-msgid "Caused uncatched exception on client (%s) %s:\n%s"
+msgid "**Caused uncatched exception on client (%s) %s**\n%s"
 msgstr "**Systém spôsobil neočakávanú výnimku hráča (%s) %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_SELF_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SERVER"
-msgid "Caused uncatched exception:\n%s"
+msgid "**Caused uncatched exception**\n%s"
 msgstr "**Systém spôsobil neočakávanú výnimku**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_SELF_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_SELF_SHARD"
-msgid "Caused uncatched exception on shard %s:\n%s"
+msgid "**Caused uncatched exception on shard %s**\n%s"
 msgstr "**Systém spôsobil neočakávanú výnimku shardu %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_SERVER
 msgctxt "STRINGS.PEARL.LOGS.EXC_SERVER"
-msgid "Uncatched exception:\n%s"
+msgid "**Uncatched exception**\n%s"
 msgstr "**Neočakávaná výnimka**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXC_SHARD
 msgctxt "STRINGS.PEARL.LOGS.EXC_SHARD"
-msgid "Uncatched exception on shard %s:\n%s"
+msgid "**Uncatched exception on shard %s**\n%s"
 msgstr "**Neočakávaná výnimka na sharde %s**\n%s"
 
 #. STRINGS.PEARL.LOGS.EXTINGUISH
@@ -1185,7 +1185,7 @@ msgstr "Server bude vrátený o %s snapshotov späť za %s sekúnd!"
 
 #. STRINGS.PEARL.LOGS.SAVE
 msgctxt "STRINGS.PEARL.LOGS.SAVE"
-msgid "Saving world on shard %s..."
+msgid "Saving world on shard %s as snapshot %s..."
 msgstr "Ukládanie sveta shardu %s ako uloženie číslo %s..."
 
 #. STRINGS.PEARL.LOGS.SAY
@@ -1200,7 +1200,7 @@ msgstr "[W] **%s**: *%s*"
 
 #. STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR
 msgctxt "STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR"
-msgid "**Search results for `%s` (`%d`):**"
+msgid "Search results for `%s` (`%d`):"
 msgstr "**Výsledky vyhľadávania pre `%s` (`%d`):**"
 
 #. STRINGS.PEARL.LOGS.SERVER_AUTOPAUSE
@@ -3693,6 +3693,11 @@ msgctxt "STRINGS.PEARL.EMBEDS.MODS.THMB_URL"
 msgid "https://cdn.discordapp.com/attachments/1066442901380403333/1093953980482211862/wrench.png"
 msgstr ""
 
+#. STRINGS.PEARL.EMBEDS.MODS.TITLE_SERVER
+msgctxt "STRINGS.PEARL.EMBEDS.MODS.TITLE_SERVER"
+msgid "Enabled Mods on the Server"
+msgstr ""
+
 #. STRINGS.PEARL.EMBEDS.PLAYERS.AUTHOR_ICON_URL
 msgctxt "STRINGS.PEARL.EMBEDS.PLAYERS.AUTHOR_ICON_URL"
 msgid "https://cdn.discordapp.com/attachments/1066442901380403333/1066442981353201854/dedicated.png"
@@ -3823,9 +3828,24 @@ msgctxt "STRINGS.PEARL.HM_TIME_FORMAT"
 msgid "%dh %dm"
 msgstr ""
 
+#. STRINGS.PEARL.LOGS.AUTO_SAVE
+msgctxt "STRINGS.PEARL.LOGS.AUTO_SAVE"
+msgid "Auto-Saving world on shard %s as snapshot %s..."
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED
+msgctxt "STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED"
+msgid "Locale for %s changed from %s to %s"
+msgstr ""
+
 #. STRINGS.PEARL.LOGS.DEPTH_WORMS
 msgctxt "STRINGS.PEARL.LOGS.DEPTH_WORMS"
 msgid "Depth Worms"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.DESPAWN_AT
+msgctxt "STRINGS.PEARL.LOGS.DESPAWN_AT"
+msgid "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
@@ -3843,9 +3863,24 @@ msgctxt "STRINGS.PEARL.LOGS.ITEM"
 msgid "%dx %s"
 msgstr ""
 
+#. STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED
+msgctxt "STRINGS.PEARL.LOGS.LAST_CRASH_LOG_FETCHED"
+msgid "**Last uncatched crash log for player (`%s`) %s:**"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.LOST_CONNECTION
+msgctxt "STRINGS.PEARL.LOGS.LOST_CONNECTION"
+msgid "> %s\nNext time this user joins the game, attempts will be made to fetch the crash logs."
+msgstr ""
+
 #. STRINGS.PEARL.LOGS.PHASE
 msgctxt "STRINGS.PEARL.LOGS.PHASE"
 msgid "%s"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.PLAYER_RENAMED
+msgctxt "STRINGS.PEARL.LOGS.PLAYER_RENAMED"
+msgid "%s was renamed from %s to %s."
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.PLAYER_REPORT
@@ -3866,6 +3901,11 @@ msgstr ""
 #. STRINGS.PEARL.LOGS.SAY_DM
 msgctxt "STRINGS.PEARL.LOGS.SAY_DM"
 msgid "[DM] **%s** > **%s**: *%s*"
+msgstr ""
+
+#. STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR
+msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR"
+msgid "Player %s was spawned at the base near %s"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.TAG
@@ -3891,6 +3931,11 @@ msgstr ""
 #. STRINGS.PEARL.SHARDS.SECONDARY
 msgctxt "STRINGS.PEARL.SHARDS.SECONDARY"
 msgid "Caves"
+msgstr ""
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS"
+msgid "This server is completely vanilla!"
 msgstr ""
 
 #. STRINGS.PEARL.UI.CLIENTERROR_DETAIL

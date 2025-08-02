@@ -396,14 +396,15 @@ function EMBEDS.WorldInfo(world, session_id, regen)
     local displayed = {}
     local displayed_count = 0
     local max_displayed = 10 * 2 -- For generation options and world setting
+    local overrides_count = 0
     for _, customization in ipairs(customizations) do
-        local override = world.topology.overrides[customization.name] or customization.default
+        local override = (world.topology and world.topology.overrides[customization.name]) or customization.default
         if override ~= customization.default then
-            displayed[customization.name] = override
-            displayed_count = displayed_count + 1
+            overrides_count = overrides_count + 1
 
-            if displayed_count >= max_displayed then
-                break
+            if displayed_count < max_displayed then
+                displayed[customization.name] = override
+                displayed_count = displayed_count + 1
             end
         end
     end
@@ -417,9 +418,9 @@ function EMBEDS.WorldInfo(world, session_id, regen)
             description = description..name..string.rep(" ", spacing).." = "..value.."\n"
         end
 
-        if #displayed < #customizations then
+        if displayed_count < overrides_count then
             description = description.."... ("..STRINGS.PEARL.EMBEDS.WORLD.OTHER:format(
-                table.size(customizations) - displayed_count
+                overrides_count - displayed_count
             )..")\n"
         end
 
@@ -437,9 +438,12 @@ function EMBEDS.WorldInfo(world, session_id, regen)
 
         :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SEED, MARKDOWN.codeline(seed), true)
         :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SESSION_ID, MARKDOWN.codeline(session_id), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SNAPSHOT_ID, MARKDOWN.codeline(TheNet:GetCurrentSnapshot() or "???"), true)
         :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.SAVE_VERSION, MARKDOWN.codeline(save_version), true)
+        :AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.GEN_VERSION, MARKDOWN.codeline(APP_VERSION or "???"), true)
 
     if TheShard:IsMaster() then
+        embed:AddField("** **", "**```"..STRINGS.PEARL.EMBEDS.WORLD.SETPIECE_SUBTITLE.."```**", false) -- Field with no title
         embed:AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.REED_TRAP, tostring(PEARL.CheckForReedTrap() and 1 or 0), true)
         embed:AddField(STRINGS.PEARL.EMBEDS.WORLD.FD_NAMES.WALRUS_CAMPS, tostring(PEARL.CountPrefabs("walrus_camp")), true)
     end
@@ -489,6 +493,63 @@ function EMBEDS.SkinReceived(username, skin_prefab)
     end
 
     return embed
+end
+
+--- @return Embed
+function EMBEDS.ModsList(mods_data)
+    local modlist = type(mods_data.list) == "table" and mods_data.list or {}
+    local description = ""
+    local max_id_size = PEARL.GetMaxStringSize(modlist, false, "id")
+
+    local loc_mods, pub_mods
+
+    -- Data processed here are untrusted.
+    for _, mod in pairs(modlist) do
+        local state_icon = (mod.allowed and mod.enabled) and PEARL.ICONS.CHECK or PEARL.ICONS.X
+        local fancyname = MARKDOWN.bold(type(mod.fancyname) == "string" and mod.fancyname:ltake(MAX_MODNAME_LEN, nil, "...") or "???")
+
+        local modid = ""
+        if not mod.private then
+            modid = type(mod.id) == "string" and mod.id:ltake(MAX_MODID_LEN) or "???"
+            local modid_spac = string.rep(" ", max_id_size - #mod.id)
+            modid = MARKDOWN.codeline(modid..modid_spac)
+            modid = (MARKDOWN.hlink(
+                modid, PEARL.CONSTS.STEAM_WORKSHOP:format(tostring(mod.id):ltake(MAX_MODID_LEN, nil, "..."))
+            ).." ")
+        end
+
+        local line = "> "..state_icon.." "..modid..(
+            mod.allowed and fancyname or MARKDOWN.strikethrough(fancyname)
+        ).."\n"
+
+        if mod.private then
+            loc_mods = (loc_mods or "")..line
+        else
+            pub_mods = (pub_mods or "")..line
+        end
+    end
+
+    if loc_mods then
+        description = description.."\n"..PEARL.ICONS.LOCAL.." "
+            ..MARKDOWN.bold(STRINGS.PEARL.EMBEDS.MODS.LOC_MODS).."\n"
+            ..loc_mods
+    end
+
+    if pub_mods then
+        description = description.."\n"..PEARL.ICONS.STEAM.." "
+            ..MARKDOWN.bold(STRINGS.PEARL.EMBEDS.MODS.PUB_MODS).."\n"
+            ..pub_mods
+    end
+
+    if description ~= "" and PEARL.CONFIG.MOD_BLOCKER.ALLOWLIST == true then
+        description = description.."\n"..PEARL.ICONS.ANNOUNCEMENTS["default"].." "..STRINGS.PEARL.EMBEDS.MODS.ALLOWLIST
+    end
+
+    return Embed()
+        :SetColor(Embed.COLORS.RED)
+        :SetTimestamp(os.time())
+        :SetThumbnail(STRINGS.PEARL.EMBEDS.MODS.THMB_URL)
+        :SetDescription(description)
 end
 
 --- @return Embed

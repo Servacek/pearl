@@ -78,7 +78,7 @@ end
 
 PEARL.AddClassFunctionPreCall("InitializeModMain", function(self, modname)
     if modname == PEARL.MODNAME then
-        return -- It's a reasonable idea to not block ourselves I guess.
+        return -- It's a reasonable idea to not block ourselves I suppose
     end
 
     if not KnownModIndex:IsModCompatibleWith(PEARL.MODNAME, modname) then

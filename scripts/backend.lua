@@ -628,6 +628,13 @@ PEARL.info("Loading commands...")
 PEARL.loadfile("extensions/usercommands")
 PEARL.loadfile("extensions/commands")
 
+----------------------------------
+-- Game Extensions
+----------------------------------
+
+PEARL.info("Loading game extensions...")
+PEARL.loadfile("extensions/modindex")
+
 --------------------------------
 -- [[ Debug Mode ]]
 --------------------------------
@@ -687,6 +694,7 @@ ModuleManager:AddModule("player_recorder", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("steamprofilefetcher", PEARL.CONFIG.DATABASE.ENABLED)
 ModuleManager:AddModule("globalbanlist", PEARL.CONFIG.GLOBAL_BANLIST.ENABLED and PEARL.CONFIG.GLOBAL_BANLIST.URL)
 ModuleManager:AddModule("autoban", PEARL.CONFIG.AUTOBAN.ENABLED)
+ModuleManager:AddModule("whereisbase", PEARL.CONFIG.BASE_SPAWNER.ENABLED)
 
 --- Filters
 ModuleManager:AddModule("filters/usernamefilter", PEARL.CONFIG.FILTER_USERNAMES)

@@ -125,7 +125,13 @@ function BufferedMessage:Clear()
         iclear(self._embeds)
     end
 
-    self:ClearAllowedMentions()
+    if self._allowed_mentions then
+        table.clear(self._allowed_mentions)
+    end
+
+    if self._default_table then
+        table.clear(self._default_table)
+    end
 end
 
 -------------------------------------

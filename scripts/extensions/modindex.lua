@@ -48,18 +48,19 @@ local function IsModReportable(modname)
     return KnownModIndex:IsModEnabledOrBlocked(modname)
 end
 
-local function CreateReportForMod(modname)
+---------------------------
+-- [[ Public ]]
+---------------------------
+
+function KnownModIndex:CreateReportForMod(modname)
     return {
         private     = KnownModIndex:IsModPrivate(modname),
         allowed     = KnownModIndex:IsModAllowed(modname),
+        enabled     = KnownModIndex:IsModEnabledAny(modname),
         id          = GetWorkshopIdNumber(modname),
         fancyname   = GetModFancyName(modname)
     }
 end
-
----------------------------
--- [[ Public ]]
----------------------------
 
 function KnownModIndex:IsClientOnlyMod(modname)
     local modinfo = KnownModIndex:GetModInfo(modname)
@@ -127,7 +128,7 @@ function KnownModIndex:IsModCompatibleWith(modname, target_modname)
 end
 
 function KnownModIndex:IsModAllowed(modname)
-    if (TheNet:GetIsServerAdmin() and not PEARL.CONFIG.DEBUG_MODE) or modname == PEARL.MODNAME then
+    if ((TheNet:GetIsServerAdmin() or TheNet:GetIsServer()) and not PEARL.CONFIG.DEBUG_MODE) or modname == PEARL.MODNAME then
         return true -- All mods are allowed for admins
     end
 
@@ -220,7 +221,7 @@ function KnownModIndex:GetModsReport()
     -- Iterate over all mods since we count blocked mods as enabled even though they can be disabled.
     for _, modname in ipairs(self:GetModNames()) do
         if #report < MAX_REPORTS and IsModReportable(modname) then
-            local mod_report = CreateReportForMod(modname)
+            local mod_report = KnownModIndex:CreateReportForMod(modname)
             local prohibited = mod_report.allowed == false
 
             if prohibited then

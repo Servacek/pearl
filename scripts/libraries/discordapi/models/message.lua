@@ -80,6 +80,8 @@ local Message = PEARL.Class(function(self, content)
     self._components = nil
     self._allowed_mentions = nil
     self._id = nil
+
+    self._default_table = nil
 end)
 
 ------------------------------------------
@@ -364,6 +366,7 @@ function Message:AddComponent(data)
     return self
 end
 
+--- @TODO: This doesn't stack.
 --- @NOTE: Careful here.
 function Message:SetAllowedMentionTypes(mention_types)
     if type(self._allowed_mentions) ~= "table" then
@@ -409,13 +412,8 @@ function Message:AllowMentionsForUser(userid)
     return self
 end
 
-function Message:ClearAllowedMentions()
-    if self._allowed_mentions then
-        local parse = self._allowed_mentions and self._allowed_mentions.parse
-        cleartable(self._allowed_mentions)
-
-        self._allowed_mentions.parse = parse and iclear(parse) or {}
-    end
+function Message:SetDefaultTable(tbl)
+    self._default_table = tbl
 end
 
 ------------------------------------------
@@ -425,7 +423,7 @@ end
 function Message:ToTable()
     -- Send as few data here as possible since for every
     -- character we need to send one byte of data.
-    return {
+    local tbl = {
         content = utf8.decode_string(self:GetContent()),
         embeds = table.empty(self._embeds) == false and self._embeds or nil,
         flags = self._flags,
@@ -434,6 +432,8 @@ function Message:ToTable()
         allowed_mentions = table.empty(self._allowed_mentions) == false and self._allowed_mentions or DEFAULT_ALLOWED_MENTIONS,
         components = table.empty(self._components) == false and self._components or nil,
     }
+    local t = self._default_table and table.update(tbl, self._default_table) or tbl
+    return t
 end
 
 --- Converts the self message object to an json string.
