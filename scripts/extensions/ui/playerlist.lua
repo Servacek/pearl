@@ -69,8 +69,7 @@ PEARL.AddClassPostConstruct("widgets/redux/playerlist", function(self)
 
     ---------------------
 
-    -- Do not display the button if we are disabled.
-    if PEARL.AgreementManager:IsAgreementScreenEnabled() then
+    if PEARL.AgreementManager:IsAgreementButtonEnabled() then
         local button = TEMPLATES.AddSocialButton(root,
             "", STRINGS.PEARL.UI.AGREEMENT_BUTTON_HOVER,
             PEARL.ASSETS.SOCIAL_BUTTONS.TEXTURES.AGREEMENT, nil, true

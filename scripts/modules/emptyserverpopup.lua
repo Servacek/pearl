@@ -17,8 +17,10 @@ local PopupDialogScreen = require("screens/redux/popupdialog")
 
 
 local OnPlayerEnteredLobby
-OnPlayerEnteredLobby = function(world, player)
-    if #GetPlayerClientTable() > 1 then
+OnPlayerEnteredLobby = function(world)
+    local userid = TheNet:GetUserID()
+    -- Show the popup only when the player joins the server from lobby.
+    if #GetPlayerClientTable() > 1 or not PEARL.ClientNetwork:JoinedFromLobby() then
         return
     end
 

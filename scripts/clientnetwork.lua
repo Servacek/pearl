@@ -66,6 +66,9 @@ local _disconnected_by_server = false
 local _force_disconnected = false
 local _connection_allowed = false
 
+--- @type table
+local _connection_output_data = {}
+
 local _hasrecord = false
 
 --- @type Task?
@@ -234,7 +237,16 @@ function ClientNetwork:JoinedFirstTime()
         return false
     end
 
-    return _hasrecord
+    print("------------------------------------")
+    print(_connection_output_data.first_time_joined, _connection_output_data.new_session_file)
+    print("-----------------------------------")
+
+    return _connection_output_data.first_time_joined == true and
+           _connection_output_data.new_session_file == true
+end
+
+function ClientNetwork:JoinedFromLobby()
+    return _connection_output_data.joined_from_lobby == true
 end
 
 ----------------------------------
@@ -259,20 +271,18 @@ function ClientNetwork:OnTimeout()
 end
 
 -- Note that it's common for servers to send multiple responses.
-function ClientNetwork:OnConnectionAllowed(initial)
-    PEARL.info("ClientNetwork:OnConnectionAllowed", initial)
+function ClientNetwork:OnConnectionAllowed(data)
+    PEARL.info("ClientNetwork:OnConnectionAllowed", data)
     self:CancelTimeout()
 
-    -- This is for backwards compatibility when the database
-    -- doesn't have a record yet but we have already agreed to the agreement.
-    _hasrecord = initial == false
+    _connection_output_data = data
 
     if self:IsDisconnected() or _connection_allowed then
         return -- Server already responded - Ignore
     end
 
     _connection_allowed = true
-    PEARL.EventProcessor:HandleEvent("connection_allowed", initial)
+    PEARL.EventProcessor:HandleEvent("connection_allowed", data)
 
     -- If the connection is allowed, remove the deferant
     -- potentially loading the client as well if we are the last one.

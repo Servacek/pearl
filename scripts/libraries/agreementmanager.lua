@@ -114,17 +114,22 @@ end
 
 --- @return boolean enabled Whether the agreement screen was configured by the server.
 function AgreementManager:IsAgreementScreenEnabled()
-    return type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table"
+    return type(PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT) == "table" and PEARL.CONFIG.INTRO_SCREEN.SHOW_AGREEMENT == true
+end
+
+--- @return boolean enabled Whether the agreement screen buttons is enabled.
+function AgreementManager:IsAgreementButtonEnabled()
+    return PEARL.CONFIG.INTRO_SCREEN.SHOW_AGREEMENT_BUTTON == true
 end
 
 --- @return boolean enabled Whether the welcome popup was configured on the server.
-function AgreementManager:IsIntroPopupEnabled()
-    return type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table"
+function AgreementManager:IsWelcomeScreenEnabled()
+    return type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) == "table" and PEARL.CONFIG.INTRO_SCREEN.SHOW_WELCOME_POPUP == true
 end
 
 --- @return boolean enabled Whether at least one of the introduction components is enabled.
 function AgreementManager:IsEnabled()
-    return self:IsAgreementScreenEnabled() or self:IsIntroPopupEnabled()
+    return self:IsAgreementScreenEnabled() or self:IsWelcomeScreenEnabled()
 end
 
 ---  BOTH are required for more precise searching

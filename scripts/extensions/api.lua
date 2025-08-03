@@ -569,7 +569,7 @@ end
 ---@param entity? unknown The entity the announcement is about.
 ---@param silent? boolean Whether the announcement should be sent to game or not.
 ---@param icon? string The specific icon for silent announcements.
-function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
+function PEARL.AnnounceWithType(str, tp, entity, silent, icon, force)
     PEARL.debug("PEARL.AnnounceWithType", tp)
 
     tp = tp and string.lower(tp) or "default"
@@ -586,7 +586,7 @@ function PEARL.AnnounceWithType(str, tp, entity, silent, icon, timestamp)
     end
 
     -- Check for explicit false so by default is everything enabled.
-    if enabled ~= false and silent ~= true then
+    if (enabled ~= false and silent ~= true) or force == true then
         -- If there is no UI icon for the announcement display the default one
         if type(ANNOUNCEMENT_ICONS[tp]) ~= "table" then
             tp = "default"

@@ -45,6 +45,8 @@ local FETCH_RETRY_CODES = {
     [200] = true, -- Success status code but not all data were sent - server hang up the connection
 }
 
+local EVENTS_POST_BUFFER_TIMEOUT = 1
+
 --------------------------------
 -- [[ Class Declaration ]]
 --------------------------------
@@ -59,6 +61,8 @@ local DiscordProxy = {
     fetch_task = nil,
     --- @type number
     fetch_last_start_time = 0,
+
+    post_events_task = nil,
 
     --- @type table<string, table<string, any>?>
     events = {
@@ -250,37 +254,16 @@ end
 local function OnFetchInput()
     PEARL.debug("OnFetchInput", DiscordProxy.fetch_last_start_time)
 
-    --- @TODO: This isn't reliable, send a buffered request when the event happens!
-    -- Do it explicitly. Since implicit method changes are prohibited.
-    --local request
-    -- if table.empty(DiscordProxy.events) == false then
-    --     request = PEARL.HTTPClient:POST(DiscordProxy.URL.INPUT,
-    --         OnInputFetchingSuccessed, DiscordProxy.events, PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT
-    --     )
-    -- else
-    local request = PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT, OnInputFetchingSuccessed, PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT)
-    -- end
-
     DiscordProxy.fetch_last_start_time = walltime() or 0
     if DiscordProxy.fetch_task and DiscordProxy.fetch_task.running then
         DiscordProxy.fetch_task:stop() -- Stop until fetching is done - implementing a serial periodic task.
     end
 
-    request
-        -- We will retry again implicitly on the next cycle.
-        :SetMaxRetries(PEARL.CONFIG.DISCORD.PROXY.FETCH_RETRIES)
-        :SetTimeBetweenRetries(PEARL.CONFIG.DISCORD.PROXY.TIME_BETWEEN_FETCH_RETRIES)
-        :SetRetryCodesTable(FETCH_RETRY_CODES)
-        :AddOnError(OnFetchingFailed)
-        :AddStatusCodeHandle(500, OnProxyInternalError)
-        :AddStatusCodeHandle(204, function() end) -- Ignore empty responses
-        :AddStatusCodeHandle(202, function()
-            PEARL.info("Received request to restart the session from proxy server.")
-            DiscordProxy:RestartSession()
-        end)
-        :Send()
-
-    DiscordProxy:CleanupEvents()
+    DiscordProxy:SendFetchRequest(
+        PEARL.HTTPClient:GET(DiscordProxy.URL.INPUT,
+            OnInputFetchingSuccessed, PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT
+        )
+    )
 end
 
 --------------------------------
@@ -314,8 +297,26 @@ function DiscordProxy:CreateEvent(name, ...)
     }
 end
 
+function DiscordProxy:PostEvents()
+    self:SendFetchRequest(
+        PEARL.HTTPClient:POST(self.URL.INPUT,
+            OnInputFetchingSuccessed, self.events, PEARL.CONFIG.DISCORD.PROXY.FETCH_TIMEOUT
+        )
+    )
+
+    self:CleanupEvents();
+end
+
 function DiscordProxy:SetEventData(category, data)
     self.events[category] = data
+
+    if table.empty(self.events) == false then
+        -- self.post_events_task = PEARL.WallScheduler:ExecuteInTime(EVENTS_POST_BUFFER_TIMEOUT, function()
+            self:PostEvents()
+
+            -- self.post_events_task = nil
+        -- end)
+    end
 end
 
 function DiscordProxy:AddPlayerEvent(name, ...)
@@ -399,6 +400,23 @@ function DiscordProxy:RestartSession(retries)
     end
 
     self:StartSession(retries)
+end
+
+--- @param request Request
+function DiscordProxy:SendFetchRequest(request)
+    request
+        -- We will retry again implicitly on the next cycle.
+        :SetMaxRetries(PEARL.CONFIG.DISCORD.PROXY.FETCH_RETRIES)
+        :SetTimeBetweenRetries(PEARL.CONFIG.DISCORD.PROXY.TIME_BETWEEN_FETCH_RETRIES)
+        :SetRetryCodesTable(FETCH_RETRY_CODES)
+        :AddOnError(OnFetchingFailed)
+        :AddStatusCodeHandle(500, OnProxyInternalError)
+        :AddStatusCodeHandle(204, function() end) -- Ignore empty responses
+        :AddStatusCodeHandle(202, function()
+            PEARL.info("Received request to restart the session from proxy server.")
+            DiscordProxy:RestartSession()
+        end)
+        :Send()
 end
 
 function DiscordProxy:SendCachedCommandResponses()

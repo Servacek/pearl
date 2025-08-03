@@ -16,8 +16,8 @@
 -- [[ Constants ]]
 --------------------------------
 
-local LOBBY_REGIONS_URL = "https://lobby-v2-cdn.klei.com/regioncapabilities-v2.json"
-local LOBBY_BASE_URL = "https://lobby-v2-eu-central-1.klei.com/lobby/"
+local LOBBY_REGIONS_URL = PEARL.CONFIG.KLEI_LOBBY.REGIONS_URL
+local LOBBY_BASE_URL = PEARL.CONFIG.KLEI_LOBBY.BASE_URL
 local LOBBY_ENDPOINTS = {
     WRITE       = "write",
     READ        = "read",

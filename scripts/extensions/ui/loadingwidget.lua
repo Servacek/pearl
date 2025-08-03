@@ -281,7 +281,7 @@ PEARL.EventProcessor:AddSafeEventHandler("connection_allowed", function()
 
         -- Show nice welcome loading tips for newcomers.
         if PEARL.ClientNetwork:JoinedFirstTime() then
-            if CUSTOM_LOADING_TIPS_ENABLED then
+            if CUSTOM_LOADING_TIPS_ENABLED and PEARL.ClientNetwork:JoinedFromLobby() then
                 ShowWelcomeLoadingTip(self)
             end
 

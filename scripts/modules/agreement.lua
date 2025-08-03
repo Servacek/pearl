@@ -225,7 +225,11 @@ OnPlayerEnteredGame = function(world)
 
     -- Wait a tick here so everything is ready when we show the screen.
     PEARL.StaticScheduler:ExecuteInTime(0, function()
-        if PEARL.AgreementManager:IsIntroPopupEnabled() and not PEARL.AgreementManager:AgreementDisplayed() then
+        if (PEARL.AgreementManager:IsWelcomeScreenEnabled()
+            and not PEARL.AgreementManager:AgreementDisplayed()
+            and PEARL.ClientNetwork:JoinedFirstTime()
+            and PEARL.ClientNetwork:JoinedFromLobby()
+        ) then
             return ShowWelcomeScreen()
         end
 
@@ -233,8 +237,8 @@ OnPlayerEnteredGame = function(world)
     end)
 end
 
-local function OnConnectionAllowed(initial)
-    if initial == true and PEARL.AgreementManager:HasRecord() then
+local function OnConnectionAllowed(data)
+    if table.empty(data) == false and data.first_time_joined == true and PEARL.AgreementManager:HasRecord() then
         local version = PEARL.AgreementManager:GetLocalVersion()
 
         PEARL.AgreementManager:SyncAgreementDataWithServer(

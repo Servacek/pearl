@@ -60,7 +60,10 @@ DB = Library(DB)
 -- since lastseentime is asigned after the first leave.
 function DB:FirstTimeJoined(userid)
     local record = self:GetRecordFor(userid)
-    return record and record.lastseentime == nil
+    return record and (record.lastseentime == nil or (
+        (record.joinedtime == nil or record.joinedtime >= os.time() - 10) or
+        (record.joinedtime == record.lastseentime)
+    )) or false
 end
 
 --- @TODO: add these to some separate lib

@@ -24,7 +24,7 @@ local ChatMessage = PEARL.loadfile("models/chatmessage")
 -- Constants
 ----------------------------------
 
-local TIME_UNTIL_KICK = 10
+local CLOSE_CONNECTION_FINALIZE_AFTER = 5
 
 local ASYNC_FILTER_TIMEOUT = 2
 local MIN_ASYNC_FILTER_TIMEOUT = 2
@@ -38,19 +38,13 @@ local DEFAULT_RPC_TIMEOUT = 5
 -- Netvars
 ----------------------------------
 
--- local _server_slots
--- PEARL.AddWorldNetworkPostInit(function(inst)
---     if _server_slots == nil then
---         _server_slots = net_byte(inst.GUID, "_server_slots")
---         _server_slots:set(TheNet:GetDefaultMaxPlayers())
-            -- --- @param slots integer
-            -- function ServerNetwork:SetClientSlots(slots)
-            --     if _server_slots then
-            --         _server_slots:set(slots)
-            --     end
-            -- end
---     end
--- end)
+local _server_slots
+PEARL.AddWorldNetworkPostInit(function(inst)
+    if _server_slots == nil then
+        _server_slots = net_byte(inst.GUID, "_server_slots")
+        _server_slots:set(TheNet:GetDefaultMaxPlayers())
+    end
+end)
 
 ----------------------------------
 -- Locals
@@ -61,6 +55,9 @@ local conn_filters = {}
 
 --- @type table<string, table>
 local async_conn_filters = {}
+
+--- @type table<string, table>
+local acknowledgment_data = {}
 
 --- Let the cfd data be persistent.
 --- @type table<string, table<any, any>>
@@ -78,6 +75,9 @@ local client_cache = {}
 
 --- @type table<string, boolean>
 local joining_clients = {}
+
+--- @type table<string, boolean>
+local joining_from_lobby = {}
 
 --- Clients can send RPCs to from this shard.
 --- <AUTHENTICATION, DISCONNECT>
@@ -109,7 +109,7 @@ local ServerNetwork = {
 ----------------------------------
 
 local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
-    PEARL.debug("Async filters finished with result", allowed, "reason", reason)
+    PEARL.debug("Filters finished with result", allowed, "reason", reason)
 
     if not ServerNetwork:IsClientConnectedAny(userid) then
         return PEARL.debug("Already disconnected... Deffering filter results...")
@@ -119,19 +119,16 @@ local function _OnConnectionFiltersFinished(userid, allowed, reason, title)
         return ServerNetwork:CloseConnectionFor(userid, reason, false, title)
     end
 
-    if TheWorld then
-        TheWorld:PushModEvent("ms_clientconnected", {userid = userid})
-    end
-
-    local initial = false
-    if PEARL.DB:IsEnabled() then
-        -- Whether this is our first join according to the DB.
-        initial = PEARL.DB:FirstTimeJoined(userid)
-    end
-
     -- If all the filters have successfully passed, then the connection should be allowed.
-    PEARL.debug("Allowing connection for", userid, initial)
-    return ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
+    PEARL.debug("Allowing connection for", userid)
+    local data = {
+        first_time_joined = PEARL.DB:IsEnabled() and (PEARL.DB:FirstTimeJoined(userid) and not PEARL.ServerNetwork:UserSessionExists(userid)) or false,
+        new_session_file = not PEARL.ServerNetwork:UserSessionExists(userid),
+        last_unexpected_disconnection = PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "last_unexpected_disconnection"),
+        last_joined_time = PEARL.DB:IsEnabled() and PEARL.DB:GetField(userid, "lastjoinedtime"),
+        joined_from_lobby = joining_from_lobby[userid] == true,
+    }
+    ServerNetwork:SendUserConnectionAllowedFor(userid, data)
 end
 
 local function filter_comp(a, b)
@@ -250,77 +247,44 @@ function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason
     -- Since we are shutting down, the disconnect event
     -- wont be pushed anymore so do it now.
     if PEARL.IsShuttingDown() then
-        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, reason, reason_title)
+        PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", userid, true, reason, reason_title)
     end
+
+    self:OnClientDisconnectedLocally(userid)
 end
 
 -- This is a more forcefull version of SendUserDisconnectFor
-function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_title)
+function ServerNetwork:CloseConnectionFor(userid, reason, immediately, reason_title, finalizerfn)
     self:SendUserDisconnectFor(userid, reason, immediately, reason_title)
 
-    -- If not reason is specified and it's immediate disconnect, keep it silent.
+    -- If no reason is specified and it's immediate disconnect, keep it silent.
     -- Because we can use the disconnection internally (e. g. server updates)
-    if TheWorld ~= nil then
-        TheWorld:PushModEvent("clientconnectionclosed", {
-            userid = userid, reason = reason
-        })
-    end
+    PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason, true)
 
     -- Give a few seconds to the client so he can peacefully disconnect.
-    PEARL.WallScheduler:ExecuteInTime(TIME_UNTIL_KICK, function()
-        if not self:IsClientConnectedAny(userid) then
-            return PEARL.debug("Already disconnected...")
+    PEARL.WallScheduler:ExecuteInTime(CLOSE_CONNECTION_FINALIZE_AFTER, function()
+        if type(finalizerfn) == "function" then
+            finalizerfn(userid, reason, immediately, reason_title)
+        elseif self:IsClientConnectedAny(userid) then
+            -- Cleanup the connection in case it still hangs out here (doesn't work for admins).
+            PEARL.debug("Cleaning up the connection...")
+            TheNet:Kick(userid, PEARL.CONSTS.DISCONNECT_KICK_TIME)
         end
-
-        -- Kick out the connection from this shard,
-        -- so it doesn't block other incoming connections.
-        --
-        -- Note: This doesn't work for admins.
-        PEARL.debug("Kicking player from the server...")
-        TheNet:Kick(userid, PEARL.CONSTS.DISCONNECT_KICK_TIME)
     end)
 end
 
-function ServerNetwork:KickUser(userid, seconds, reason, author)
-    PEARL.debug("User", userid, "was kicked by", author or "[HOST]")
-    PEARL.EventProcessor:HandleEvent("clientkicked", userid, reason, author, seconds)
-
-    if type(reason) == "string" then
-        -- Display the reason if any.
-        self:CloseConnectionFor(
-            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_KICKED"]
-        )
-
-        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY, PEARL.Kick, nil, userid, seconds)
-        return
-    end
-
-    return PEARL.Kick(userid, seconds)
-end
-
-function ServerNetwork:BanUser(userid, seconds, reason, author)
-    PEARL.debug("ServerNetwork:BanUser", userid, seconds, reason, author)
-
-    if type(reason) == "string" and ServerNetwork:IsClientConnectedAny(userid) then
-        -- Display the reason if any.
-        self:CloseConnectionFor(
-            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
-        )
-
-        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
-            PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
-        )
-        return
-    end
-
-    return PEARL.BlackList:Add(userid, seconds, reason, author)
-end
-
 --- @param userid string
---- @param initial boolean? Whether this is the first connection according to the DB.
-function ServerNetwork:SendUserConnectionAllowedFor(userid, initial)
-    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid, "INIT:", initial)
-    PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, initial)
+--- @param data table? Whether this is the first connection according to the DB.
+function ServerNetwork:SendUserConnectionAllowedFor(userid, data)
+    PEARL.debug("ServerNetwork:SendUserConnectionAllowedFor", userid)
+
+    acknowledgment_data[userid] = data
+    PEARL.EventProcessor:HandleEvent("clientconnectionallowed", userid, data)
+    PEARL.SendRPCToClient(PEARL.RPC.ConnectionAllowed, userid, json.encode(data))
+end
+
+function ServerNetwork:IsClientFirstTimeOnServer(userid)
+    return acknowledgment_data[userid] and acknowledgment_data[userid].first_time_joined == true
 end
 
 function ServerNetwork:DisconnectAllClients(reason, immediately)
@@ -404,11 +368,7 @@ function ServerNetwork:RunJoinServerFiltersFor(userid)
         end
 
         if allowed == false then -- Check for explicit false
-            if TheWorld then
-                TheWorld:PushModEvent("clientconnectionclosed", {
-                    userid = userid, reason = reason or "ID_DST_SLOT_RESERVATION"
-                })
-            end
+            PEARL.EventProcessor:HandleEvent("clientconnectionclosed", userid, reason, true)
 
             return false
         end
@@ -468,7 +428,8 @@ function ServerNetwork:GetLocalClientIDs()
     return connected_clients
 end
 
---- So far, this is the most reliable approach.
+--- So far, this is the most reliable approach to get ALL connected clients on the server.
+--- This should output the same number on each connected shard.
 function ServerNetwork:GetConnectedClientsCount()
     -- Looks like TheNet:GetPlayerCount() counts only the local shard players.
     -- We decrement this by one because of the host client for dedicated servers.
@@ -517,14 +478,14 @@ end
 --- We are using all the available information for determining that. For greater precision
 --- of this function turn on the DB!
 function ServerNetwork:IsKleiIDKnown(id)
-    return PEARL.ServerNetwork:IsClientConnectedAny(id) or
-        PEARL.ServerNetwork:UserSessionExists(id) or
+    return self:IsClientConnectedAny(id) or
+        self:UserSessionExists(id) or
         PEARL.DB:HasRecordFile(id)
 end
 
 --- Whether the client is connected to the current shard.
 function ServerNetwork:IsClientConnected(userid)
-    return userid and connected_clients[userid] == true
+    return connected_clients[userid] == true
 end
 
 function ServerNetwork:IsShardConnected(shardid)
@@ -579,12 +540,13 @@ function ServerNetwork:IsClientPriviliged(userid)
 end
 
 function ServerNetwork:HasClientActiveInstance(userid)
-    return self:GetClientInstance(userid, true) ~= nil
+    return LookupPlayerInstByUserID(userid) ~= nil
 end
 
-function ServerNetwork:GetClientInstance(userid, active)
-    if active then
-        return LookupPlayerInstByUserID(userid)
+function ServerNetwork:GetClientInstance(userid, active_only)
+    local inst = LookupPlayerInstByUserID(userid)
+    if active_only == true or inst ~= nil then
+        return inst
     end
 
     local meta = PEARL.GetPlayerMetadataFor(userid, true)
@@ -652,6 +614,13 @@ function ServerNetwork:AddJoinServerFilter(filter)
     return table.insert(join_filters, filter)
 end
 
+--- @param slots integer
+function ServerNetwork:SetClientSlots(slots)
+    if _server_slots then
+        _server_slots:set(slots)
+    end
+end
+
 function ServerNetwork:CacheClientTableFor(userid)
     if type(userid) == "string" then
         client_cache[userid] = TheNet:GetClientTableForUser(userid)
@@ -678,7 +647,7 @@ function ServerNetwork:OnQuit()
     end
 end
 
-function ServerNetwork:OnClientFilterDataFailed(userid)
+function ServerNetwork:OnClientFilterDataTimedout(userid)
     PEARL.warn("Client", userid, "didn't send connection filter data to the server!")
     if PEARL.DiscordReporter then
         PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.LOGS.LOCALIZATION_TIMEOUT:format(
@@ -698,7 +667,10 @@ function ServerNetwork:OnInvalidRPCFromClient(rpc_name, userid)
     PEARL.EventProcessor:HandleEvent("invalidrpc", rpc_name, userid)
 end
 
-function ServerNetwork:OnClientDisconnected(userid)
+--- Locally means in our system.
+function ServerNetwork:OnClientDisconnectedLocally(userid)
+    PEARL.debug("OnClientDisconnectedLocally")
+
     joining_clients[userid] = nil
     connected_clients[userid] = nil
 end
@@ -708,16 +680,18 @@ function ServerNetwork:OnClientJoined(userid)
     self:CacheClientTableFor(userid)
 
     if self:IsClientJoining(userid) and self:GetCachedCFDFor(userid) == nil then
-        self:OnClientFilterDataFailed(userid)
+        self:OnClientFilterDataTimedout(userid)
     end
 
     joining_clients[userid] = nil
+    joining_from_lobby[userid] = nil
 
     PEARL.EventProcessor:HandleEvent("playerjoinedgame", userid)
 end
 
-function ServerNetwork:OnClientJoining(userid)
+function ServerNetwork:OnClientJoining(userid, from_lobby)
     joining_clients[userid] = true
+    joining_from_lobby[userid] = from_lobby == true
 end
 
 function ServerNetwork:OnClientAuthenticationComplete(userid)
@@ -777,8 +751,9 @@ end
 
 function ServerNetwork:OnRawConnectionData(userid, data)
     -- All the data is untrusted in this case.
+    -- Also data here is always being encoded and zipped to speed up the transmission.
     local data_tbl = DecodeAndUnzipString(data)
-    if type(data_tbl) ~= "table" or IsTableEmpty(data_tbl) then
+    if type(data_tbl) ~= "table" or table.empty(data_tbl) then
         return self:OnInvalidRPCFromClient("ConnectionFilterData", userid)
     end
 
@@ -790,7 +765,8 @@ end
 ----------------------------------
 
 function ServerNetwork:PrintDebugInfo()
-    table.dump(conn_data_cache)
+    table.dump(connected_clients)
+    table.dump(joining_clients)
 end
 
 ----------------------------------

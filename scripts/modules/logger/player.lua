@@ -341,6 +341,7 @@ RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
         end
 
         AL:EntityAct(pt, doer)
+            :SetIcon(food and food.prefab == "deerclops_eyeball" and PEARL.EMOJIS.GAME_TO_DISCORD.EYEBALL)
             :SetLogType(atyp)
             :SetIsSilent(silent)
             :AddTarget(food, 1)
@@ -602,7 +603,7 @@ RegisterPlayerActionHandler(ACTIONS.DIG, function(doer, target)
     end
 
     AL:EntityAct(STRINGS.PEARL.ACTIONS.DIG.GENERIC, doer)
-        :SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.SHOVEL)
+        :SetIcon(target and target:HasTag("grave") and PEARL.EMOJIS.GAME_TO_DISCORD.GRAVE or PEARL.EMOJIS.GAME_TO_DISCORD.SHOVEL)
         :SetIsSilent(true)
         :AddTarget(target)
 end)
@@ -960,6 +961,7 @@ local function onentitydeath(doer, target, data)
             :SetIsSilent(false)
             :SetColorEntity(doer)
             :AddTarget(target)
+            :SetIcon(target and target.prefab == "abigail" and PEARL.EMOJIS.GAME_TO_DISCORD.ABIGAIL or nil)
     end
 
     if not doer:HasTag("player") then
@@ -971,10 +973,16 @@ local function onentitydeath(doer, target, data)
         pt = STRINGS.PEARL.ACTIONS.KILL.STRUCTURE
     end
 
-    AL:EntityAct(pt, doer)
+    local action = AL:EntityAct(pt, doer)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.KILL)
         :SetColorEntity(doer)
         :AddTarget(target)
+
+    if target and target:HasTag("hive") then
+        action:SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.BEEHIVE)
+    elseif target and target:HasTag("spiderden") then
+        action:SetIcon(PEARL.EMOJIS.GAME_TO_DISCORD.WEB)
+    end
 end
 
 RegisterPlayerActionHandler(ACTIONS.MURDER, function(doer, target, item)
@@ -1153,6 +1161,7 @@ local function onbuilditem(doer, data)
     Rep:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM, nil, data.item.prefab)
 
     return AL:EntityAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
+        :SetIcon(target:HasTag("hat") and PEARL.EMOJIS.GAME_TO_DISCOED.TOPHAT or nil)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.CRAFT)
         :SetIsSilent(true)
         :AddTarget(target)
@@ -1383,6 +1392,12 @@ PEARL.AddComponentPostInit("finiteuses", function(self)
             if doer and doer.userid then
                 local rarity = math.min(self.inst:GetRarity(), 2)
                 PEARL.Reputation:EarnFor(doer.userid, REPUTATIONS.BROKE_REPAIRABLE * rarity)
+            end
+
+            if (PEARL.GetStandardizedNameFor(self.inst) == "MISSING NAME") and self.inst.prefab then
+                PEARL.DiscordReporter:SendRawReportString(STRINGS.PEARL.REPORTS.MISSING_NAME:format(
+                    tostring(self.inst.prefab)
+                ))
             end
 
             local pt = STRINGS.PEARL.ACTIONS.WOREOUT[doer and "DOER" or "GENERIC"]

@@ -36,10 +36,12 @@ local function IsStructureAtBase(inst)
 end
 
 
-local function FindStructureAtBase(prefab)
-    for _, ent in pairs(Ents) do
-        if ent.prefab == prefab and ent:GetCurrentPlatform() == nil and IsStructureAtBase(ent) then
-            return ent
+local function FindStructureAtBase(prefabs)
+    for _, prefab in ipairs(prefabs) do
+        for _, ent in pairs(Ents) do
+            if ent.prefab == prefab and ent:GetCurrentPlatform() == nil and ent:IsOnPassablePoint(false, true) and IsStructureAtBase(ent) then
+                return ent
+            end
         end
     end
 end
@@ -52,23 +54,32 @@ PEARL.AddWorldPostInit(function(world)
 
     local _SpawnAtLocation = world.components.playerspawner.SpawnAtLocation
     function world.components.playerspawner:SpawnAtLocation(world, player, x, y, z, isloading, ...)
-        --- Do only override on first join.
+        local spawned_at_base = false
+        --- Do only override on first join (in this session).
         if not isloading and not PEARL.ServerNetwork:UserSessionExists(player.userid) then
-            local structure_at_base = FindStructureAtBase(PEARL.CONFIG.BASE_SPAWNER.SPAWN_STRUCTURE_PREFAB)
+            local structure_at_base = FindStructureAtBase(PEARL.CONFIG.BASE_SPAWNER.SPAWN_STRUCTURE_PREFABS)
             if structure_at_base ~= nil and structure_at_base.Transform then
+                -- No need for the preparations since there will be spawned a temporary life zone.
                 -- Prepare the spawnpoint for the new player.
-                if structure_at_base
-                    and structure_at_base.prefab == PEARL.DEFAULT_CONFIG.BASE_SPAWNER.SPAWN_STRUCTURE_PREFAB
-                    and structure_at_base.components.fueled ~= nil
-                    and structure_at_base.components.fueled.currentfuel < TUNING.FIREPIT_FUEL_START
-                then
-                    -- Fuel the firepit a bit before spawning the player.
-                    structure_at_base.components.fueled:InitializeFuelLevel(TUNING.FIREPIT_FUEL_START)
-                end
+                -- if structure_at_base
+                --     and structure_at_base.prefab == PEARL.DEFAULT_CONFIG.BASE_SPAWNER.SPAWN_STRUCTURE_PREFABS
+                --     and structure_at_base.components.fueled ~= nil
+                --     and structure_at_base.components.fueled.currentfuel < TUNING.FIREPIT_FUEL_START
+                -- then
+                --     -- Fuel the firepit a bit before spawning the player.
+                --     structure_at_base.components.fueled:InitializeFuelLevel(TUNING.FIREPIT_FUEL_START)
+                -- end
+
+                -- Ensure spawn protection is applied.
+                player:AddDebuff("spawnprotectionbuff", "spawnprotectionbuff")
 
                 local _x, _y, _z = structure_at_base.Transform:GetWorldPosition()
                 if _x and _y and _z and (math.abs(x - _x) > 50 or math.abs(z - _z) > 50) then
-                    x, y, z = _x, _y, _z
+                    repeat
+                        x = _x + math.random(-5, 5)
+                        z = _z + math.random(-5, 5)
+                        y = _y
+                    until TheWorld.Map:IsPassableAtPoint(x, 0, z)
                     PEARL.DiscordLogger:LogString(STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR:format(
                         player:GetDisplayName(), structure_at_base:GetStandardizedName()
                     ), PEARL.EMOJIS.GAME_TO_DISCORD.FIREPIT)
@@ -76,6 +87,8 @@ PEARL.AddWorldPostInit(function(world)
             end
         end
 
-        return _SpawnAtLocation(self, world, player, x, y, z, ...)
+        -- We will lie here a bit, because intially there is no spawn FX being played,
+        -- since that's usually handled by the portal. Here we do not have a portal.
+        return _SpawnAtLocation(self, world, player, x, y, z, (spawned_at_base and true) or isloading, ...)
     end
 end)

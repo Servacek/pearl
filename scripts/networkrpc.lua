@@ -91,8 +91,13 @@ local CLIENT_RPCS = {
         return PEARL.ClientNetwork:Disconnect(reason, true, ...)
     end,
 
-    ConnectionAllowed = function(initial)
-        return PEARL.ClientNetwork:OnConnectionAllowed(initial)
+    ConnectionAllowed = function(data)
+        local success, data = pcall(json.decode, data)
+        if success == false then
+            return PEARL.error("Failed to decode the connection allowed data!")
+        end
+
+        return PEARL.ClientNetwork:OnConnectionAllowed(data)
     end,
 }
 
@@ -206,7 +211,7 @@ local SERVER_USERID_RPCS = {
         PEARL.DiscordReporter:SendPlayerReportMessage(userid, message)
 
         -- Anounce it so it logs the message and also other players can see it as well.
-        PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED, "default")
+        PEARL.AnnounceWithType(STRINGS.PEARL.LOGS.STAFF_CALLED, "default", nil, false, nil, true)
     end,
 
     AgreementDataReceived = function(userid, agreed, datacollection, agreedintime, agreed_version)

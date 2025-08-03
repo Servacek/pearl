@@ -603,7 +603,9 @@ AddCommand("profile", {
     fn = function(ctx, userid)
         local playerid = userid or ctx.author.userid
         if not playerid then
-            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+            return ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING:format(
+                PEARL.CONSTS.HELP_URLS.ACCOUNT_BINDINGS
+            ))
         end
 
         local record = playerid and PEARL.DB:GetRecordFor(playerid)
@@ -629,7 +631,9 @@ AddCommand("stats", {
     --- @param userid string
     fn = function(ctx, userid)
         if not userid then
-            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+            ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING:format(
+                PEARL.CONSTS.HELP_URLS.ACCOUNT_BINDINGS
+            ))
             return
         end
 

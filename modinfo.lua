@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Release 3.0.7e+308"
+version = "Release 3.0.7e+404"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -169,6 +169,19 @@ configuration_options = {
             VERIFY_NEW_ACCOUNTS = true,
         },
         type = "table<string, any>",
+    },
+
+    --------------------
+    -- Klei Lobby
+    --------------------
+
+    {
+        name = "KLEI_LOBBY",
+        default = {
+            BASE_URL = "https://lobby-v2-eu-central-1.klei.com/lobby/",
+            REGIONS_URL = "https://lobby-v2-cdn.klei.com/regioncapabilities-v2.json",
+        },
+        type = "table<string, string>",
     },
 
     --------------------
@@ -426,7 +439,23 @@ configuration_options = {
             TRUSTED_ONLY = true,
             BASE_RADIUS = 16,
             UNIQUE_BASE_STRUCTURE_THRESHOLD = 4,
-            SPAWN_STRUCTURE_PREFAB = "firepit",
+            -- Sorted by priority
+            SPAWN_STRUCTURE_PREFABS = {
+                "oasislake",
+                "firepit",
+                "coldfirepit",
+                "treasurechest",
+                "dragonflychest",
+                "icebox",
+                "saltbox",
+                "reasearchlab3",
+                "researchlab2",
+                "researchlab3",
+                "researchlab",
+                "tent",
+                "siestahut",
+                "dryingrack",
+            },
         },
         type = "table",
         public = true,
@@ -822,13 +851,14 @@ configuration_options = {
 
     {
         name = "INTRO_SCREEN",
-        default = false,
-        master_only = true,
-        options = {
-            true,
-            false,
+        default = {
+            ENABLED = false,
+            SHOW_AGREEMENT = true,
+            SHOW_WELCOME_POPUP = true,
+            SHOW_AGREEMENT_BUTTON = true,
         },
-        type = "boolean",
+        master_only = true,
+        type = "table",
         public = true,
     },
 

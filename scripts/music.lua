@@ -39,9 +39,12 @@ local function StartErrorMusic()
     TheMixer:SetLevel("master", music_volume)
 end
 
--- PEARL.EventProcessor:AddSafeEventHandler("clienterror", StartErrorMusic)
--- PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
---     if reason == "ID_DST_SERVER_CRASHED" and TheMixer ~= nil then
---         StartErrorMusic()
---     end
--- end)
+PEARL.EventProcessor:AddSafeEventHandler("clienterror", StartErrorMusic)
+PEARL.EventProcessor:AddSafeEventHandler("connection_closed", function(reason)
+    if reason == "ID_DST_SERVER_CRASHED" and TheMixer ~= nil then
+        StartErrorMusic()
+    end
+end)
+
+
+-- Other types of music are handled in the `mountable.lua` file.

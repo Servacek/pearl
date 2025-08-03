@@ -411,7 +411,7 @@ msgstr "{doer} rozbil/a {target} opotrebovaním."
 #. STRINGS.PEARL.ACTIONS.WOREOUT.GENERIC
 msgctxt "STRINGS.PEARL.ACTIONS.WOREOUT.GENERIC"
 msgid "{target} broke due to low durability."
-msgstr "{target} bol rozbitý prílišným opotrebovaním."
+msgstr "{target} bol/a rozbitý prílišným opotrebovaním."
 
 #. STRINGS.PEARL.COMMAND_RESPONSES.INVALID
 msgctxt "STRINGS.PEARL.COMMAND_RESPONSES.INVALID"
@@ -768,6 +768,11 @@ msgctxt "STRINGS.PEARL.LOGS.AUTH"
 msgid "%s authenticated as %s"
 msgstr "%s autentifikovaný/á ako %s"
 
+#. STRINGS.PEARL.LOGS.AUTO_SAVE
+msgctxt "STRINGS.PEARL.LOGS.AUTO_SAVE"
+msgid "Auto-Saving world on shard %s as snapshot %s..."
+msgstr "Automatické ukládanie sveta na sharde %s pod číslom %s..."
+
 #. STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST
 msgctxt "STRINGS.PEARL.LOGS.AUTO_UPDATE_FIRST"
 msgid "Server's version is outdated, new players aren't able to connect.\nIt will be automatically updated in %s minute(s)."
@@ -792,6 +797,11 @@ msgstr "Aktualizovanie servera na verziu %s..."
 msgctxt "STRINGS.PEARL.LOGS.CAVES_STATE_UPDATE"
 msgid "Secondary shard Caves has been %s."
 msgstr "Sekundárny shard Caves bol %s."
+
+#. STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED
+msgctxt "STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED"
+msgid "Locale for %s changed from %s to %s"
+msgstr "Národnosť pre %s bola zmenená z %s na %s"
 
 #. STRINGS.PEARL.LOGS.CLIENT_UNBANNED
 msgctxt "STRINGS.PEARL.LOGS.CLIENT_UNBANNED"
@@ -837,6 +847,11 @@ msgstr "Vraciam server späť o %s dní!"
 msgctxt "STRINGS.PEARL.LOGS.DAYSBACK_COUNT_AFTER"
 msgid "Rolling server %s day(s) back in %s second(s)!"
 msgstr "Vraciam server späť o %s dní za %s sekúnd!"
+
+#. STRINGS.PEARL.LOGS.DESPAWN_AT
+msgctxt "STRINGS.PEARL.LOGS.DESPAWN_AT"
+msgid "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
+msgstr "Despawnovanie hráča %s na sharde %s a pozícii X: %2.2f Y: %2.2f Z: %2.2f"
 
 #. STRINGS.PEARL.LOGS.DISCONNECT
 msgctxt "STRINGS.PEARL.LOGS.DISCONNECT"
@@ -1063,6 +1078,11 @@ msgctxt "STRINGS.PEARL.LOGS.PLAYER_ON_EXT_BANLIST"
 msgid "The player %s is banned on the external banlist. Keep an eye on them."
 msgstr "Hráč %s je na externom banliste. Dajte si na neho pozor."
 
+#. STRINGS.PEARL.LOGS.PLAYER_RENAMED
+msgctxt "STRINGS.PEARL.LOGS.PLAYER_RENAMED"
+msgid "%s was renamed from %s to %s."
+msgstr "%s bol/a premenovaný/á z %s na %s."
+
 #. STRINGS.PEARL.LOGS.PRECIPITATION_START
 msgctxt "STRINGS.PEARL.LOGS.PRECIPITATION_START"
 msgid "It started %s!"
@@ -1282,6 +1302,11 @@ msgstr "Hráč %s vstúpil do shardu %s"
 msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT"
 msgid "Spawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
 msgstr "Spawnovanie hráča %s na sharde %s a pozícií: X: %2.2f Y: %2.2f Z: %2.2f"
+
+#. STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR
+msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR"
+msgid "Player %s was spawned at the base near %s"
+msgstr "Hráč %s bol/a presunutý/á do základne ku %s"
 
 #. STRINGS.PEARL.LOGS.STAFF_CALLED
 msgctxt "STRINGS.PEARL.LOGS.STAFF_CALLED"
@@ -1622,6 +1647,11 @@ msgstr "Nebudete môcť pokračovať v hraní u nás. Ste si istý?"
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_DECLINE_POPUP_TITLE"
 msgid "Decline the Server Agreement?"
 msgstr "Odmietnuť Zmluvné Podmienky Servera?"
+
+#. STRINGS.PEARL.UI.AGREEMENT_IMPLICIT
+msgctxt "STRINGS.PEARL.UI.AGREEMENT_IMPLICIT"
+msgid "By playing on this server you agree to this agreement."
+msgstr "Hraním na tomto serveri súhlasíte s týmito pravidlami a podmienkami."
 
 #. STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL
 msgctxt "STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL"
@@ -3828,24 +3858,9 @@ msgctxt "STRINGS.PEARL.HM_TIME_FORMAT"
 msgid "%dh %dm"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.AUTO_SAVE
-msgctxt "STRINGS.PEARL.LOGS.AUTO_SAVE"
-msgid "Auto-Saving world on shard %s as snapshot %s..."
-msgstr ""
-
-#. STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED
-msgctxt "STRINGS.PEARL.LOGS.CLIENT_LOCALE_CHANGED"
-msgid "Locale for %s changed from %s to %s"
-msgstr ""
-
 #. STRINGS.PEARL.LOGS.DEPTH_WORMS
 msgctxt "STRINGS.PEARL.LOGS.DEPTH_WORMS"
 msgid "Depth Worms"
-msgstr ""
-
-#. STRINGS.PEARL.LOGS.DESPAWN_AT
-msgctxt "STRINGS.PEARL.LOGS.DESPAWN_AT"
-msgid "Despawning %s in shard %s at X: %2.2f Y: %2.2f Z: %2.2f"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.INV_REPORT_ITEM
@@ -3878,11 +3893,6 @@ msgctxt "STRINGS.PEARL.LOGS.PHASE"
 msgid "%s"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.PLAYER_RENAMED
-msgctxt "STRINGS.PEARL.LOGS.PLAYER_RENAMED"
-msgid "%s was renamed from %s to %s."
-msgstr ""
-
 #. STRINGS.PEARL.LOGS.PLAYER_REPORT
 msgctxt "STRINGS.PEARL.LOGS.PLAYER_REPORT"
 msgid "%s [@here] `%s` %s **%s**: %s"
@@ -3901,11 +3911,6 @@ msgstr ""
 #. STRINGS.PEARL.LOGS.SAY_DM
 msgctxt "STRINGS.PEARL.LOGS.SAY_DM"
 msgid "[DM] **%s** > **%s**: *%s*"
-msgstr ""
-
-#. STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR
-msgctxt "STRINGS.PEARL.LOGS.SPAWN_AT_BASE_NEAR"
-msgid "Player %s was spawned at the base near %s"
 msgstr ""
 
 #. STRINGS.PEARL.LOGS.TAG

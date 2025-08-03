@@ -273,7 +273,7 @@ end
 -- [[ Agreement/Welcome screen configurations ]]
 ----------------------------------------------------------------
 
-if PEARL.CONFIG.INTRO_SCREEN then
+if PEARL.CONFIG.INTRO_SCREEN.ENABLED then
     PEARL.info("Loading agreement and welcome files...")
 
     -- These are arrays of sections.
@@ -290,6 +290,15 @@ if PEARL.CONFIG.INTRO_SCREEN then
 
     if type(PEARL.CONFIG.WELCOME_POPUP_CONTENT) ~= "table" or IsTableEmpty(PEARL.CONFIG.WELCOME_POPUP_CONTENT) then
         PEARL.warn("The body and content for the welcome popup are not set!")
+        PEARL.CONFIG.WELCOME_POPUP_CONTENT = nil
+    end
+
+    -- Do not waste bytes by sending the texts if they won't be displayed.
+    if not PEARL.CONFIG.INTRO_SCREEN.SHOW_AGREEMENT and not PEARL.CONFIG.INTRO_SCREEN.SHOW_AGREEMENT_BUTTON then
+        PEARL.CONFIG.AGREEMENT_SCREEN_CONTENT = nil
+    end
+
+    if not PEARL.CONFIG.INTRO_SCREEN.SHOW_WELCOME_POPUP then
         PEARL.CONFIG.WELCOME_POPUP_CONTENT = nil
     end
 end

@@ -32,7 +32,7 @@ PEARL.AddGlobalFunctionPreCall("JoinServerFilter", function(userid, ...)
         return false -- Prevent client from joining. Displaying the "not whitelisted" popup.
     end
 
-    PEARL.ServerNetwork:OnClientJoining(userid)
+    PEARL.ServerNetwork:OnClientJoining(userid, true)
 
     -- Let the default callback to handle this case.
 end)
@@ -155,7 +155,7 @@ PEARL.AddWorldPostInit(function(world)
             return
         end
 
-        PEARL.ServerNetwork:OnClientDisconnected(data.userid)
+        PEARL.ServerNetwork:OnClientDisconnectedLocally(data.userid)
         PEARL.EventProcessor:HandleEvent("ms_clientdisconnected", data.userid, data.expected)
     end)
 
@@ -183,7 +183,7 @@ PEARL.AddWorldPostInit(function(world)
             return
         end
 
-        PEARL.ServerNetwork:OnClientDisconnected(data.userid)
+        PEARL.ServerNetwork:OnClientDisconnectedLocally(data.userid)
         PEARL.EventProcessor:HandleEvent("clientconnectionclosed", data.userid, data.reason)
     end)
 

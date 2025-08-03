@@ -459,6 +459,10 @@ function _G.RawRequest(cb, ...)
     TheSim:QueryServer(PEARL.DiscordLogger._webhook.url, cb, ...)
 end
 
+-- PEARL.AddUserDataFunctionPreCall("QueryServer", function(...)
+--     print("TheSim:QueryServer()", ...)
+-- end, TheSim)
+
 function _G.RawLog(message, cb)
     _G.RawRequest(cb, "POST", json.encode_compliant({
         content = message

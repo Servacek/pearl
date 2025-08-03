@@ -383,7 +383,9 @@ function UserCommands.RunHybridCommand(command, ctx, norouting)
 
     -- local required_binding_type = command.requiredbindings[ctx.type]
     -- if required_binding_type ~= nil and not PEARL.AccountBindings:ExistsAny(ctx.author.userid, required_binding_type) then
-    --     ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING)
+    --     ctx:Reply(STRINGS.PEARL.UI.CMD_ERRORS.MISSING_BINDING:format(
+            --     PEARL.CONSTS.HELP_URLS.ACCOUNT_BINDINGS
+            -- ))
     --     return false
     -- end
 

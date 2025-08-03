@@ -216,11 +216,11 @@ local function OnClientConnected(userid) -- Replace with "filtersdone"
     PEARL.DiscordProxy:AddPlayerEvent("player_connected", userid, PEARL.GetUserName(userid))
 end
 
-local function OnClientDisconnected(userid)
-    if not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
-        PEARL.DiscordProxy:AddPlayerEvent("player_disconnected", userid)
-    end
-end
+-- local function OnClientDisconnected(userid)
+--     if not PEARL.ServerNetwork:IsClientConnectedAny(userid) then
+--         PEARL.DiscordProxy:AddPlayerEvent("player_disconnected", userid)
+--     end
+-- end
 
 ----------------------------------
 -- Setup
@@ -265,7 +265,9 @@ if TheShard:IsMaster() then
     PEARL.EventProcessor:AddSafeEventHandler("shard_connected", OnShardConnected)
     PEARL.EventProcessor:AddSafeEventHandler("shard_disconnected", OnShardDisconnected)
     PEARL.EventProcessor:AddSafeEventHandler("ms_clientauthenticationcomplete", OnClientConnected)
-    PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
+    -- So when someone looksup a player and loads their DB record it will show up in the autocomplete.
+    PEARL.EventProcessor:AddSafeEventHandler("db_recordloaded", OnClientConnected)
+    -- PEARL.EventProcessor:AddSafeEventHandler("ms_clientdisconnected", OnClientDisconnected)
 
     PEARL.EventProcessor:AddSafeEventHandler("proxy_fetching_done", OnProxyFetchingDone)
 

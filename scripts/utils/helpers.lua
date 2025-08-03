@@ -208,7 +208,10 @@ end
 
 -- Supports name configuration
 function PEARL.GetShardFancyName()
-    return PEARL.CONFIG.SHARD_NAME or PEARL.GetShardFancyNameByID(PEARL.SHARDID)
+    return PEARL.CONFIG.SHARD_NAME or (
+        (TheShard:IsMaster() and STRINGS.PEARL.SHARDS.MASTER) or
+        (TheShard:IsSecondary() and STRINGS.PEARL.SHARDS.SECONDARY)
+    ) or PEARL.GetShardFancyNameByID(TheShard:GetShardId())
 end
 
 function PEARL.GetSeasonFancyName()
@@ -511,6 +514,7 @@ local missing_name_cache = {}
 --- @param entity string|EntityScript
 --- @return string
 function PEARL.GetStandardizedNameFor(entity, noprefix)
+    print("GET STANDARDIZATION NAME FOR", entity)
     if not EntityScript.is_instance(entity) then
         return tostring(entity)
     end
@@ -553,6 +557,16 @@ function PEARL.GetStandardizedNameFor(entity, noprefix)
         for tagname, prefix in pairs(STRINGS.PEARL.TAG_PREFIXES) do
             if entity:HasTag(tagname) then
                 name = prefix.." "..name
+            end
+        end
+    end
+
+    -- For wormwood transforms.
+    if entity.prefab and name == "MISSING NAME" then
+        for _, recipe in pairs(AllRecipes) do
+            if recipe.product == entity.prefab and recipe.nameoverride then
+                name = STRINGS.NAMES[string.upper(recipe.nameoverride)] or name
+                break
             end
         end
     end

@@ -763,3 +763,5 @@ end
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version,
     PEARL.IS_BACKUP == true and "[Backup]" or ""
 )
+
+PEARL.EventProcessor:HandleEvent("modloaded")

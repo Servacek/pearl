@@ -280,16 +280,16 @@ local AgreementScreen = Class(Screen, function(self, readonly)
         self._scrollable.accept_button:Hide()
         self._scrollable.decline_button:Hide()
 
-        local label_x = DESCRIPTION_MAX_WIDTH / 2 + 25
-        self._scrollable.nomodif_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
-        self._scrollable.nomodif_label:SetString(STRINGS.PEARL.UI.AGREEMENT_NO_MODIFICATION_LABEL)
-        self._scrollable.nomodif_label:SetColour(BODY_LABELS_TEXT_COLOUR)
-        self._scrollable.nomodif_label:SetPosition(
-            label_x, height - DIALOG_BUTTONS_PADDING_TOP
-        )
-
         local tm = PEARL.AgreementManager:GetLocalLastAgreeTime()
         if (type(tm) == "string" and #tm > 1) or type(tm) == "number" then
+            local label_x = DESCRIPTION_MAX_WIDTH / 2 + 25
+            self._scrollable.nomodif_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
+            self._scrollable.nomodif_label:SetString(STRINGS.PEARL.UI.AGREEMENT_NO_MODIFICATION_LABEL)
+            self._scrollable.nomodif_label:SetColour(BODY_LABELS_TEXT_COLOUR)
+            self._scrollable.nomodif_label:SetPosition(
+                label_x, height - DIALOG_BUTTONS_PADDING_TOP
+            )
+
             self._scrollable.accept_time_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
             self._scrollable.accept_time_label:SetColour(BODY_LABELS_TEXT_COLOUR)
             self._scrollable.accept_time_label:SetString(STRINGS.PEARL.UI.AGREEMENT_LAST_AGREE_LABEL:format(
@@ -297,6 +297,14 @@ local AgreementScreen = Class(Screen, function(self, readonly)
             ))
             self._scrollable.accept_time_label:SetPosition(
                 label_x, height - DIALOG_BUTTONS_PADDING_TOP - BODY_LABELS_SPACING
+            )
+        elseif (PEARL.AgreementManager:IsAgreementButtonEnabled()) then
+            local label_x = DESCRIPTION_MAX_WIDTH / 2 + 25
+            self._scrollable.agree_label = self._scrollable:AddChild(Text(BODY_LABELS_TEXT_FONT, BODY_LABELS_TEXT_SIZE))
+            self._scrollable.agree_label:SetString(STRINGS.PEARL.UI.AGREEMENT_IMPLICIT)
+            self._scrollable.agree_label:SetColour(BODY_LABELS_TEXT_COLOUR)
+            self._scrollable.agree_label:SetPosition(
+                label_x, height - DIALOG_BUTTONS_PADDING_TOP
             )
         end
     end

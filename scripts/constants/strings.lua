@@ -1171,7 +1171,8 @@ end
         AGREEMENT_VERSION_LABEL = "Version: %s",
         AGREEMENT_LAST_UPDATE_LABEL = "Last updated on: %s",
         AGREEMENT_LAST_AGREE_LABEL = "Agreed on %s",
-        AGREEMENT_NO_MODIFICATION_LABEL = "No modifications can be made at this point."
+        AGREEMENT_NO_MODIFICATION_LABEL = "No modifications can be made at this point.",
+        AGREEMENT_IMPLICIT = "By playing on this server you agree to this agreement.",
     },
 
     GRIEFER_WARNINGS        = {

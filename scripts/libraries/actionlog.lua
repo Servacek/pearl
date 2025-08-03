@@ -193,7 +193,7 @@ function ActionLog:Act(p, sn, sv)
     if sn and (type(sn) == "string" or (table.empty(sn) == false and sn._ctor == nil)) then
         -- Handle sv being an entity
         if sv and EntityScript.is_instance(sv) then
-            sv = sv:GetFancyName()
+            sv = PEARL.GetStandardizedNameFor(sv)
         end
 
         -- Handle sn being a table of entities (Not a class!)
