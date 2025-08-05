@@ -34,22 +34,13 @@ local DISCONNECT_REASON_PRIORITIES = {
 -- Netvars
 ----------------------------------
 
--- local _server_slots
--- PEARL.AddWorldNetworkPostInit(function(inst)
---     if _server_slots == nil then
---         _server_slots = net_byte(inst.GUID, "_server_slots")
---         _server_slots:set_local(TheNet:GetServerMaxPlayers())
-
-            -- PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
-            --     local count =  tonumber(_server_slots and _server_slots:value() or nil)
-            --     if type(count) == "number" and count > 0 then
-            --         return count
-            --     end
-
-            --     -- Fallback to default if nil.
-            -- end, false, true)
---     end
--- end)
+local _server_slots
+PEARL.AddWorldNetworkPostInit(function(inst)
+    if _server_slots == nil then
+        _server_slots = net_byte(inst.GUID, "_server_slots")
+        _server_slots:set_local(TheNet:GetServerMaxPlayers())
+    end
+end)
 
 ----------------------------------
 -- Locals
@@ -347,6 +338,15 @@ PEARL.OverrideGlobalVariable("OnNetworkDisconnect", function(reason, should_rese
     -- Call this after the potential popup is shown, so it can manage it.
     PEARL.EventProcessor:HandleEvent("connection_closed", reason)
 end)
+
+PEARL.OverrideUserdataFnReturn(TheNet, "GetServerMaxPlayers", function()
+    local count =  tonumber(_server_slots and _server_slots:value() or nil)
+    if type(count) == "number" and count > 0 then
+        return count
+    end
+
+    -- Fallback to default if nil.
+end, false, true)
 
 ----------------------------------
 -- RPCs
