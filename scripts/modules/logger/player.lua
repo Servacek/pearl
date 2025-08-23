@@ -1161,7 +1161,7 @@ local function onbuilditem(doer, data)
     Rep:EarnFor(doer.userid, REPUTATIONS.CRAFTED_ITEM, nil, data.item.prefab)
 
     return AL:EntityAct(STRINGS.PEARL.ACTIONS.CRAFT.GENERIC, doer)
-        :SetIcon(target:HasTag("hat") and PEARL.EMOJIS.GAME_TO_DISCOED.TOPHAT or nil)
+        :SetIcon(target:HasTag("hat") and PEARL.EMOJIS.GAME_TO_DISCORD.TOPHAT or nil)
         :SetLogType(PEARL.CONSTS.ANN_TYPE.CRAFT)
         :SetIsSilent(true)
         :AddTarget(target)
