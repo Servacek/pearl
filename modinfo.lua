@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Hotfix 3.0.8"
+version = "Hotfix 3.0.8s"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
