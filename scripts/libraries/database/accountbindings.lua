@@ -86,7 +86,7 @@ AccountBindings.DEFAULT_BINDING_TYPE = BINDING_TYPE.STEAMID
 -- [[ Private ]]
 ------------------------------------------
 
-local function _AddToBindingsTable(bindings, userid, bindvalue)
+local function _AddToTypeBindingsTable(bindings, userid, bindvalue)
     if bindings[bindvalue] == nil then
         bindings[bindvalue] = userid
     else
@@ -98,7 +98,7 @@ local function _AddToBindingsTable(bindings, userid, bindvalue)
     end
 end
 
-local function _RemoveFromBindTable(bindings, userid, bindvalue)
+local function _RemoveFromTypeBindTable(bindings, userid, bindvalue)
     if type(bindings[bindvalue]) == "table" then
         bindings[bindvalue][userid] = nil
         if table.size(bindings[bindvalue]) <= 1 then -- Remove empty tables (replace single element ones as well.)
@@ -229,7 +229,7 @@ function AccountBindings:GenerateForType(bindtype)
     for _, userid in ipairs(PEARL.DB:GetAllRecordedUserIDs()) do
         local bindvalue = PEARL.DB:GetField(userid, BINDING_FIELD[bindtype])
         if bindvalue ~= nil then
-            _AddToBindingsTable(bindings, userid, bindvalue)
+            _AddToTypeBindingsTable(bindings, userid, bindvalue)
         end
     end
 
@@ -243,8 +243,8 @@ end
 --- @param bindvalue string
 --- @param bindtype string
 function AccountBindings:AddBinding(userid, bindvalue, bindtype)
-    local bindings = self:Get(bindtype)
-    if not bindings then
+    local type_bindings = self:Get(bindtype)
+    if not type_bindings then
         return PEARL.error("Invalid binding type provided!")
     end
 
@@ -253,11 +253,11 @@ function AccountBindings:AddBinding(userid, bindvalue, bindtype)
     end
 
     local previous_bindvalue = self:MapUserIDToBindValue(userid, bindtype)
-    _AddToBindingsTable(bindings, userid, bindvalue)
+    _AddToTypeBindingsTable(type_bindings, userid, bindvalue)
     PEARL.DB:SetField(userid, BINDING_FIELD[bindtype], bindvalue)
-    if previous_bindvalue ~= nil then
+    if previous_bindvalue ~= bindvalue then
         PEARL.debug("Removing previous bind value", previous_bindvalue)
-        _RemoveFromBindTable(bindings, userid, previous_bindvalue)
+        _RemoveFromTypeBindTable(type_bindings, userid, previous_bindvalue)
     end
 
     -- We have to save after every adding because there is no global saving for binding files.
@@ -280,7 +280,7 @@ function AccountBindings:RemoveBinding(userid, bindvalue, bindtype)
     end
 
     local previous_binduserid = bindings[bindvalue]
-    _RemoveFromBindTable(bindings, userid, bindvalue)
+    _RemoveFromTypeBindTable(bindings, userid, bindvalue)
     local success, prev = PEARL.DB:SetField(userid, BINDING_FIELD[bindtype], nil)
 
     if (success and prev ~= nil) or previous_binduserid ~= nil then
@@ -334,7 +334,13 @@ function AccountBindings:SaveForType(bindtype)
     end
 
     PEARL.info("Saving binding file", bindtype)
-    PEARL.ModPersistance:SaveDataToFile(self:GetBindingFilePath(bindtype), bindings)
+    local bind_file_path = self:GetBindingFilePath(bindtype)
+    if (PEARL.ModPersistance:SaveDataToFile(bind_file_path, bindings)) then
+        PEARL.debug("Binding file", bindtype, "successfully saved!")
+    else
+        PEARL.error("Failed to save the binding file", bindtype)
+        PEARL.error("File path: "..tostring(bind_file_path))
+    end
 end
 
 ------------------------------------------

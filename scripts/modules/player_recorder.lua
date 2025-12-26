@@ -48,6 +48,11 @@ local function SaveSessionInfoFor(userid)
     PEARL.DB:SafeSetField(userid, "lastsessionid", TheNet:GetSessionIdentifier())
     PEARL.DB:SafeSetField(userid, "lastsnapshot", TheNet:GetCurrentSnapshot())
 
+    local sessionid = TheNet:GetSessionIdentifier()
+    if sessionid ~= nil then
+        PEARL.AccountBindings:AddBinding(userid, sessionid, PEARL.AccountBindings.BINDING_TYPE.SESSIONID)
+    end
+
     if TheWorld and TheWorld.state then
         PEARL.DB:SafeSetField(userid, "lastcycle", TheWorld.state.cycles)
     end
@@ -139,14 +144,16 @@ local function OnClientAuthenticationComplete(world, data)
         PEARL.DB:SaveRecordFor(userid)
     end
 
+    -- Update this on every authentication since it could possibly change.
     local client = userid and TheNet:GetClientTableForUser(userid)
-    if not client or not client.name then
-        return
+    if client and client.name then
+        PEARL.AccountBindings:AddBinding(userid, client.name, PEARL.AccountBindings.BINDING_TYPE.USERNAME)
     end
 
-    -- Update this on every authentication since it could possibly change.
-    PEARL.DB:SafeSetField(userid, "username", client.name)
-    PEARL.DB:SafeSetField(userid, "netid", client.netid)
+    local netid = client and client.netid or userid and TheNet:GetNetIdForUser(userid)
+    if netid then
+        PEARL.AccountBindings:AddBinding(userid, netid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
+    end
 end
 
 local function OnClientDisconnected(world, data)
