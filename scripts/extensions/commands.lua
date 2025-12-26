@@ -1158,7 +1158,7 @@ AddAsyncCommand("pair", {
     --- @param ctx CommandContext
     --- @param id string
     fn = function(ctx, id)
-        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORDID
         local userid = ctx.author.userid or id
         local discordid = ctx.author.discordid or id
 
@@ -1174,9 +1174,11 @@ AddAsyncCommand("pair", {
             userid, PEARL.KleiAccounts.PLATFORM.DISCORD, discordid
         )
         if not request then
-            error("Failed to encode verification json data!")
+            PEARL.error("Failed to encode verification json data!");
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.ON_FAILED)
         end
 
+        -- ! We cannot trigger an error here!
         request:AddOnComplete(function(data)
             if not request.ok then
                 if not request:IsRetryable() then
@@ -1187,7 +1189,8 @@ AddAsyncCommand("pair", {
             end
 
             if data.Error ~= false then
-                error("Verification request failed!")
+                PEARL.error("Verification request failed!")
+                return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.PAIR.NOT_PAIR_OFFICIALLY)
             end
 
             if data.Linked then
@@ -1207,11 +1210,11 @@ AddCommand("unpair", {
 
     --- @param ctx CommandContext
     fn = function(ctx)
-        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORD
+        local bindtype = PEARL.AccountBindings.BINDING_TYPE.DISCORDID
         local userid = ctx.author.userid
         local discordid = ctx.author.discordid
         if userid and not discordid then
-            discordid = PEARL.AccountBindings:MapUserIDToType(userid, bindtype)
+            discordid = PEARL.AccountBindings:MapUserIDToBindValue(userid, bindtype)
         elseif discordid and not userid then
             userid = PEARL.AccountBindings:MapDiscordID(discordid)
         end
@@ -1430,7 +1433,7 @@ AddCommand("ls", {
     --- @param ctx CommandContext
     fn = function(ctx)
         -- Everyone has a binding with steam!
-        local ids = PEARL.DB:GetBindings(PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        local ids = PEARL.DB:GetBindings(PEARL.AccountBindings.BINDING_TYPE.STEAMID)
         table.dump(ids)
     end
 })

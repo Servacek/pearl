@@ -10,6 +10,19 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
+--[[
+    Simple JSON database implementation for storing simple data. Supports only one cluster.
+    If more clusters need to be supported, try a REST API based database instead or a PIPE
+    based one.
+
+    The advantage of this is that it doesn't require any third party involved, it's all purely
+    managed by the game itself.
+
+    Teoretically it should be possible to add support for multiple clusters, but that would
+    require some sort of an identification for them and selection of a process capable of managing it all.
+    However, that would be a bit too complex, unreliable and slow...
+--]]
+
 
 --- Save lastactive shard for synchrnous reading between shards.
 --- For other non-active shards, use RPCs to send the data to the active one.
@@ -45,11 +58,10 @@ end
 --- @singleton
 --- @class DB: Library
 local DB = {
-    --- @type table<string, PlayerRecord>
-    _records = {},
+    _records = {}, --- @type table<string, PlayerRecord>
 }
 
---- @type DB
+--- @type JSONDB
 DB = Library(DB)
 
 ------------------------------------------
@@ -58,12 +70,11 @@ DB = Library(DB)
 
 -- Currently we determine this by checking if "lastseentime" is nil,
 -- since lastseentime is asigned after the first leave.
+-- WARNING: Prefer to use ServerNetwork:IsClientFirstTimeOnServer
+-- since this lasts only for 5 seconds after the player joins.
 function DB:FirstTimeJoined(userid)
     local record = self:GetRecordFor(userid)
-    return record and (record.lastseentime == nil or (
-        (record.joinedtime == nil or record.joinedtime >= os.time() - 10) or
-        (record.joinedtime == record.lastseentime)
-    )) or false
+    return record and (record.lastseentime == nil or record.lastseentime >= os.time() - 10)
 end
 
 --- @TODO: add these to some separate lib
@@ -79,7 +90,24 @@ end
 --- The total number of records saved in this database.
 --- @return integer
 function DB:GetTotalRecordCount()
-    return PEARL.AccountBindings:CountBindingsForType(PEARL.AccountBindings.BINDING_TYPE.STEAM)
+    return PEARL.AccountBindings:CountBindingsForType(PEARL.AccountBindings.BINDING_TYPE.STEAMID)
+end
+
+--- All userids saved in the DB
+--- @return table<string>
+function DB:GetAllRecordedUserIDs()
+    local userids, lookup = {}, {}
+    for _, binding_type in pairs(PEARL.AccountBindings.BINDING_TYPE) do
+        local binding_userids = PEARL.AccountBindings:GetUserIDs(binding_type)
+        for _, userid in pairs(binding_userids) do
+            if not lookup[userid] then
+                lookup[userid] = true
+                userids[#userids + 1] = userid
+            end
+        end
+    end
+
+    return userids
 end
 
 --- @param userid string
@@ -267,7 +295,7 @@ function DB:CreateRecordFor(userid, netid)
         PEARL.error("Failed to retrive Steam ID for ", userid)
     else
         -- This should ALWAYS be string but just in case it's not...
-        PEARL.AccountBindings:AddBinding(userid, tostring(netid), PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        PEARL.AccountBindings:AddBinding(userid, tostring(netid), PEARL.AccountBindings.BINDING_TYPE.STEAMID)
     end
 
     PEARL.EventProcessor:HandleEvent("db_recordcreated", userid, record)
@@ -343,12 +371,13 @@ function DB:SaveRecordFor(userid, record)
     record.lastupdate = os.time()
 
     if PEARL.ModPersistance:SaveDataToFile(
-        self:GetRecordFilePathFor(userid), record:GetData(), true
+        self:GetRecordFilePathFor(userid), record:GetData()
     ) then
         record:SetIsUpToDate(true)
         return true
     end
 
+    --- Revert last update since we didn't actually update the physical file.
     record.lastupdate = lastupdate
 
     PEARL.error("Failed to save record for", userid)

@@ -126,7 +126,7 @@ function PEARL.AddDebugRecord(userid, name, reputation, netid)
     PEARL.Reputation:SetFor(userid, reputation or 100)
 
     if not netid then
-        PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        PEARL.AccountBindings:AddBinding(userid, userid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
     end
 
     PEARL.DB:SaveRecordFor(userid, record)

@@ -461,7 +461,7 @@ function UserCommands.RunDiscordCommand(name, params, author, id)
     end
 
     if author.userid then
-        author.netid = PEARL.AccountBindings:MapUserIDToType(author.userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+        author.netid = PEARL.AccountBindings:MapUserIDToBindValue(author.userid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
     end
 
     -- Colour has to be a table
@@ -651,10 +651,10 @@ function UserCommands.AddSlashCommand(name, command)
 
             author.name = caller.name
             author.userid = userid
-            author.discordid = PEARL.AccountBindings:MapUserIDToType(caller.userid, PEARL.AccountBindings.BINDING_TYPE.DISCORD)
+            author.discordid = PEARL.AccountBindings:MapUserIDToBindValue(caller.userid, PEARL.AccountBindings.BINDING_TYPE.DISCORDID)
             author.colour = client.colour or WHITE
             author.netid = (client and client.netid) or (
-                PEARL.AccountBindings:MapUserIDToType(caller.userid, PEARL.AccountBindings.BINDING_TYPE.STEAM)
+                PEARL.AccountBindings:MapUserIDToBindValue(caller.userid, PEARL.AccountBindings.BINDING_TYPE.STEAMID)
             )
             author.permission = UserCommands.CalculatePermissionFor(userid)
         end

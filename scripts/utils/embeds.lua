@@ -697,7 +697,7 @@ function EMBEDS.ClientProfile(userid, dbr, all)
         url = PEARL.CONSTS.STEAM_ACCOUNT_URL:format(dbr.netid)
     end
 
-    if dbr[PEARL.AccountBindings.BINDING_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORD]] then
+    if dbr[PEARL.AccountBindings.TYPE_TO_FIELD[PEARL.AccountBindings.BINDING_TYPE.DISCORDID]] then
         embed:AddField(P_STRINGS.FD_NAMES.DISCORD, MARKDOWN.mention(dbr.discordid, MARKDOWN.MENTION_TYPE.USER), true)
     end
 

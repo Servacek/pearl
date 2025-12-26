@@ -156,7 +156,7 @@ function ModPersistance:SaveDataToFile(fp, data, ensure, encode)
 end
 
 --- @param fp filepath Starting from the <GAME INSTALL DIR>\data directory
---- @param ensure boolean Whether to create the file that's being loaded if it doesn't exist.
+--- @param ensure? boolean Whether to create the file that's being loaded if it doesn't exist.
 --- @return table?
 function ModPersistance:LoadDataFromFile(fp, ensure)
     local raw_str = self:ReadFromFile(fp, ensure)

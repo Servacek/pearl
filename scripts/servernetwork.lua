@@ -235,6 +235,41 @@ function ServerNetwork:AnnounceFor(userids, content, announce_type, colour)
     return self:DisplayChatMessageFor(userids, message)
 end
 
+function ServerNetwork:KickUser(userid, seconds, reason, author)
+    PEARL.debug("User", userid, "was kicked by", author or "[HOST]")
+    PEARL.EventProcessor:HandleEvent("clientkicked", userid, reason, author, seconds)
+
+    if type(reason) == "string" then
+        -- Display the reason if any.
+        self:CloseConnectionFor(
+            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_KICKED"]
+        )
+
+        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY, PEARL.Kick, nil, userid, seconds)
+        return
+    end
+
+    return PEARL.Kick(userid, seconds)
+end
+
+function ServerNetwork:BanUser(userid, seconds, reason, author)
+    PEARL.debug("ServerNetwork:BanUser", userid, seconds, reason, author)
+
+    if type(reason) == "string" and ServerNetwork:IsClientConnectedAny(userid) then
+        -- Display the reason if any.
+        self:CloseConnectionFor(
+            userid, reason, false, STRINGS.UI.NETWORKDISCONNECT.TITLE["ID_DST_USER_BANNED"]
+        )
+
+        PEARL.WallScheduler:ExecuteInTime(DISCONNECT_WITH_REASON_DELAY,
+            PEARL.BlackList.Add, nil, PEARL.BlackList, userid, seconds, reason, author
+        )
+        return
+    end
+
+    return PEARL.BlackList:Add(userid, seconds, reason, author)
+end
+
 function ServerNetwork:SendUserDisconnectFor(userid, reason, immediately, reason_title)
     PEARL.info("ServerNetwork:SendUserDisconnectFor", userid, reason)
 
