@@ -255,7 +255,7 @@ function AccountBindings:AddBinding(userid, bindvalue, bindtype)
     local previous_bindvalue = self:MapUserIDToBindValue(userid, bindtype)
     _AddToTypeBindingsTable(type_bindings, userid, bindvalue)
     PEARL.DB:SetField(userid, BINDING_FIELD[bindtype], bindvalue)
-    if previous_bindvalue ~= bindvalue then
+    if previous_bindvalue and previous_bindvalue ~= bindvalue then
         PEARL.debug("Removing previous bind value", previous_bindvalue)
         _RemoveFromTypeBindTable(type_bindings, userid, previous_bindvalue)
     end
