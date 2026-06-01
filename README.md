@@ -2,7 +2,7 @@
 
 
 # PearlOS
-An extensive set of software tools for managing and operating your starving servers!
+An extensive set of software tools for managing and operating your dedicated Don't Starve servers!
 
 ## Installation
 The installation process is very simple since the mod is available on Steam Workshop.
