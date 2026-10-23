@@ -12,24 +12,42 @@
 
 
 --[[
-    Wrapper for the ingame adminlist for automatized actions.
---]]
+    Wrapper for engine-provided admin status.
 
-local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
+    The engine exposes the admin flag on connected client records, but does not
+    expose an admin-list enumeration API. Consequently this wrapper does not
+    access adminlist.txt and can only answer for connected users (and the local
+    server owner).
+]]
+
+local PersistentUserIDList = PEARL.loadlib("wrappers/models/useridlist")
 
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
-
-local ADMINLIST_PATH = "../../adminlist.txt"
 
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
 
 --- @singleton
---- @class AdminList: ClusterUserList
-local AdminList = ClusterUserList(ADMINLIST_PATH)
+--- @class AdminList: PersistentUserIDList
+local AdminList = PersistentUserIDList("engine:adminlist")
+AdminList:SetSaveFn(function() end)
+AdminList:SetLoadFn(function() end)
+
+-- This is handled by the game itself.
+AdminList.Load = function() end
+AdminList.Save = function() end
+
+function AdminList:Contains(userid)
+    if userid == TheNet:GetUserID() and TheNet:GetIsServerAdmin() then
+        return true
+    end
+
+    local client = userid and TheNet:GetClientTableForUser(userid)
+    return client ~= nil and client.admin == true
+end
 
 --------------------------------------
 -- [[ Return ]]

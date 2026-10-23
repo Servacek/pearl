@@ -20,6 +20,7 @@
 --]]
 
 local CustomDataDumper = PEARL.loadfile("utils/datadumper")
+local Persistance = PEARL.loadlib("wrappers/persistance/persistance")
 
 --------------------------------
 -- [[ Constants ]]
@@ -33,49 +34,24 @@ local DEFAULT_LOADING_ENV = {
 -- [[ Class Declaration ]]
 --------------------------------
 
---- @class ModPersistance
+--- @class ModPersistance: Persistance
 local ModPersistance = {}
+setmetatable(ModPersistance, { __index = Persistance })
 
 --------------------------------
 -- [[ Getters ]]
 --------------------------------
 
 function ModPersistance:FileExists(fp)
-    return io.exists(fp)
+    return io.exists(fp) == true
 end
 
 function ModPersistance:GetFileContent(fp, ensure)
-    if ensure and not self:EnsureFile(fp) then
-        return false
-    end
-
-    local result, success
-    TheSim:GetPersistentString(fp, function(successfull, str)
-        success = successfull
-        result = str
-    end)
-
-    return success, result
+    return self:ReadFromFile(fp, ensure)
 end
 
 function ModPersistance:GetRootDirectoryPath()
     return PEARL.CONFIG.DATA_ROOT_DIRECTORY
-end
-
-function ModPersistance:GetAllFileLines(fp, ensure, strip)
-    local lines = {}
-    self:ForEachLineIn(fp, function(line)
-        if strip == true then
-            local stripped = string.strip(line)
-            if #stripped > 0 then
-                lines[#lines + 1] = stripped
-            end
-        else
-            lines[#lines + 1] = line
-        end
-    end, ensure)
-
-    return lines
 end
 
 --------------------------------
@@ -86,6 +62,8 @@ function ModPersistance:CreateFile(fp)
     return io.create(fp)
 end
 
+--- Creates the file with the given path if it doesn't exist.
+--- @return boolean success True if file exists or was created otherwise false.
 function ModPersistance:EnsureFile(fp)
     return io.ensure(fp)
 end
@@ -109,19 +87,25 @@ function ModPersistance:WriteToFile(fp, ...)
     return false, errmsg
 end
 
---- @return string?
+--- @return boolean, string?, string?
 function ModPersistance:ReadFromFile(fp, ensure)
-    if ensure == true and io.ensure(fp) then
-        return
+    if ensure == true and not io.ensure(fp) then
+        return false, nil, "file could not be ensured"
     end
 
-    local rf = io.open(fp, "r")
+    local rf, open_error = io.open(fp, "r")
     if rf then
-        local content = rf:read("*a")
+        local content, errmsg = rf:read("*a")
         rf:close()
 
-        return content
+        if type(content) == "string" then
+            return true, content
+        end
+
+        return false, nil, errmsg or "file could not be read"
     end
+
+    return false, nil, open_error or "file could not be opened"
 end
 
 --- @return boolean
@@ -159,8 +143,8 @@ end
 --- @param ensure? boolean Whether to create the file that's being loaded if it doesn't exist.
 --- @return table?
 function ModPersistance:LoadDataFromFile(fp, ensure)
-    local raw_str = self:ReadFromFile(fp, ensure)
-    if type(raw_str) ~= "string" then
+    local success, raw_str = self:ReadFromFile(fp, ensure)
+    if not success or type(raw_str) ~= "string" then
         return
     end
 

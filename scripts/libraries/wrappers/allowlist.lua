@@ -13,23 +13,23 @@
 
 --[[
     Alternative to whitelist.txt.
---]]
+]]
 
-local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
+local PersistentUserIDList = PEARL.loadlib("wrappers/models/useridlist")
 
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
 
-local ALLOWLIST_PATH = "../../allowlist.txt"
+local ALLOWLIST_PATH = PEARL.ModPersistance:GetRootDirectoryPath().."/allowlist.txt"
 
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
 
 --- @singleton
---- @class AllowList: ClusterUserList
-local AllowList = ClusterUserList(ALLOWLIST_PATH)
+--- @class AllowList: PersistentUserIDList
+local AllowList = PersistentUserIDList(ALLOWLIST_PATH)
 
 --------------------------------------
 -- [[ Event Handlers ]]

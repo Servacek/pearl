@@ -230,22 +230,55 @@ function ModConfig:LoadBackendOverride(option)
 end
 
 function ModConfig:LoadCommmonConfig()
-    local success, config_str = PEARL.ClusterPersistence:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
+    -- !![modmain.lua:259]!!
+    if not PEARL.ModPersistance:FileExists(PEARL.COMMONCONFIG_PATH) then
+        return error(
+            "Common config file does not exist at '"..
+            tostring(PEARL.COMMONCONFIG_PATH).."'."
+        )
+    end
+
+    local success, config_str, read_error = PEARL.ModPersistance:GetFileContent(PEARL.COMMONCONFIG_PATH, true)
     if not success or type(config_str) ~= "string" then
-        return error("Failed to load common config!")
+        return error(
+            "Failed to read common config at '"..
+            tostring(PEARL.COMMONCONFIG_PATH)..
+            "'. The file exists, but could not be read. Reason: "..
+            tostring(read_error or "TheSim did not provide a read error.")
+        )
     end
 
     local fn, message = loadstring(config_str)
     if type(fn) ~= "function" then
-        return error("Failed to load common config string! Reason: " .. tostring(message))
+        return error(
+            "Common config syntax error in '"..
+            tostring(PEARL.COMMONCONFIG_PATH)..
+            "': "..
+            tostring(message)
+        )
     end
 
-    local success, config = RunInEnvironment(fn, {})
-    if not success or type(config) ~= "table" then
-        return PEARL.warn("No common configurations set.")
+    setfenv(fn, PEARL.ENV)
+    local success, config_or_error = pcall(fn)
+    if not success then
+        return error(
+            "Common config execution failed in '"..
+            tostring(PEARL.COMMONCONFIG_PATH)..
+            "': "..
+            tostring(config_or_error)
+        )
     end
 
-    return config
+    if type(config_or_error) ~= "table" then
+        return error(
+            "Common config in '"..
+            tostring(PEARL.COMMONCONFIG_PATH)..
+            "' executed successfully but returned "..type(config_or_error)..
+            " instead of a table."
+        )
+    end
+
+    return config_or_error
 end
 
 --- @param name string|number

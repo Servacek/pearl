@@ -12,28 +12,35 @@
 
 
 --[[
-    Wrapper for the wonkey built in whitelisting system.
---]]
+    Wrapper for the built-in whitelisting system.
 
-local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
+    The engine owns the whitelist, so this wrapper deliberately does not access
+    whitelist.txt. The engine exposes membership and mutation, but not enumeration.
+]]
+
+local PersistentUserIDList = PEARL.loadlib("wrappers/models/useridlist")
 
 --------------------------------------
 -- [[ Constants ]]
 --------------------------------------
-
-local WHITELIST_PATH = "../../whitelist.txt"
 
 --------------------------------------
 -- [[ Class Declaration ]]
 --------------------------------------
 
 --- @singleton
---- @class Whitelist: ClusterUserList
-local WhiteList = ClusterUserList(WHITELIST_PATH)
+--- @class Whitelist: PersistentUserIDList
+local WhiteList = PersistentUserIDList("engine:whitelist")
 
 --- @type function, function
-local _AddToEngineList, _RemoveFromEngineList
+local _AddToEngineList, _RemoveFromEngineList, _IsWhiteListed
 WhiteList:SetSaveFn(function() end) -- No explicit saving :/
+WhiteList:SetLoadFn(function() end)
+
+-- This is handled by the game itself.
+WhiteList.Load = function() end
+WhiteList.Save = function() end
+
 WhiteList:SetAddFn(function(self, userid)
     if WhiteList:GetMode() == WhiteList.MODE.STRICT and PEARL.ServerNetwork:IsClientConnectedAny(userid) then
         TheNet:Kick(userid)
@@ -83,6 +90,10 @@ function WhiteList:GetMode()
     return _mode
 end
 
+function WhiteList:Contains(userid)
+    return self._ids[userid] == true or _IsWhiteListed(TheNet, userid) == true
+end
+
 --------------------------------------
 -- [[ Overrides ]]
 --------------------------------------
@@ -90,6 +101,8 @@ end
 -- They do not work for secondary shards and also do not propagate the changes.
 --
 -- Note: These functions expect saving!
+
+_IsWhiteListed = TheNet.IsWhiteListed
 
 PEARL.OverrideUserdataValue("IsWhiteListed", function(self, userid)
     return WhiteList:Contains(userid)

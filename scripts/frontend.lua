@@ -76,7 +76,7 @@ local function UnzipConfigData(option)
     local success, data = PEARL.SafeRun(TheSim.DecodeAndUnzipString, TheSim, PEARL.GetConfigData(option.name))
 
     if not success or type(data) ~= "string" then
-        return PEARL.error("Decoding configuration option", option.name "failed!")
+        return PEARL.error("Decoding configuration option", option.name, "failed!")
     end
 
     -- JSON decoding for table strings.

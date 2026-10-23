@@ -17,7 +17,8 @@ local ConstructionSite = require("components/constructionsite")
 -------------------
 
 PEARL.AddClassFunctionPostCall("OnConstruct", function(self, doer, items)
-    if self:IsComplete() then
+    -- The base OnConstruct can remove the component after construction finishes.
+    if not self.inst.components.constructionsite or self:IsComplete() then
         PEARL.EventProcessor:HandleEvent(
             "constructionfinished", doer, self.inst
         )

@@ -297,8 +297,8 @@ RegisterActionHandler(ACTIONS.EAT, function(doer, target, item)
 
     -- Safe some data before the actual eating and compare them afterwards.
     local pre_hunger, pre_health, pre_sanity
-    if doer then
-        local eater = doer.components.eater
+    local eater = doer and doer.components.eater
+    if eater then
         pre_hunger = doer.components.hunger and doer.components.hunger.current * eater.hungerabsorption
         pre_sanity = doer.components.sanity and doer.components.sanity.current * eater.sanityabsorption
         pre_health = doer.components.health and doer.components.health.currenthealth * eater.healthabsorption
@@ -412,7 +412,7 @@ RegisterPlayerActionHandler(ACTIONS.HAMMER, function(doer, target)
         end
 
         local action
-        if target.components.built then
+        if target.components.built and target.components.built.doer then
             action = AL:EntityAct(STRINGS.PEARL.ACTIONS.HAMMER.OWNED, doer,
             QueuedLogAction.FIELDS.OWNER, target.components.built.doer:GetName())
         else

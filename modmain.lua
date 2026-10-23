@@ -141,8 +141,12 @@ GLOBAL.PEARL = setmetatable({
     DATADIR             = MODROOT.."data/",
 
     BANNER_PATH         = "banner.txt",
-    COMMONCONFIG_PATH   = "../../commonconfig.lua",
-    MOUNTABLE_SCRIPTS_PATH = "../../mountable.lua",
+    -- Access to cluster files is unrealiable and blocked.
+    -- COMMONCONFIG_PATH   = "../../commonconfig.lua", !![modmain:259]
+    -- Temporary workaround for Klei blocking ClusterPersistance access to cluster files.
+    -- This filename is stored below DATA_ROOT_DIRECTORY from commonconfig.lua.
+    -- Revert to "../../mountable.lua" when the compatibility change in modmain.lua:259 is no longer needed.
+    MOUNTABLE_SCRIPTS_PATH = "mountable.lua", --"../../mountable.lua" !![modmain.lua:259]!!
 
     -- Used for accessing environment specific functions outside modmain.lua
     ENV                 = ENV,
@@ -255,8 +259,14 @@ PEARL.LUA_VERSION   = _VERSION
 PEARL.X32 = APP_ARCHITECTURE == "x32"
 PEARL.X64 = APP_ARCHITECTURE == "x64"
 
+-- After update 759423 we store critical files like commonconfig.lua
+-- insude unsafedata to ensure they are able to be loaded at any point.
+PEARL.UNSAFEDATADIR     = "./unsafedata/" -- By default in we are in the data folder.
+PEARL.COMMONCONFIG_PATH = PEARL.UNSAFEDATADIR.."/commonconfig.lua"
+
 --- ../mods/MODNAME/
 MODROOT = MODROOT
+
 
 --------------------------------
 -- [[ Server Mod Config ]]

@@ -17,8 +17,8 @@ local Library = PEARL.loadfile("models/library")
 -- [[ Class Declaration ]]
 --------------------------------------
 
---- @class ClusterUserList
-local ClusterUserList = PEARL.Class(Library, function(self, path, ensure)
+--- @class PersistentUserIDList
+local PersistentUserIDList = PEARL.Class(Library, function(self, path, ensure)
     assert(type(path) == "string", "Invalid filepath provided for ClusteridList!")
 
     --- @type table<string, boolean>
@@ -29,16 +29,16 @@ local ClusterUserList = PEARL.Class(Library, function(self, path, ensure)
     --- so we do not need to remember their names and create them manually.
     self._ensure = ensure ~= false
 
-    --- @type fun(self: ClusterUserList)?
+    --- @type fun(self: PersistentUserIDList)?
     self._loadfn = nil
 
-    --- @type fun(self: ClusterUserList)?
+    --- @type fun(self: PersistentUserIDList)?
     self._savefn = nil
 
-    --- @type fun(self: ClusterUserList, id: string, ...: any)?
+    --- @type fun(self: PersistentUserIDList, id: string, ...: any)?
     self._removefn = nil
 
-    --- @type fun(self: ClusterUserList, id: string, ...: any)?
+    --- @type fun(self: PersistentUserIDList, id: string, ...: any)?
     self._addfn = nil
 
     --- @type table<string, boolean>
@@ -72,23 +72,23 @@ end)
 -- [[ Setters ]]
 --------------------------------------
 
---- @param fn fun(self: ClusterUserList)? The custom load function for this list.
-function ClusterUserList:SetLoadFn(fn)
+--- @param fn fun(self: PersistentUserIDList)? The custom load function for this list.
+function PersistentUserIDList:SetLoadFn(fn)
     self._loadfn = fn
 end
 
---- @param fn fun(self: ClusterUserList)? The custom save function for this list.
-function ClusterUserList:SetSaveFn(fn)
+--- @param fn fun(self: PersistentUserIDList)? The custom save function for this list.
+function PersistentUserIDList:SetSaveFn(fn)
     self._savefn = fn
 end
 
---- @param fn fun(self: ClusterUserList, id: string, ...: any)? The add handler for this list.
-function ClusterUserList:SetAddFn(fn)
+--- @param fn fun(self: PersistentUserIDList, id: string, ...: any)? The add handler for this list.
+function PersistentUserIDList:SetAddFn(fn)
     self._addfn = fn
 end
 
---- @param fn fun(self: ClusterUserList, id: string, ...: any)? The add handler for this list.
-function ClusterUserList:SetRemoveFn(fn)
+--- @param fn fun(self: PersistentUserIDList, id: string, ...: any)? The add handler for this list.
+function PersistentUserIDList:SetRemoveFn(fn)
     self._removefn = fn
 end
 
@@ -97,13 +97,13 @@ end
 --------------------------------------
 
 --- @return table<string, boolean>
-function ClusterUserList:Get()
+function PersistentUserIDList:Get()
     return self._ids
 end
 
 --- @param id string? Identifier of the user (Steam ID, Klei ID)
 --- @return boolean contains Whether the given identifier is on the list.
-function ClusterUserList:Contains(id)
+function PersistentUserIDList:Contains(id)
     return self._ids[id] == true
 end
 
@@ -114,8 +114,8 @@ end
 --- Adds the given ID to the local AND networked table.
 --- @param id string? Identifier of the user (Steam ID, Klei ID)
 --- @return boolean result Whether the action was successfull or not.
-function ClusterUserList:Add(id, ...)
-    PEARL.debug("ClusterUserList:Add", id, self._path)
+function PersistentUserIDList:Add(id, ...)
+    PEARL.debug("PersistentUserIDList:Add", id, self._path)
 
     if self:AddLocal(id) then
         if TheShard:IsMaster() then
@@ -137,7 +137,7 @@ end
 --- Adds the given ID only to the local table.
 --- @param id string? Identifier of the user (Steam ID, Klei ID)
 --- @return boolean result Whether the action was successfull or not.
-function ClusterUserList:AddLocal(id)
+function PersistentUserIDList:AddLocal(id)
     if type(id) == "string" and self._ids[id] ~= true then
         self._ids[id] = true
         return true
@@ -146,15 +146,15 @@ function ClusterUserList:AddLocal(id)
     return false
 end
 
-function ClusterUserList:AddGlobal(id, ...)
+function PersistentUserIDList:AddGlobal(id, ...)
     PEARL.BroadcastRPCToConnectedShards(PEARL.RPC[self._RPC_NAME_ADD], id, ...)
 end
 
 --- Removes the given ID from the local AND networked table.
 --- @param id string? Identifier of the user (Steam ID, Klei ID)
 --- @return boolean result Whether the action was successfull or not.
-function ClusterUserList:Remove(id)
-    PEARL.debug("ClusterUserList:Remove", id, self._path)
+function PersistentUserIDList:Remove(id)
+    PEARL.debug("PersistentUserIDList:Remove", id, self._path)
 
     if self:RemoveLocal(id) then
         if TheShard:IsMaster() then
@@ -177,7 +177,7 @@ end
 --- Removes the given ID only from the local table.
 --- @param id string? Identifier of the user (Steam ID, Klei ID)
 --- @return boolean result Whether the action was successfull or not.
-function ClusterUserList:RemoveLocal(id)
+function PersistentUserIDList:RemoveLocal(id)
     if type(id) == "string" and self._ids[id] ~= nil then
         self._ids[id] = nil
 
@@ -187,14 +187,14 @@ function ClusterUserList:RemoveLocal(id)
     return false
 end
 
-function ClusterUserList:RemoveGlobal(id, ...)
+function PersistentUserIDList:RemoveGlobal(id, ...)
     PEARL.BroadcastRPCToConnectedShards(PEARL.RPC[self._RPC_NAME_REMOVE], id, ...)
 end
 
-function ClusterUserList:Load()
-    PEARL.debug("ClusterUserList:Load", self._path)
+function PersistentUserIDList:Load()
+    PEARL.debug("PersistentUserIDList:Load", self._path)
 
-    if not PEARL.ClusterPersistence:FileExists(self._path) and self._ensure ~= true then
+    if not PEARL.ModPersistance:FileExists(self._path) and self._ensure ~= true then
         return PEARL.info(self._path, "not found -> skipping this file...")
     end
 
@@ -202,29 +202,29 @@ function ClusterUserList:Load()
         return self._loadfn(self)
     end
 
-    local lines = PEARL.ClusterPersistence:GetAllFileLines(self._path, self._ensure, true)
+    local lines = PEARL.ModPersistance:GetAllFileLines(self._path, self._ensure, true)
     for _, id in ipairs(lines) do
         self:AddLocal(id)
     end
 end
 
-function ClusterUserList:Save()
-    PEARL.debug("ClusterUserList:Save", self._path)
+function PersistentUserIDList:Save()
+    PEARL.debug("ModPersistance:Save", self._path)
 
     if type(self._savefn) == "function" then
         return self._savefn(self)
     end
 
-    PEARL.ClusterPersistence:SetFileLines(self._path, table.keys(self._ids))
+    PEARL.ModPersistance:SetFileLines(self._path, table.keys(self._ids))
 end
 
-function ClusterUserList:Clear()
+function PersistentUserIDList:Clear()
     for id, _ in pairs(self._ids) do
         self:RemoveLocal(id)
     end
 end
 
-function ClusterUserList:Reload()
+function PersistentUserIDList:Reload()
     self:Clear()
     self:Load()
 end
@@ -233,7 +233,7 @@ end
 -- [[ Debugging ]]
 --------------------------------------
 
-function ClusterUserList:DisplayDebugInfo()
+function PersistentUserIDList:DisplayDebugInfo()
     table.dump(self._ids)
 end
 
@@ -241,4 +241,4 @@ end
 -- [[ Return ]]
 --------------------------------------
 
-return ClusterUserList
+return PersistentUserIDList

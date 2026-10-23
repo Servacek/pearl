@@ -1246,10 +1246,10 @@ AddCommand("blockmod", {
 
         table.insert(PEARL.CONFIG.MOD_BLOCKLIST, modid)
         if PEARL.CONFIG.MOD_ALLOWLIST and table.removearrayvalue(PEARL.CONFIG.MOD_ALLOWLIST, modid) then
-            PEARL.ClusterPersistence:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_ALLOWLIST)
+            PEARL.ModPersistance:SetFileLines(PEARL.CONSTS.MOD_ALLOWLIST_FILE_PATH, PEARL.CONFIG.MOD_ALLOWLIST)
         end
 
-        PEARL.ClusterPersistence:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_BLOCKLIST)
+        PEARL.ModPersistance:SetFileLines(PEARL.CONSTS.MOD_BLACKLIST_FILE_PATH, PEARL.CONFIG.MOD_BLOCKLIST)
 
         return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.BLOCK_MOD.ON_SUCCESS)
     end

@@ -236,6 +236,10 @@ end
 
 local function ShowWelcomeLoadingTip(self)
     local welcome_tips = GetWelcomeLoadingTips()
+    if #welcome_tips == 0 then
+        return
+    end
+
     local loading_tip = welcome_tips[math.random(#welcome_tips)]
     if loading_tip then
         self:SetLoadingTip(loading_tip.text, loading_tip.type)

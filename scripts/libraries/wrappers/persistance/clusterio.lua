@@ -25,13 +25,15 @@
 --------------------------------
 
 local TheSim = TheSim
+local Persistance = PEARL.loadlib("wrappers/persistance/persistance")
 
 --------------------------------
 -- [[ Class Declaration ]]
 --------------------------------
 
---- @class ClusterPersistance
+--- @class ClusterPersistance: Persistance
 local ClusterPersistance = {}
+setmetatable(ClusterPersistance, { __index = Persistance })
 
 --------------------------------
 -- [[ Getters ]]
@@ -60,20 +62,8 @@ function ClusterPersistance:GetFileContent(fp, ensure)
     return success, result
 end
 
-function ClusterPersistance:GetAllFileLines(fp, ensure, strip)
-    local lines = {}
-    self:ForEachLineIn(fp, function(line)
-        if strip == true then
-            local stripped = string.strip(line)
-            if #stripped > 0 then
-                lines[#lines + 1] = stripped
-            end
-        else
-            lines[#lines + 1] = line
-        end
-    end, ensure)
-
-    return lines
+function ClusterPersistance:GetRootDirectoryPath()
+    return "." -- TODO? This is mainly for compatibility with ModPersistance
 end
 
 --- @param userid string
@@ -106,40 +96,6 @@ function ClusterPersistance:SetFileContent(fp, str, encode)
 end
 
 --- Always does implicit ensuring of the file similiar to the "w" read mode in "io".
-function ClusterPersistance:SetFileLines(fp, lines, encode)
-    -- Start we a new line to make the file a bit more readable because of the prefix.
-    return self:SetFileContent(fp, "\n"..table.concat(lines, "\n"), encode)
-end
-
---------------------------------
--- [[ Public Methods ]]
---------------------------------
-
-function ClusterPersistance:ForEachLineIn(fp, fn, ensure)
-    if self:FileExists(fp) ~= true then
-        if ensure == true then
-            PEARL.info("Creating file", fp)
-
-            return self:CreateFile(fp)
-        end
-
-        return PEARL.error("File not found!")
-    end
-
-    return TheSim:GetPersistentString(fp, function(success, str)
-        if not success or type(str) ~= "string" then
-            return PEARL.error("Failed to load the file!", fp)
-        end
-
-        local prefix = string.strip(PEARL.CONSTS.KLEI_DATA_PREFIX)
-        for _, line in ipairs(str:split("\n")) do
-            if string.strip(line) ~= prefix then
-                fn(line)
-            end
-        end
-    end)
-end
-
 function ClusterPersistance:CreateFile(fp)
     return self:SetFileContent(fp, "")
 end
@@ -154,25 +110,6 @@ function ClusterPersistance:EnsureFile(fp)
     end
 
     return true
-end
-
-function ClusterPersistance:LoadLuaFile(fp, ensure, env)
-    if ensure and not self:EnsureFile(fp) then
-        return false, PEARL.error("Failed to create the file!")
-    end
-
-    local success, lua_str = self:GetFileContent(fp, ensure)
-    if not success or type(lua_str) ~= "string" then
-        return false, PEARL.error("Failed to load the given lua file!")
-    end
-
-    if type(env) == "table" then
-        return RunInEnvironmentSafe(function()
-            return loadstring(lua_str)()
-        end, env)
-    end
-
-    return RunInSandboxSafe(lua_str)
 end
 
 --------------------------------

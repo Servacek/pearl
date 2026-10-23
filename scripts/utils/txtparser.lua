@@ -16,12 +16,16 @@
 -- [[ Constants ]]
 --------------------------------------
 
-local PATH_TEMPLATE = "../../%s"
+-- Temporary workaround for Klei blocking ClusterPersistance access to cluster files.
+-- Revert to PEARL.UNSAFEDATADIR when the compatibility change in modmain.lua:259 is no longer needed.
+local PATH_TEMPLATE = PEARL.ModPersistance:GetRootDirectoryPath().."/%s" --PEARL.UNSAFEDATADIR.."/%s" --"../../%s" !![modmain.lua:259]!!
 local COMMENT_PREFIX = "//"
 local ESCAPE_PREFIX = "\\"
 local TITLE_PREFIX = "#"
 local VERSION_PREFIX = "@v"
 local LMT_PREFIX = "@>"
+
+local PERSISTANCE_MANAGER = PEARL.ModPersistance -- PEARL.ClusterPersistence !![modmain.lua:259]!!
 
 local COMMENT_SUBITLES = [[
 // This is a file used for storing content for UI screens.
@@ -67,9 +71,9 @@ return function(fname, create_if_needed, subtitles)
         if create_if_needed == true then
             PEARL.info("Creating file", fname)
 
-            return TheSim:SetPersistentString(abs_path, "\n"..(
+            return PERSISTANCE_MANAGER:SaveDataToFile(abs_path, "\n"..(
                 subtitles and COMMENT_SUBITLES or COMMENT
-            ))
+            ), true)
         end
 
         return PEARL.error("File not found!")
@@ -141,7 +145,7 @@ return function(fname, create_if_needed, subtitles)
         end
     end
 
-    PEARL.ClusterPersistence:ForEachLineIn(abs_path, function(line)
+    PEARL.ModPersistance:ForEachLineIn(abs_path, function(line)
         ParseLine(result, line)
     end)
 

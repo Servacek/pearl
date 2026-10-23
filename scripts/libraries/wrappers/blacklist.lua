@@ -16,20 +16,15 @@
     for accessing the data. This is being added to the main mod table, so it's
     accessible basically from everywhere.
 
-    This also fixes up some bugs with bad decoded files, since it uses patterns
-    for precise parsing.
+    The engine owns the blacklist, so this wrapper deliberately does not access
+    blocklist.txt.
+]]
 
-    NOTES:
-        - TheNet:GetBlacklist() always creates a new table.
---]]
-
-local ClusterUserList = PEARL.loadlib("wrappers/models/clusteruserlist")
+local PersistentUserIDList = PEARL.loadlib("wrappers/models/useridlist")
 
 --------------------------------
 -- [[ Constants ]]
 --------------------------------
-
-local BLACKLIST_PATH    = "../../blocklist.txt"
 
 local KLEI_ID_PATTERN   = PEARL.CONSTS.KLEI_ID_PATTERN
 local STEAM_ID_PATTERN  = PEARL.CONSTS.STEAM_ID_PATTERN
@@ -39,42 +34,21 @@ local STEAM_ID_PATTERN  = PEARL.CONSTS.STEAM_ID_PATTERN
 --------------------------------
 
 --- @singleton
---- @class BlackList: ClusterUserList
-local BlackList = ClusterUserList(BLACKLIST_PATH)
+--- @class BlackList: PersistentUserIDList
+local BlackList = PersistentUserIDList("engine:blacklist")
 
 --- @type function, function
-local _SetEngineList
+local _GetEngineList, _SetEngineList
 BlackList:SetSaveFn(function() end) -- No explicit saving :/
 
--- Supports Steam ID and Klei ID
--- Fixes some errors when reading files with bad enconding.
+_GetEngineList = TheNet.GetBlacklist
+
 BlackList:SetLoadFn(function(self)
-    local blacklist = {}
-
-    -- Even though this seems like an async function, it blocks.
-    PEARL.ClusterPersistence:ForEachLineIn(self._path, function(line)
-        local netid = line:match(STEAM_ID_PATTERN)
-        local userid = line:match(KLEI_ID_PATTERN)
-        if not (netid or userid) then
-            return
-        end
-
+    for _, record in ipairs(_GetEngineList(TheNet) or {}) do
+        local netid = type(record.netid) == "string" and record.netid:match(STEAM_ID_PATTERN)
+        local userid = type(record.userid) == "string" and record.userid:match(KLEI_ID_PATTERN)
         self:AddLocal(userid)
         self:AddLocal(netid)
-
-        -- We are saving only the IDs for now.
-        blacklist[#blacklist+1] = {
-            netid               = netid or "",
-            userid              = userid or "",
-            servername          = "",
-            character           = "",
-            timestamp           = "",
-            serverdescription   = "",
-        }
-    end, self._ensure)
-
-    if TheShard:IsMaster() then
-        BlackList:SetEngineList(blacklist)
     end
 end)
 BlackList:SetAddFn(function(self, id, ...)
@@ -89,6 +63,10 @@ BlackList:SetRemoveFn(function(self, id)
         BlackList:RemoveFromEngineList(id) -- Implicitly saves the whitelist.
     end
 end)
+
+-- This is handled by the game itself.
+BlackList.Load = function() end
+BlackList.Save = function() end
 
 --------------------------------
 -- [[ Setters ]]
@@ -105,7 +83,7 @@ end
 
 --- @return table blacklist An array-like table of user tables.
 function BlackList:GetEngineList()
-    return TheNet:GetBlacklist()
+    return _GetEngineList(TheNet)
 end
 
 --- Checks whether the given record belongs to the given ID.

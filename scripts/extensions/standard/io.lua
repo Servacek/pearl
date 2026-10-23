@@ -46,9 +46,10 @@ function io.empty(fp)
     return empty
 end
 
--- True when successfully created.
+-- True when the file didn't exist and was successfully created
+-- or when the file already existed. Otherwise false.
 function io.ensure(fp, init_txt)
-    return not io.exists(fp) and io.create(fp, init_txt)
+    return io.exists(fp) or io.create(fp, init_txt)
 end
 
 function io.noext(fp)

@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Update 3.0.81"
+version = "Update 3.1.0"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -139,6 +139,16 @@ configuration_options = {
             UGC_MODS_ROOT = "ugc_mods",
         },
         type = "table<string, string?>"
+    },
+
+    --------------------
+    -- Server
+    --------------------
+
+    {
+        name = "SERVER_TOKEN",
+        default = "",
+        type = "string",
     },
 
     --------------------

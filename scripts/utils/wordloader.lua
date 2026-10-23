@@ -15,7 +15,7 @@
 --[[
     A small helper tool for the profanity filter. Returns a function
     with two parameters (input file and output file) capable of creating
-    a valid dictionary of filtered words for the built in profanity filter.
+    a valid dictionary of filtered words for the built-in profanity filter.
 
     NOTE:
         - The input file needs to contain the words
@@ -31,12 +31,12 @@ return function(ifile, ofile)
     -- Search for the file in the local data directory
     local rfile = io.open(MODROOT..""..PEARL.DATA_DIR_NAME.."/"..ifile, "r")
     if not rfile then
-        return PEARL.error("File not found!")
+        return PEARL.error("File "..ifile.." not found!")
     end
 
     local wfile = io.open(PEARL.SRCDIR.."languages/filters/"..ofile, "w")
     if wfile == nil then
-        return PEARL.error("File not found!")
+        return PEARL.error("File "..ofile.." not found!")
     end
 
     wfile:write("return {\n    loose_match = {\n")

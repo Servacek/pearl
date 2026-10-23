@@ -166,8 +166,8 @@ function LeaderBoarder:SaveIdentifier()
 end
 
 function LeaderBoarder:LoadIdentifier()
-    local str = PEARL.ModPersistance:ReadFromFile(ID_FILE_PATH)
-    if str then
+    local success, str = PEARL.ModPersistance:ReadFromFile(ID_FILE_PATH)
+    if success and str then
         self:SetUpdatingMessageID(str:strip())
     end
 end
