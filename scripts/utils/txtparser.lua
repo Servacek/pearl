@@ -24,6 +24,10 @@ local ESCAPE_PREFIX = "\\"
 local TITLE_PREFIX = "#"
 local VERSION_PREFIX = "@v"
 local LMT_PREFIX = "@>"
+local DEFAULT_TITLES = {
+    agreement = "Agreement",
+    welcome = "Welcome",
+}
 
 local PERSISTANCE_MANAGER = PEARL.ModPersistance -- PEARL.ClusterPersistence !![modmain.lua:259]!!
 
@@ -59,28 +63,16 @@ local COMMENT = [[
 --------------------------------------
 
 return function(fname, create_if_needed, subtitles)
-    local file_exists
     local abs_path = PATH_TEMPLATE:format(fname)
-    TheSim:CheckPersistentStringExists(abs_path, function(exists)
-        file_exists = exists
-
-        if exists == true then
-            return
+    if not PERSISTANCE_MANAGER:FileExists(abs_path) then
+        if create_if_needed ~= true then
+            return PEARL.error("File not found!")
         end
 
-        if create_if_needed == true then
-            PEARL.info("Creating file", fname)
-
-            return PERSISTANCE_MANAGER:SaveDataToFile(abs_path, "\n"..(
-                subtitles and COMMENT_SUBITLES or COMMENT
-            ), true)
-        end
-
-        return PEARL.error("File not found!")
-    end)
-
-    if not file_exists then
-        return
+        PEARL.info("Creating file", fname)
+        PERSISTANCE_MANAGER:SetFileContent(abs_path, "\n"..(
+            subtitles and COMMENT_SUBITLES or COMMENT
+        ))
     end
 
     --- @type table<string, string>?
@@ -128,6 +120,11 @@ return function(fname, create_if_needed, subtitles)
         if line:startswith(TITLE_PREFIX) and (subtitles or #tbl < 1) then
             local title = RemoveLinePrefix(line, TITLE_PREFIX):strip()
             return AddSection(tbl, title)
+        end
+
+        -- Keep non-empty files usable even when they do not contain a title.
+        if type(open_section) ~= "table" then
+            AddSection(tbl, subtitles and DEFAULT_TITLES.agreement or DEFAULT_TITLES.welcome)
         end
 
         -- Escaped lines

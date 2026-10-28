@@ -1845,8 +1845,8 @@ msgstr "Vráti daného hráča z konštanty do lobby."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS"
-msgid "Player was despawned and is now back in the lobby."
-msgstr "Hráč bol vrátený do lobby."
+msgid "Player was despawned on shard %s and is now back in the lobby."
+msgstr "Hráč bol vrátený do lobby na shard-e %s."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.PRETTYNAME"
@@ -2045,18 +2045,23 @@ msgstr "Prehľadá inventára obsahujúce konkrétny špecifikovaný item. Výst
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_FAILURE
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_FAILURE"
-msgid "No results..."
-msgstr "Žiadne výsledky..."
+msgid "No results on shard: %s."
+msgstr "Žiadne výsledky na shard-e: %s."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_SUCCESS"
-msgid "%d results were sent to discord."
-msgstr "Výsledky boli odoslané na discord. Počet: %d"
+msgid "%d results were sent to discord (shard: %s)."
+msgstr "Výsledky boli odoslané na discord. Počet: %d, shard: %s"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.PRETTYNAME"
 msgid "Find Inventory"
 msgstr "Nájsť Inventár"
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.SHARD
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.SHARD"
+msgid "Shard: %s"
+msgstr "Shard: %s"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.KICK.ON_SUCCESS"
@@ -2395,13 +2400,13 @@ msgstr "Nastaví počet hráčských slotov servera."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.NO_CHANGES
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.NO_CHANGES"
-msgid "No changes..."
-msgstr "Žiadne zmena oproti aktuálnemu počtu slotov servera..."
+msgid "No changes on shard %s."
+msgstr "Žiadne zmeny na shard-e %s."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW"
-msgid "The Specified number of slots is less than the total number of players!"
-msgstr "Počet slotov musí byť väčší alebo rovný počtu aktuálne pripojených hráčov."
+msgid "The specified number of slots is less than the total number of players on shard %s!"
+msgstr "Počet slotov na shard-e %s musí byť väčší alebo rovný počtu aktuálne pripojených hráčov."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_INVALID_INPUT"
@@ -2410,8 +2415,8 @@ msgstr "Počet slotov je neplatný."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS"
-msgid "The number of server slots has been updated!"
-msgstr "Počet slotov servera bol aktualizovaný."
+msgid "The number of server slots has been updated on shard %s!"
+msgstr "Počet slotov servera bol aktualizovaný na shard-e %s."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.PRETTYNAME"
@@ -2445,8 +2450,8 @@ msgstr "Vytvorí entitu zo zadaným prefab kódom a vloží ju do konštanty na 
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.ON_SUCCESS"
-msgid "Spawned %dx %s"
-msgstr "Do konštanty sa vložilo %dx %s"
+msgid "Spawned %dx %s on shard %s."
+msgstr "Do konštanty sa vložilo %dx %s na shard-e %s."
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.PRETTYNAME
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.PRETTYNAME"
@@ -4002,4 +4007,3 @@ msgstr ""
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL"
 msgid "Proxy Server:"
 msgstr ""
-

@@ -119,7 +119,9 @@ end
 
 --- @return boolean enabled Whether the agreement screen buttons is enabled.
 function AgreementManager:IsAgreementButtonEnabled()
-    return PEARL.CONFIG.INTRO_SCREEN.SHOW_AGREEMENT_BUTTON == true
+    return self:IsAgreementScreenEnabled()
+        -- The agreement may be shown only at first join without the button.
+        and PEARL.CONFIG.INTRO_SCREEN.SHOW_AGREEMENT_BUTTON == true
 end
 
 --- @return boolean enabled Whether the welcome popup was configured on the server.

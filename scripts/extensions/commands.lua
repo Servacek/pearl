@@ -295,7 +295,9 @@ AddCommand("invf", {
         end
 
         if #item_owners <= 0 then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_FAILURE)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_FAILURE:format(
+                PEARL.GetShardFancyName()
+            ))
         end
 
         -- Sort by item count and player age
@@ -307,9 +309,12 @@ AddCommand("invf", {
         -- Anounce first 5 inventories reversed
         -- so the first one is on the bottom of the chat.
         --- @type Message
-        local message = Message(STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR:format(
-            prefab, #item_owners
-        ))
+        local message = Message(
+            STRINGS.PEARL.LOGS.SEARCH_RESULTS_FOR:format(prefab, #item_owners)
+                .."\n"..STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.SHARD:format(
+                    PEARL.GetShardFancyName()
+                )
+        )
         for i = math.min(#item_owners, 5), 1, -1 do
             local player_reference = PEARL.GetPlayerMetadataFor(item_owners[i].player.userid)
             local embed = EMBEDS.Inventory(player_reference, {prefab})
@@ -322,7 +327,7 @@ AddCommand("invf", {
 
         if ctx.type ~= CommandContext.TYPE.DISCORD then
             ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.INVF.ON_SUCCESS:format(
-                #item_owners
+                #item_owners, PEARL.GetShardFancyName()
             ))
         end
     end,
@@ -948,7 +953,7 @@ AddCommand("spawn", {
         end
 
         ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SPAWN.ON_SUCCESS:format(
-            spawned, PEARL.PrefabToName(prefab)
+            spawned, PEARL.PrefabToName(prefab), PEARL.GetShardFancyName()
         ))
     end,
 })
@@ -1061,7 +1066,9 @@ AddCommand("despawn", {
 
         TheWorld:PushEvent("ms_playerdespawnanddelete", player)
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS)
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.DESPAWN.ON_SUCCESS:format(
+            PEARL.GetShardFancyName()
+        ))
     end,
 })
 
@@ -1388,17 +1395,23 @@ AddCommand("setslots", {
     --- @param count number
     fn = function(ctx, count)
         if count < PEARL.ServerNetwork:GetConnectedClientsCount() then
-            return ctx:ReplyError(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW)
+            return ctx:ReplyError(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_COUNT_TOO_LOW:format(
+                PEARL.GetShardFancyName()
+            ))
         end
 
         if count == TheNet:GetDefaultMaxPlayers() then
-            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.NO_CHANGES)
+            return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.NO_CHANGES:format(
+                PEARL.GetShardFancyName()
+            ))
         end
 
         -- This prints some weird error at first use. But the count is actually set.
         TheNet:SetDefaultMaxPlayers(tostring(count))
 
-        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS)
+        return ctx:Reply(STRINGS.PEARL.UI.BUILTINCOMMANDS.SET_SLOTS.ON_SUCCESS:format(
+            PEARL.GetShardFancyName()
+        ))
     end
 })
 

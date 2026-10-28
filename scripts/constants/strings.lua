@@ -866,7 +866,7 @@ end
                 PRETTYNAME = "Spawn Entity",
                 DESC       = "Spawns any entity by their prefab.",
 
-                ON_SUCCESS = "Spawned %dx %s",
+                ON_SUCCESS = "Spawned %dx %s on shard %s.",
             },
 
             REMOVEALL = {
@@ -885,7 +885,7 @@ end
                 PRETTYNAME = "Despawn a Player",
                 DESC       = "Despawns the specified player on spot. Inventory is dropped.",
 
-                ON_SUCCESS = "Player was despawned and is now back in the lobby.",
+                ON_SUCCESS = "Player was despawned on shard %s and is now back in the lobby.",
             },
 
             PERMISSIVE = {
@@ -927,8 +927,9 @@ end
                 PRETTYNAME = "Find Inventory",
                 DESC       = "Searches for inventory containing specified item.",
 
-                ON_SUCCESS          = "%d results were sent to discord.",
-                ON_FAILURE          = "No results...",
+                ON_SUCCESS          = "%d results were sent to discord (shard: %s).",
+                ON_FAILURE          = "No results on shard: %s.",
+                SHARD               = "Shard: %s",
             },
 
             GRANT = {
@@ -1086,9 +1087,9 @@ end
                 DESC       = "Sets the number of player slots for the server.",
 
                 ON_INVALID_INPUT = "Invalid number of slots provided!",
-                ON_COUNT_TOO_LOW = "The Specified number of slots is less than the total number of players!",
-                NO_CHANGES = "No changes...",
-                ON_SUCCESS = "The number of server slots has been updated!",
+                ON_COUNT_TOO_LOW = "The specified number of slots is less than the total number of players on shard %s!",
+                NO_CHANGES = "No changes on shard %s.",
+                ON_SUCCESS = "The number of server slots has been updated on shard %s!",
             },
 
             SYNC = {

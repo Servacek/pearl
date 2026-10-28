@@ -530,7 +530,7 @@ end
 -------------------------------------
 
 --- Has to be laaded before LeaderboardService
---- @type DB
+--- @type JSONDB
 PEARL.DB = PEARL.loadfile("libraries/database/database")
 PEARL.DB:SetIsEnabled(PEARL.CONFIG.DATABASE.ENABLED)
 
