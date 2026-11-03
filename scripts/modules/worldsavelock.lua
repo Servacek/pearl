@@ -73,8 +73,19 @@ end
 
 function WorldSaveLock:Lock()
     self:Install()
+    if self.locked then
+        return
+    end
+
     self.locked = true
     PEARL.info("World save lock enabled.")
+
+    if PEARL.DiscordLogger and PEARL.DiscordLogger:IsEnabled() then
+        PEARL.DiscordLogger:LogString(
+            STRINGS.PEARL.LOGS.SAVE_LOCKED:format(PEARL.GetShardFancyName()),
+            PEARL.ICONS.SERVER_STATE.LOCK
+        )
+    end
 end
 
 function WorldSaveLock:Unlock()

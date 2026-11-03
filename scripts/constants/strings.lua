@@ -481,6 +481,7 @@ end
         DAYSBACK_COUNT_AFTER    = "Rolling server %s day(s) back in %s second(s)!",
         SAVE                    = "Saving world on shard %s as snapshot %s...",
         AUTO_SAVE               = "Auto-Saving world on shard %s as snapshot %s...",
+        SAVE_LOCKED             = "World saving locked on shard %s.",
         RESET                   = "Regenerating the world on %s.",
         SHUTDOWN                = "Shutting down %s...",
         SHUTDOWN_ERROR          = "Shard %s has crashed!",

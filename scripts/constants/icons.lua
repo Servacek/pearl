@@ -165,6 +165,7 @@ local ICONS = {
         --RESUME      = "▶️",
         ROLLBACK    = "<:rollback:998561230799253614>",
         SAVE        = "<:save:1071499100752711801>",
+        LOCK        = "<:lock:1014198846835933194>",
         RESTART     = "<:refresh:997496890625118250>",
         CMD_RECV    = "<:clip:1071796523140120577>",
     },
