@@ -693,6 +693,9 @@ local ModuleManager = PEARL.loadfile("libraries/loaders/modulemanager")
 ModuleManager:SetLoader(PEARL.loadfile)
 ModuleManager:SetModuleDirectory("modules")
 
+PEARL.WorldSaveLock = PEARL.loadfile("modules/worldsavelock")
+PEARL.WorldSaveLock:Install()
+
 --- Default Modules (always enabled)
 ModuleManager:AddModule("timeupdates", true)
 ModuleManager:AddModule("rephandlers", true)
