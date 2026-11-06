@@ -635,21 +635,6 @@ end
         CLIENTERROR_DETAIL = "The error was reported to the server owner.",
 
         CONSOLE_DISABLED = "Disabled :)",
-
-
-        EMOJI_MENU = {
-            NO_EMOJIS_FOUND = "No emojis match your search", -- from discord
-
-            FAVORITE_BUTTON_HOVER = "Favourite",
-            UNFAVORITE_BUTTON_HOVER = "Unfavourite",
-
-            OPEN_BUTTON_HOVER = "View Emojis\n(%s)",
-            CLEAR_BUTTON_HOVER = "Clear\n(%s)",
-
-            SEARCH = "Search",
-            NEW = "New!",
-        },
-
         SCRIPTERRORWIDGET = {
             QUIT = "Exit Game",
             BACK = "Back to Menu",
@@ -665,14 +650,6 @@ end
             YES_NO = {
                 YES = "Yes", NO = "No",
             }
-        },
-
-        EMOJI_CATEGORIES = {
-            FAVORITES = "Favourites",
-            FREQUENTLY_USED = "Frequently Used",
-
-            DISCORD = "Discord",
-            VANILLA = "Vanilla",
         },
 
         STATIC_BAN_REASONS = {

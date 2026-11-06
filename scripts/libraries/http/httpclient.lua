@@ -83,6 +83,19 @@ function HTTPClient:SendRequest(request)
         return PEARL.error("Attempted to send an invalid request!")
     end
 
+    local is_proxy_request = request:IsProxied() or self.proxy:IsProxyURL(request.url)
+    if is_proxy_request then
+        if not request:IsProxied() and not request.proxy_tracked then
+            self.proxy:TrackRequest(request)
+            request.proxy_tracked = true
+        end
+
+        if not self.proxy:CanSendRequest() then
+            request:SetIsRetryable(false)
+            return false
+        end
+    end
+
     local data = request:GetData()
     if request.method == HTTPClient.METHODS.POST and type(data) ~= "string" then
         return PEARL.error("Attempted to send a POST request with invalid data provided!", request)

@@ -317,7 +317,7 @@ AddCommand("invf", {
         )
         for i = math.min(#item_owners, 5), 1, -1 do
             local player_reference = PEARL.GetPlayerMetadataFor(item_owners[i].player.userid)
-            local embed = EMBEDS.Inventory(player_reference, {prefab})
+            local embed = EMBEDS.Inventory(player_reference, {[prefab] = 1})
             if not message:AddEmbed(embed) then
                 break -- The message is full and doesn"t accept any more embeds
             end

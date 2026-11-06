@@ -27,6 +27,7 @@
 --------------------------------------------------------------------------
 
 local RARITY_THRESHOLD = .49
+local RECENT_LOOT_WINDOW = 120
 
 --------------------------------------------------------------------------
 --[[ Class Declaration - PlayerThief ]]
@@ -38,6 +39,8 @@ return Class(function(self, inst)
 
     local _ac_items_cache = {}
     local _ac_container = nil
+    local _recent_stolen_items = {}
+    local _recent_stolen_at = nil
 
     --------------------------------------------------------------------------
     --[[ Private Atrributes and Methods ]]
@@ -57,6 +60,11 @@ return Class(function(self, inst)
 
         local stolen_items = GetStolenItems()
         if stolen_items and #stolen_items > 0 then
+            for _, item in ipairs(stolen_items) do
+                _recent_stolen_items[item.prefab] = true
+            end
+            _recent_stolen_at = GetTime()
+
             doer:PushModEvent("finishedlooting", {
                 items = stolen_items,
                 container = container,
@@ -214,6 +222,16 @@ return Class(function(self, inst)
         end
 
         ClearActiveContainerCache()
+    end
+
+    function self:HasRecentlyStolenItems()
+        return _recent_stolen_at ~= nil
+            and GetTime() - _recent_stolen_at <= RECENT_LOOT_WINDOW
+            and not table.empty(_recent_stolen_items)
+    end
+
+    function self:WasRecentlyStolen(prefab)
+        return self:HasRecentlyStolenItems() and _recent_stolen_items[prefab] == true
     end
 
     --------------------------------

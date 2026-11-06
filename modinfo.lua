@@ -18,7 +18,7 @@
 name = "Pearl"
 backend_name = "PearlOS"
 author = "Fi7iP"
-version = "Hotfix 3.1.2a"
+version = "Update 3.2.0"
 description = [[
     “I'd been meaning to fix the place up for a while...” - Crabby Hermit
 ]]
@@ -38,9 +38,10 @@ api_version = 10
 forumthread = ""
 
 mod_dependencies = {}
+-- TODO: Should no longer be problem after the fix, needs testing.
 uncompatible_mods = {
-    "workshop-3033694168", -- Better Wormwood (until we figure out a way how to fix the fonts)
-    "workshop-3056140321", -- Menu Remix - Again, the games font system is broken...
+    --"workshop-3033694168", -- Better Wormwood (until we figure out a way how to fix the fonts)
+    --"workshop-3056140321", -- Menu Remix - Again, the games font system is broken...
                            -- Also these two are not compatible with each other as well.
 
     "workshop-3169441836", -- We implement our own "Better" crash screen >:-)
@@ -545,16 +546,7 @@ configuration_options = {
     },
 
     {
-        name="CUSTOM_EMOJI_PACKS",
-        default = {
-            ["discord_emojis"] = true,
-            ["discord_emojis_animated"] = true,
-        },
-        type = "table",
-        public = true,
-    },
-
-    {
+        -- This is useful for UTF-8 to have proper representation in the game.
         -- Function returning a table of emoji aliases in the following format:
         --[[
             {
@@ -567,13 +559,6 @@ configuration_options = {
         name="EMOJI_ALIASES",
         default = function() end,
         type = "function",
-    },
-
-    {
-        name="EMOJI_MENU",
-        default = true,
-        type = "boolean",
-        public = true,
     },
 
     {

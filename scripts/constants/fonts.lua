@@ -10,34 +10,16 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-
 --------------------------------
--- [[ Custom Fonts ]]
+-- [[ Constants ]]
 --------------------------------
-
-local CUSTOM_FONT_NAMES = {
-    DISCORD_EMOJIS = "discord_emojis"
-}
 
 local FONTS = {
     VANILLA = {
         ASSETS = GLOBAL.FONTS,
         NAMES = {},
     },
-
-    CUSTOM = {
-        ASSETS = {
-            {filename = resolvefilepath("fonts/discord_emojis.zip"), alias = CUSTOM_FONT_NAMES.DISCORD_EMOJIS, disable_colour = true}
-        },
-        NAMES = CUSTOM_FONT_NAMES,
-    },
-
-    NAMES = {},
-    ASSETS = {},
 }
-
-FONTS.NAMES = MergeMaps(FONTS.VANILLA.NAMES, FONTS.CUSTOM.NAMES)
-FONTS.ASSETS = MergeMaps(FONTS.VANILLA.ASSETS, FONTS.CUSTOM.ASSETS)
 
 --------------------------------
 -- [[ Vanilla Fonts ]]

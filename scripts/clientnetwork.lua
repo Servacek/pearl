@@ -228,10 +228,6 @@ function ClientNetwork:JoinedFirstTime()
         return false
     end
 
-    print("------------------------------------")
-    print(_connection_output_data.first_time_joined, _connection_output_data.new_session_file)
-    print("-----------------------------------")
-
     return _connection_output_data.first_time_joined == true and
            _connection_output_data.new_session_file == true
 end

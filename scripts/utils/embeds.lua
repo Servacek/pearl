@@ -74,7 +74,12 @@ function EMBEDS.Inventory(pmd, highlighted)
             line = line..MARKDOWN.codeline(iprefab..string.rep(" ", max_prefab_size - #iprefab))
         end
 
-        local highlight = type(highlighted) == "table" and type(highlighted[iprefab]) == "number" and highlighted[iprefab] >= 1
+        local highlight = type(highlighted) == "table" and (
+                          -- Support for item rarity tables,
+                          -- only items with rarity > 1 will be highlited.
+                          math.floor(tonumber(highlighted[iprefab]) or 0) or
+                          table.contains(highlighted, iprefab)
+                        )
         local name = PEARL.PrefabToName(iprefab)
         -- local name_size = string.utf8len(name)
         if highlight then
@@ -156,13 +161,6 @@ end
 function EMBEDS.SuspiciousInventory(pwd)
     -- Highlight rare items
     local embed = EMBEDS.Inventory(pwd, PEARL.PREFABS.RARE_ITEMS)
-    -- if type(suspiciousness) == "number" then
-    --     embed:AddField(
-    --         STRINGS.PEARL.EMBEDS.INV.FD_NAMES.SUSPICIOUSNESS,
-    --         MARKDOWN.codeline(tostring(math.floor(suspiciousness * 100)).."%"),
-    --         true
-    --     )
-    -- end
 
     return embed
 end

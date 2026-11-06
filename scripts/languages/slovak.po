@@ -2753,56 +2753,6 @@ msgctxt "STRINGS.PEARL.UI.DEFAULT_POPUP_TITLE"
 msgid "Notification"
 msgstr "Notifikácia"
 
-#. STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES
-msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.FAVORITES"
-msgid "Favourites"
-msgstr "Obľúbené"
-
-#. STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED
-msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.FREQUENTLY_USED"
-msgid "Frequently Used"
-msgstr "Často Používané"
-
-#. STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA
-msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.VANILLA"
-msgid "Vanilla"
-msgstr "Základné"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.CLEAR_BUTTON_HOVER"
-msgid "Clear\n(%s)"
-msgstr "Vymazať\n(%s)"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.FAVORITE_BUTTON_HOVER"
-msgid "Favourite"
-msgstr "Pridať do Obľúbených"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.NEW
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.NEW"
-msgid "New!"
-msgstr "Nové!"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.NO_EMOJIS_FOUND
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.NO_EMOJIS_FOUND"
-msgid "No emojis match your search"
-msgstr "Hľadaniu neodpovedajú žiadne smajlíky"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.OPEN_BUTTON_HOVER"
-msgid "View Emojis\n(%s)"
-msgstr "Zobraziť Smajlíky\n(%s)"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.SEARCH
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.SEARCH"
-msgid "Search"
-msgstr "Vyhľadať"
-
-#. STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER
-msgctxt "STRINGS.PEARL.UI.EMOJI_MENU.UNFAVORITE_BUTTON_HOVER"
-msgid "Unfavourite"
-msgstr "Odobrať z Obľúbených"
-
 #. STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY
 msgctxt "STRINGS.PEARL.UI.EMPTY_SERVER_POPUP.BODY"
 msgid "You are alone here but surviving is much more fun in multiple people!\nDo not hesitate to invite your friends!"
@@ -3923,6 +3873,11 @@ msgctxt "STRINGS.PEARL.LOGS.PLAYER_REPORT_EMPTY"
 msgid "%s [@here] `%s` %s **%s**"
 msgstr ""
 
+#. STRINGS.PEARL.LOGS.SAVE_LOCKED
+msgctxt "STRINGS.PEARL.LOGS.SAVE_LOCKED"
+msgid "World saving locked on shard %s."
+msgstr "Ukladanie sveta je zablokované na shard-e %s."
+
 #. STRINGS.PEARL.LOGS.SAY_COMMAND
 msgctxt "STRINGS.PEARL.LOGS.SAY_COMMAND"
 msgid "**%s**: `/%s`"
@@ -3961,7 +3916,7 @@ msgstr ""
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS"
 msgid "This server is completely vanilla!"
-msgstr ""
+msgstr "Tento server je bez ďalších modov!"
 
 #. STRINGS.PEARL.UI.CLIENTERROR_DETAIL
 msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL"
@@ -3976,11 +3931,6 @@ msgstr ""
 #. STRINGS.PEARL.UI.DM_DESIGNATOR
 msgctxt "STRINGS.PEARL.UI.DM_DESIGNATOR"
 msgid "[DM]"
-msgstr ""
-
-#. STRINGS.PEARL.UI.EMOJI_CATEGORIES.DISCORD
-msgctxt "STRINGS.PEARL.UI.EMOJI_CATEGORIES.DISCORD"
-msgid "Discord"
 msgstr ""
 
 #. STRINGS.PEARL.UI.MODS_BLOCKED_ALL_BODY

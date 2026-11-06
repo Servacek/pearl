@@ -105,12 +105,35 @@ local function sort_depo_by_priority(a, b)
     return (a.__nerby_chest_count or 0) > (b.__nerby_chest_count or 0)
 end
 
+-- We consider edible and burnable items more important since,
+-- dropping those on the ground could cause them to be destroyed (e.g. eaten by a monster).
+-- Giving them higher priority makes them the first candidates when filling up the containers.
+local function get_item_safety_priority(item)
+    if item:GetRarity() > 0 and item.components.edible then
+        return 2
+    elseif item.components.burnable then
+        return 1
+    end
+
+    return 0
+end
+
 local function sort_item_by_rarity(a, b)
+    local safety_a, safety_b = get_item_safety_priority(a), get_item_safety_priority(b)
+    if safety_a ~= safety_b then
+        return safety_a > safety_b
+    end
+
     return a:GetRarity() > b:GetRarity()
 end
 
 --- if a,b -> true then b,a -> must be false
 local function sort_item_by_priority(a, b)
+    local safety_a, safety_b = get_item_safety_priority(a), get_item_safety_priority(b)
+    if safety_a ~= safety_b then
+        return safety_a > safety_b
+    end
+
     local rarity_a, rarity_b = a:GetRarity(),b:GetRarity()
     if (rarity_a > 0 or rarity_b > 0) and rarity_a ~= rarity_b then
         -- Rare items first
@@ -228,7 +251,6 @@ function ItemDepositor:DepositItem(inventory, item)
     item.components.inventoryitem:SetLastOwner(nil)
     item.components.inventoryitem:SetLastPlayerOwner(nil)
 
-    local target_prefab = item.prefab
     for depo in self:GetDepoForItem(item) do
         if item == nil then
             return -- We have managed to add the whole item to the container.

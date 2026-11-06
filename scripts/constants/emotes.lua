@@ -10,8 +10,6 @@
     See LICENSE and AUTHORS for more details.
 --]==]====================================================]]
 
-require("emoji_items")
-
 -- Note: Webhooks and bots in general can use external emojis even from servers they are not in.
 -- So these icons should work on all discord servers.
 --- @class EMOJIS
@@ -72,143 +70,6 @@ local EMOJIS = {
 
         LMB = STRINGS.LMB,
         RMB = STRINGS.RMB
-    },
-
-    ANIMATED = {
-        DISCORD = {
-            --- @AUTOGENERATE CONTENT START ANIMATED_DISCORD_NAME_TO_UTF8
-            ["5770pepecheers"] = "󰄃",
-            ["ClaudyTumTum"] = "󰄄",
-            ["DinkDonk"] = "󰄅",
-            ["Huh"] = "󰄆",
-            ["Jam"] = "󰄇",
-            ["PepeKek"] = "󰄈",
-            ["PepeLaughs"] = "󰄉",
-            ["PoggiesFast"] = "󰄊",
-            ["SadgeCry"] = "󰄋",
-            ["TeaTime"] = "󰄌",
-            ["Tiktok"] = "󰄍",
-            ["aware"] = "󰄎",
-            ["blobcathug"] = "󰄏",
-            ["bongocat"] = "󰄐",
-            ["burn"] = "󰄑",
-            ["charmander_dancing"] = "󰄒",
-            ["clap"] = "󰄓",
-            ["eyes"] = "󰄔",
-            ["jolteon"] = "󰄕",
-            ["peepoHey"] = "󰄖",
-            ["peepoukr"] = "󰄗",
-            ["petTheCloudy"] = "󰄘",
-            ["rohliktumtum"] = "󰄙",
-            ["thisisfine"] = "󰄚",
-            ["tumtum"] = "󰄛",
-            ["vibing_cat"] = "󰄜",
-            --- @AUTOGENERATE CONTENT END ANIMATED_DISCORD_NAME_TO_UTF8
-        },
-    },
-
-    DISCORD = { -- These are not used in code so the lowered down version is enough.
-        --- @AUTOGENERATE CONTENT START DISCORD_NAME_TO_UTF8
-        ["Clueless"] = "󰂠",
-        ["D_"] = "󰂡",
-        ["HYPERS"] = "󰂢",
-        ["ICANT"] = "󰂣",
-        ["Instagram"] = "󰂤",
-        ["KEKW"] = "󰂥",
-        ["MonkaKristus"] = "󰂦",
-        ["PauseChamp"] = "󰂧",
-        ["PepeLaugh"] = "󰂨",
-        ["Pog"] = "󰂩",
-        ["Sir"] = "󰂪",
-        ["WX_78"] = "󰂫",
-        ["Walter"] = "󰂬",
-        ["Warly"] = "󰂭",
-        ["Webber"] = "󰂮",
-        ["Wendy"] = "󰂯",
-        ["Wes"] = "󰂰",
-        ["Wickerbottom"] = "󰂱",
-        ["Wigfrid"] = "󰂲",
-        ["Wilson"] = "󰂳",
-        ["Winona"] = "󰂴",
-        ["Wolfgang"] = "󰂵",
-        ["Woodie"] = "󰂶",
-        ["Wormwood"] = "󰂷",
-        ["Wortox"] = "󰂸",
-        ["Wurt"] = "󰂹",
-        ["anojdgurl"] = "󰂺",
-        ["cat_angry"] = "󰂻",
-        ["catto"] = "󰂼",
-        ["conceited_reaction"] = "󰂽",
-        ["coolpepe"] = "󰂾",
-        ["copium"] = "󰂿",
-        ["cz"] = "󰃀",
-        ["doge"] = "󰃁",
-        ["doge_kek"] = "󰃂",
-        ["doublefacepalm"] = "󰃃",
-        ["ds_Maxwell"] = "󰃄",
-        ["ds_Willow"] = "󰃅",
-        ["ds_free_real_estate"] = "󰃆",
-        ["ds_noice"] = "󰃇",
-        ["ds_takjo"] = "󰃈",
-        ["ds_watching"] = "󰃉",
-        ["ds_webber_damage"] = "󰃊",
-        ["ds_wes_annoyed"] = "󰃋",
-        ["ds_wesluv"] = "󰃌",
-        ["ds_wigfrid_ping"] = "󰃍",
-        ["ds_willowkys"] = "󰃎",
-        ["ds_wilson_thong"] = "󰃏",
-        ["ds_wilson_why"] = "󰃐",
-        ["facepalm"] = "󰃑",
-        ["feelsHangMan"] = "󰃒",
-        ["gooddoggo"] = "󰃓",
-        ["harold"] = "󰃔",
-        ["heh"] = "󰃕",
-        ["kappa"] = "󰃖",
-        ["kekleo"] = "󰃗",
-        ["krtek_ewww"] = "󰃘",
-        ["lul"] = "󰃙",
-        ["madge"] = "󰃚",
-        ["monkaChrist"] = "󰃛",
-        ["monkaHmm"] = "󰃜",
-        ["monkaMEGA"] = "󰃝",
-        ["monkaS"] = "󰃞",
-        ["monkaStop"] = "󰃟",
-        ["nailsing"] = "󰃠",
-        ["notlikethis"] = "󰃡",
-        ["okayge"] = "󰃢",
-        ["omegalul"] = "󰃣",
-        ["pea"] = "󰃤",
-        ["peepoEgoUp"] = "󰃥",
-        ["peepoblanket"] = "󰃦",
-        ["peepolove"] = "󰃧",
-        ["peepothink"] = "󰃨",
-        ["pepeHands"] = "󰃩",
-        ["pepecool"] = "󰃪",
-        ["planetHug"] = "󰃫",
-        ["risitas"] = "󰃬",
-        ["sadge"] = "󰃭",
-        ["sk"] = "󰃮",
-        ["skill_issue"] = "󰃯",
-        ["stare"] = "󰃰",
-        ["twitch"] = "󰃱",
-        ["wanda"] = "󰃲",
-        ["whaskaBACK"] = "󰃳",
-        ["whaskaBIGBRAIN"] = "󰃴",
-        ["whaskaCELO"] = "󰃵",
-        ["whaskaHI"] = "󰃶",
-        ["whaskaHYPE"] = "󰃷",
-        ["whaskaJAM"] = "󰃸",
-        ["whaskaLOVE"] = "󰃹",
-        ["whaskaLUL"] = "󰃺",
-        ["whaskaLURK"] = "󰃻",
-        ["whaskaRIP"] = "󰃼",
-        ["whaskaSAD"] = "󰃽",
-        ["whaskaSELLOUT"] = "󰃾",
-        ["whaskaTUMTUM"] = "󰃿",
-        ["xdd"] = "󰄀",
-        ["yeah"] = "󰄁",
-        ["youtube"] = "󰄂",
-        --- @AUTOGENERATE CONTENT END DISCORD_NAME_TO_UTF8
     },
 
     --- @class EMOTES.DISCORD
@@ -406,24 +267,6 @@ local EMOJIS = {
     }
 }
 
---- @enum EMOJIS.PACK_TYPE
-EMOJIS.PACK_TYPE = {
-    CLASSIC = "CLASSIC",
-    ANIMATED = "ANIMATED"
-}
-
-EMOJIS.PACKS = {
-    DISCORD = {
-        [EMOJIS.PACK_TYPE.ANIMATED] = "discord_emojis_animated",
-        [EMOJIS.PACK_TYPE.CLASSIC]  = "discord_emojis",
-    },
-}
-
-EMOJIS.PACK_CHAR_MAP = {
-    [EMOJIS.PACKS.DISCORD[EMOJIS.PACK_TYPE.ANIMATED]] = EMOJIS.ANIMATED.DISCORD,
-    [EMOJIS.PACKS.DISCORD[EMOJIS.PACK_TYPE.CLASSIC]] = EMOJIS.DISCORD,
-}
-
 -- Game Icon Name -> Discord Emoji
 --- @class EMOJIS.GAME
 EMOJIS.GAME_TO_DISCORD = {}
@@ -451,58 +294,8 @@ do
     })
 end
 
-EMOJIS.VANILLA = {}
-EMOJIS.INPUTNAME_TO_ID = {}
-EMOJIS.VANILLA_ITEMS = EMOJI_ITEMS -- This should be the untouched version from emoji_items.lua
-for emoji_id, emojis in pairs(EMOJIS.VANILLA_ITEMS) do
-    EMOJIS.VANILLA[emoji_id] = emojis.data.utf8_str
-    EMOJIS.INPUTNAME_TO_ID[emojis.input_name] = emoji_id
-end
-
-EMOJIS.ALL = MergeMaps(EMOJIS.VANILLA, EMOJIS.DISCORD, EMOJIS.ANIMATED.DISCORD)
-
-EMOJIS.DATA = PEARL.loadfile("constants/generated/emoji_data", nil, nil, function(...)
-    PEARL.error(...)
-end) or {}
-
-EMOJIS.UTF_TO_NAME = {}
-for name, utf in pairs(EMOJIS.ALL) do
-    EMOJIS.UTF_TO_NAME[utf] = name
-end
-
---- @param emoji_id string
---- @param userid string? Defaults to TheNet:GetUserID()
---- @return boolean
-function EMOJIS.IsEmojiOwnedBy(emoji_id, userid)
-    if not EMOJIS.IsEmojiVanilla(emoji_id) then
-        return true -- For custom emojis we do not have any ownership logic yet.
-    end
-
-    if emoji_id ~= nil then
-        userid = userid or TheNet:GetUserID()
-        if TheWorld ~= nil and userid ~= nil and TheWorld.ismastersim then
-            return TheInventory:CheckClientOwnership(userid, emoji_id)
-        elseif userid == TheNet:GetUserID() then
-            return TheInventory:CheckOwnership(emoji_id)
-        end
-    end
-
-    return false
-end
-
-function EMOJIS.IsEmojiAnimated(emoji_id)
-    return emoji_id and io.exists(MODROOT.."/anim/"..emoji_id..".zip") == true
-end
-
 function EMOJIS.EmojifyForDiscord(s)
     return (s:gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, PEARL.EMOJIS.UTF_TO_DISCORD))
-end
-
---- Converts emoji names (e. g. ":salt:") in a string to their corresponding utf8 emoji characters.
-function EMOJIS.EmojifyGameString(s)
-    return s:gsub(PEARL.CONSTS.GAME_EMOJI_ALIAS_MATCH, function(char)
-        return PEARL.EMOJIS.DISCORD[char] or PEARL.EMOJIS.ANIMATED.DISCORD[char]
-    end)
 end
 
 function EMOJIS.EmojifyForGame(s)
@@ -510,52 +303,6 @@ function EMOJIS.EmojifyForGame(s)
             :gsub(PEARL.CONSTS.UNICODE_EMOJI_PATTERN, function(match)
                 return PEARL.EMOJIS.DISCORD_TO_UTF[match] or ":UNKNOWN_EMOJI:"
             end))
-end
-
-function EMOJIS.GetPackForEmoji(emoji_id)
-    for pack_name, char_map in pairs(EMOJIS.PACK_CHAR_MAP) do
-        if EMOJIS.IsEmojiPackAvailable(pack_name) and char_map[emoji_id] ~= nil then
-            return pack_name
-        end
-    end
-end
-
-function EMOJIS.IsEmojiVanilla(emoji_id)
-    return EMOJIS.VANILLA[emoji_id] ~= nil
-end
-
-function EMOJIS.IsEmojiPackAvailable(pack_name)
-    return PEARL.CONFIG.CUSTOM_EMOJI_PACKS[pack_name] == true
-end
-
-function EMOJIS.IsEmojiAvailable(emoji_id)
-    local emoji_data = PEARL.EMOJIS.DATA[emoji_id]
-    return emoji_data ~= nil and emoji_data.available ~= false
-    and EMOJIS.UTF_TO_NAME[emoji_data.utf8_str] ~= nil and (
-        EMOJIS.GetPackForEmoji(emoji_id) ~= nil or EMOJIS.IsEmojiVanilla(emoji_id)
-    )
-end
-
-function EMOJIS.IsEmojiPackAnimated(pack_name)
-    for _, category in pairs(EMOJIS.PACKS) do
-        if category[EMOJIS.PACK_TYPE.ANIMATED] == pack_name then
-            return true
-        end
-    end
-
-    return false
-end
-
-function EMOJIS.IsAnyAnimatedEmojiPackEnabled()
-    for _, category in pairs(EMOJIS.PACKS) do
-        for pack_type, pack_name in pairs(category) do
-            if pack_type == EMOJIS.PACK_TYPE.ANIMATED and EMOJIS.IsEmojiPackAvailable(pack_name) then
-                return true
-            end
-        end
-    end
-
-    return false
 end
 
 --------------------------------

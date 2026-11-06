@@ -85,6 +85,9 @@ local Request = Class(function(self, url, method, proxy)
     --- @type boolean
     self.proxy = proxy or false
 
+    --- @type boolean
+    self.proxy_tracked = false
+
     --- @type table?
     self.proxydata = self.proxy and {} or nil
 
@@ -461,6 +464,10 @@ end
 function Request:OnErrorResponse(code, response, reason)
     local retryable_code = self.retry_codes and self.retry_codes[code]
     retryable_code = retryable_code == nil and Request.RETRY_CODES[code] == true or retryable_code or false
+    local circuit_open = (
+        self:IsProxied() or PEARL.HTTPClient.proxy:IsProxyURL(self.url)
+    ) and PEARL.HTTPClient.proxy:IsCircuitOpen()
+
     if not retryable_code then
         self:OnCantRetry()
     end
@@ -468,13 +475,15 @@ function Request:OnErrorResponse(code, response, reason)
     self:OnStatusCode(Request.GENERIC_CODES.ERROR, response)
 
     -- Log only failed requests to reduce log spam
-    PEARL.warn(REQUEST_FAILED_HEADER:format(self.host or "unknown", code, reason or "Reason unknown"))
+    if not circuit_open then
+        PEARL.warn(REQUEST_FAILED_HEADER:format(self.host or "unknown", code, reason or "Reason unknown"))
+    end
 
-    if self:IsRetryable() and retryable_code then
+    if self:IsRetryable() and retryable_code and not circuit_open then
         PEARL.HTTPClient:RetryRequestAfter(
             self, math.min(math.max(self.retry_timeout * (self.retries + 1), self.retry_timeout), MAX_TIMEOUT_RETRY_SECONDS)
         )
-    elseif self:WasRetried() then
+    elseif self:WasRetried() and not circuit_open then
         PEARL.error("No retrying for this request anymore...")
     end
 end

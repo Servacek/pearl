@@ -56,13 +56,12 @@ local PREDICTION = {
     LEGAL   = 0,
 }
 
-local ILLEGALITY_THRESHOLD = 3
+local REPORT_THRESHOLD = 3
+local DROP_THRESHOLD = 5
 local RARITY_THRESHOLD = 0.5
 local LEARNING_RATE = 0.1
-
-local BUILDER_MULT = .5
-
-local ITEM_WEIGHT_BIAS = PEARL.CONSTS.ITEM_WEIGHT_BIAS
+local MAX_LEARNED_WEIGHT = 1.5
+local MAX_STACK_EVIDENCE = 10
 
 -- Determines the maximal bias for players with age 1.
 local MAX_AGE_BIAS              = 0.2 -- Age bias for 100%
@@ -134,6 +133,10 @@ end
 -- Retrieve contributions in percent for each item.
 local function GetContributions(weights, normalized_value)
     local contributions = {}
+    if normalized_value <= 0 then
+        return contributions
+    end
+
     for prefab, normalized_weight in pairs(weights) do
         contributions[prefab] = normalized_weight / normalized_value
     end
@@ -146,8 +149,8 @@ local function ApplyFeedbackWeight(pd, positive)
     -- Use the actual weights used by the prediction
     local contributions = GetContributions(pd.weights, pd.normalized_value)
     for prefab, contribution in pairs(contributions) do
-        -- Items that contributed the most will be affected the most as well.
-        _weights[prefab] = (_weights[prefab] or 0) + (LEARNING_RATE * contribution * mult)
+        local weight = (_weights[prefab] or 0) + (LEARNING_RATE * contribution * mult)
+        _weights[prefab] = math.max(0, math.min(MAX_LEARNED_WEIGHT, weight))
     end
 end
 
@@ -194,38 +197,38 @@ local function ReportInventoryWithFeedback(message, pd)
     return false
 end
 
--- Returns the total predicted weight for the item with all the biases applied.
-local function CalculateBiasFor(item, stacksize)
-    local bias = 0
-
-    -- Negative bias for renewable items.
-    if item:HasTag("renewable") then
-        bias = bias + _biases.RENEWABLE * stacksize
+local function GetItemEvidence(item, owner)
+    local inventoryitem = item.components.inventoryitem
+    if not inventoryitem then
+        return 0, false
     end
 
-    -- Bias for higher nutrition food
-    if item.components.edible and item.components.edible:FulfillsDiet(FOODGROUP.OMNI) then
-        local food_val = item.components.edible:GetFoodValue()
-        if food_val > 0 then
-            local mult = item:HasTag("preparedfood") and ITEM_WEIGHT_BIAS.PER_FOOD_POINT or ITEM_WEIGHT_BIAS.PER_FOOD_POINT_RAW
-
-            bias = bias + (food_val * mult) * stacksize
-        end
+    local rarity = math.max(0, _weights[item.prefab] or PEARL.PREFABS.RARE_ITEMS[item.prefab] or 0)
+    if rarity <= 0 then
+        return 0, false
     end
 
-    -- Bias for less worn items.
-    if item.components.finiteuses then
-        -- If this item does not have durability (e. g. Walking Cane) we count it as
-        -- if it had 100%.
-        local finituse_percent = item.components.finiteuses:GetPercent() or 1
-        bias = bias * finituse_percent
+    local stacksize = math.min(MAX_STACK_EVIDENCE, PEARL.GetStackSize(item))
+    local evidence = rarity * (0.5 + (stacksize * 0.1))
+    local provenance = false
+
+    local last_player_owner = inventoryitem:GetLastPlayerOwner()
+    if last_player_owner and last_player_owner ~= owner then
+        evidence = evidence + 2.5
+        provenance = true
     end
 
-    return bias
-end
+    local last_picker = inventoryitem:IsLastPicker(owner)
+    if not last_picker and inventoryitem._last_picker then
+        evidence = evidence + 1.5
+        provenance = true
+    end
 
-local function GetWeightFor(prefab)
-    return _weights[prefab] or PEARL.CONSTS.DEFAULT_ITEM_WEIGHT
+    if item.components.built and item.components.built.doer == owner then
+        evidence = evidence * 0.5
+    end
+
+    return evidence, provenance
 end
 
 local function DoLegalityPrediction(inventory, age)
@@ -236,59 +239,63 @@ local function DoLegalityPrediction(inventory, age)
         weight = 0,
         normalized_value = 0,
         prefabs = {},
+        provenance = false,
+        rare_item_count = 0,
     }
     if inventory:IsEmpty() then
         return pd
     end
 
     for _, item in ipairs(inventory:ReferenceAllItems()) do
-        local prefab = item.prefab
-        local stacksize = PEARL.GetStackSize(item)
-        local bias = CalculateBiasFor(item, stacksize)
-        local weight = GetWeightFor(prefab)
-
-        local builderid = item.components.built and item.components.built.doer and item.components.built.doer:GetUserID()
-        if builderid == (inventory.owner and inventory.owner.userid) then
-            weight = weight * BUILDER_MULT
+        local evidence, provenance = GetItemEvidence(item, inventory.owner)
+        if evidence > 0 then
+            pd.rare_item_count = pd.rare_item_count + 1
+            pd.weight = pd.weight + evidence
+            pd.weights[item.prefab] = (pd.weights[item.prefab] or 0) + evidence
+            pd.normalized_value = pd.normalized_value + evidence
+            pd.prefabs[item.prefab] = true
+            pd.provenance = pd.provenance or provenance
         end
-
-        local ingredients = item.components.built and item.components.built.ingredients
-        if ingredients then
-            local recipe = AllRecipes[prefab]
-            local recipe_weight, nrecipe_weight = 0, 0
-            for _, ingredient in ipairs(ingredients) do
-                local ing_weight = GetWeightFor(ingredient.type)
-                if _weights[ingredient.type] and _weights[ingredient.type] > 0 then
-                    weight = weight + (ing_weight * ingredient.amount) * (stacksize / (recipe and recipe.numtogive or 1))
-                    nrecipe_weight = nrecipe_weight + ing_weight
-                end
-            end
-
-            weight = nrecipe_weight
-            pd.weight = recipe_weight + bias
-        else
-            pd.weight = pd.weight + (weight * stacksize) + bias
-        end
-
-        -- Store highest normalized weight for this item.
-        pd.weights[item.prefab] = math.max((pd.weights[item.prefab] or 0), weight)
-        pd.normalized_value = pd.normalized_value + weight
     end
 
-    local unique_item_count = inventory:CountItemPrefabs()
-    pd.weight = pd.weight + pd.weight / math.max(unique_item_count, 1)^2
-
     -- Apply age bias
-    local age_bias_percent = (-age + AGE_THRESHOLD) / AGE_THRESHOLD
-    local age_bias = MAX_AGE_BIAS * age_bias_percent
-    pd.weight = pd.weight + age_bias_percent
+    local age_bias_percent = math.max(0, math.min(1, (-age + AGE_THRESHOLD) / AGE_THRESHOLD))
+    pd.weight = pd.weight + (MAX_AGE_BIAS * age_bias_percent)
 
-    -- local wpercent = pd.weight / worst_scenario
-    pd.prediction = pd.weight > ILLEGALITY_THRESHOLD and PREDICTION.ILLEGAL or PREDICTION.LEGAL
-
-    GetContributions(pd.weights, pd.normalized_value)
+    -- Valuable items alone are not enough. Require provenance or several rare
+    -- items so normal boss loot does not trigger theft handling.
+    local independent_evidence = pd.rare_item_count >= 2
+    pd.prediction = (
+        pd.weight >= REPORT_THRESHOLD and (pd.provenance or independent_evidence)
+    ) and PREDICTION.ILLEGAL or PREDICTION.LEGAL
+    pd.confidence = math.min(pd.weight / DROP_THRESHOLD, 1)
 
     return pd
+end
+
+local function LogPrediction(player, pd, age)
+    local player_name = player.name or player.userid or "unknown"
+    PEARL.info(
+        "Inventory Reporter:",
+        player_name,
+        "("..tostring(player.userid)..")",
+        "age="..tostring(age),
+        "score="..string.format("%.2f", pd.weight),
+        "threshold="..string.format("%.2f", REPORT_THRESHOLD),
+        "confidence="..string.format("%.0f%%", pd.confidence * 100),
+        "rare_items="..tostring(pd.rare_item_count),
+        "provenance="..tostring(pd.provenance),
+        "prediction="..(pd.prediction == PREDICTION.ILLEGAL and "ILLEGAL" or "LEGAL")
+    )
+
+    for prefab, weight in pairs(pd.weights) do
+        PEARL.info(
+            "Inventory Reporter evidence:",
+            prefab,
+            PEARL.PrefabToName(prefab),
+            "weight="..string.format("%.2f", weight)
+        )
+    end
 end
 
 --- @param player_meta PlayerMetadata
@@ -340,7 +347,24 @@ local function CheckPlayersInventory(world, player)
 
     local age = player.components.age and player.components.age:GetAgeInDays() or 1
     local pd = DoLegalityPrediction(inventory, age)
+    if player.components.playerthief then
+        for prefab in pairs(pd.prefabs) do
+            if player.components.playerthief:WasRecentlyStolen(prefab) then
+                pd.provenance = true
+                pd.weight = pd.weight + 2.5
+                break
+            end
+        end
+    end
+
+    pd.prediction = (
+        pd.weight >= REPORT_THRESHOLD and (pd.provenance or pd.rare_item_count >= 2)
+    ) and PREDICTION.ILLEGAL or PREDICTION.LEGAL
+    pd.confidence = math.min(pd.weight / DROP_THRESHOLD, 1)
+    LogPrediction(player, pd, age)
+
     if pd.prediction == PREDICTION.LEGAL then
+        PEARL.info("Inventory Reporter: inventory was not flagged.")
         return -- This inventory is not flagged.
     end
 
@@ -353,13 +377,20 @@ local function CheckPlayersInventory(world, player)
     local drop_type = DROP_TYPE.NONE
     if world.state.cycles > PEARL.CONFIG.INVENTORY_REPORTER.DROP_AFTER_CYCLE or PEARL.CONFIG.DEBUG_MODE then
         local reputation = PEARL.Reputation:GetOf(player.userid)
-        if reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
+        if pd.provenance and pd.weight >= DROP_THRESHOLD and reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_ALL_UNDER_REP then
             sorted_items = ItemDepositor:DepositAllItems(inventory)
             drop_type = DROP_TYPE.ALL
-        elseif reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_REP then
+        elseif pd.provenance and pd.weight >= DROP_THRESHOLD and reputation < PEARL.CONFIG.INVENTORY_REPORTER.DROP_RARE_UNDER_REP then
             sorted_items = ItemDepositor:DepositRareItems(inventory, RARITY_THRESHOLD)
             drop_type = DROP_TYPE.RARE
         end
+
+        PEARL.info(
+            "Inventory Reporter:",
+            drop_type == DROP_TYPE.ALL and "dropped all items"
+                or drop_type == DROP_TYPE.RARE and "dropped rare items"
+                or "did not drop items"
+        )
 
         -- Save the deposited items in case of a restart or rollback
         --if #AllPlayers == 0 then
@@ -374,6 +405,8 @@ local function CheckPlayersInventory(world, player)
                 ItemDepositor.SORTBY.PRIORITY
             )
         )
+    else
+        PEARL.info("Inventory Reporter: report sending is disabled or Discord reporter is unavailable.")
     end
 end
 

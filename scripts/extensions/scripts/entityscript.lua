@@ -129,7 +129,10 @@ function EntityScript:GetRarity()
     end
 
     local mult = self.components.built and self.components.built.doer and 2 or 1
-    return rarity * mult
+    -- If the item is relatively rare then we will count all it's occurences.
+    -- This is to prevent stuff like 200x grass to have any meaningful rarity.
+    local stack_mult = (rarity >= 1 and PEARL.GetStackSize(self) or 1)
+    return rarity * mult * stack_mult
 end
 
 function EntityScript:GetStandardizedName()

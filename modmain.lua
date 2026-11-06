@@ -372,8 +372,6 @@ PEARL.loadfile("extensions/standard/debug")
 
 PEARL.loadfile("extensions/json")
 
-PEARL.loadfile("extensions/engine/net")
-
 --------------------------------
 -- [[ Persistance Libs ]]
 --------------------------------
@@ -765,10 +763,6 @@ end
 --------------------------------
 -- [[ Mod Post-Init ]]
 --------------------------------
-
-if PEARL.CONFIG.DEBUG_MODE and TheNet:GetIsServer() then
-    PEARL.loadfile("utils/emojidatagenerator.lua")
-end
 
 PEARL.info("Mod loaded successfully on version:", PEARL.MOD_INFO.version,
     PEARL.IS_BACKUP == true and "[Backup]" or ""

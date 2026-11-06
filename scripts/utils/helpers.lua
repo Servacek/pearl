@@ -514,7 +514,6 @@ local missing_name_cache = {}
 --- @param entity string|EntityScript
 --- @return string
 function PEARL.GetStandardizedNameFor(entity, noprefix)
-    print("GET STANDARDIZATION NAME FOR", entity)
     if not EntityScript.is_instance(entity) then
         return tostring(entity)
     end

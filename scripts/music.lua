@@ -27,6 +27,10 @@ local function StartErrorMusic()
     end
 
     local emittor = focal_emittor or fe_emittor
+    if not emittor or not TheMixer then
+        return
+    end
+
     local music_volume = math.max(TheMixer:GetLevel("set_music"), 0.5)
     -- emittor:PlaySound("custom_music/misc/technical_difficulties", "music_server_error")
     emittor:SetVolume("music_server_error", music_volume)

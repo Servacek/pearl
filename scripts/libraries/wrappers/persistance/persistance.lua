@@ -115,8 +115,6 @@ function Persistance:ForEachLineIn(fp, fn, ensure)
     return true
 end
 
---- @param userid string
---- @param sessionid string? The ID of the target session or the newest one if not provided.
 --- @return boolean exists
 function Persistance:UserSessionExists()
     return false

@@ -266,9 +266,6 @@ PEARL.ENV.Assets = {
     Asset("IMAGE", PEARL.ASSETS.PROFILE_FLAIRS.TEX),
     Asset("ATLAS", PEARL.ASSETS.PROFILE_FLAIRS.ATLAS),
 
-    Asset("IMAGE", "images/emoji_menu.tex"),
-    Asset("ATLAS", "images/emoji_menu.xml"),
-
     Asset("IMAGE", PEARL.ASSETS.SOCIAL_BUTTONS.TEX),
     Asset("ATLAS", PEARL.ASSETS.SOCIAL_BUTTONS.ATLAS),
 }
@@ -307,8 +304,6 @@ PEARL.loadfile("constants/strings")
 ----------------------------------
 
 PEARL.info("Loading user interface extensions...")
---- Load the extensions to the fundemental components first.
-PEARL.loadfile("extensions/ui/text")
 
 PEARL.loadfile("extensions/ui/templates")
 
@@ -316,7 +311,6 @@ PEARL.loadfile("extensions/ui/playerlist")
 PEARL.loadfile("extensions/ui/consolescreen")
 PEARL.loadfile("extensions/ui/playerstatusscreen")
 PEARL.loadfile("extensions/ui/chatinputscreen")
-PEARL.loadfile("extensions/ui/chatsidebar")
 
 PEARL.loadfile("extensions/ui/scripterrorwidget")
 PEARL.loadfile("extensions/ui/loadingwidget")
@@ -351,7 +345,6 @@ ModuleManager:SetModuleDirectory("modules")
 
 ModuleManager:AddModule("healthinfo", PEARL.CONFIG.HEALTH_INFO.ENABLED)
 ModuleManager:AddModule("languageserver", PEARL.CONFIG.LANGUAGE_SERVER.ENABLED and PEARL.CONFIG.LANGUAGE_SERVER.URL and PEARL.CONFIG.LANGUAGE_SERVER.LANGUAGE)
-ModuleManager:AddModule("customemojipacks", PEARL.CONFIG.CUSTOM_EMOJI_PACKS)
 ModuleManager:AddModule(
     -- Only load the modblocker if we have any mods enabled.
     -- Call this also for non-admins because we may want to block some uncompatible mods.
