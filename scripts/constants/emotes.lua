@@ -294,12 +294,33 @@ do
     })
 end
 
+--[[
+    Since we have migrated the emoji menu part of the mod to a separate "Animated Emojis" mod,
+    we take the mapping tables for converting utf8 strings to discord strings and vice versa
+    from that mod's globally exposed tables.
+--]]
+
 function EMOJIS.EmojifyForDiscord(s)
-    return (s:gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, PEARL.EMOJIS.UTF_TO_DISCORD))
+    local animated_emojis = rawget(_G, "__MOD_ANIMATED_EMOJIS")
+    local custom_utf_to_discord = animated_emojis and animated_emojis.EMOJIS
+                                  and animated_emojis.EMOJIS.UTF_TO_DISCORD_STR
+    return (s:gsub(PEARL.CONSTS.UTF_EMOJI_PATTERN, function(emoji)
+        return PEARL.EMOJIS.UTF_TO_DISCORD[emoji]
+            or (custom_utf_to_discord and custom_utf_to_discord[emoji])
+            or emoji
+    end))
 end
 
 function EMOJIS.EmojifyForGame(s)
-    return (s:gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, PEARL.EMOJIS.DISCORD_TO_UTF)
+    local animated_emojis = rawget(_G, "__MOD_ANIMATED_EMOJIS")
+    local custom_discord_to_utf = animated_emojis and animated_emojis.EMOJIS
+                                  and animated_emojis.EMOJIS.DISCORD_TO_UTF_STR
+
+    return (s:gsub(PEARL.CONSTS.DISCORD_EMOJI_PATTERN, function(emoji)
+                return PEARL.EMOJIS.DISCORD_TO_UTF[emoji]
+                    or (custom_discord_to_utf and custom_discord_to_utf[emoji])
+                    or emoji
+            end)
             :gsub(PEARL.CONSTS.UNICODE_EMOJI_PATTERN, function(match)
                 return PEARL.EMOJIS.DISCORD_TO_UTF[match] or ":UNKNOWN_EMOJI:"
             end))

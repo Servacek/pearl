@@ -1208,6 +1208,11 @@ msgctxt "STRINGS.PEARL.LOGS.SAVE"
 msgid "Saving world on shard %s as snapshot %s..."
 msgstr "Ukládanie sveta shardu %s ako uloženie číslo %s..."
 
+#. STRINGS.PEARL.LOGS.SAVE_LOCKED
+msgctxt "STRINGS.PEARL.LOGS.SAVE_LOCKED"
+msgid "World saving locked on shard %s."
+msgstr "Ukladanie sveta je zablokované na shard-e %s."
+
 #. STRINGS.PEARL.LOGS.SAY
 msgctxt "STRINGS.PEARL.LOGS.SAY"
 msgid "**%s**: %s"
@@ -2112,6 +2117,11 @@ msgstr "Nepodarilo sa získať zoznam používaných modifikácií zadaného hr�
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_MODS"
 msgid "This player does not use any mods now."
 msgstr "Tento hráč zatiaľ nepoužíval na serveri žiadne klientské modifikácie."
+
+#. STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS
+msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS"
+msgid "This server is completely vanilla!"
+msgstr "Tento server je bez ďalších modov!"
 
 #. STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS
 msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.ON_SUCCESS"
@@ -3873,11 +3883,6 @@ msgctxt "STRINGS.PEARL.LOGS.PLAYER_REPORT_EMPTY"
 msgid "%s [@here] `%s` %s **%s**"
 msgstr ""
 
-#. STRINGS.PEARL.LOGS.SAVE_LOCKED
-msgctxt "STRINGS.PEARL.LOGS.SAVE_LOCKED"
-msgid "World saving locked on shard %s."
-msgstr "Ukladanie sveta je zablokované na shard-e %s."
-
 #. STRINGS.PEARL.LOGS.SAY_COMMAND
 msgctxt "STRINGS.PEARL.LOGS.SAY_COMMAND"
 msgid "**%s**: `/%s`"
@@ -3912,11 +3917,6 @@ msgstr ""
 msgctxt "STRINGS.PEARL.SHARDS.SECONDARY"
 msgid "Caves"
 msgstr ""
-
-#. STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS
-msgctxt "STRINGS.PEARL.UI.BUILTINCOMMANDS.MODS.NO_SERVER_MODS"
-msgid "This server is completely vanilla!"
-msgstr "Tento server je bez ďalších modov!"
 
 #. STRINGS.PEARL.UI.CLIENTERROR_DETAIL
 msgctxt "STRINGS.PEARL.UI.CLIENTERROR_DETAIL"
@@ -3957,3 +3957,4 @@ msgstr ""
 msgctxt "STRINGS.PEARL.UI.PROXY_SERVER.STATE_LABEL"
 msgid "Proxy Server:"
 msgstr ""
+
